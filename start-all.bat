@@ -120,18 +120,20 @@ start "AI-Service" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System
 exit /b
 
 :start_gateway
-call :start_gateway_svc
-pause
-goto menu
-
-:start_gateway_svc
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do (
     echo [SKIP] .NET Gateway already running
-    exit /b
+    pause
+    goto menu
 )
 echo Starting .NET Gateway...
-start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System ^&^& dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
-exit /b
+start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System ^&^& dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
+pause
+goto menu
+)
+echo Starting .NET Gateway...
+start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System && dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
+pause
+goto menu
 
 :stop_all
 echo Stopping all services...
