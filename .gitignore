@@ -64,3 +64,21 @@ docker-compose.local.yml
 
 # MES specific
 *.original
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# .NET
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.runtimeconfig.json
+*.deps.json
+
+# Mono
+*.user
+*.suo

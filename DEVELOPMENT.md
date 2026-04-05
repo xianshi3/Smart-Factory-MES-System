@@ -11,20 +11,18 @@
 ```
 Smart-Factory-MES-System/
 ├── mes-common/              # 公共模块 (Result, BaseEntity, 异常处理)
-├── mes-gateway/            # API网关 (8080)
+├── mes-gateway/            # API网关 (9090)
 ├── mes-auth/                # 认证服务 (8081)
 ├── mes-workorder/           # 工单服务 (8082)
 ├── mes-process/             # 工艺服务 (8083)
 ├── mes-quality/             # 质量服务 (8084)
 ├── mes-dashboard/           # 看板服务 (8085)
-├── mes-device-gateway/      # .NET设备网关
+├── mes-device-gateway/      # .NET设备网关 (5000)
 ├── mes-ai-service/          # Python AI服务 (8086)
 ├── mes-device-simulator/    # 设备模拟器
 ├── mes-frontend/            # Vue 3前端 (3000)
 ├── sql/                      # 数据库脚本
-├── scripts/                  # 工具脚本
-├── start-docker.bat         # 快速启动脚本
-├── stop-docker.bat          # 快速停止脚本
+├── start-all.bat            # 统一启动器
 ├── docker-compose.yml        # 基础设施配置
 ├── DESIGN.md                 # 技术设计文档
 ├── DEVELOPMENT.md            # 本文档
@@ -53,57 +51,34 @@ Smart-Factory-MES-System/
 | JDK | 17+ | Java运行环境 |
 | Maven | 3.9+ | 项目构建 |
 | Node.js | 18+ | 前端开发 |
+| Python | 3.10+ | AI服务运行环境 |
+| .NET | 8.0+ | 设备网关运行环境 |
 | Docker | 24+ | 容器化部署 |
 
-### 2.2 启动基础设施
+### 2.2 启动所有服务
 
 ```powershell
-# 方式1：快速启动（推荐）
-start-docker.bat
-
-# 停止服务
-stop-docker.bat
-
-# 方式2：手动启动
-docker compose up -d
+# 一键启动（推荐）
+start-all.bat
 ```
 
-### 2.3 启动后端服务
+选择 [1] Start All Services
 
-**IDEA 启动步骤**：
-1. Maven → Reload Project
-2. Build → Rebuild Project
-3. 按顺序启动各服务（8080→8085）
+### 2.3 单独启动服务
 
 ```powershell
-# 或者命令行启动
-mvn clean install -DskipTests
-start java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
-start java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
-# ... 其他服务
+start-all.bat
+
+# 选择：
+# [2] Start Docker       - 仅Docker
+# [3] Start Backend      - 仅后端
+# [4] Start AI Service   - 仅AI服务
+# [5] Start .NET Gateway - 仅设备网关
+# [6] Stop All Services  - 停止所有
+# [7] View Status        - 查看状态
 ```
 
 ### 2.4 启动前端
-
-在 IDE 中直接运行 Java 主类：
-
-| 模块 | 主类 | 端口 |
-|------|------|------|
-| mes-gateway | `GatewayApplication.java` | 8080 |
-| mes-auth | `AuthApplication.java` | 8081 |
-| mes-workorder | `WorkOrderApplication.java` | 8082 |
-| mes-process | `ProcessApplication.java` | 8083 |
-| mes-quality | `QualityApplication.java` | 8084 |
-| mes-dashboard | `DashboardApplication.java` | 8085 |
-
-**IDEA 配置步骤**：
-1. 打开项目根目录（Smart-Factory-MES-System）
-2. Maven → Reload Project
-3. Build → Rebuild Project 重新编译
-4. 按顺序启动各个服务（建议按端口顺序：8080→8085）
-5. 启动后访问 http://localhost:3000
-
-### 2.5 启动前端
 
 ```powershell
 cd mes-frontend
@@ -113,14 +88,6 @@ npm run dev
 
 访问 http://localhost:3000
 
-### 2.6 启动设备模拟器（可选）
-
-```powershell
-cd mes-device-simulator
-npm install
-npm start
-```
-
 ---
 
 ## 3. 服务端口
@@ -128,17 +95,20 @@ npm start
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | 前端 | 3000 | Vue 3应用 |
-| 认证服务 | 8081 | 用户登录/注册（开发环境直连） |
+| API网关 | 9090 | Spring Cloud Gateway（暂未使用） |
+| 认证服务 | 8081 | 用户登录/注册 |
 | 工单服务 | 8082 | 工单管理 |
 | 工艺服务 | 8083 | 工艺模板 |
 | 质量服务 | 8084 | 质检追溯 |
 | 看板服务 | 8085 | OEE/WebSocket |
-| API网关 | 9090 | Spring Cloud Gateway（可选） |
 | AI服务 | 8086 | 质量/产量预测 |
+| .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
 | MySQL | 3306 | 数据库 |
 | Redis | 6379 | 缓存 |
+| MQTT | 1883 | 设备通信 |
+| Kafka | 9092 | 消息队列 |
 
-> 注意：开发环境前端直连各服务（8081-8084），暂不需要网关
+> 注意：开发环境前端直连各服务（8081-8085），暂不需要网关
 
 ---
 
