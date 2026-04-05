@@ -1,10 +1,12 @@
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using MesDeviceGateway.Config;
 using MesDeviceGateway.Models;
 using MesDeviceGateway.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
@@ -12,21 +14,18 @@ using MQTTnet.Protocol;
 namespace MesDeviceGateway.Services;
 
 /// <summary>
-/// MQTT消费者服务，用于从MQTT代理消费设备消息
+/// MQTT消费者服务 - 优化版
+/// 支持自动重连、消息Channel处理、错误恢复
 /// </summary>
 public class MqttConsumerService : BackgroundService
 {
     private readonly GatewayConfig _config;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MqttConsumerService> _logger;
+    private readonly Channel<MqttApplicationMessage> _messageChannel;
     private IMqttClient? _mqttClient;
+    private bool _isConnected;
 
-    /// <summary>
-    /// 初始化MQTT消费者服务
-    /// </summary>
-    /// <param name="config">网关配置</param>
-    /// <param name="scopeFactory">服务作用域工厂</param>
-    /// <param name="logger">日志记录器</param>
     public MqttConsumerService(
         GatewayConfig config,
         IServiceScopeFactory scopeFactory,
@@ -35,14 +34,51 @@ public class MqttConsumerService : BackgroundService
         _config = config;
         _scopeFactory = scopeFactory;
         _logger = logger;
+
+        _messageChannel = Channel.CreateBounded<MqttApplicationMessage>(
+            new BoundedChannelOptions(config.ChannelBufferSize / 10)
+            {
+                FullMode = BoundedChannelFullMode.DropOldest
+            });
     }
 
     /// <summary>
-    /// 启动MQTT消费者服务，连接到MQTT代理并订阅主题
+    /// 启动服务
     /// </summary>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>异步任务</returns>
-    public override async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("MQTT Consumer background task started");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                if (!_isConnected || _mqttClient?.IsConnected != true)
+                {
+                    await ConnectAsync(stoppingToken);
+                }
+
+                await foreach (var message in _messageChannel.Reader.ReadAllAsync(stoppingToken))
+                {
+                    await ProcessMessageAsync(message, stoppingToken);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in MQTT consumer loop");
+                await Task.Delay(_config.MqttReconnectIntervalMs, stoppingToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 连接到MQTT服务器
+    /// </summary>
+    private async Task ConnectAsync(CancellationToken cancellationToken)
     {
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
@@ -50,47 +86,61 @@ public class MqttConsumerService : BackgroundService
         var options = new MqttClientOptionsBuilder()
             .WithTcpServer(_config.MqttServer, _config.MqttPort)
             .WithCredentials(_config.MqttUsername, _config.MqttPassword)
-            .WithClientId($"mes-gateway-{Guid.NewGuid():N}")
+            .WithClientId($"mes-gateway-{Environment.MachineName}-{Guid.NewGuid():N[..8]}")
             .WithCleanSession()
+            .WithProtocolVersion(MqttProtocolVersion.V500)
+            .WithTimeout(_config.MqttReconnectIntervalMs)
             .Build();
 
         _mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
+        _mqttClient.DisconnectedAsync += OnDisconnected;
 
-        try
-        {
-            await _mqttClient.ConnectAsync(options, cancellationToken);
-            _logger.LogInformation("Connected to MQTT Broker at {Server}:{Port}", _config.MqttServer, _config.MqttPort);
+        await _mqttClient.ConnectAsync(options, cancellationToken);
+        _isConnected = true;
 
-            var subscribeOptions = new MqttClientSubscribeOptionsBuilder()
-                .WithTopicFilter("mes/device/+/data", MqttQualityOfServiceLevel.AtLeastOnce)
-                .WithTopicFilter("mes/device/+/status", MqttQualityOfServiceLevel.AtLeastOnce)
-                .Build();
+        _logger.LogInformation("Connected to MQTT Broker at {Server}:{Port}", _config.MqttServer, _config.MqttPort);
 
-            await _mqttClient.SubscribeAsync(subscribeOptions, cancellationToken);
-            _logger.LogInformation("Subscribed to topics: mes/device/+/data, mes/device/+/status");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to connect to MQTT Broker");
-            throw;
-        }
+        var subscribeOptions = new MqttClientSubscribeOptionsBuilder()
+            .WithTopicFilter("mes/device/+/data", MqttQualityOfServiceLevel.AtLeastOnce)
+            .WithTopicFilter("mes/device/+/status", MqttQualityOfServiceLevel.AtLeastOnce)
+            .Build();
 
-        await base.StartAsync(cancellationToken);
+        await _mqttClient.SubscribeAsync(subscribeOptions, cancellationToken);
+        _logger.LogInformation("Subscribed to topics: mes/device/+/data, mes/device/+/status");
     }
 
     /// <summary>
-    /// 处理收到的MQTT消息
+    /// 断开连接处理
     /// </summary>
-    /// <param name="arg">MQTT应用消息事件参数</param>
-    /// <returns>异步任务</returns>
-    private async Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs arg)
+    private async Task OnDisconnected(MqttClientDisconnectedEventArgs e)
+    {
+        _isConnected = false;
+        _logger.LogWarning("Disconnected from MQTT Broker: {Reason}", e.Reason);
+        
+        await Task.Delay(_config.MqttReconnectIntervalMs);
+    }
+
+    /// <summary>
+    /// 消息接收处理 - 写入Channel
+    /// </summary>
+    private Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs arg)
+    {
+        if (!_messageChannel.Writer.TryWrite(arg.ApplicationMessage))
+        {
+            _logger.LogWarning("Message channel is full, dropping message");
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 处理MQTT消息
+    /// </summary>
+    private async Task ProcessMessageAsync(MqttApplicationMessage message, CancellationToken cancellationToken)
     {
         try
         {
-            var topic = arg.ApplicationMessage.Topic;
-            var payload = Encoding.UTF8.GetString(arg.ApplicationMessage.PayloadSegment);
-
-            _logger.LogDebug("Received message on topic {Topic}: {Payload}", topic, payload);
+            var topic = message.Topic;
+            var payload = Encoding.UTF8.GetString(message.PayloadSegment);
 
             using var scope = _scopeFactory.CreateScope();
             var cleanseService = scope.ServiceProvider.GetRequiredService<DataCleanseService>();
@@ -111,6 +161,7 @@ public class MqttConsumerService : BackgroundService
                     }
                 }
                 else if (messageType == "status")
+                {
                     var statusMsg = JsonSerializer.Deserialize<DeviceStatusMessage>(payload);
                     if (statusMsg != null)
                     {
@@ -127,31 +178,20 @@ public class MqttConsumerService : BackgroundService
     }
 
     /// <summary>
-    /// 停止MQTT消费者服务
+    /// 停止服务
     /// </summary>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>异步任务</returns>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("MQTT Consumer stopping...");
+
         if (_mqttClient?.IsConnected == true)
         {
-            await _mqttClient.DisconnectAsync(cancellationToken: cancellationToken);
-            _logger.LogInformation("Disconnected from MQTT Broker");
+            await _mqttClient.DisconnectAsync(cancellationToken);
         }
+
+        _messageChannel.Writer.Complete();
+        _mqttClient?.Dispose();
 
         await base.StopAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// 执行后台任务，保持服务运行
-    /// </summary>
-    /// <param name="stoppingToken">停止令牌</param>
-    /// <returns>异步任务</returns>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(1000, stoppingToken);
-        }
     }
 }

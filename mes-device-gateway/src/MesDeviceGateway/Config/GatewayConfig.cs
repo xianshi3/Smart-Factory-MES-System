@@ -41,4 +41,20 @@ public class GatewayConfig
     /// 最大设备数量
     /// </summary>
     public int MaxDevices { get; set; } = 2000;
+    /// <summary>
+    /// MQTT重连间隔(毫秒)
+    /// </summary>
+    public int MqttReconnectIntervalMs { get; set; } = 5000;
+    /// <summary>
+    /// Kafka生产者 idempotent
+    /// </summary>
+    public bool EnableIdempotent { get; set; } = true;
+    /// <summary>
+    /// 消息处理通道缓冲区大小
+    /// </summary>
+    public int ChannelBufferSize { get; set; } = 10000;
+    /// <summary>
+    /// 启用健康检查
+    /// </summary>
+    public bool EnableHealthChecks { get; set; } = true;
 }

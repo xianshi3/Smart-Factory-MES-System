@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Threading.Channels;
 using System.Text.Json;
 using Confluent.Kafka;
 using MesDeviceGateway.Config;
@@ -8,129 +8,103 @@ using Microsoft.Extensions.Logging;
 namespace MesDeviceGateway.Services;
 
 /// <summary>
-/// Kafka生产者服务，用于将消息批量发送到Kafka
+/// Kafka生产者服务 - 优化版
+/// 使用Channel实现高吞吐量消息传递
 /// </summary>
-public class KafkaProducerService : IDisposable
+public class KafkaProducerService : BackgroundService
 {
     private readonly GatewayConfig _config;
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly IProducer<string, string> _producer;
-    private readonly ConcurrentQueue<KafkaMessage> _messageQueue = new();
-    private readonly Timer? _flushTimer;
-    private int _currentBatchCount = 0;
+    private readonly Channel<KafkaMessage> _channel;
+    private readonly string _topic;
 
     /// <summary>
     /// 初始化Kafka生产者服务
     /// </summary>
-    /// <param name="config">网关配置</param>
-    /// <param name="logger">日志记录器</param>
     public KafkaProducerService(GatewayConfig config, ILogger<KafkaProducerService> logger)
     {
         _config = config;
         _logger = logger;
+        _topic = "mes-device-data";
 
         var producerConfig = new ProducerConfig
         {
             BootstrapServers = _config.KafkaBootstrapServers,
-            Acks = Acks.All,
+            Acks = Acks.Leader,
             LingerMs = 5,
-            CompressionType = CompressionType.Snappy
+            CompressionType = CompressionType.Snappy,
+            EnableIdempotence = _config.EnableIdempotent,
+            MaxInFlight = 5,
+            RetryBackoffMs = 100,
+            MessageTimeoutMs = 30000
         };
 
-        var producerBuilder = new ProducerBuilder<string, string>(producerConfig);
-        _producer = producerBuilder.Build();
+        _producer = new ProducerBuilder<string, string>(producerConfig)
+            .SetErrorHandler((_, e) => _logger.LogError("Kafka error: {Error}", e.Reason))
+            .Build();
 
-        _flushTimer = new Timer(FlushBatch, null,
-            TimeSpan.FromMilliseconds(_config.FlushIntervalMs),
-            TimeSpan.FromMilliseconds(_config.FlushIntervalMs));
-
-        _logger.LogInformation("Kafka Producer initialized with BootstrapServers: {Servers}", _config.KafkaBootstrapServers);
-    }
-
-    /// <summary>
-    /// 生产Kafka消息，加入队列并在达到批处理大小时刷新
-    /// </summary>
-    /// <param name="message">Kafka消息</param>
-    /// <returns>异步任务</returns>
-    public async Task ProduceAsync(KafkaMessage message)
-    {
-        _messageQueue.Enqueue(message);
-        Interlocked.Increment(ref _currentBatchCount);
-
-        if (_currentBatchCount >= _config.BatchSize)
-        {
-            await FlushBatchAsync();
-        }
-    }
-
-    private void FlushBatch(object? state)
-    {
-        FlushBatchAsync().GetAwaiter().GetResult();
-    }
-
-    private async Task FlushBatchAsync()
-    {
-        if (_messageQueue.IsEmpty) return;
-
-        var batch = new List<KafkaMessage>();
-        while (_messageQueue.TryDequeue(out var msg))
-        {
-            batch.Add(msg);
-        }
-
-        Interlocked.Exchange(ref _currentBatchCount, 0);
-
-        if (batch.Count == 0) return;
-
-        try
-        {
-            var tasks = batch.Select(msg => ProduceSingleAsync(msg)).ToArray();
-            await Task.WhenAll(tasks);
-
-            _logger.LogDebug("Flushed {Count} messages to Kafka", batch.Count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error flushing batch to Kafka");
-        }
-    }
-
-    private async Task ProduceSingleAsync(KafkaMessage message)
-    {
-        try
-        {
-            var valueJson = JsonSerializer.Serialize(message.Value);
-
-            var kafkaMessage = new Message<string, string>
+        _channel = Channel.CreateBounded<KafkaMessage>(
+            new BoundedChannelOptions(_config.ChannelBufferSize)
             {
-                Key = message.Key,
-                Value = valueJson,
-                Headers = new Headers
-                {
-                    { "timestamp", BitConverter.GetBytes(message.Timestamp.Ticks) }
-                }
-            };
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false
+            });
 
-            var result = await _producer.ProduceAsync(message.Topic, kafkaMessage);
-            _logger.LogDebug("Message sent to {Topic} [Partition:{Partition} Offset:{Offset}]",
-                result.Topic, result.Partition, result.Offset);
-        }
-        catch (ProduceException<string, string> ex)
+        _logger.LogInformation("Kafka Producer initialized: BootstrapServers={Servers}, ChannelBuffer={Buffer}",
+            _config.KafkaBootstrapServers, _config.ChannelBufferSize);
+    }
+
+    /// <summary>
+    /// 生产消息到Kafka
+    /// </summary>
+    public async Task ProduceAsync(KafkaMessage message, CancellationToken cancellationToken = default)
+    {
+        await _channel.Writer.WriteAsync(message, cancellationToken);
+    }
+
+    /// <summary>
+    /// 执行后台任务 - 消费Channel并发送到Kafka
+    /// </summary>
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Kafka Producer background task started");
+
+        await foreach (var message in _channel.Reader.ReadAllAsync(stoppingToken))
         {
-            _logger.LogError(ex, "Kafka produce error for topic {Topic}: {Error}",
-                message.Topic, ex.Error.Reason);
-            throw;
+            try
+            {
+                var valueJson = JsonSerializer.Serialize(message.Value);
+                
+                var result = await _producer.ProduceAsync(_topic, new Message<string, string>
+                {
+                    Key = message.Key,
+                    Value = valueJson
+                }, stoppingToken);
+
+                _logger.LogTrace("Message sent to [{Topic}] Partition:{Partition} Offset:{Offset}",
+                    result.Topic, result.Partition, result.Offset);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to produce message: {Key}", message.Key);
+            }
         }
     }
 
     /// <summary>
-    /// 释放Kafka生产者资源
+    /// 优雅停止
     /// </summary>
-    public void Dispose()
+    public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _flushTimer?.Dispose();
-        FlushBatchAsync().GetAwaiter().GetResult();
+        _logger.LogInformation("Kafka Producer stopping...");
+        
+        _channel.Writer.Complete();
+        
+        _producer.Flush(cancellationToken);
         _producer.Dispose();
-        _logger.LogInformation("Kafka Producer disposed");
+        
+        await base.StopAsync(cancellationToken);
     }
 }
