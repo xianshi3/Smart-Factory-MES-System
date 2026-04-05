@@ -1,4 +1,5 @@
 """产量预测模型模块"""
+import os
 import numpy as np
 import xgboost as xgb
 import onnxruntime as ort

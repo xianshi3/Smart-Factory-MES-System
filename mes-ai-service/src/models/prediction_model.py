@@ -1,4 +1,5 @@
 """质量预测模型模块"""
+import os
 import numpy as np
 import lightgbm as lgb
 import onnxruntime as ort

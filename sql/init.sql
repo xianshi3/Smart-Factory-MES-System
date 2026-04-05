@@ -30,9 +30,9 @@ CREATE TABLE `sys_user` (
     UNIQUE KEY `uk_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
--- Insert default admin user (password: admin123)
+-- Insert default admin user (password: admin123, BCrypt hashed)
 INSERT INTO `sys_user` (`username`, `password`, `real_name`, `phone`, `email`, `status`, `role`)
-VALUES ('admin', 'admin123', '系统管理员', '13800138000', 'admin@mes.com', 1, 'ADMIN');
+VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '系统管理员', '13800138000', 'admin@mes.com', 1, 'ADMIN');
 
 -- =====================================================
 -- 2. Work Order Module (wo_work_order, wo_work_report)

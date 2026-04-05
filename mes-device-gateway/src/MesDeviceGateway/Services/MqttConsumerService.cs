@@ -86,7 +86,7 @@ public class MqttConsumerService : BackgroundService
         var options = new MqttClientOptionsBuilder()
             .WithTcpServer(_config.MqttServer, _config.MqttPort)
             .WithCredentials(_config.MqttUsername, _config.MqttPassword)
-            .WithClientId($"mes-gateway-{Environment.MachineName}-{Guid.NewGuid():N[..8]}")
+            .WithClientId($"mes-gateway-{Environment.MachineName}-{Guid.NewGuid().ToString("N").Substring(0, 8)}")
             .WithCleanSession()
             .WithTimeout(TimeSpan.FromSeconds(30))
             .Build();

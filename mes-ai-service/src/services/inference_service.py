@@ -31,7 +31,7 @@ class InferenceService:
     def _init_redis(self) -> Optional[redis.Redis]:
         """初始化 Redis 客户端"""
         try:
-            rc = config.get("redis", {})
+            rc = self.config.get("redis", {})
             client = redis.Redis(
                 host=rc.get("host", "localhost"),
                 port=rc.get("port", 6379),

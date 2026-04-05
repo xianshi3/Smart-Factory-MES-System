@@ -1,5 +1,6 @@
 package com.mes.dashboard.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final OeeDataMapper oeeDataMapper;
     private final ProductionStatsMapper productionStatsMapper;
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private InfluxDBClient influxDBClient;
 
     @Autowired
@@ -80,8 +83,7 @@ public class DashboardServiceImpl implements DashboardService {
         String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
         LambdaQueryWrapper<ProductionStats> statsQuery = new LambdaQueryWrapper<>();
         statsQuery.eq(ProductionStats::getStatDate, today);
-        ProductionStats todayStats = new ProductionStats();
-        List<ProductionStats> statsList = null;
+        List<ProductionStats> statsList = productionStatsMapper.selectList(statsQuery);
 
         overview.put("onlineDevices", onlineCount);
         overview.put("alarmCount", alarmCount);
@@ -120,8 +122,16 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public OeeData calculateOee(OeeQueryDTO dto) {
-        OeeData oeeData = new OeeData();
-        oeeData.setDeviceId(dto.getDeviceId());
+        OeeData oeeData = oeeDataMapper.selectByDeviceId(dto.getDeviceId());
+        if (oeeData == null) {
+            oeeData = new OeeData();
+            oeeData.setDeviceId(dto.getDeviceId());
+            oeeData.setAvailability(0.0);
+            oeeData.setPerformance(0.0);
+            oeeData.setQuality(0.0);
+            oeeData.setOee(0.0);
+            return oeeData;
+        }
 
         if (oeeData.getRunTime() == null || oeeData.getRunTime() == 0) {
             oeeData.setAvailability(0.0);
@@ -159,14 +169,23 @@ public class DashboardServiceImpl implements DashboardService {
         Map<String, Object> trend = new HashMap<>();
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days - 1);
+        List<Map<String, Object>> dailyData = new ArrayList<>();
 
         for (int i = 0; i < days; i++) {
             LocalDate date = startDate.plusDays(i);
             String dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+            LambdaQueryWrapper<ProductionStats> query = new LambdaQueryWrapper<>();
+            query.eq(ProductionStats::getStatDate, dateStr);
+            List<ProductionStats> stats = productionStatsMapper.selectList(query);
+            Map<String, Object> dayMap = new HashMap<>();
+            dayMap.put("date", dateStr);
+            dayMap.put("stats", stats);
+            dailyData.add(dayMap);
         }
 
         trend.put("startDate", startDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
         trend.put("endDate", endDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        trend.put("dailyData", dailyData);
         return trend;
     }
 
@@ -199,10 +218,21 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private String toJson(Object obj) {
-        return obj.toString();
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("JSON serialization failed", e);
+            return "{}";
+        }
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Object> parseMap(String json) {
-        return new HashMap<>();
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            log.error("JSON deserialization failed", e);
+            return new HashMap<>();
+        }
     }
 }

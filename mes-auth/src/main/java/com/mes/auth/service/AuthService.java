@@ -10,6 +10,7 @@ import com.mes.common.result.Result;
 import com.mes.common.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -26,6 +27,7 @@ public class AuthService {
 
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
      * 用户登录
@@ -38,8 +40,8 @@ public class AuthService {
         if (user == null) {
             throw new BizException(ErrorCode.USER_NOT_FOUND);
         }
-        // 验证密码 - 直接比较
-        if (!dto.getPassword().equals(user.getPassword())) {
+        // 验证密码 - BCrypt
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BizException(ErrorCode.USER_PASSWORD_ERROR);
         }
         // 生成Token
@@ -66,10 +68,10 @@ public class AuthService {
         if (existUser != null) {
             throw new BizException(ErrorCode.PARAM_ERROR.getCode(), "用户名已存在");
         }
-        // 创建新用户 (密码直接存储)
+        // 创建新用户 (密码BCrypt加密)
         User user = new User();
         user.setUsername(dto.getUsername());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
