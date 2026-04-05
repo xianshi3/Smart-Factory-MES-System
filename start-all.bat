@@ -126,7 +126,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENIN
     goto menu
 )
 echo Starting .NET Gateway...
-call "D:\Engineering-Project\Smart-Factory-MES-System\_start_gateway.bat"
+start "NET-Gateway" /D "D:\Engineering-Project\Smart-Factory-MES-System" cmd /k "dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
 pause
 goto menu
 
