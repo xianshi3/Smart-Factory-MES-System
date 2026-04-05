@@ -93,13 +93,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { showError } from '@/utils/message'
 import { getDeviceStatus, getAlarmDevices, predictQuality } from '@/api/services'
 
 use([CanvasRenderer, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
@@ -231,9 +232,9 @@ const handlePredict = async (device: any) => {
       ElMessage.success(`预测完成：合格率 ${(res.pass_probability * 100).toFixed(1)}%`)
     }
   } catch (error: any) {
-    const errMsg = error?.response?.data?.detail || error.message || '未知错误'
+    const errMsg = error?.response?.data?.detail || error?.message || error?.toString() || '未知错误'
     console.error('预测失败:', error)
-    ElMessage.error(`预测失败: ${errMsg}`)
+    showError(errMsg, '预测失败')
   }
 }
 
