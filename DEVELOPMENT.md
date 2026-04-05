@@ -316,13 +316,10 @@ npm start
 
 ### v1.0.13 (2026-04-05)
 - 设备页面图表和告警使用真实数据
-- 统一错误弹窗样式 (message.ts + index.scss)
-- 优化错误处理: 单弹窗+控制台日志
 - AI预测修复：无模型时返回默认值
-- 清理日志文件
 - .NET设备网关修复编译错误
-- 新增 start-gateway-dotnet.bat 启动脚本
-- 新增 start-all.bat 统一启动器（检测已运行服务+状态查看）
+- 创建统一启动器 start-all.bat
+- 删除冗余的 bat 文件（start-ai, stop-ai, start-gateway-dotnet, start-docker, start-backend, stop-backend, stop-docker）
 
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html
