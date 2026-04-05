@@ -287,11 +287,19 @@ INSERT INTO `mes_workstation` (`workstation_code`, `workstation_name`, `producti
 ('WS-003', '工位3', 2, 'IDLE'),
 ('WS-004', '工位4', 2, 'IDLE');
 
-INSERT INTO `dash_device_status` (`device_code`, `device_name`, `status`, `workstation_id`) VALUES
-('DEV-001', '设备1', 'ONLINE', 1),
-('DEV-002', '设备2', 'ONLINE', 2),
-('DEV-003', '设备3', 'ONLINE', 3),
-('DEV-004', '设备4', 'OFFLINE', 4);
+INSERT INTO `dash_device_status` (`device_code`, `device_name`, `status`, `temperature`, `speed`, `last_heartbeat`, `workstation_id`, `production_line_id`) VALUES
+('DEV-001', 'CNC加工中心A1', 'ONLINE', 45.2, 1200, NOW(), 1, 1),
+('DEV-002', 'CNC加工中心A2', 'ONLINE', 42.8, 1150, NOW(), 2, 1),
+('DEV-003', 'CNC加工中心B1', 'ONLINE', 48.5, 1180, NOW(), 3, 2),
+('DEV-004', 'CNC加工中心B2', 'OFFLINE', 25.0, 0, NOW(), 4, 2),
+('DEV-005', '自动组装线A', 'ONLINE', 35.6, 850, NOW(), 1, 1),
+('DEV-006', '自动组装线B', 'ONLINE', 38.2, 820, NOW(), 2, 1),
+('DEV-007', '质量检测台A', 'ONLINE', 30.1, 500, NOW(), 3, 2),
+('DEV-008', '质量检测台B', 'MAINTENANCE', 28.5, 0, NOW(), 4, 2),
+('DEV-009', '阳极氧化线', 'ONLINE', 32.8, 600, NOW(), NULL, 1),
+('DEV-010', '喷涂工作站', 'ONLINE', 40.5, 450, NOW(), NULL, 2),
+('DEV-011', '激光刻蚀机', 'ALARM', 55.2, 0, NOW(), NULL, 1),
+('DEV-012', '包装流水线', 'ONLINE', 28.3, 300, NOW(), NULL, 2);
 
 -- =====================================================
 -- 7. Sample Work Orders
