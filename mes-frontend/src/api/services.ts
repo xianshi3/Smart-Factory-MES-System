@@ -4,6 +4,7 @@ const WORKORDER_URL = 'http://localhost:8082'
 const PROCESS_URL = 'http://localhost:8083'
 const QUALITY_URL = 'http://localhost:8084/quality'
 const DASHBOARD_URL = 'http://localhost:8085/api/dashboard'
+const AI_URL = 'http://localhost:8086/api/v1'
 
 export function getWorkOrderPage(params: any) {
   return request({ url: `${WORKORDER_URL}/workorder/page`, method: 'get', params })
@@ -87,4 +88,20 @@ export function reverseTrace(workOrderId: number) {
 
 export function getDeviceStatus() {
   return request({ url: `${DASHBOARD_URL}/devices`, method: 'get' })
+}
+
+export function getAiHealth() {
+  return request({ url: `${AI_URL}/health`, method: 'get' })
+}
+
+export function getAiModelStatus() {
+  return request({ url: `${AI_URL}/model/status`, method: 'get' })
+}
+
+export function predictQuality(data: any) {
+  return request({ url: `${AI_URL}/predict/quality`, method: 'post', data })
+}
+
+export function predictProduction(data: any) {
+  return request({ url: `${AI_URL}/predict/production`, method: 'post', data })
 }

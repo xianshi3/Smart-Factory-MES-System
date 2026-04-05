@@ -308,6 +308,12 @@ npm start
 - 修复Dashboard服务JAR无法运行问题
 - 数据库设备数据从4条扩展为12条
 
+### v1.0.12 (2026-04-05)
+- 启动AI服务 (端口8086)
+- 前端添加AI预测功能 (设备页面)
+- 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
+- AI服务添加CORS配置
+
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html
 - 完善数据库设备数据（temperature, speed, last_heartbeat）

@@ -273,38 +273,29 @@ Smart-Factory-MES-System/
 
 ---
 
-## v1.0.11 (2026-04-05)
+## v1.0.12 (2026-04-05)
 
-### 前端设备数据对接
+### AI服务启动
 
-1. **添加Dashboard服务API**
-   - 新增 `getDeviceStatus()` 获取设备列表
-   - 文件: `mes-frontend/src/api/services.ts`
+1. **AI服务部署**
+   - 端口 8086
+   - 启动脚本: start-ai.bat
+   - 停止脚本: stop-ai.bat
 
-2. **修改DeviceView.vue**
-   - 从模拟数据改为调用后端API获取真实数据
-   - 自动获取温度、速度、心跳等实时数据
-   - 图表数据根据真实数据动态更新
+2. **前端AI预测功能**
+   - 设备监控页面添加"AI预测"按钮
+   - 调用质量预测API
 
-3. **添加CORS配置**
-   - 新增 `mes-dashboard/config/WebMvcConfig.java`
-   - 允许前端跨域访问Dashboard服务
-
-4. **修复Dashboard服务**
-   - 添加 `spring-boot-maven-plugin` 到 pom.xml
-   - 解决JAR无法独立运行的问题
-
-5. **数据库设备数据更新**
-   - 从4条扩展为12条设备记录
-   - 新增字段：temperature、speed、last_heartbeat
-   - 涵盖多种设备类型和状态
+3. **CORS配置**
+   - AI服务添加跨域支持
 
 ### 文件更新
 
-1. `mes-frontend/src/api/services.ts` - 添加 getDeviceStatus
-2. `mes-frontend/src/views/device/DeviceView.vue` - 对接真实API
-3. `mes-dashboard/config/WebMvcConfig.java` - CORS配置
-4. `mes-dashboard/pom.xml` - 添加spring-boot-maven-plugin
+1. `mes-ai-service/src/app.py` - 添加CORS
+2. `mes-frontend/src/api/services.ts` - 添加AI API
+3. `mes-frontend/src/views/device/DeviceView.vue` - AI预测功能
+4. `start-ai.bat` - 启动脚本
+5. `stop-ai.bat` - 停止脚本
 
 ---
 

@@ -42,6 +42,7 @@
           </div>
           <div class="device-actions">
             <el-button type="primary" link @click="handleDetail(device)">详情</el-button>
+            <el-button type="success" link @click="handlePredict(device)" v-if="device.status === 'running'">AI预测</el-button>
             <el-button type="warning" link @click="handleMaintain(device)" v-if="device.status === 'running'">维护</el-button>
           </div>
         </div>
@@ -99,7 +100,7 @@ import { PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getDeviceStatus } from '@/api/services'
+import { getDeviceStatus, predictQuality } from '@/api/services'
 
 use([CanvasRenderer, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
@@ -216,6 +217,25 @@ const handleDetail = (device: any) => {
 
 const handleMaintain = (device: any) => {
   ElMessage.warning(`设备 ${device.name} 开始维护`)
+}
+
+const handlePredict = async (device: any) => {
+  try {
+    const res = await predictQuality({
+      device_id: device.code,
+      features: {
+        temperature: device.temperature,
+        speed: device.speed,
+        vibration: Math.random() * 1,
+        pressure: Math.random() * 200
+      }
+    })
+    if (res) {
+      ElMessage.success(`预测完成：合格率 ${(res.pass_probability * 100).toFixed(1)}%`)
+    }
+  } catch (error: any) {
+    ElMessage.error('预测失败: ' + (error.message || '未知错误'))
+  }
 }
 
 const handleAck = (alarm: any) => {

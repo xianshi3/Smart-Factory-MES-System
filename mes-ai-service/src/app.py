@@ -1,5 +1,6 @@
 """FastAPI 应用构建模块"""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from src.schemas.schemas import (
     QualityPredictRequest,
     QualityPredictResponse,
@@ -27,6 +28,14 @@ def create_app() -> FastAPI:
         title="MES AI Service",
         description="智能工厂AI服务 - 质量预测与产量预测",
         version="1.0.0",
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.get("/api/v1/health")
