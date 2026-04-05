@@ -148,9 +148,9 @@ public class QualityServiceImpl implements QualityService {
     @Override
     public PageResult<QualityRecord> queryPage(int current, int size, String checkType, String result, String keyword) {
         LambdaQueryWrapper<QualityRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(checkType != null, QualityRecord::getCheckType, checkType)
-                .eq(result != null, QualityRecord::getCheckResult, result)
-                .and(keyword != null, w -> w.like(QualityRecord::getSn, keyword)
+        wrapper.eq(checkType != null && !checkType.isEmpty(), QualityRecord::getCheckType, checkType)
+                .eq(result != null && !result.isEmpty(), QualityRecord::getCheckResult, result)
+                .and(keyword != null && !keyword.isEmpty(), w -> w.like(QualityRecord::getSn, keyword)
                         .or().like(QualityRecord::getWorkOrderNo, keyword))
                 .orderByDesc(QualityRecord::getCreateTime);
 

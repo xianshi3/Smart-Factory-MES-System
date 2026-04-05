@@ -99,9 +99,7 @@ public class ProcessController {
     public Result<PageResult<ProcessTemplate>> queryPage(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String status) {
-        return Result.ok(processTemplateService.queryPage(current, size, name != null ? name : keyword, status));
+            @RequestParam(required = false) String keyword) {
+        return Result.ok(processTemplateService.queryPage(current, size, keyword));
     }
 }
