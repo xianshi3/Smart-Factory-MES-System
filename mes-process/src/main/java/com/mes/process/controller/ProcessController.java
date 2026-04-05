@@ -96,10 +96,12 @@ public class ProcessController {
      */
     @Operation(summary = "分页查询模板")
     @GetMapping("/page")
-    public PageResult<ProcessTemplate> queryPage(
+    public Result<PageResult<ProcessTemplate>> queryPage(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return processTemplateService.queryPage(current, size, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String status) {
+        return Result.ok(processTemplateService.queryPage(current, size, name != null ? name : keyword, status));
     }
 }

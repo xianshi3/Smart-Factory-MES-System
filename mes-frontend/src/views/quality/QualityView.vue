@@ -108,7 +108,7 @@ const loadData = async () => {
     const res = await getQualityPage({
       current: pagination.page,
       size: pagination.size,
-      sn: searchForm.sn,
+      keyword: searchForm.sn,
       result: searchForm.result
     })
     tableData.value = res.data.records || []
