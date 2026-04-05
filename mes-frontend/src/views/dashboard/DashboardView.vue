@@ -93,30 +93,25 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { PieChart, LineChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { getDeviceStatus, getAlarmDevices } from '@/api/services'
 
 use([CanvasRenderer, PieChart, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
 const stats = ref({
-  todayWorkOrders: 12,
-  completedToday: 8,
-  inProgress: 4,
-  oee: 85
+  todayWorkOrders: 0,
+  completedToday: 0,
+  inProgress: 0,
+  oee: 0
 })
 
-const deviceList = ref([
-  { name: 'CNC-001', status: 'running', utilization: '95%', temperature: '45°C', power: '15kW' },
-  { name: 'CNC-002', status: 'idle', utilization: '0%', temperature: '30°C', power: '0kW' },
-  { name: 'CNC-003', status: 'running', utilization: '88%', temperature: '48°C', power: '14kW' },
-  { name: 'CNC-004', status: 'maintenance', utilization: '0%', temperature: '25°C', power: '0kW' },
-  { name: 'CNC-005', status: 'running', utilization: '92%', temperature: '42°C', power: '16kW' }
-])
+const deviceList = ref<any[]>([])
 
 const productionTrendOption = ref({
   tooltip: { trigger: 'axis' },
-  xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
+  xAxis: { type: 'category', data: [] as string[] },
   yAxis: { type: 'value' },
   series: [{
-    data: [120, 150, 180, 140, 160, 190, 170],
+    data: [] as number[],
     type: 'line',
     smooth: true,
     areaStyle: { opacity: 0.3 },
@@ -129,15 +124,15 @@ const workOrderStatusOption = ref({
   series: [{
     type: 'pie',
     radius: ['40%', '70%'],
-    data: [
-      { value: 8, name: '已完成' },
-      { value: 4, name: '进行中' },
-      { value: 2, name: '待开始' },
-      { value: 1, name: '已取消' }
-    ],
+    data: [] as any[],
     label: { color: '#ffffff' }
   }]
 })
+
+const mapDbStatus = (status: string) => {
+  const map: Record<string, string> = { ONLINE: 'running', OFFLINE: 'idle', MAINTENANCE: 'maintenance', ALARM: 'fault' }
+  return map[status] || 'idle'
+}
 
 const getDeviceStatusType = (status: string) => {
   const map: Record<string, string> = { running: 'success', idle: 'info', maintenance: 'warning', fault: 'danger' }
@@ -145,11 +140,70 @@ const getDeviceStatusType = (status: string) => {
 }
 
 const getDeviceStatusText = (status: string) => {
-  const map: Record<string, string> = { running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障' }
+  const map: Record<string, string> = { running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障', alarm: '告警' }
   return map[status] || '未知'
 }
 
-onMounted(() => {})
+const fetchDashboardData = async () => {
+  try {
+    const [devices, alarms] = await Promise.all([getDeviceStatus(), getAlarmDevices()])
+    const devData = devices?.data || devices || []
+    const alarmData = alarms?.data || alarms || []
+    
+    deviceList.value = devData.map((item: any) => ({
+      name: item.deviceName || item.device_code,
+      status: mapDbStatus(item.status),
+      utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
+      temperature: (item.temperature || 0) + '°C',
+      power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) + 'kW' : '0kW'
+    }))
+    
+    const onlineCount = devData.filter((d: any) => d.status === 'ONLINE').length
+    const alarmCount = alarmData.length || devData.filter((d: any) => d.status === 'ALARM').length
+    stats.value = {
+      todayWorkOrders: devData.length,
+      completedToday: onlineCount,
+      inProgress: devData.filter((d: any) => d.status === 'ONLINE' && d.speed > 0).length,
+      oee: onlineCount > 0 ? Math.round((onlineCount / devData.length) * 100) : 0
+    }
+    
+    const deviceNames = deviceList.value.map((d: any) => d.name)
+    const utilizations = deviceList.value.map((d: any) => parseInt(d.utilization) || 0)
+    productionTrendOption.value = {
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: deviceNames },
+      yAxis: { type: 'value' },
+      series: [{
+        data: utilizations,
+        type: 'line',
+        smooth: true,
+        areaStyle: { opacity: 0.3 },
+        itemStyle: { color: '#e94560' }
+      }]
+    }
+    
+    const statusCounts: Record<string, number> = {}
+    deviceList.value.forEach((d: any) => {
+      const text = getDeviceStatusText(d.status)
+      statusCounts[text] = (statusCounts[text] || 0) + 1
+    })
+    workOrderStatusOption.value = {
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie',
+        radius: ['40%', '70%'],
+        data: Object.entries(statusCounts).map(([name, value]) => ({ value, name })),
+        label: { color: '#ffffff' }
+      }]
+    }
+  } catch (error) {
+    console.error('Failed to fetch dashboard data:', error)
+  }
+}
+
+onMounted(() => {
+  fetchDashboardData()
+})
 </script>
 
 <style scoped lang="scss">

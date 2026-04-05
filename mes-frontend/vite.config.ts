@@ -16,8 +16,20 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      '/workorder': {
+        target: 'http://localhost:8082',
+        changeOrigin: true
+      },
+      '/process': {
+        target: 'http://localhost:8083',
+        changeOrigin: true
+      },
+      '/quality': {
+        target: 'http://localhost:8084',
+        changeOrigin: true
+      },
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8085',
         changeOrigin: true
       }
     }
