@@ -45,12 +45,6 @@ public static class ServiceCollectionExtensions
     {
         var builder = services.AddHealthChecks();
 
-        // 添加MQTT健康检查
-        var mqttServer = configuration["Gateway:MqttServer"] ?? "localhost";
-        var mqttPort = configuration.GetValue<int>("Gateway:MqttPort", 1883);
-        
-        builder.AddTcpHealthCheck($"tcp://{mqttServer}:{mqttPort}", "MQTT Broker");
-
         return builder;
     }
 }

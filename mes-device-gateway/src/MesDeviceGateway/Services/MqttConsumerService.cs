@@ -88,8 +88,7 @@ public class MqttConsumerService : BackgroundService
             .WithCredentials(_config.MqttUsername, _config.MqttPassword)
             .WithClientId($"mes-gateway-{Environment.MachineName}-{Guid.NewGuid():N[..8]}")
             .WithCleanSession()
-            .WithProtocolVersion(MqttProtocolVersion.V500)
-            .WithTimeout(_config.MqttReconnectIntervalMs)
+            .WithTimeout(TimeSpan.FromSeconds(30))
             .Build();
 
         _mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
@@ -186,7 +185,7 @@ public class MqttConsumerService : BackgroundService
 
         if (_mqttClient?.IsConnected == true)
         {
-            await _mqttClient.DisconnectAsync(cancellationToken);
+            await _mqttClient.DisconnectAsync(null, cancellationToken);
         }
 
         _messageChannel.Writer.Complete();

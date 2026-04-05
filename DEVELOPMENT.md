@@ -320,6 +320,8 @@ npm start
 - 优化错误处理: 单弹窗+控制台日志
 - AI预测修复：无模型时返回默认值
 - 清理日志文件
+- .NET设备网关修复编译错误
+- 新增 start-gateway-dotnet.bat 启动脚本
 
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html

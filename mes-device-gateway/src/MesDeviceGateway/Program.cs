@@ -1,5 +1,6 @@
 using MesDeviceGateway.Config;
 using MesDeviceGateway.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Events;
 

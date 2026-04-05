@@ -333,10 +333,23 @@ Smart-Factory-MES-System/
 - AI预测修复：无模型时返回默认值
 - 清理日志文件
 
+### .NET设备网关修复
+
+1. **编译错误修复**
+   - MqttProtocolVersion 移除（新版API不兼容）
+   - DisconnectAsync 参数修复
+   - HealthCheckResult 添加 using
+   - 移除 AddTcpHealthCheck（需要额外包）
+
+2. **新增启动脚本**
+   - start-gateway-dotnet.bat
+
 ### 文件更新
 
-1. `mes-ai-service/src/models/prediction_model.py` - 修复预测
-2. `start-ai.bat` - 修复启动脚本
+1. `mes-device-gateway/src/MesDeviceGateway/Services/MqttConsumerService.cs`
+2. `mes-device-gateway/src/MesDeviceGateway/Program.cs`
+3. `mes-device-gateway/src/MesDeviceGateway/Extensions/ServiceCollectionExtensions.cs`
+4. `start-gateway-dotnet.bat` - 新增
 
 ---
 
