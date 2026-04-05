@@ -129,65 +129,6 @@ echo Starting .NET Gateway...
 start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System ^&^& dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
 pause
 goto menu
-)
-echo Starting .NET Gateway...
-start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System && dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
-pause
-goto menu
-
-:stop_all
-echo Stopping all services...
-echo.
-echo Stopping .NET Gateway...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-echo Stopping AI Service...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-echo Stopping Backend...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8081 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8082 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8083 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8084 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8085 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-echo Stopping Docker...
-docker compose down 2>nul
-echo.
-echo ========================================
-echo All services stopped!
-echo ========================================
-pause
-goto menu
-
-:status
-cls
-echo ========================================
-echo   Service Status
-echo ========================================
-echo.
-call :show_status 3000 "Frontend"
-call :show_status 3306 "MySQL"
-call :show_status 6379 "Redis"
-call :show_status 8081 "Auth"
-call :show_status 8082 "WorkOrder"
-call :show_status 8083 "Process"
-call :show_status 8084 "Quality"
-call :show_status 8085 "Dashboard"
-call :show_status 8086 "AI Service"
-call :show_status 5000 ".NET Gateway"
-echo.
-pause
-goto menu
-
-:show_status
-set port=%1
-set name=%2
-set result=OFFLINE
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%port% " ^| findstr "LISTENING"') do set result=ONLINE
-if "%result%"==ONLINE (
-    echo %port%     %name%              [RUNNING]
-) else (
-    echo %port%     %name%              [STOPPED]
-)
-exit /b
 
 :wait_java
 set port=%1
