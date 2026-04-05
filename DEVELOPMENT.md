@@ -165,7 +165,22 @@ npm start
 | mes-dashboard | 8085 | 实时看板、OEE |
 | mes-gateway | 9090 | API路由（暂未使用） |
 
-### 5.2 公共模块 (mes-common)
+### 5.2 .NET 设备网关 (mes-device-gateway)
+
+| 组件 | 说明 |
+|------|------|
+| MqttConsumerService | MQTT消费服务，支持自动重连 |
+| KafkaProducerService | Kafka生产者，使用Channel异步处理 |
+| DataCleanseService | 数据清洗服务 |
+| GatewayConfig | 网关配置类 |
+
+**技术特点：**
+- Channel<T> 高吞吐量消息队列
+- MQTT 自动重连机制
+- Kafka 幂等生产者
+- 健康检查支持
+
+### 5.3 公共模块 (mes-common)
 
 | 类 | 说明 |
 |-----|------|
@@ -286,6 +301,9 @@ npm start
 ---
 
 ## 11. 版本记录
+
+### v1.0.9 (2026-04-05)
+- .NET设备网关优化：Channel异步处理、自动重连、健康检查
 
 ### v1.0.8 (2026-04-05)
 - 添加CORS跨域配置到workorder、process、quality服务

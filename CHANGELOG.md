@@ -441,3 +441,40 @@ Smart-Factory-MES-System/
 - 前端地址: http://localhost:3000
 - 登录账号: admin / admin123
 - 数据库: mes_db (root/root)
+
+---
+
+## v1.0.9 (2026-04-05)
+
+### .NET 设备网关优化
+
+1. **KafkaProducerService 优化**
+   - 使用 Channel<T> 实现高吞吐量异步消息处理
+   - 替代原来的 ConcurrentQueue + Timer 方案
+
+2. **MqttConsumerService 优化**
+   - 添加自动重连机制
+   - Channel 消息队列缓冲
+   - 错误恢复机制
+
+3. **GatewayConfig 新增配置**
+   - MqttReconnectIntervalMs: MQTT重连间隔
+   - ChannelBufferSize: 消息通道缓冲区大小
+   - EnableIdempotent: Kafka幂等生产者
+
+4. **ServiceCollectionExtensions 优化**
+   - 添加健康检查支持
+   - TCP端口健康检查
+
+5. **Program.cs 优化**
+   - 结构化日志 (Serilog)
+   - 健康检查端点
+
+### 文件更新
+
+1. `mes-device-gateway/src/MesDeviceGateway/Services/KafkaProducerService.cs`
+2. `mes-device-gateway/src/MesDeviceGateway/Services/MqttConsumerService.cs`
+3. `mes-device-gateway/src/MesDeviceGateway/Config/GatewayConfig.cs`
+4. `mes-device-gateway/src/MesDeviceGateway/Extensions/ServiceCollectionExtensions.cs`
+5. `mes-device-gateway/src/MesDeviceGateway/Program.cs`
+6. `mes-device-gateway/src/MesDeviceGateway/appsettings.json`
