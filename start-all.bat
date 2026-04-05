@@ -8,8 +8,8 @@ echo   Smart Factory MES - Unified Launcher
 echo ========================================
 echo.
 echo [1] Start All Services
-echo [2] Start Docker Only
-echo [3] Start Backend Only
+echo [2] Start Docker
+echo [3] Start Backend
 echo [4] Start AI Service
 echo [5] Start .NET Gateway
 echo [6] Stop All Services
@@ -32,8 +32,8 @@ goto menu
 :start_all
 echo Starting all services...
 echo.
-call :check_port 3306 "MySQL"
-call :check_port 6379 "Redis"
+echo Starting Docker...
+call :start_docker2
 echo.
 echo Starting Backend...
 call start-backend.bat
@@ -43,18 +43,40 @@ call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
-call :start_service2 ":8086" "AI Service" "start-ai.bat"
-call :start_service2 ":5000" ".NET Gateway" "start-gateway-dotnet.bat"
+call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
+call :start_service2 ":5000" ".NET Gateway" "cd mes-device-gateway\src\MesDeviceGateway && dotnet run"
+echo.
+echo ========================================
 echo All services started!
+echo ========================================
 pause
 goto menu
 
 :start_docker
-call :start_service2 ":3306" "Docker" "start-docker.bat"
-call :wait_port 3306 "MySQL"
-call :wait_port 6379 "Redis"
+call :start_docker2
 pause
 goto menu
+
+:start_docker2
+echo Checking existing containers...
+docker ps -a --filter "name=mes-mysql" --filter "name=mes-redis" --format "{{.Names}}" > containers.txt 2>nul
+findstr /C:"mes-mysql" containers.txt >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Found existing containers, removing...
+    docker rm -f mes-mysql mes-redis 2>nul
+    timeout /t 2 /nobreak >nul
+)
+echo Starting MySQL and Redis...
+docker compose up -d
+echo Waiting for services...
+timeout /t 15 /nobreak >nul
+echo Initializing database...
+docker exec mes-mysql mysql -uroot -proot -e "DROP DATABASE IF EXISTS mes_db; CREATE DATABASE mes_db" 2>nul
+docker cp sql/init.sql mes-mysql:/tmp/init.sql 2>nul
+docker exec mes-mysql mysql -uroot -proot mes_db -e "source /tmp/init.sql" 2>nul
+del containers.txt 2>nul
+echo [OK] Docker started
+exit /b
 
 :start_backend
 echo Starting Backend...
@@ -68,12 +90,12 @@ pause
 goto menu
 
 :start_ai
-call :start_service2 ":8086" "AI Service" "start-ai.bat"
+call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
 pause
 goto menu
 
 :start_gateway
-call :start_service2 ":5000" ".NET Gateway" "start-gateway-dotnet.bat"
+call :start_service2 ":5000" ".NET Gateway" "cd mes-device-gateway\src\MesDeviceGateway && dotnet run"
 pause
 goto menu
 
@@ -81,19 +103,17 @@ goto menu
 echo Stopping all services...
 echo.
 echo Stopping .NET Gateway...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do (
-    taskkill /F /PID %%a >nul 2>&1
-    echo [OK] .NET Gateway stopped
-)
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
 echo Stopping AI Service...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do (
-    taskkill /F /PID %%a >nul 2>&1
-    echo [OK] AI Service stopped
-)
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
+echo Stopping Backend...
 call stop-backend.bat
-call stop-docker.bat
+echo Stopping Docker...
+docker compose down 2>nul
 echo.
+echo ========================================
 echo All services stopped!
+echo ========================================
 pause
 goto menu
 
@@ -132,36 +152,13 @@ exit /b
 :start_service2
 set portcheck=%1
 set svcname=%2
-set svcfile=%3
+set cmd=%3
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LISTENING"') do (
     echo [SKIP] %svcname% already running
     exit /b
 )
 echo Starting %svcname%...
-call %svcfile%
-exit /b
-
-:check_port
-set port=%1
-set name=%2
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%port% " ^| findstr "LISTENING"') do (
-    echo [SKIP] %name% already running
-    exit /b
-)
-echo Starting %name%...
-call start-docker.bat
-exit /b
-
-:wait_port
-set port=%1
-set name=%2
-echo Waiting for %name%...
-:wait_port_loop
-ping -n 2 127.0.0.1 >nul
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%port% " ^| findstr "LISTENING"') do goto wait_port_done
-goto wait_port_loop
-:wait_port_done
-echo [OK] %name% started
+start %svcname% cmd /k "%cmd%"
 exit /b
 
 :wait_java
