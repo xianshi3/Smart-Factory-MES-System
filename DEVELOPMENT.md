@@ -284,6 +284,13 @@ npm run dev
 - 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
 - AI服务添加CORS配置
 
+### v1.0.15 (2026-04-05)
+- 密码 BCrypt 加密 (AuthService)
+- 数据库种子数据密码哈希化
+- Dashboard 数据逻辑修复 (概览/OEE/趋势/Redis缓存)
+- Python AI Bug 修复 (config变量、import位置)
+- .NET 网关 MQTT Guid 格式化修复
+
 ### v1.0.14 (2026-04-05)
 - 统一启动器 start-all.bat 完善（支持 /D 参数启动 .NET 网关）
 - 修复 .NET 网关 MQTT Guid 格式化 Bug

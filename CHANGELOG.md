@@ -345,6 +345,60 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.15 (2026-04-05)
+
+### 安全修复
+
+1. **密码加密**
+   - 添加 Spring Security BCrypt 加密
+   - 登录/注册使用密码哈希验证
+   - 数据库种子数据密码改为哈希值
+
+2. **JWT 密钥管理**
+   - 移除 JWT 密钥硬编码默认值
+   - 强制从环境变量读取
+
+### 数据逻辑修复
+
+1. **Dashboard 服务**
+   - 修复概览数据查询真实生产统计
+   - OEE 计算从数据库读取实际数据
+   - 趋势数据填充每日生产统计
+   - Redis 缓存 JSON 序列化修复 (Jackson)
+
+### Python AI 服务修复
+
+1. **Bug 修复**
+   - 修复 `inference_service.py` 中 `config` 变量名错误
+   - 修复 `import os` 位置错误 (移到文件顶部)
+
+### .NET 设备网关修复
+
+1. **MQTT Bug 修复**
+   - 修复 Guid 格式化异常 (`:N[..8]` -> `ToString("N").Substring(0, 8)`)
+   - 网关可在无 Kafka/MQTT 环境下正常启动
+
+### 启动器优化
+
+1. **统一启动器**
+   - 使用 `/D` 参数修复 .NET 网关启动路径问题
+   - 清理冗余 bat 文件
+   - 支持一键启动/停止所有服务
+
+### 文件更新
+
+1. `mes-auth/pom.xml` - 添加 spring-security-crypto
+2. `mes-auth/src/.../AuthService.java` - BCrypt 加密
+3. `sql/init.sql` - 密码哈希化
+4. `mes-dashboard/.../DashboardServiceImpl.java` - 数据逻辑修复
+5. `mes-ai-service/src/models/prediction_model.py` - import 修复
+6. `mes-ai-service/src/models/regression_model.py` - import 修复
+7. `mes-ai-service/src/services/inference_service.py` - config 变量修复
+8. `mes-device-gateway/.../MqttConsumerService.cs` - Guid 格式化修复
+9. `start-all.bat` - 启动器优化
+
+---
+
 ## v1.0.14 (2026-04-05)
 
 ### 统一启动器优化
