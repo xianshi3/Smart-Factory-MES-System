@@ -79,8 +79,20 @@ goto menu
 
 :stop_all
 echo Stopping all services...
+echo.
+echo Stopping .NET Gateway...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo [OK] .NET Gateway stopped
+)
+echo Stopping AI Service...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo [OK] AI Service stopped
+)
 call stop-backend.bat
 call stop-docker.bat
+echo.
 echo All services stopped!
 pause
 goto menu
