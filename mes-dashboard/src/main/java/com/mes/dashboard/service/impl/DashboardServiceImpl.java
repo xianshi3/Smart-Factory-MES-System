@@ -182,6 +182,18 @@ public class DashboardServiceImpl implements DashboardService {
         redisTemplate.opsForValue().set(realtimeKey, toJson(data), CACHE_TTL);
     }
 
+    /**
+     * 获取告警设备列表
+     * @return 告警设备列表
+     */
+    @Override
+    public List<DeviceStatus> getAlarmDevices() {
+        LambdaQueryWrapper<DeviceStatus> query = new LambdaQueryWrapper<>();
+        query.in(DeviceStatus::getStatus, "ALARM", "OFFLINE", "MAINTENANCE");
+        query.orderByDesc(DeviceStatus::getUpdateTime);
+        return deviceStatusMapper.selectList(query);
+    }
+
     private double round2(double value) {
         return Math.round(value * 10000.0) / 10000.0;
     }

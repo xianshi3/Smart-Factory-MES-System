@@ -52,4 +52,10 @@ public interface DashboardService {
      * @param data 设备数据
      */
     void saveDeviceData(DeviceStatus data);
+
+    /**
+     * 获取告警设备列表
+     * @return 告警设备列表
+     */
+    List<DeviceStatus> getAlarmDevices();
 }

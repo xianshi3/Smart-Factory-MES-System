@@ -90,6 +90,10 @@ export function getDeviceStatus() {
   return request({ url: `${DASHBOARD_URL}/devices`, method: 'get' })
 }
 
+export function getAlarmDevices() {
+  return request({ url: `${DASHBOARD_URL}/alarms`, method: 'get' })
+}
+
 export function getAiHealth() {
   return request({ url: `${AI_URL}/health`, method: 'get' })
 }

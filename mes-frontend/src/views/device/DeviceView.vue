@@ -100,16 +100,12 @@ import { PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getDeviceStatus, predictQuality } from '@/api/services'
+import { getDeviceStatus, getAlarmDevices, predictQuality } from '@/api/services'
 
 use([CanvasRenderer, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
 const deviceList = ref<any[]>([])
-const alarmList = ref([
-  { time: '2026-04-05 10:30:00', deviceName: '激光刻蚀机', level: 'critical', message: '设备温度过高报警' },
-  { time: '2026-04-05 09:15:00', deviceName: 'CNC加工中心B2', level: 'warning', message: '设备离线' },
-  { time: '2026-04-05 08:20:00', deviceName: '质量检测台B', level: 'info', message: '设备进入维护模式' }
-])
+const alarmList = ref<any[]>([])
 
 const utilizationOption = ref({
   tooltip: { trigger: 'axis' },
@@ -155,16 +151,17 @@ const mapDbToStatus = (status: string) => {
 const fetchDeviceData = async () => {
   try {
     const res = await getDeviceStatus()
-    if (res && res.data) {
-      deviceList.value = res.data.map((item: any) => ({
+    const data = res?.data || res
+    if (data && Array.isArray(data)) {
+      deviceList.value = data.map((item: any) => ({
         id: item.id,
         name: item.deviceName || item.device_code,
         code: item.deviceCode || item.device_code,
         status: mapDbStatus(item.status),
-        utilization: item.speed && item.speed > 0 ? Math.round(Math.random() * 30 + 70) + '%' : '0%',
+        utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
         runtime: item.lastHeartbeat ? Math.floor(Math.random() * 200) + 'h' : '0h',
         temperature: item.temperature || 0,
-        power: Math.round((item.temperature || 0) * 0.3 + 10)
+        power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
       }))
       updateCharts()
     }
@@ -243,8 +240,26 @@ const handleAck = (alarm: any) => {
   alarmList.value = alarmList.value.filter(a => a !== alarm)
 }
 
+const fetchAlarmData = async () => {
+  try {
+    const res = await getAlarmDevices()
+    const data = res?.data || res
+    if (data && Array.isArray(data)) {
+      alarmList.value = data.map((item: any) => ({
+        time: item.updateTime || new Date().toISOString(),
+        deviceName: item.deviceName || item.device_code,
+        level: item.status === 'ALARM' ? 'critical' : item.status === 'OFFLINE' ? 'warning' : 'info',
+        message: item.status === 'ALARM' ? '设备告警' : item.status === 'OFFLINE' ? '设备离线' : '设备维护中'
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to fetch alarm data:', error)
+  }
+}
+
 onMounted(() => {
   fetchDeviceData()
+  fetchAlarmData()
 })
 </script>
 

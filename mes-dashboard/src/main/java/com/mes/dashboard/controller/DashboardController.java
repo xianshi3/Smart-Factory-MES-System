@@ -80,4 +80,14 @@ public class DashboardController {
     public Map<String, Object> getTrendData(@RequestParam(defaultValue = "7") int days) {
         return dashboardService.getTrendData(days);
     }
+
+    /**
+     * 获取告警设备列表
+     * @return 告警设备列表
+     */
+    @Operation(summary = "告警设备列表")
+    @GetMapping("/alarms")
+    public List<DeviceStatus> getAlarmDevices() {
+        return dashboardService.getAlarmDevices();
+    }
 }
