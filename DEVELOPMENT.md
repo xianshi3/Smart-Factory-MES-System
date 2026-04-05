@@ -302,6 +302,17 @@ npm start
 
 ## 11. 版本记录
 
+### v1.0.11 (2026-04-05)
+- 前端设备监控页面对接真实API (DeviceView.vue)
+- 添加Dashboard服务CORS配置
+- 修复Dashboard服务JAR无法运行问题
+- 数据库设备数据从4条扩展为12条
+
+### v1.0.10 (2026-04-05)
+- 删除冗余文件 DEVELOPMENT.html
+- 完善数据库设备数据（temperature, speed, last_heartbeat）
+- 添加OpenCode配置文件
+
 ### v1.0.9 (2026-04-05)
 - .NET设备网关优化：Channel异步处理、自动重连、健康检查
 
