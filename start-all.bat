@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-cd /d "%~dp0"
+set "ROOT=D:\Engineering-Project\Smart-Factory-MES-System"
 
 :menu
 cls
@@ -38,11 +38,11 @@ call :start_docker2
 echo.
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd mes-auth ^&^& mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd mes-workorder ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd mes-process ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd mes-quality ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd /d %ROOT%\mes-auth ^&^& mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd /d %ROOT%\mes-workorder ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd /d %ROOT%\mes-process ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd /d %ROOT%\mes-quality ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd /d %ROOT%\mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -87,11 +87,11 @@ exit /b
 :start_backend
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd mes-auth ^&^& mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd mes-workorder ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd mes-process ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd mes-quality ^&^& mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd /d %ROOT%\mes-auth ^&^& mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd /d %ROOT%\mes-workorder ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd /d %ROOT%\mes-process ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd /d %ROOT%\mes-quality ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd /d %ROOT%\mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -178,7 +178,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LI
     exit /b
 )
 echo Starting %svcname%...
-cmd /k "cd /d %~dp0 && %cmd%"
+cmd /k "cd /d %ROOT% && %cmd%"
 exit /b
 
 :wait_java
