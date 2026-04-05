@@ -179,7 +179,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LI
 )
 echo Starting %svcname%...
 pushd "%ROOT%"
-start "%svcname%" cmd /k "%cmd%"
+start "Service" cmd /k "%cmd%"
 popd
 exit /b
 
