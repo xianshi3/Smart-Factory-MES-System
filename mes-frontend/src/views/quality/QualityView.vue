@@ -49,21 +49,58 @@
       @current-change="loadData"
     />
     
-    <el-dialog v-model="traceDialogVisible" title="质量追溯" width="800px">
+    <el-dialog 
+      v-model="traceDialogVisible" 
+      title="质量追溯" 
+      width="800px"
+      class="quality-trace-dialog"
+    >
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="产品序列号">{{ traceData.sn }}</el-descriptions-item>
-        <el-descriptions-item label="产品名称">{{ traceData.productName }}</el-descriptions-item>
-        <el-descriptions-item label="工单编号">{{ traceData.workOrderCode }}</el-descriptions-item>
-        <el-descriptions-item label="生产时间">{{ traceData.produceTime }}</el-descriptions-item>
-        <el-descriptions-item label="质检结果">{{ traceData.qualityResult }}</el-descriptions-item>
-        <el-descriptions-item label="质检时间">{{ traceData.qualityTime }}</el-descriptions-item>
+        <el-descriptions-item label="产品序列号">
+          <span class="trace-text">{{ traceData.sn }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="产品名称">
+          <span class="trace-text">{{ traceData.productName }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="工单编号">
+          <span class="trace-text">{{ traceData.workOrderCode }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="生产时间">
+          <span class="trace-text">{{ traceData.produceTime }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="质检结果">
+          <el-tag :type="getResultType(traceData.qualityResultCode)" size="small">
+            {{ traceData.qualityResult }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="质检时间">
+          <span class="trace-text">{{ traceData.qualityTime }}</span>
+        </el-descriptions-item>
       </el-descriptions>
-      <el-divider>生产工序</el-divider>
-      <el-timeline>
-        <el-timeline-item v-for="(step, index) in traceData.steps" :key="index" :timestamp="step.time" placement="top">
-          {{ step.name }} - {{ step.operator }}
-        </el-timeline-item>
-      </el-timeline>
+      
+      <el-divider content-position="left">
+        <span class="divider-title">生产工序</span>
+      </el-divider>
+      
+      <div class="timeline-container">
+        <el-timeline v-if="traceData.steps && traceData.steps.length > 0">
+          <el-timeline-item 
+            v-for="(step, index) in traceData.steps" 
+            :key="index" 
+            :timestamp="step.time" 
+            placement="top"
+            :type="step.type || 'primary'"
+            :hollow="true"
+          >
+            <div class="timeline-content">
+              <span class="step-name">{{ step.name }}</span>
+              <span class="step-operator">操作员：{{ step.operator || '未知' }}</span>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+        <el-empty v-else description="暂无生产工序信息" :image-size="80" />
+      </div>
+      
       <template #footer>
         <el-button @click="traceDialogVisible = false">关闭</el-button>
       </template>
@@ -88,17 +125,28 @@ const traceData = ref<any>({
   workOrderCode: '',
   produceTime: '',
   qualityResult: '',
+  qualityResultCode: '',
   qualityTime: '',
   steps: []
 })
 
 const getResultType = (result: string) => {
-  const map: Record<string, string> = { PASSED: 'success', FAILED: 'danger', REWORK: 'warning' }
+  const map: Record<string, string> = { 
+    PASSED: 'success', 
+    FAILED: 'danger', 
+    REWORK: 'warning',
+    pending: 'info'
+  }
   return map[result] || 'info'
 }
 
 const getResultText = (result: string) => {
-  const map: Record<string, string> = { PASSED: '合格', FAILED: '不合格', REWORK: '返工' }
+  const map: Record<string, string> = { 
+    PASSED: '合格', 
+    FAILED: '不合格', 
+    REWORK: '返工',
+    pending: '待检'
+  }
   return map[result] || '未知'
 }
 
@@ -115,6 +163,7 @@ const loadData = async () => {
     pagination.total = res.data.total || 0
   } catch (error) {
     console.error('Failed to load quality records:', error)
+    ElMessage.error('加载数据失败')
   } finally {
     loading.value = false
   }
@@ -141,12 +190,14 @@ const handleDetail = async (row: any) => {
       workOrderCode: data.workOrderCode || row.workOrderCode,
       produceTime: data.produceTime || '-',
       qualityResult: getResultText(data.qualityResult || row.result),
+      qualityResultCode: data.qualityResult || row.result,
       qualityTime: data.qualityTime || row.inspectTime,
       steps: data.steps || []
     }
     traceDialogVisible.value = true
   } catch (error) {
     console.error('Failed to load trace:', error)
+    ElMessage.error('加载追溯信息失败')
   }
 }
 
@@ -181,6 +232,7 @@ onMounted(() => {
     display: flex;
     gap: 12px;
     margin-top: 20px;
+    
   }
   
   :deep(.el-table) {
@@ -195,29 +247,170 @@ onMounted(() => {
     th {
       background: rgba(255, 255, 255, 0.05);
     }
+    
+    .el-table__row {
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
   }
   
   :deep(.el-pagination) {
-    .el-pagination__total, .el-pagination__jump {
+    .el-pagination__total, 
+    .el-pagination__jump,
+    .el-pagination__editor {
       color: #ffffff;
+      background-color: transparent;
+    }
+    
+    button:not(:disabled) {
+      color: #ffffff;
+      
+      &:hover {
+        color: #e94560;
+      }
     }
     
     .el-pager li {
       background: transparent;
       color: #ffffff;
       
+      &:hover {
+        color: #e94560;
+      }
+      
       &.is-active {
         color: #e94560;
+        background: rgba(233, 69, 96, 0.1);
       }
     }
   }
-  
-  :deep(.el-descriptions) {
-    color: #ffffff;
-  }
-  
-  :deep(.el-timeline) {
-    color: #ffffff;
+}
+
+// 修复质量追溯对话框的样式
+:deep(.quality-trace-dialog) {
+  .el-dialog {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    
+    .el-dialog__header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      
+      .el-dialog__title {
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 18px;
+      }
+    }
+    
+    .el-dialog__body {
+      color: #ffffff;
+    }
+    
+    .el-descriptions {
+      .el-descriptions__label {
+        background: rgba(255, 255, 255, 0.08);
+        color: #a0a0a0;
+        font-weight: 500;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      .el-descriptions__content {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+    
+    .trace-text {
+      color: #ffffff;
+    }
+    
+    .el-divider {
+      .el-divider__text {
+        background: transparent;
+        color: #e94560;
+        font-weight: 500;
+      }
+    }
+    
+    .divider-title {
+      color: #e94560;
+    }
+    
+    .timeline-container {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+      
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: rgba(233, 69, 96, 0.5);
+        border-radius: 3px;
+        
+        &:hover {
+          background: rgba(233, 69, 96, 0.8);
+        }
+      }
+    }
+    
+    .el-timeline {
+      .el-timeline-item__timestamp {
+        color: #a0a0a0;
+      }
+      
+      .el-timeline-item__content {
+        color: #ffffff;
+      }
+      
+      .timeline-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        
+        .step-name {
+          font-weight: 500;
+          color: #e94560;
+        }
+        
+        .step-operator {
+          font-size: 12px;
+          color: #a0a0a0;
+        }
+      }
+    }
+    
+    .el-empty {
+      .el-empty__description {
+        p {
+          color: #a0a0a0;
+        }
+      }
+    }
+    
+    .el-dialog__footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      
+      .el-button {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
   }
 }
 </style>
