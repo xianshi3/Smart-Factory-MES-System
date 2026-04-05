@@ -322,6 +322,7 @@ npm start
 - 清理日志文件
 - .NET设备网关修复编译错误
 - 新增 start-gateway-dotnet.bat 启动脚本
+- 新增 start-all.bat 统一启动器（检测已运行服务+状态查看）
 
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html
