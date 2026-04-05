@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+set "ROOT=%~dp0"
 
 :menu
 cls
@@ -37,19 +38,19 @@ call :start_docker2
 echo.
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd mes-auth && mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd mes-workorder && mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd mes-process && mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd mes-quality && mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd mes-dashboard && mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd /d "%ROOT%" && cd mes-auth && mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd /d "%ROOT%" && cd mes-workorder && mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd /d "%ROOT%" && cd mes-process && mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd /d "%ROOT%" && cd mes-quality && mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd /d "%ROOT%" && cd mes-dashboard && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
-call :start_service2 ":8086" "AI Service" "python mes-ai-service/src/main.py"
-call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+call :start_svc ":8086" "AI Service" "python mes-ai-service/src/main.py"
+call :start_svc ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
 echo.
 echo ========================================
 echo All services started!
@@ -86,11 +87,11 @@ exit /b
 :start_backend
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd mes-auth && mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd mes-workorder && mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd mes-process && mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd mes-quality && mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd mes-dashboard && mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd /d "%ROOT%" && cd mes-auth && mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd /d "%ROOT%" && cd mes-workorder && mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd /d "%ROOT%" && cd mes-process && mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd /d "%ROOT%" && cd mes-quality && mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd /d "%ROOT%" && cd mes-dashboard && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -105,12 +106,12 @@ call mvn clean package -DskipTests -q
 exit /b
 
 :start_ai
-call :start_service2 ":8086" "AI Service" "python mes-ai-service/src/main.py"
+call :start_svc ":8086" "AI Service" "python mes-ai-service/src/main.py"
 pause
 goto menu
 
 :start_gateway
-call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+call :start_svc ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
 pause
 goto menu
 
@@ -122,7 +123,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENIN
 echo Stopping AI Service...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
 echo Stopping Backend...
-call stop-backend.bat
+call stop-backend.bat 2>nul
 echo Stopping Docker...
 docker compose down 2>nul
 echo.
@@ -164,7 +165,7 @@ if "%result%"==ONLINE (
 )
 exit /b
 
-:start_service2
+:start_svc
 set portcheck=%1
 set svcname=%2
 set cmd=%3
@@ -173,7 +174,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LI
     exit /b
 )
 echo Starting %svcname%...
-start "%svcname%" cmd /k "cd /d "D:\Engineering-Project\Smart-Factory-MES-System" && %cmd%"
+cmd /k "cd /d "%ROOT%" && %cmd%"
 exit /b
 
 :wait_java
