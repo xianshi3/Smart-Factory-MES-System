@@ -4,10 +4,10 @@ server:
 
 model:
   quality:
-    onnx_path: "models/quality_predictor.onnx"
+    onnx_path: "src/models/saved_models/quality_predict.onnx"
     version: "1.0.0"
   production:
-    onnx_path: "models/production_regressor.onnx"
+    onnx_path: "src/models/saved_models/output_predict.onnx"
     version: "1.0.0"
 
 kafka:

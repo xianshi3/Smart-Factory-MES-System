@@ -1,4 +1,8 @@
 """MES AI Service 启动模块"""
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import uvicorn
 from src.app import create_app
 
