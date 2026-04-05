@@ -284,12 +284,11 @@ npm run dev
 - 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
 - AI服务添加CORS配置
 
-### v1.0.13 (2026-04-05)
-- 设备页面图表和告警使用真实数据
-- AI预测修复：无模型时返回默认值
-- .NET设备网关修复编译错误
-- 创建统一启动器 start-all.bat
-- 删除冗余的 bat 文件（start-ai, stop-ai, start-gateway-dotnet, start-docker, start-backend, stop-backend, stop-docker）
+### v1.0.14 (2026-04-05)
+- 统一启动器 start-all.bat 完善（支持 /D 参数启动 .NET 网关）
+- 修复 .NET 网关 MQTT Guid 格式化 Bug
+- 禁用 Kafka 幂等模式（适配无 Kafka 开发环境）
+- 清理冗余 bat 文件，统一使用 start-all.bat
 
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html
