@@ -122,12 +122,14 @@ const rules = {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getTemplatePage({
+    const params: any = {
       current: pagination.page,
-      size: pagination.size,
-      name: searchForm.name,
-      status: searchForm.status
-    })
+      size: pagination.size
+    }
+    if (searchForm.name) {
+      params.keyword = searchForm.name
+    }
+    const res = await getTemplatePage(params)
     tableData.value = res.data.records || []
     pagination.total = res.data.total || 0
   } catch (error) {

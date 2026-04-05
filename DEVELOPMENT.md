@@ -284,6 +284,12 @@ npm run dev
 - 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
 - AI服务添加CORS配置
 
+### v1.0.17 (2026-04-05)
+- 修复 Vite 代理路径重写（405 错误）
+- 添加 MyBatis-Plus 分页插件
+- 修复空字符串过滤问题
+- 统一前后端状态值
+
 ### v1.0.16 (2026-04-05)
 - 修复前端 API 请求发错服务问题（.env 硬编码 8081）
 - Vite 代理配置完善（workorder/process/quality/api）

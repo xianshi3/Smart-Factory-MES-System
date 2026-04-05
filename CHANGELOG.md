@@ -345,6 +345,43 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.17 (2026-04-05)
+
+### 前端修复
+
+1. **Vite 代理配置**
+   - 修复 `/process` 路径重写问题
+   - 解决刷新页面 405 错误
+
+2. **状态值统一**
+   - 工艺管理：DRAFT/PUBLISHED
+   - 质量管理：PASSED/FAILED/REWORK
+   - 修复前端与后端状态值不匹配
+
+3. **API 参数对齐**
+   - 工艺查询使用 `keyword` 参数
+   - 质量查询使用 `keyword` 参数
+
+### 后端修复
+
+1. **MyBatis-Plus 分页插件**
+   - 添加 `MybatisPlusConfig` 到 Process 服务
+   - 修复 `total=0` 问题
+
+2. **空字符串过滤**
+   - 修复 QualityService 空字符串导致查询异常
+
+### 文件更新
+
+1. `mes-frontend/vite.config.ts`
+2. `mes-frontend/src/views/process/ProcessView.vue`
+3. `mes-frontend/src/views/quality/QualityView.vue`
+4. `mes-process/src/main/java/com/mes/process/config/MybatisPlusConfig.java`
+5. `mes-process/src/main/java/com/mes/process/controller/ProcessController.java`
+6. `mes-quality/src/main/java/com/mes/quality/service/impl/QualityServiceImpl.java`
+
+---
+
 ## v1.0.16 (2026-04-05)
 
 ### 前端修复

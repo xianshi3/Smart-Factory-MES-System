@@ -18,11 +18,18 @@ export default defineConfig({
     proxy: {
       '/workorder': {
         target: 'http://localhost:8082',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/workorder/, '/workorder')
       },
-      '/process': {
+      '/process/template': {
         target: 'http://localhost:8083',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/process/, '')
+      },
+      '/process/parameter': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/process/, '')
       },
       '/quality': {
         target: 'http://localhost:8084',
