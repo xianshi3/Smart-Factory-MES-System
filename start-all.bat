@@ -173,7 +173,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LI
     exit /b
 )
 echo Starting %svcname%...
-start %svcname% cmd /k "%cmd%"
+start %svcname% cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System && %cmd%"
 exit /b
 
 :wait_java
