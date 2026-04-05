@@ -231,7 +231,9 @@ const handlePredict = async (device: any) => {
       ElMessage.success(`预测完成：合格率 ${(res.pass_probability * 100).toFixed(1)}%`)
     }
   } catch (error: any) {
-    ElMessage.error('预测失败: ' + (error.message || '未知错误'))
+    const errMsg = error?.response?.data?.detail || error.message || '未知错误'
+    console.error('预测失败:', error)
+    ElMessage.error(`预测失败: ${errMsg}`)
   }
 }
 
