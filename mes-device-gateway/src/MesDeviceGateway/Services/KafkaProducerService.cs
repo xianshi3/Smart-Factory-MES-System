@@ -31,10 +31,10 @@ public class KafkaProducerService : BackgroundService
         var producerConfig = new ProducerConfig
         {
             BootstrapServers = _config.KafkaBootstrapServers,
-            Acks = Acks.All,
+            Acks = Acks.Leader,
             LingerMs = 5,
             CompressionType = CompressionType.Snappy,
-            EnableIdempotence = _config.EnableIdempotent,
+            EnableIdempotence = false,
             MaxInFlight = 5,
             RetryBackoffMs = 100,
             MessageTimeoutMs = 30000
