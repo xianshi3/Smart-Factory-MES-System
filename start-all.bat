@@ -36,7 +36,12 @@ echo Starting Docker...
 call :start_docker2
 echo.
 echo Starting Backend...
-call start-backend.bat
+call :build_java
+start "MES-Auth" cmd /k "cd mes-auth && mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd mes-workorder && mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd mes-process && mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd mes-quality && mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd mes-dashboard && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -44,7 +49,7 @@ call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
 call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
-call :start_service2 ":5000" ".NET Gateway" "cd mes-device-gateway\src\MesDeviceGateway && dotnet run"
+call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
 echo.
 echo ========================================
 echo All services started!
@@ -80,7 +85,12 @@ exit /b
 
 :start_backend
 echo Starting Backend...
-call start-backend.bat
+call :build_java
+start "MES-Auth" cmd /k "cd mes-auth && mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd mes-workorder && mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd mes-process && mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd mes-quality && mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd mes-dashboard && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -89,13 +99,18 @@ call :wait_java 8085 "Dashboard"
 pause
 goto menu
 
+:build_java
+echo Building Java services...
+call mvn clean package -DskipTests -q
+exit /b
+
 :start_ai
 call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
 pause
 goto menu
 
 :start_gateway
-call :start_service2 ":5000" ".NET Gateway" "cd mes-device-gateway\src\MesDeviceGateway && dotnet run"
+call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
 pause
 goto menu
 
