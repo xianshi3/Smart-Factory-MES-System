@@ -10,30 +10,30 @@
     <div class="search-bar">
       <el-input v-model="searchForm.name" placeholder="模板名称" clearable style="width: 200px;" />
       <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 150px;">
-        <el-option label="草稿" value="draft" />
-        <el-option label="已发布" value="published" />
+        <el-option label="草稿" value="DRAFT" />
+        <el-option label="已发布" value="PUBLISHED" />
       </el-select>
       <el-button type="primary" @click="loadData">搜索</el-button>
       <el-button @click="handleReset">重置</el-button>
     </div>
     
     <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
-      <el-table-column prop="name" label="模板名称" />
+      <el-table-column prop="templateName" label="模板名称" />
       <el-table-column prop="version" label="版本" />
       <el-table-column prop="status" label="状态">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'published' ? 'success' : 'info'">
-            {{ row.status === 'published' ? '已发布' : '草稿' }}
+          <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'info'">
+            {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="category" label="类别" />
+      <el-table-column prop="productModel" label="适用型号" />
       <el-table-column prop="createTime" label="创建时间" />
       <el-table-column label="操作" width="250">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
           <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
-          <el-button type="success" link @click="handlePublish(row)" v-if="row.status === 'draft'">发布</el-button>
+          <el-button type="success" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
         </template>
       </el-table-column>
     </el-table>

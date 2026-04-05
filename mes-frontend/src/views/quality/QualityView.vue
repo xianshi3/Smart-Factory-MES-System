@@ -10,9 +10,9 @@
     <div class="search-bar">
       <el-input v-model="searchForm.sn" placeholder="产品序列号" clearable style="width: 200px;" />
       <el-select v-model="searchForm.result" placeholder="质检结果" clearable style="width: 150px;">
-        <el-option label="合格" value="pass" />
-        <el-option label="不合格" value="fail" />
-        <el-option label="待检" value="pending" />
+        <el-option label="合格" value="PASSED" />
+        <el-option label="不合格" value="FAILED" />
+        <el-option label="返工" value="REWORK" />
       </el-select>
       <el-button type="primary" @click="loadData">搜索</el-button>
       <el-button @click="handleReset">重置</el-button>
@@ -93,12 +93,12 @@ const traceData = ref<any>({
 })
 
 const getResultType = (result: string) => {
-  const map: Record<string, string> = { pass: 'success', fail: 'danger', pending: 'warning' }
+  const map: Record<string, string> = { PASSED: 'success', FAILED: 'danger', REWORK: 'warning' }
   return map[result] || 'info'
 }
 
 const getResultText = (result: string) => {
-  const map: Record<string, string> = { pass: '合格', fail: '不合格', pending: '待检' }
+  const map: Record<string, string> = { PASSED: '合格', FAILED: '不合格', REWORK: '返工' }
   return map[result] || '未知'
 }
 
