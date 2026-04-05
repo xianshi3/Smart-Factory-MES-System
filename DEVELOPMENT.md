@@ -284,6 +284,17 @@ npm run dev
 - 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
 - AI服务添加CORS配置
 
+### v1.0.16 (2026-04-05)
+- 修复前端 API 请求发错服务问题（.env 硬编码 8081）
+- Vite 代理配置完善（workorder/process/quality/api）
+- 前端 services.ts 去除所有硬编码 URL
+- DashboardView 对接真实 API
+- 密码 BCrypt 加密
+- Dashboard 数据逻辑修复
+- Python AI Bug 修复
+- .NET 网关 MQTT 修复
+- start-all.bat 路径修复
+
 ### v1.0.15 (2026-04-05)
 - 密码 BCrypt 加密 (AuthService)
 - 数据库种子数据密码哈希化

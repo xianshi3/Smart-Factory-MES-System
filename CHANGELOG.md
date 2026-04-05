@@ -345,6 +345,32 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.16 (2026-04-05)
+
+### 前端修复
+
+1. **API 请求路由修复**
+   - 修复 `.env.development` 硬编码 8081 问题
+   - 所有请求使用相对路径，由 Vite 代理路由
+   - 代理配置：workorder→8082, process→8083, quality→8084, api→8085
+
+2. **services.ts 优化**
+   - 移除所有硬编码 URL
+   - 使用相对路径（如 `/workorder/page`）
+
+3. **DashboardView 优化**
+   - 对接真实设备 API
+   - 图表数据动态更新
+
+### 文件更新
+
+1. `mes-frontend/.env.development` - 修复 baseURL
+2. `mes-frontend/vite.config.ts` - 多服务代理配置
+3. `mes-frontend/src/api/services.ts` - 相对路径
+4. `mes-frontend/src/views/dashboard/DashboardView.vue` - 真实数据
+
+---
+
 ## v1.0.15 (2026-04-05)
 
 ### 安全修复
