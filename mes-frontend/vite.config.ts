@@ -19,25 +19,39 @@ export default defineConfig({
       '/workorder': {
         target: 'http://localhost:8082',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/workorder/, '/workorder')
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       },
       '/process/template': {
         target: 'http://localhost:8083',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/process/, '')
+        rewrite: (path) => path.replace(/^\/process/, ''),
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       },
       '/process/parameter': {
         target: 'http://localhost:8083',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/process/, '')
+        rewrite: (path) => path.replace(/^\/process/, ''),
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       },
       '/quality': {
         target: 'http://localhost:8084',
-        changeOrigin: true
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       },
       '/api': {
         target: 'http://localhost:8085',
-        changeOrigin: true
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       }
     }
   }

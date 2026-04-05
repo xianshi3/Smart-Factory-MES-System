@@ -122,7 +122,9 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public OeeData calculateOee(OeeQueryDTO dto) {
-        OeeData oeeData = oeeDataMapper.selectByDeviceId(dto.getDeviceId());
+        LambdaQueryWrapper<OeeData> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OeeData::getDeviceId, dto.getDeviceId());
+        OeeData oeeData = oeeDataMapper.selectOne(wrapper);
         if (oeeData == null) {
             oeeData = new OeeData();
             oeeData.setDeviceId(dto.getDeviceId());
