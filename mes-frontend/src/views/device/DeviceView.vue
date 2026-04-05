@@ -234,7 +234,7 @@ const handlePredict = async (device: any) => {
   } catch (error: any) {
     const errMsg = error?.response?.data?.detail || error?.message || error?.toString() || '未知错误'
     console.error('预测失败:', error)
-    showError(errMsg, '预测失败')
+    ElMessage.error(`预测失败: ${errMsg}`)
   }
 }
 
