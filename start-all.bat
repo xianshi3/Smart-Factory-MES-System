@@ -116,8 +116,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENIN
     exit /b
 )
 echo Starting AI Service...
-cd /d "%ROOT%"
-start "AI-Service" cmd /k "python mes-ai-service/src/main.py"
+start "AI-Service" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System ^&^& python mes-ai-service/src/main.py"
 exit /b
 
 :start_gateway
@@ -131,8 +130,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENIN
     exit /b
 )
 echo Starting .NET Gateway...
-cd /d "%ROOT%"
-start "NET-Gateway" cmd /k "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+start "NET-Gateway" cmd /k "cd /d D:\Engineering-Project\Smart-Factory-MES-System ^&^& dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
 exit /b
 
 :stop_all
