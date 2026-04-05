@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-set "ROOT=%~dp0"
+cd /d "%~dp0"
 
 :menu
 cls
@@ -38,11 +38,11 @@ call :start_docker2
 echo.
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd /d "%ROOT%" && cd mes-auth && mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd /d "%ROOT%" && cd mes-workorder && mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd /d "%ROOT%" && cd mes-process && mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd /d "%ROOT%" && cd mes-quality && mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd /d "%ROOT%" && cd mes-dashboard && mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd mes-auth ^&^& mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd mes-workorder ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd mes-process ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd mes-quality ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -87,11 +87,11 @@ exit /b
 :start_backend
 echo Starting Backend...
 call :build_java
-start "MES-Auth" cmd /k "cd /d "%ROOT%" && cd mes-auth && mvn spring-boot:run -DskipTests"
-start "MES-WorkOrder" cmd /k "cd /d "%ROOT%" && cd mes-workorder && mvn spring-boot:run -DskipTests"
-start "MES-Process" cmd /k "cd /d "%ROOT%" && cd mes-process && mvn spring-boot:run -DskipTests"
-start "MES-Quality" cmd /k "cd /d "%ROOT%" && cd mes-quality && mvn spring-boot:run -DskipTests"
-start "MES-Dashboard" cmd /k "cd /d "%ROOT%" && cd mes-dashboard && mvn spring-boot:run -DskipTests"
+start "MES-Auth" cmd /k "cd mes-auth ^&^& mvn spring-boot:run -DskipTests"
+start "MES-WorkOrder" cmd /k "cd mes-workorder ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Process" cmd /k "cd mes-process ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Quality" cmd /k "cd mes-quality ^&^& mvn spring-boot:run -DskipTests"
+start "MES-Dashboard" cmd /k "cd mes-dashboard ^&^& mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
@@ -123,7 +123,11 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENIN
 echo Stopping AI Service...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
 echo Stopping Backend...
-call stop-backend.bat 2>nul
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8081 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8082 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8083 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8084 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8085 " ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
 echo Stopping Docker...
 docker compose down 2>nul
 echo.
@@ -174,7 +178,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LI
     exit /b
 )
 echo Starting %svcname%...
-cmd /k "cd /d "%ROOT%" && %cmd%"
+cmd /k "cd /d %~dp0 && %cmd%"
 exit /b
 
 :wait_java

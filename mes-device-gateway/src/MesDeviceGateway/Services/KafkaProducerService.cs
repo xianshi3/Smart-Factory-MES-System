@@ -31,7 +31,7 @@ public class KafkaProducerService : BackgroundService
         var producerConfig = new ProducerConfig
         {
             BootstrapServers = _config.KafkaBootstrapServers,
-            Acks = Acks.Leader,
+            Acks = Acks.All,
             LingerMs = 5,
             CompressionType = CompressionType.Snappy,
             EnableIdempotence = _config.EnableIdempotent,
