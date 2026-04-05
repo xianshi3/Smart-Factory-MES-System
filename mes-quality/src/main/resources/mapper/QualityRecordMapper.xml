@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.quality.mapper.QualityRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.mes.quality.entity.QualityRecord">
+        <id column="id" property="id"/>
+        <result column="work_order_id" property="workOrderId"/>
+        <result column="work_order_no" property="workOrderNo"/>
+        <result column="sn" property="sn"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="workstation_id" property="workstationId"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="check_type" property="checkType"/>
+        <result column="check_result" property="checkResult"/>
+        <result column="defect_type" property="defectType"/>
+        <result column="defect_desc" property="defectDesc"/>
+        <result column="check_time" property="checkTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, work_order_id, work_order_no, sn, device_id, workstation_id, operator_id,
+        check_type, check_result, defect_type, defect_desc, check_time, remark,
+        create_time, update_time, deleted
+    </sql>
+
+</mapper>

@@ -1,0 +1,66 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Build
+dist/
+build/
+out/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+yarn.lock
+package-lock.json
+
+# Env
+.env.local
+.env.*.local
+
+# Test
+coverage/
+.nyc_output/
+
+# Gradle
+.gradle/
+build/
+
+# Spring Boot
+*.pid
+
+# Secrets
+*.pem
+*.key
+*.crt
+
+# Docker
+docker-compose.local.yml
+
+# MES specific
+*.original

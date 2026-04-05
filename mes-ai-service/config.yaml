@@ -1,0 +1,26 @@
+server:
+  host: "0.0.0.0"
+  port: 8086
+
+model:
+  quality:
+    onnx_path: "models/quality_predictor.onnx"
+    version: "1.0.0"
+  production:
+    onnx_path: "models/production_regressor.onnx"
+    version: "1.0.0"
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  group_id: "ai-service-group"
+  topics:
+    - "mes-device-data"
+
+redis:
+  host: "localhost"
+  port: 6379
+  db: 1
+
+feature:
+  sliding_window_size: 60
+  aggregation_interval: 10

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.quality.mapper.TraceabilityMapper">
+
+    <resultMap id="BaseResultMap" type="com.mes.quality.entity.Traceability">
+        <id column="id" property="id"/>
+        <result column="sn" property="sn"/>
+        <result column="work_order_id" property="workOrderId"/>
+        <result column="process_step" property="processStep"/>
+        <result column="material_batch_no" property="materialBatchNo"/>
+        <result column="equipment_id" property="equipmentId"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="param_snapshot" property="paramSnapshot"/>
+        <result column="quality_result" property="qualityResult"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, sn, work_order_id, process_step, material_batch_no, equipment_id, operator_id,
+        param_snapshot, quality_result, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectBySn" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM qms_traceability
+        WHERE sn = #{sn} AND deleted = 0
+        ORDER BY create_time ASC
+    </select>
+
+    <select id="selectByWorkOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM qms_traceability
+        WHERE work_order_id = #{workOrderId} AND deleted = 0
+        ORDER BY create_time ASC
+    </select>
+
+</mapper>

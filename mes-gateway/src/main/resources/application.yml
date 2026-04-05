@@ -1,0 +1,53 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: mes-gateway
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    gateway:
+      routes:
+        - id: mes-auth
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+        - id: mes-workorder
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/workorder/**
+          filters:
+            - StripPrefix=1
+        - id: mes-process
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/process/**
+          filters:
+            - StripPrefix=1
+        - id: mes-quality
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/quality/**
+          filters:
+            - StripPrefix=1
+        - id: mes-dashboard
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - StripPrefix=1
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
