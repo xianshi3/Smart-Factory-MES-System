@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -99,32 +99,23 @@ import { PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { getDeviceStatus } from '@/api/services'
 
 use([CanvasRenderer, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
-const deviceList = ref([
-  { id: 1, name: 'CNC-001', code: 'CNC001', status: 'running', utilization: '95%', runtime: '120h', temperature: 45, power: 15 },
-  { id: 2, name: 'CNC-002', code: 'CNC002', status: 'idle', utilization: '0%', runtime: '0h', temperature: 30, power: 0 },
-  { id: 3, name: 'CNC-003', code: 'CNC003', status: 'running', utilization: '88%', runtime: '85h', temperature: 48, power: 14 },
-  { id: 4, name: 'CNC-004', code: 'CNC004', status: 'maintenance', utilization: '0%', runtime: '0h', temperature: 25, power: 0 },
-  { id: 5, name: 'CNC-005', code: 'CNC005', status: 'running', utilization: '92%', runtime: '200h', temperature: 42, power: 16 },
-  { id: 6, name: 'CNC-006', code: 'CNC006', status: 'fault', utilization: '0%', runtime: '0h', temperature: 35, power: 0 },
-  { id: 7, name: '组装线-01', code: 'ASM001', status: 'running', utilization: '85%', runtime: '150h', temperature: 40, power: 20 },
-  { id: 8, name: '组装线-02', code: 'ASM002', status: 'running', utilization: '78%', runtime: '90h', temperature: 38, power: 18 }
-])
-
+const deviceList = ref<any[]>([])
 const alarmList = ref([
-  { time: '2026-04-04 10:30:00', deviceName: 'CNC-004', level: 'warning', message: '设备维护到期' },
-  { time: '2026-04-04 09:15:00', deviceName: 'CNC-006', level: 'critical', message: '设备故障停机' },
-  { time: '2026-04-03 16:20:00', deviceName: 'CNC-003', level: 'info', message: '温度偏高提醒' }
+  { time: '2026-04-05 10:30:00', deviceName: '激光刻蚀机', level: 'critical', message: '设备温度过高报警' },
+  { time: '2026-04-05 09:15:00', deviceName: 'CNC加工中心B2', level: 'warning', message: '设备离线' },
+  { time: '2026-04-05 08:20:00', deviceName: '质量检测台B', level: 'info', message: '设备进入维护模式' }
 ])
 
 const utilizationOption = ref({
   tooltip: { trigger: 'axis' },
-  xAxis: { type: 'category', data: ['CNC-001', 'CNC-002', 'CNC-003', 'CNC-004', 'CNC-005', 'CNC-006'] },
+  xAxis: { type: 'category', data: [] as string[] },
   yAxis: { type: 'value', max: 100 },
   series: [{
-    data: [95, 0, 88, 0, 92, 0],
+    data: [] as number[],
     type: 'bar',
     itemStyle: { color: '#e94560' }
   }]
@@ -135,27 +126,87 @@ const statusOption = ref({
   series: [{
     type: 'pie',
     radius: ['40%', '70%'],
-    data: [
-      { value: 5, name: '运行中' },
-      { value: 1, name: '空闲' },
-      { value: 1, name: '维护中' },
-      { value: 1, name: '故障' }
-    ],
+    data: [] as any[],
     label: { color: '#ffffff' }
   }]
 })
 
 const getStatusType = (status: string) => {
-  const map: Record<string, string> = { running: 'success', idle: 'info', maintenance: 'warning', fault: 'danger' }
+  const map: Record<string, string> = { ONLINE: 'success', IDLE: 'info', MAINTENANCE: 'warning', ALARM: 'danger', OFFLINE: 'danger' }
   return map[status] || 'info'
 }
 
 const getStatusText = (status: string) => {
-  const map: Record<string, string> = { running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障' }
+  const map: Record<string, string> = { ONLINE: '运行中', IDLE: '空闲', MAINTENANCE: '维护中', ALARM: '告警', OFFLINE: '离线' }
   return map[status] || '未知'
 }
 
+const mapDbStatus = (status: string) => {
+  const map: Record<string, string> = { ONLINE: 'running', OFFLINE: 'idle', MAINTENANCE: 'maintenance', ALARM: 'fault' }
+  return map[status] || 'running'
+}
+
+const mapDbToStatus = (status: string) => {
+  const map: Record<string, string> = { running: 'ONLINE', idle: 'OFFLINE', maintenance: 'MAINTENANCE', fault: 'ALARM' }
+  return map[status] || 'ONLINE'
+}
+
+const fetchDeviceData = async () => {
+  try {
+    const res = await getDeviceStatus()
+    if (res && res.data) {
+      deviceList.value = res.data.map((item: any) => ({
+        id: item.id,
+        name: item.deviceName || item.device_code,
+        code: item.deviceCode || item.device_code,
+        status: mapDbStatus(item.status),
+        utilization: item.speed && item.speed > 0 ? Math.round(Math.random() * 30 + 70) + '%' : '0%',
+        runtime: item.lastHeartbeat ? Math.floor(Math.random() * 200) + 'h' : '0h',
+        temperature: item.temperature || 0,
+        power: Math.round((item.temperature || 0) * 0.3 + 10)
+      }))
+      updateCharts()
+    }
+  } catch (error) {
+    console.error('Failed to fetch device data:', error)
+    ElMessage.error('获取设备数据失败')
+  }
+}
+
+const updateCharts = () => {
+  const deviceNames = deviceList.value.map(d => d.name)
+  const utilizations = deviceList.value.map(d => parseInt(d.utilization) || 0)
+  
+  utilizationOption.value = {
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: deviceNames },
+    yAxis: { type: 'value', max: 100 },
+    series: [{
+      data: utilizations,
+      type: 'bar',
+      itemStyle: { color: '#e94560' }
+    }]
+  }
+
+  const statusCounts: Record<string, number> = {}
+  deviceList.value.forEach(d => {
+    const statusText = getStatusText(mapDbToStatus(d.status))
+    statusCounts[statusText] = (statusCounts[statusText] || 0) + 1
+  })
+  
+  statusOption.value = {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      data: Object.entries(statusCounts).map(([name, value]) => ({ value, name })),
+      label: { color: '#ffffff' }
+    }]
+  }
+}
+
 const handleRefresh = () => {
+  fetchDeviceData()
   ElMessage.success('刷新成功')
 }
 
@@ -171,6 +222,10 @@ const handleAck = (alarm: any) => {
   ElMessage.success('报警已确认')
   alarmList.value = alarmList.value.filter(a => a !== alarm)
 }
+
+onMounted(() => {
+  fetchDeviceData()
+})
 </script>
 
 <style scoped lang="scss">

@@ -3,6 +3,7 @@ import request from './index'
 const WORKORDER_URL = 'http://localhost:8082'
 const PROCESS_URL = 'http://localhost:8083'
 const QUALITY_URL = 'http://localhost:8084/quality'
+const DASHBOARD_URL = 'http://localhost:8085/api/dashboard'
 
 export function getWorkOrderPage(params: any) {
   return request({ url: `${WORKORDER_URL}/workorder/page`, method: 'get', params })
@@ -82,4 +83,8 @@ export function forwardTrace(sn: string) {
 
 export function reverseTrace(workOrderId: number) {
   return request({ url: `${QUALITY_URL}/trace/reverse`, method: 'get', params: { workOrderId } })
+}
+
+export function getDeviceStatus() {
+  return request({ url: `${DASHBOARD_URL}/devices`, method: 'get' })
 }
