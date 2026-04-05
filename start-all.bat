@@ -43,15 +43,14 @@ call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
-call :start_service "AI Service" ":8086" "call start-ai.bat"
-call :start_service ".NET Gateway" ":5000" "call start-gateway-dotnet.bat"
-echo.
+call :start_service2 ":8086" "AI Service" "start-ai.bat"
+call :start_service2 ":5000" ".NET Gateway" "start-gateway-dotnet.bat"
 echo All services started!
 pause
 goto menu
 
 :start_docker
-call :start_service "Docker" ":none" "call start-docker.bat"
+call :start_service2 ":3306" "Docker" "start-docker.bat"
 call :wait_port 3306 "MySQL"
 call :wait_port 6379 "Redis"
 pause
@@ -69,12 +68,12 @@ pause
 goto menu
 
 :start_ai
-call :start_service "AI Service" ":8086" "call start-ai.bat"
+call :start_service2 ":8086" "AI Service" "start-ai.bat"
 pause
 goto menu
 
 :start_gateway
-call :start_service ".NET Gateway" ":5000" "call start-gateway-dotnet.bat"
+call :start_service2 ":5000" ".NET Gateway" "start-gateway-dotnet.bat"
 pause
 goto menu
 
@@ -92,8 +91,6 @@ echo ========================================
 echo   Service Status
 echo ========================================
 echo.
-echo Port     Service          Status
-echo =======  ================  =======
 call :show_status 3000 "Frontend"
 call :show_status 3306 "MySQL"
 call :show_status 6379 "Redis"
@@ -120,16 +117,16 @@ if "%result%"==ONLINE (
 )
 exit /b
 
-:start_service
-set name=%1
-set portcheck=%2
-set cmd=%3
+:start_service2
+set portcheck=%1
+set svcname=%2
+set svcfile=%3
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LISTENING"') do (
-    echo [SKIP] %name% already running
+    echo [SKIP] %svcname% already running
     exit /b
 )
-echo Starting %name%...
-%cmd%
+echo Starting %svcname%...
+call %svcfile%
 exit /b
 
 :check_port
