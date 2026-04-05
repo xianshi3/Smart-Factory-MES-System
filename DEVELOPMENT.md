@@ -314,6 +314,11 @@ npm start
 - 添加AI服务启动/停止脚本 (start-ai.bat, stop-ai.bat)
 - AI服务添加CORS配置
 
+### v1.0.13 (2026-04-05)
+- 设备页面图表和告警使用真实数据
+- 统一错误弹窗样式 (message.ts + index.scss)
+- 优化错误处理: 单弹窗+控制台日志
+
 ### v1.0.10 (2026-04-05)
 - 删除冗余文件 DEVELOPMENT.html
 - 完善数据库设备数据（temperature, speed, last_heartbeat）

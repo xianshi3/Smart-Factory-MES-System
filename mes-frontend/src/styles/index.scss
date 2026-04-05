@@ -226,3 +226,67 @@ html, body {
 .el-date-editor .el-input__inner {
   color: #ffffff !important;
 }
+
+.el-message-box {
+  background-color: #1a1a2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.el-message-box__title {
+  color: #ffffff !important;
+}
+
+.el-message-box__content {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.el-message-box__headerbtn .el-message-box__close {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.el-message-box__headerbtn:hover .el-message-box__close {
+  color: #ffffff !important;
+}
+
+.el-message-box__btns {
+  padding: 20px 24px !important;
+}
+
+.el-message-box__btns .el-button {
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-weight: 500;
+}
+
+.el-message {
+  background-color: #1a1a2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.el-message--success {
+  border-color: rgba(82, 196, 26, 0.5) !important;
+}
+
+.el-message--warning {
+  border-color: rgba(250, 173, 20, 0.5) !important;
+}
+
+.el-message--error {
+  border-color: rgba(245, 34, 45, 0.5) !important;
+}
+
+.el-message--info {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.el-message__content {
+  color: #ffffff !important;
+}
+
+.el-message__icon {
+  color: #ffffff !important;
+}
