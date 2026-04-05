@@ -48,8 +48,8 @@ call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
-call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
-call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
+call :start_service2 ":8086" "AI Service" "python mes-ai-service/src/main.py"
+call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
 echo.
 echo ========================================
 echo All services started!
@@ -105,12 +105,12 @@ call mvn clean package -DskipTests -q
 exit /b
 
 :start_ai
-call :start_service2 ":8086" "AI Service" "python mes-ai-service\src\main.py"
+call :start_service2 ":8086" "AI Service" "python mes-ai-service/src/main.py"
 pause
 goto menu
 
 :start_gateway
-call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj"
+call :start_service2 ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
 pause
 goto menu
 
