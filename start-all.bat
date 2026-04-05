@@ -49,8 +49,8 @@ call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
 call :wait_java 8085 "Dashboard"
 echo.
-call :start_svc ":8086" "AI Service" "python mes-ai-service/src/main.py"
-call :start_svc ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+call :start_ai_svc
+call :start_gateway_svc
 echo.
 echo ========================================
 echo All services started!
@@ -106,14 +106,34 @@ call mvn clean package -DskipTests -q
 exit /b
 
 :start_ai
-call :start_svc ":8086" "AI Service" "python mes-ai-service/src/main.py"
+call :start_ai_svc
 pause
 goto menu
 
+:start_ai_svc
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENING"') do (
+    echo [SKIP] AI Service already running
+    exit /b
+)
+echo Starting AI Service...
+cd /d "%ROOT%"
+start "AI-Service" cmd /k "python mes-ai-service/src/main.py"
+exit /b
+
 :start_gateway
-call :start_svc ":5000" ".NET Gateway" "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+call :start_gateway_svc
 pause
 goto menu
+
+:start_gateway_svc
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5000 " ^| findstr "LISTENING"') do (
+    echo [SKIP] .NET Gateway already running
+    exit /b
+)
+echo Starting .NET Gateway...
+cd /d "%ROOT%"
+start "NET-Gateway" cmd /k "dotnet run --project mes-device-gateway/src/MesDeviceGateway/MesDeviceGateway.csproj"
+exit /b
 
 :stop_all
 echo Stopping all services...
@@ -167,20 +187,6 @@ if "%result%"==ONLINE (
 ) else (
     echo %port%     %name%              [STOPPED]
 )
-exit /b
-
-:start_svc
-set portcheck=%1
-set svcname=%2
-set cmd=%3
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr "%portcheck% " ^| findstr "LISTENING"') do (
-    echo [SKIP] %svcname% already running
-    exit /b
-)
-echo Starting %svcname%...
-pushd "%ROOT%"
-start "Service" cmd /k "%cmd%"
-popd
 exit /b
 
 :wait_java
