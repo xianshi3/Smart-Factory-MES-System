@@ -209,7 +209,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public PageResult<ProcessTemplate> queryPage(int current, int size, String keyword) {
         Page<ProcessTemplate> page = new Page<>(current, size);
         LambdaQueryWrapper<ProcessTemplate> wrapper = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isEmpty()) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.like(ProcessTemplate::getTemplateName, keyword)
                    .or()
                    .like(ProcessTemplate::getTemplateCode, keyword)
