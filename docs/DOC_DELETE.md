@@ -681,17 +681,106 @@ docker compose up -d
 
 ## 七、常见问题
 
-### Q1: 删除后数据能恢复吗？
+### Q1: 删除字段添加错了怎么办？
+
+**撤销添加的字段：**
+
+```sql
+-- 进入 MySQL 容器
+docker exec -it mes-mysql mysql -uroot -proot
+
+USE mes_db;
+
+-- 撤销工单表添加的字段
+ALTER TABLE wo_work_order 
+DROP COLUMN deleted,
+DROP COLUMN deleted_time,
+DROP COLUMN deleted_by;
+
+-- 撤销工艺表添加的字段
+ALTER TABLE proc_template 
+DROP COLUMN deleted,
+DROP COLUMN deleted_time,
+DROP COLUMN deleted_by;
+
+-- 撤销工艺参数表添加的字段
+ALTER TABLE proc_parameter 
+DROP COLUMN deleted,
+DROP COLUMN deleted_time,
+DROP COLUMN deleted_by;
+
+-- 撤销质检记录表添加的字段
+ALTER TABLE qms_quality_record 
+DROP COLUMN deleted,
+DROP COLUMN deleted_time,
+DROP COLUMN deleted_by;
+
+-- 撤销追溯记录表添加的字段
+ALTER TABLE qms_traceability 
+DROP COLUMN deleted,
+DROP COLUMN deleted_time,
+DROP COLUMN deleted_by;
+```
+
+**验证撤销成功：**
+
+```sql
+-- 查看表结构确认字段已删除
+DESC wo_work_order;
+```
+
+### Q2: 删除后数据能恢复吗？
+
 **A**: 可以恢复。因为是逻辑删除，只需将 `deleted` 字段改回 0 即可恢复。
 
-### Q2: 如何彻底删除（物理删除）？
+### Q3: 如何彻底删除（物理删除）？
+
 **A**: 不推荐物理删除。可创建"回收站"功能，定期清理超过 30 天的已删除数据。
 
-### Q3: 删除后会影响关联表吗？
+### Q4: 删除后会影响关联表吗？
+
 **A**: 不会。因为是逻辑删除，查询时自动过滤，不会影响关联查询。
 
-### Q4: 需要重启服务吗？
+### Q5: 需要重启服务吗？
+
 **A**: 修改 Java 代码后需要重新编译和启动。修改数据库不需要重启服务。
+
+---
+
+## 八、数据库错误恢复指南
+
+### 8.1 常见错误及解决方案
+
+| 错误类型 | 原因 | 解决方案 |
+|----------|------|----------|
+| 字段名拼写错误 | 手误 | 使用 `ALTER TABLE ... CHANGE` 重命名 |
+| 数据类型错误 | 用错类型 | `ALTER TABLE ... MODIFY COLUMN` 修改类型 |
+| 重复添加字段 | 已存在又添加 | `DROP COLUMN` 删除后重新添加 |
+| 表名写错 | 手误 | 无法直接修改表名，需要重建表 |
+
+### 8.2 字段重命名示例
+
+```sql
+-- 如果不小心把 deleted 拼写成了 deletd
+ALTER TABLE wo_work_order CHANGE deletd deleted TINYINT DEFAULT 0;
+```
+
+### 8.3 修改字段类型示例
+
+```sql
+-- 如果不小心把 TINYINT 改成了 VARCHAR
+ALTER TABLE wo_work_order MODIFY COLUMN deleted TINYINT DEFAULT 0;
+```
+
+### 8.4 查看表结构确认
+
+```sql
+-- 查看表的所有字段
+DESC wo_work_order;
+
+-- 或使用更详细的格式
+SHOW FULL COLUMNS FROM wo_work_order;
+```
 
 ---
 
