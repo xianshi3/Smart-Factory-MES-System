@@ -69,10 +69,15 @@ docker-compose.local.yml
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+.vs/
 
 # .NET
 bin/
 obj/
+
+# AI Tool
+.opencode/
 *.dll
 *.exe
 *.pdb

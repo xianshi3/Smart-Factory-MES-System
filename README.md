@@ -22,21 +22,28 @@
 
 ```
 Smart-Factory-MES-System/
-├── mes-common/            # 公共模块（Result、PageResult、BaseEntity、异常处理等）
-├── mes-gateway/           # API网关 (9090)
-├── mes-auth/              # 认证服务 (8081)
-├── mes-workorder/         # 工单服务 (8082)
-├── mes-process/           # 工艺服务 (8083)
-├── mes-quality/           # 质量服务 (8084)
-├── mes-dashboard/         # 看板服务 (8085)
-├── mes-device-gateway/    # .NET 设备网关
-├── mes-ai-service/        # Python AI 服务 (8086)
-├── mes-device-simulator/  # 设备模拟器
-├── mes-frontend/          # Vue 3 前端 (3000)
-├── sql/                   # 数据库初始化脚本
-├── scripts/               # 工具脚本
-├── docker-compose.yml    # 基础设施配置
-└── DESIGN.md             # 技术设计文档
+├── docs/                      # 项目文档
+│   ├── README.md              # 文档中心索引
+│   ├── DESIGN.md              # 技术设计文档
+│   ├── DEVELOPMENT.md         # 开发文档
+│   ├── CHANGELOG.md           # 更新日志
+│   └── DOC_DELETE.md          # 删除功能设计
+├── mes-common/                # 公共模块
+├── mes-gateway/               # API网关 (9090)
+├── mes-auth/                 # 认证服务 (8081)
+├── mes-workorder/            # 工单服务 (8082)
+├── mes-process/              # 工艺服务 (8083)
+├── mes-quality/             # 质量服务 (8084)
+├── mes-dashboard/           # 看板服务 (8085)
+├── mes-device-gateway/      # .NET 设备网关 (5000)
+├── mes-ai-service/          # Python AI 服务 (8086)
+├── mes-device-simulator/    # 设备模拟器 (8883)
+├── mes-frontend/            # Vue 3 前端 (3000)
+├── sql/                     # 数据库脚本
+├── scripts/                 # 工具脚本
+├── start-all.bat            # 统一启动器
+├── clean.bat                # 清理缓存
+└── docker-compose.yml       # 基础设施
 ```
 
 ## 快速开始
@@ -176,9 +183,10 @@ npm run dev
 
 ## 文档
 
-- [DESIGN.md](./DESIGN.md) - 技术设计文档
-- [DEVELOPMENT.md](./DEVELOPMENT.md) - 开发文档
-- [CHANGELOG.md](./CHANGELOG.md) - 更新日志
+- [docs/README.md](./docs/README.md) - 文档中心
+- [docs/DESIGN.md](./docs/DESIGN.md) - 技术设计文档
+- [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) - 开发文档
+- [docs/CHANGELOG.md](./docs/CHANGELOG.md) - 更新日志
 
 ## 版本
 
