@@ -303,33 +303,151 @@ public class WorkOrderController {
 
 #### Step 5: 修改查询逻辑（过滤已删除记录）
 
+**重要**：这步可选，但推荐添加，可以自动过滤已删除的记录。
+
 **方式一：MyBatis-Plus 自动过滤（推荐）**
 
-在实体类的 deleted 字段添加 `@TableLogic` 注解：
+在实体类的 `deleted` 字段添加 `@TableLogic` 注解，这样所有查询都会自动过滤 `deleted=1` 的记录。
+
+**文件位置**：`mes-workorder/src/main/java/com/mes/workorder/entity/WorkOrder.java`
 
 ```java
-import com.baomidou.mybatisplus.annotation.TableLogic;
+package com.mes.workorder.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
+import java.time.LocalDateTime;
+
+/**
+ * 工单实体
+ */
 @Data
 @TableName("wo_work_order")
 public class WorkOrder {
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private String orderNo;           // 工单号
+    private String productName;       // 产品名称
+    private Integer quantity;         // 计划数量
+    private String status;            // 状态
+
+    // ========== 删除字段 ==========
+    private Integer deleted;          // 0-未删除 1-已删除
     
+    // 添加 @TableLogic 注解后，查询会自动过滤 deleted=1 的记录
     @TableLogic
-    private Integer deleted;
+    public Integer getDeleted() {
+        return deleted;
+    }
+    // ==============================
+
+    private LocalDateTime deletedTime;  // 删除时间
+    private Long deletedBy;              // 删除人ID
     
     // ... 其他字段
 }
 ```
 
-添加后，所有查询会自动过滤 `deleted=1` 的记录。
-
-**方式二：手动在查询条件中添加**
+**完整示例**：
 
 ```java
-// 在 Service 中查询时手动添加条件
-LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
-wrapper.eq(WorkOrder::getDeleted, 0);  // 只查询未删除的
+package com.mes.workorder.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+@TableName("wo_work_order")
+public class WorkOrder {
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private String orderNo;
+    private String productName;
+    private Integer quantity;
+    private String status;
+    private LocalDateTime planStartTime;
+    private LocalDateTime planEndTime;
+    private LocalDateTime actualStartTime;
+    private LocalDateTime actualEndTime;
+    private String remark;
+    private Long createBy;
+    private Long issueBy;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+    
+    // 删除相关字段
+    private Integer deleted;
+    private LocalDateTime deletedTime;
+    private Long deletedBy;
+    private Integer version;
+
+    // 重点：添加 @TableLogic 注解
+    // 这样查询时自动 WHERE deleted = 0
+    @TableLogic
+    public Integer getDeleted() {
+        return deleted;
+    }
+}
 ```
+
+**验证方式**：
+
+添加 `@TableLogic` 后，测试查询是否自动过滤：
+
+```java
+// Service 中查询
+List<WorkOrder> list = workOrderMapper.selectList(null);
+// 实际执行的 SQL 会自动加上 WHERE deleted = 0
+// SELECT * FROM wo_work_order WHERE deleted = 0
+```
+
+---
+
+**方式二：手动在查询条件中添加（备选）**
+
+如果不使用 `@TableLogic` 注解，可以在每个查询方法中手动添加条件。
+
+**文件位置**：`mes-workorder/src/main/java/com/mes/workorder/service/impl/WorkOrderServiceImpl.java`
+
+```java
+@Override
+public PageResult<WorkOrder> queryPage(int current, int size, String status, String keyword) {
+    // 手动添加 deleted = 0 条件
+    LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
+    wrapper.eq(WorkOrder::getDeleted, 0);  // 只查询未删除的
+    
+    if (status != null && !status.isEmpty()) {
+        wrapper.eq(WorkOrder::getStatus, status);
+    }
+    
+    if (keyword != null && !keyword.isEmpty()) {
+        wrapper.like(WorkOrder::getOrderNo, keyword)
+               .or()
+               .like(WorkOrder::getProductName, keyword);
+    }
+    
+    wrapper.orderByDesc(WorkOrder::getCreateTime);
+    
+    IPage<WorkOrder> page = new Page<>(current, size);
+    return PageResult.of(workOrderMapper.selectPage(page, wrapper));
+}
+```
+
+**对比**：
+
+| 方式 | 优点 | 缺点 |
+|------|------|------|
+| @TableLogic | 自动过滤，代码简洁 | 所有查询都自动过滤 |
+| 手动添加 | 灵活控制 | 每个查询都要加条件 |
+
+**推荐使用方式一**，只需在 Entity 的 getter 上加一个注解即可。
+
+---
 
 ### 3.3 工艺模块实现
 
