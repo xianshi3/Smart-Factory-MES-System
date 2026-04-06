@@ -1,6 +1,5 @@
 package com.mes.workorder.entity;
 
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mes.common.entity.BaseEntity;
 import lombok.Data;
@@ -49,11 +48,4 @@ public class WorkOrder extends BaseEntity {
     private Long createBy;
     /** 下发人ID */
     private Long issueBy;
-    /** 0-未删除 1-已删除 */
-    @TableLogic
-    private Integer deleted;
-    /** 删除时间 */
-    private LocalDateTime deletedTime;
-    /** 删除人ID */
-    private Long deletedBy;
 }

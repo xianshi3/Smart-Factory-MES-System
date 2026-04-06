@@ -239,13 +239,13 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
             return Result.error("只有草稿状态的模板可删除");
         }
 
-        // 逻辑删除
+        // 逻辑删除 - 使用 BaseEntity 中的 deleted 字段
         template.setDeleted(1);
-        template.setDeletedBy(userId);
         template.setDeletedTime(LocalDateTime.now());
+        template.setDeletedBy(userId);
         processTemplateMapper.updateById(template);
 
-        // 级联删除参数
+        // 级联删除参数 - 使用 BaseEntity 中的 deleted 字段
         LambdaQueryWrapper<ProcessParameter> paramWrapper = new LambdaQueryWrapper<>();
         paramWrapper.eq(ProcessParameter::getTemplateId, id);
         List<ProcessParameter> params = processParameterMapper.selectList(paramWrapper);

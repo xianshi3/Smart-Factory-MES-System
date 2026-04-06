@@ -164,10 +164,10 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
             return Result.error("只有草稿或已关闭的工单可删除");
         }
 
-        // 逻辑删除
+        // 逻辑删除 - 使用 BaseEntity 中的 deleted 字段
         order.setDeleted(1);
-        order.setDeletedBy(userId);
         order.setDeletedTime(LocalDateTime.now());
+        order.setDeletedBy(userId);
         updateById(order);
 
         return Result.ok();
