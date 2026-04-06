@@ -5,19 +5,18 @@
 ### V2 - 2026-04-06
 **删除功能字段**
 
-| 表名 | 添加字段 |
-|------|----------|
-| wo_work_order | deleted, deleted_time, deleted_by |
-| proc_template | deleted, deleted_time, deleted_by |
-| proc_parameter | deleted, deleted_time, deleted_by |
-| qms_quality_record | deleted, deleted_time, deleted_by |
-| qms_traceability | deleted, deleted_time, deleted_by |
+**重要发现**：`init.sql` 已包含 `deleted` 字段，无需额外执行 SQL。
 
-**执行方法：**
-```bash
-docker exec -it mes-mysql mysql -uroot -proot mes_db
-```
-然后执行 `sql/V2__add_delete_fields.sql` 中的 ALTER 语句。
+| 表名 | 状态 |
+|------|------|
+| wo_work_order | ✅ init.sql 已包含 |
+| wo_work_report | ✅ init.sql 已包含 |
+| proc_template | ✅ init.sql 已包含 |
+| proc_parameter | ✅ init.sql 已包含 |
+| qms_quality_record | ✅ init.sql 已包含 |
+| qms_traceability | ✅ init.sql 已包含 |
+
+**结论**：此版本无需执行任何数据库操作。
 
 ---
 
@@ -41,9 +40,23 @@ docker exec -it mes-mysql mysql -uroot -proot mes_db
 ## 变更流程
 
 1. 创建新版本 SQL 文件：`sql/V{n}__xxx.sql`
-2. 手动执行到数据库
-3. 更新本文件
-4. 提交 Git
+2. 检查字段是否已存在（如 init.sql）
+3. 手动执行到数据库（如果需要）
+4. 更新本文件
+5. 提交 Git
+
+---
+
+## 常见问题
+
+**Q: 出现 "Duplicate column name 'deleted'" 错误**
+**A**: 这是因为 init.sql 已经包含了 deleted 字段，无需再次添加。
+
+**Q: 如何检查字段是否存在？**
+```sql
+DESC wo_work_order;
+-- 查看是否有 deleted 字段
+```
 
 ---
 

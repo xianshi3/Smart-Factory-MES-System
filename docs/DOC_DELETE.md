@@ -73,126 +73,50 @@ SHOW TABLES;
 -- dash_device_status  (设备状态)
 ```
 
-### 2.3 添加删除字段
+### 2.3 检查删除字段是否已存在
 
-**在工单表添加字段：**
+**重要**：`init.sql` 已包含 `deleted` 字段，不需要再次添加！
+
+```sql
+-- 检查工单表是否已有 deleted 字段
+DESC wo_work_order;
+
+-- 如果看到以下字段，说明已存在：
+-- +----------------+-------------+------+-----+---------+----------------+
+-- | Field           | Type        | Null | Key | Default | Extra          |
+-- +----------------+-------------+------+-----+---------+----------------+
+-- | deleted         | int         | YES  |     | 0       |                |
+-- +----------------+-------------+------+-----+---------+----------------+
+```
+
+### 2.4 添加缺失的字段（仅针对 init.sql 中没有的表）
+
+**如果某些表缺少删除字段，使用以下 SQL：**
 
 ```sql
 USE mes_db;
 
--- 工单表 wo_work_order 添加删除字段
-ALTER TABLE wo_work_order 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 查看表结构确认
-DESC wo_work_order;
+-- 为缺少字段的表添加（示例）
+-- ALTER TABLE table_name 
+-- ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
+-- ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+-- ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
 ```
 
-**在工艺模板表添加字段：**
+**大部分表已在 init.sql 中包含，可跳过此步骤。**
 
-```sql
--- 工艺模板表 proc_template 添加删除字段
-ALTER TABLE proc_template 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 查看表结构确认
-DESC proc_template;
-```
-
-**在工艺参数表添加字段：**
-
-```sql
--- 工艺参数表 proc_parameter 添加删除字段
-ALTER TABLE proc_parameter 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-```
-
-**在质检记录表添加字段：**
-
-```sql
--- 质检记录表 qms_quality_record 添加删除字段
-ALTER TABLE qms_quality_record 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-```
-
-**在追溯记录表添加字段：**
-
-```sql
--- 追溯记录表 qms_traceability 添加删除字段
-ALTER TABLE qms_traceability 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-```
-
-### 2.4 验证字段添加成功
+### 2.5 验证字段存在
 
 ```sql
 -- 查看工单表结构
 DESC wo_work_order;
 
--- 应该看到新增的字段：
--- +----------------+-------------+------+-----+---------+----------------+
--- | Field           | Type        | Null | Key | Default | Extra          |
--- +----------------+-------------+------+-----+---------+----------------+
--- | id              | bigint      | NO   | PRI | NULL    | auto_increment |
--- | order_no        | varchar(50) | YES  |     | NULL    |                |
--- | ...             | ...         | ...  | ... | ...     | ...            |
--- | deleted         | tinyint     | YES  |     | 0       |                |
--- | deleted_time    | datetime    | YES  |     | NULL    |                |
--- | deleted_by      | bigint      | YES  |     | NULL    |                |
--- +----------------+-------------+------+-----+---------+----------------+
+-- 应该能看到 deleted 字段
 ```
 
-### 2.5 同步更新 sql/init.sql
+### 2.6 同步更新 sql/init.sql
 
-**重要**：将上述 ALTER 语句添加到 `sql/init.sql`，确保新环境也能正确初始化。
-
-```sql
--- 在 sql/init.sql 文件末尾添加：
-
--- ========================================
--- 删除功能字段（2026-04-06）
--- ========================================
-
--- 工单表
-ALTER TABLE wo_work_order 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 工艺模板表
-ALTER TABLE proc_template 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 工艺参数表
-ALTER TABLE proc_parameter 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 质检记录表
-ALTER TABLE qms_quality_record 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-
--- 追溯记录表
-ALTER TABLE qms_traceability 
-ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
-```
+**注意**：init.sql 已经包含 deleted 字段，无需修改。
 
 ---
 
@@ -633,14 +557,10 @@ docker compose up -d
 
 ### 6.1 数据库操作
 
-| 序号 | 操作 | 命令/步骤 | 状态 |
-|------|------|----------|------|
-| 1 | 连接 MySQL | `docker exec -it mes-mysql mysql -uroot -proot` | ⬜ |
-| 2 | 切换数据库 | `USE mes_db;` | ⬜ |
-| 3 | 工单表添加字段 | `ALTER TABLE wo_work_order ADD COLUMN...` | ⬜ |
-| 4 | 工艺表添加字段 | `ALTER TABLE proc_template ADD COLUMN...` | ⬜ |
-| 5 | 质检表添加字段 | `ALTER TABLE qms_quality_record ADD COLUMN...` | ⬜ |
-| 6 | 更新 sql/init.sql | 添加 ALTER 语句 | ⬜ |
+| 序号 | 操作 | 状态 | 说明 |
+|------|------|------|------|
+| 1 | 检查数据库字段 | ✅ 已完成 | init.sql 已包含 deleted 字段 |
+| 2 | 无需执行 ALTER | ✅ 已确认 | 所有业务表已有删除字段 |
 
 ### 6.2 后端 Java
 
