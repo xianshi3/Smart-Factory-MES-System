@@ -2,6 +2,7 @@ package com.mes.workorder.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mes.common.result.PageResult;
+import com.mes.common.result.Result;
 import com.mes.workorder.dto.CreateWorkOrderDTO;
 import com.mes.workorder.dto.SubmitReportDTO;
 import com.mes.workorder.dto.UpdateWorkOrderDTO;
@@ -13,6 +14,7 @@ public interface WorkOrderService extends IService<WorkOrder> {
     void issue(Long id);
     void startProduction(Long id);
     void updateStatus(Long id, UpdateWorkOrderDTO dto);
+    Result<Void> delete(Long id, Long userId);
     WorkReport submitReport(SubmitReportDTO dto, Long operatorId);
     PageResult<WorkOrder> queryPage(int current, int size, String status, String keyword);
 }

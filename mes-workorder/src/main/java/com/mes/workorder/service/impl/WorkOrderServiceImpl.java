@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mes.common.exception.BizException;
 import com.mes.common.exception.ErrorCode;
 import com.mes.common.result.PageResult;
+import com.mes.common.result.Result;
 import com.mes.workorder.dto.CreateWorkOrderDTO;
 import com.mes.workorder.dto.SubmitReportDTO;
 import com.mes.workorder.dto.UpdateWorkOrderDTO;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.mes.workorder.mapper.WorkOrderMapper;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder> implements WorkOrderService {
 
     private final WorkReportMapper workReportMapper;
+    private final WorkOrderMapper workOrderMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -145,6 +148,29 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         }
         wo.setStatus(target.getCode());
     }
+
+    @Override
+    public Result<Void> delete(Long id, Long userId) {
+        // 1. 查询工单
+        WorkOrder order = getById(id);
+        if (order == null) {
+            return Result.error("工单不存在");
+        }
+
+        // 2. 检查删除条件：只有 DRAFT 或 CANCELLED 状态可删除
+        if (!"DRAFT".equals(order.getStatus()) && !"CANCELLED".equals(order.getStatus())) {
+            return Result.error("只有草稿或已取消的工单可删除");
+        }
+
+        // 3. 逻辑删除（更新 deleted 字段）
+        order.setDeleted(1);
+        order.setDeletedBy(userId);
+        order.setDeletedTime(LocalDateTime.now());
+        workOrderMapper.updateById(order);
+
+        return Result.ok();
+    }
+
 
     private String generateOrderNo() {
         return "WO" + System.currentTimeMillis();

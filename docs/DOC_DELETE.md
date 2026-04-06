@@ -73,42 +73,50 @@ SHOW TABLES;
 -- dash_device_status  (设备状态)
 ```
 
-### 2.3 检查删除字段是否已存在
+### 2.3 添加缺失的字段（deleted_time, deleted_by）
 
-**重要**：`init.sql` 已包含 `deleted` 字段，不需要再次添加！
-
-```sql
--- 检查工单表是否已有 deleted 字段
-DESC wo_work_order;
-
--- 如果看到以下字段，说明已存在：
--- +----------------+-------------+------+-----+---------+----------------+
--- | Field           | Type        | Null | Key | Default | Extra          |
--- +----------------+-------------+------+-----+---------+----------------+
--- | deleted         | int         | YES  |     | 0       |                |
--- +----------------+-------------+------+-----+---------+----------------+
-```
-
-### 2.4 添加缺失的字段（仅针对 init.sql 中没有的表）
-
-**如果某些表缺少删除字段，使用以下 SQL：**
+**注意**：init.sql 只包含 `deleted` 字段，需要额外添加 `deleted_time` 和 `deleted_by`。
 
 ```sql
 USE mes_db;
 
--- 为缺少字段的表添加（示例）
--- ALTER TABLE table_name 
--- ADD COLUMN deleted TINYINT DEFAULT 0 COMMENT '0-未删除 1-已删除',
--- ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
--- ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+-- 工单表 wo_work_order
+ALTER TABLE wo_work_order 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 报工记录表 wo_work_report
+ALTER TABLE wo_work_report 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 工艺模板表 proc_template
+ALTER TABLE proc_template 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 工艺参数表 proc_parameter
+ALTER TABLE proc_parameter 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 质检记录表 qms_quality_record
+ALTER TABLE qms_quality_record 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 追溯记录表 qms_traceability
+ALTER TABLE qms_traceability 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
 ```
 
-**大部分表已在 init.sql 中包含，可跳过此步骤。**
+**或者直接执行 sql/V2__add_delete_fields.sql**
 
-### 2.5 验证字段存在
+### 2.4 验证字段存在
 
 ```sql
--- 查看工单表结构
+-- 查看工单表结构（应该有 deleted, deleted_time, deleted_by 三个字段）
 DESC wo_work_order;
 
 -- 应该能看到 deleted 字段

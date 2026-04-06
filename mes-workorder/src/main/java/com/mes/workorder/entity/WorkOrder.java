@@ -48,4 +48,10 @@ public class WorkOrder extends BaseEntity {
     private Long createBy;
     /** 下发人ID */
     private Long issueBy;
+    /** 0-未删除 1-已删除 */
+    private Integer deleted;
+    /** 删除时间 */
+    private LocalDateTime deletedTime;
+    /** 删除人ID */
+    private Long deletedBy;
 }

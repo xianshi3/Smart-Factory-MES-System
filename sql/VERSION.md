@@ -3,60 +3,39 @@
 ## 版本清单
 
 ### V2 - 2026-04-06
-**删除功能字段**
+**添加 deleted_time 和 deleted_by 字段**
 
-**重要发现**：`init.sql` 已包含 `deleted` 字段，无需额外执行 SQL。
+init.sql 已包含 `deleted` 字段，但缺少 `deleted_time` 和 `deleted_by`。
 
-| 表名 | 状态 |
-|------|------|
-| wo_work_order | ✅ init.sql 已包含 |
-| wo_work_report | ✅ init.sql 已包含 |
-| proc_template | ✅ init.sql 已包含 |
-| proc_parameter | ✅ init.sql 已包含 |
-| qms_quality_record | ✅ init.sql 已包含 |
-| qms_traceability | ✅ init.sql 已包含 |
+| 表名 | 添加字段 |
+|------|----------|
+| wo_work_order | deleted_time, deleted_by |
+| wo_work_report | deleted_time, deleted_by |
+| proc_template | deleted_time, deleted_by |
+| proc_parameter | deleted_time, deleted_by |
+| qms_quality_record | deleted_time, deleted_by |
+| qms_traceability | deleted_time, deleted_by |
 
-**结论**：此版本无需执行任何数据库操作。
+**执行方法**：
+```bash
+# 方式1: 手动执行 SQL
+docker exec -it mes-mysql mysql -uroot -proot
+# 然后执行 sql/V2__add_delete_fields.sql
+
+# 方式2: 直接导入
+docker exec -i mes-mysql mysql -uroot -proot mes_db < sql/V2__add_delete_fields.sql
+```
 
 ---
 
 ### V1 - 2026-04-04
 **初始数据库结构**
 
-包含以下表：
-- sys_user (用户表)
-- wo_work_order (工单表)
-- wo_work_report (报工记录)
-- proc_template (工艺模板)
-- proc_parameter (工艺参数)
-- qms_quality_record (质检记录)
-- qms_traceability (追溯记录)
-- dash_device_status (设备状态)
-- dash_production_stats (生产统计)
-- dash_oee_data (OEE数据)
-
----
-
-## 变更流程
-
-1. 创建新版本 SQL 文件：`sql/V{n}__xxx.sql`
-2. 检查字段是否已存在（如 init.sql）
-3. 手动执行到数据库（如果需要）
-4. 更新本文件
-5. 提交 Git
-
----
-
-## 常见问题
-
-**Q: 出现 "Duplicate column name 'deleted'" 错误**
-**A**: 这是因为 init.sql 已经包含了 deleted 字段，无需再次添加。
-
-**Q: 如何检查字段是否存在？**
-```sql
-DESC wo_work_order;
--- 查看是否有 deleted 字段
-```
+包含以下表（已有 deleted 字段）：
+- sys_user, wo_work_order, wo_work_report
+- proc_template, proc_parameter
+- qms_quality_record, qms_traceability
+- dash_device_status, dash_production_stats, dash_oee_data
 
 ---
 

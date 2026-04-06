@@ -72,4 +72,11 @@ public class WorkOrderController {
             @RequestParam(required = false) String keyword) {
         return Result.ok(workOrderService.queryPage(current, size, status, keyword));
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除工单")
+    public Result<Void> delete(@PathVariable Long id,
+                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return workOrderService.delete(id, userId);
+    }
 }
