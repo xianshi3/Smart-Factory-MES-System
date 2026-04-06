@@ -42,6 +42,16 @@ public class BaseEntity implements Serializable {
     private Integer deleted;
 
     /**
+     * 删除时间
+     */
+    private LocalDateTime deletedTime;
+
+    /**
+     * 删除人ID
+     */
+    private Long deletedBy;
+
+    /**
      * 乐观锁版本号
      * 用于并发控制，防止脏更新
      */
