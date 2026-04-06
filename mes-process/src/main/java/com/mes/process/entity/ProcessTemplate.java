@@ -1,9 +1,12 @@
 package com.mes.process.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mes.common.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
 
 /**
  * 工艺模板实体类
@@ -34,4 +37,19 @@ public class ProcessTemplate extends BaseEntity {
 
     /** 描述信息 */
     private String description;
+
+    /** 0-未删除 1-已删除 */
+    private Integer deleted;
+    /** 删除时间 */
+    private LocalDateTime deletedTime;
+    /** 删除人ID */
+    private Long deletedBy;
+
+    /**
+     * 逻辑删除注解
+     */
+    @TableLogic
+    public Integer getDeleted() {
+        return deleted;
+    }
 }

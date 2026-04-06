@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -219,5 +220,43 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         wrapper.orderByDesc(ProcessTemplate::getCreateTime);
         Page<ProcessTemplate> resultPage = processTemplateMapper.selectPage(page, wrapper);
         return PageResult.of(resultPage);
+    }
+
+    /**
+     * 删除工艺模板
+     * 只有 DRAFT 状态可删除
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> delete(Long id, Long userId) {
+        ProcessTemplate template = getById(id);
+        if (template == null) {
+            return Result.error("模板不存在");
+        }
+
+        // 只有 DRAFT 状态可删除
+        if (!"DRAFT".equals(template.getStatus())) {
+            return Result.error("只有草稿状态的模板可删除");
+        }
+
+        // 逻辑删除
+        template.setDeleted(1);
+        template.setDeletedBy(userId);
+        template.setDeletedTime(LocalDateTime.now());
+        processTemplateMapper.updateById(template);
+
+        // 级联删除参数
+        LambdaQueryWrapper<ProcessParameter> paramWrapper = new LambdaQueryWrapper<>();
+        paramWrapper.eq(ProcessParameter::getTemplateId, id);
+        List<ProcessParameter> params = processParameterMapper.selectList(paramWrapper);
+        for (ProcessParameter param : params) {
+            param.setDeleted(1);
+            param.setDeletedTime(LocalDateTime.now());
+            param.setDeletedBy(userId);
+            processParameterMapper.updateById(param);
+        }
+
+        log.info("删除工艺模板成功: id={}", id);
+        return Result.ok();
     }
 }

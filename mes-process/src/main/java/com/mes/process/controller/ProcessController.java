@@ -102,4 +102,11 @@ public class ProcessController {
             @RequestParam(required = false) String keyword) {
         return Result.ok(processTemplateService.queryPage(current, size, keyword));
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除工艺模板")
+    public Result<Void> delete(@PathVariable Long id,
+                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return processTemplateService.delete(id, userId);
+    }
 }

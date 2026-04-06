@@ -120,6 +120,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     @Override
     public PageResult<WorkOrder> queryPage(int current, int size, String status, String keyword) {
         LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
+        // 注意：@TableLogic 会自动过滤 deleted=1，不需要手动添加
         if (status != null && !status.isEmpty()) {
             wrapper.eq(WorkOrder::getStatus, status);
         }
@@ -151,22 +152,23 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     public Result<Void> delete(Long id, Long userId) {
-        // 1. 查询工单
         WorkOrder order = getById(id);
         if (order == null) {
             return Result.error("工单不存在");
         }
 
-        // 2. 检查删除条件：只有 DRAFT 或 CANCELLED 状态可删除
-        if (!"DRAFT".equals(order.getStatus()) && !"CANCELLED".equals(order.getStatus())) {
-            return Result.error("只有草稿或已取消的工单可删除");
+        // 检查删除条件：只有 CREATED(草稿) 或 CLOSED(已关闭) 状态可删除
+        String status = order.getStatus();
+        if (!WorkOrderStatusEnum.CREATED.getCode().equals(status) 
+            && !WorkOrderStatusEnum.CLOSED.getCode().equals(status)) {
+            return Result.error("只有草稿或已关闭的工单可删除");
         }
 
-        // 3. 逻辑删除（更新 deleted 字段）
+        // 逻辑删除
         order.setDeleted(1);
         order.setDeletedBy(userId);
         order.setDeletedTime(LocalDateTime.now());
-        workOrderMapper.updateById(order);
+        updateById(order);
 
         return Result.ok();
     }

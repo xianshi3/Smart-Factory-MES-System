@@ -54,4 +54,12 @@ public interface ProcessTemplateService {
      * @return 分页结果
      */
     PageResult<ProcessTemplate> queryPage(int current, int size, String keyword);
+
+    /**
+     * 删除工艺模板
+     * @param id 模板ID
+     * @param userId 用户ID
+     * @return 结果
+     */
+    Result<Void> delete(Long id, Long userId);
 }

@@ -1,5 +1,6 @@
 package com.mes.workorder.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mes.common.entity.BaseEntity;
 import lombok.Data;
@@ -54,4 +55,13 @@ public class WorkOrder extends BaseEntity {
     private LocalDateTime deletedTime;
     /** 删除人ID */
     private Long deletedBy;
+
+    /**
+     * 逻辑删除注解
+     * 添加后，所有查询会自动过滤 deleted=1 的记录
+     */
+    @TableLogic
+    public Integer getDeleted() {
+        return deleted;
+    }
 }

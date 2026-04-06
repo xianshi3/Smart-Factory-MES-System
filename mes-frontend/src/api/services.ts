@@ -28,6 +28,10 @@ export function submitReport(data: any) {
   return request({ url: '/workorder/report', method: 'post', data })
 }
 
+export function deleteWorkOrder(id: number) {
+  return request({ url: `/workorder/${id}`, method: 'delete' })
+}
+
 export function getTemplatePage(params: any) {
   return request({ url: '/process/template/page', method: 'get', params })
 }
@@ -50,6 +54,10 @@ export function publishTemplate(id: number) {
 
 export function checkParameters(data: any) {
   return request({ url: '/process/parameter/check', method: 'post', data })
+}
+
+export function deleteTemplate(id: number) {
+  return request({ url: `/process/template/${id}`, method: 'delete' })
 }
 
 export function getQualityPage(params: any) {

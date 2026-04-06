@@ -34,6 +34,7 @@
           <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
           <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
           <el-button type="success" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
+          <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'DRAFT'">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -93,9 +94,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate } from '@/api/services'
+import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate, deleteTemplate } from '@/api/services'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -191,6 +192,28 @@ const handlePublish = async (row: any) => {
   } catch (error) {
     ElMessage.error('发布失败')
   }
+}
+
+const handleDelete = (row: any) => {
+  ElMessageBox.confirm(
+    `确定要删除模板 "${row.templateName}" 吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await deleteTemplate(row.id)
+      ElMessage.success('删除成功')
+      loadData()
+    } catch (error: any) {
+      ElMessage.error(error?.response?.data?.message || '删除失败')
+    }
+  }).catch(() => {
+    ElMessage.info('已取消删除')
+  })
 }
 
 const handleSubmit = async () => {

@@ -1,9 +1,12 @@
 package com.mes.process.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mes.common.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
 
 /**
  * 工艺参数实体类
@@ -40,4 +43,16 @@ public class ProcessParameter extends BaseEntity {
 
     /** 排序顺序 */
     private Integer sortOrder;
+
+    /** 0-未删除 1-已删除 */
+    private Integer deleted;
+    /** 删除时间 */
+    private LocalDateTime deletedTime;
+    /** 删除人ID */
+    private Long deletedBy;
+
+    @TableLogic
+    public Integer getDeleted() {
+        return deleted;
+    }
 }
