@@ -43,45 +43,90 @@ Smart-Factory-MES-System/
 
 ### 前置条件
 
-- JDK 17+
-- Maven 3.9+
-- Node.js 18+
-- Docker 24+
+| 工具 | 版本要求 | 说明 |
+|------|----------|------|
+| JDK | 17+ | Java 后端服务 |
+| Maven | 3.9+ | Java 项目构建 |
+| Node.js | 18+ | 前端开发服务器 |
+| Python | 3.11+ | AI 服务 (可选) |
+| Docker | 24+ | MySQL、Redis 容器 |
+| .NET SDK | 8.0+ | 设备网关 (可选) |
 
-### 启动基础设施
+### 方式一：图形界面启动（推荐）
 
 ```bash
-# 快速启动（推荐）
-start-docker.bat
-
-# 停止服务
-stop-docker.bat
+# 双击运行一键启动脚本
+start-all.bat
 ```
 
-### 启动后端服务
+菜单选项说明：
+
+| 选项 | 功能 |
+|------|------|
+| [1] Start All Services | 启动所有服务（Docker + 后端 + AI + 网关 + 前端 + 模拟器） |
+| [2] Start Docker | 仅启动 MySQL 和 Redis |
+| [3] Start Backend | 仅启动 Java 后端服务 |
+| [4] Start AI Service | 仅启动 Python AI 预测服务 |
+| [5] Start .NET Gateway | 仅启动设备网关 |
+| [6] Start Frontend | 仅启动 Vue 前端 |
+| [7] Start Device Simulator | 启动设备模拟器 |
+| [8] Clean Unnecessary Files | 清理缓存文件（释放空间） |
+| [9] Stop All Services | 停止所有服务 |
+| [10] View Status | 查看服务运行状态 |
+
+### 方式二：手动启动
+
+#### 1. 启动基础设施（Docker）
 
 ```bash
-# 一键启动所有后端服务（自动编译打包）
-start-backend.bat
+# 启动 MySQL 和 Redis
+docker compose up -d
 
-# 停止后端服务
-stop-backend.bat
+# 初始化数据库（首次启动）
+docker exec mes-mysql mysql -uroot -proot -e "DROP DATABASE IF EXISTS mes_db; CREATE DATABASE mes_db"
+docker cp sql/init.sql mes-mysql:/tmp/init.sql
+docker exec mes-mysql mysql -uroot -proot mes_db -e "source /tmp/init.sql"
 ```
 
-或者手动启动：
+#### 2. 启动后端（Java）
 
 ```bash
-# 编译打包
-mvn clean compile
-mvn package -DskipTests
+# 编译打包（项目根目录下执行）
+mvn clean package -DskipTests
 
-# 启动服务（后台运行）
-start java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
+# 启动各个服务（分别执行）
 start java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
 start java -jar mes-workorder/target/mes-workorder-1.0.0-SNAPSHOT.jar
 start java -jar mes-process/target/mes-process-1.0.0-SNAPSHOT.jar
 start java -jar mes-quality/target/mes-quality-1.0.0-SNAPSHOT.jar
 start java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
+```
+
+#### 3. 启动 AI 服务（Python）
+
+```bash
+cd mes-ai-service
+
+# 方式一：使用虚拟环境（推荐）
+.venv\Scripts\activate.bat
+python src/main.py
+
+# 方式二：直接运行
+python src/main.py
+```
+
+#### 4. 启动设备网关（.NET）
+
+```bash
+dotnet run --project mes-device-gateway\src\MesDeviceGateway\MesDeviceGateway.csproj
+```
+
+#### 5. 启动前端
+
+```bash
+cd mes-frontend
+npm install
+npm run dev
 ```
 
 ### 简化架构说明
@@ -95,31 +140,23 @@ start java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
 | 分布式事务 | 无 | Seata |
 | 消息队列 | 无 | Kafka |
 
-### 启动前端
+> **注意**：生产环境需要额外安装 EMQX（MQTT broker）、Kafka、InfluxDB、Elasticsearch 等组件。
 
-```bash
-cd mes-frontend
-npm install
-npm run dev
-```
+### 访问地址
 
-访问 http://localhost:3000
-
-## 服务端口
-
-| 服务 | 端口 | 状态 |
+| 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端 | 3000 | ✅ 运行中 |
-| API网关 | 9090 | ✅ 运行中 |
-| 认证服务 | 8081 | ✅ 运行中 |
-| 工单服务 | 8082 | ✅ 运行中 |
-| 工艺服务 | 8083 | ✅ 运行中 |
-| 质量服务 | 8084 | ✅ 运行中 |
-| 看板服务 | 8085 | ✅ 运行中 |
-| AI服务 | 8086 | - |
-| MySQL | 3306 | ✅ 运行中 |
-| Redis | 6379 | ✅ 运行中 |
-| EMQX Dashboard | 18083 | - |
+| 前端 | http://localhost:3000 | Vue 3 应用 |
+| API网关 | http://localhost:9090 | Spring Cloud Gateway |
+| 认证服务 | http://localhost:8081 | Spring Boot |
+| 工单服务 | http://localhost:8082 | Spring Boot |
+| 工艺服务 | http://localhost:8083 | Spring Boot |
+| 质量服务 | http://localhost:8084 | Spring Boot |
+| 看板服务 | http://localhost:8085 | Spring Boot |
+| AI服务 | http://localhost:8086 | FastAPI (Python) |
+| 设备网关 | http://localhost:5000 | ASP.NET Core |
+| MySQL | localhost:3306 | Docker 容器 |
+| Redis | localhost:6379 | Docker 容器 |
 
 ## 默认账号
 
@@ -145,7 +182,7 @@ npm run dev
 
 ## 版本
 
-v1.0.15 - 2026-04-05
+v1.0.18 - 2026-04-06
 
 ---
 

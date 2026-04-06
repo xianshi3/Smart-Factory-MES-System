@@ -345,6 +345,52 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.18 (2026-04-06)
+
+### 启动器修复
+
+1. **start-all.bat 路径问题修复**
+   - 修复路径包含空格导致命令执行失败
+   - 使用 `"%ROOT%\xxx"` 格式正确引用路径
+   - 修复后端服务启动命令格式
+
+2. **菜单选项完善**
+   - [1] Start All Services - 启动所有服务
+   - [2] Start Docker - 启动 MySQL/Redis
+   - [3] Start Backend - 启动 Java 后端
+   - [4] Start AI Service - 启动 Python AI
+   - [5] Start .NET Gateway - 启动设备网关
+   - [6] Start Frontend - 启动 Vue 前端
+   - [7] Start Device Simulator - 启动设备模拟器
+   - [8] Clean - 清理缓存文件
+   - [9] Stop All Services - 停止所有服务
+   - [10] View Status - 查看服务状态
+
+3. **AI 服务启动优化**
+   - 修复虚拟环境激活问题
+   - 直接调用 `.venv\Scripts\python.exe`
+
+4. **停止和状态功能完善**
+   - stop_all 标签实现
+   - status 标签实现（检测所有服务端口）
+
+5. **清理功能**
+   - 新增 clean.bat 脚本
+   - 清理 .opencode 文件夹
+   - 清理 Python 缓存文件
+   - 清理 Java target 文件（保留 JAR）
+   - 清理 .NET obj/bin 文件
+   - 清理 .idea 文件夹
+
+### 文件更新
+
+1. `start-all.bat` - 启动器完整重写
+2. `clean.bat` - 清理脚本
+3. `README.md` - 更新启动说明
+4. `DEVELOPMENT.md` - 更新菜单选项
+
+---
+
 ## v1.0.17 (2026-04-05)
 
 ### 前端修复

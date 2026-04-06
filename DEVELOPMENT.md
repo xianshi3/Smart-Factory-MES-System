@@ -70,12 +70,15 @@ start-all.bat
 start-all.bat
 
 # 选择：
-# [2] Start Docker       - 仅Docker
-# [3] Start Backend      - 仅后端
-# [4] Start AI Service   - 仅AI服务
-# [5] Start .NET Gateway - 仅设备网关
-# [6] Stop All Services  - 停止所有
-# [7] View Status        - 查看状态
+# [2] Start Docker           - 仅Docker
+# [3] Start Backend          - 仅后端
+# [4] Start AI Service       - 仅AI服务
+# [5] Start .NET Gateway     - 仅设备网关
+# [6] Start Frontend         - 仅前端
+# [7] Start Device Simulator - 设备模拟器
+# [8] Clean                  - 清理缓存
+# [9] Stop All Services      - 停止所有
+# [10] View Status           - 查看状态
 ```
 
 ### 2.4 启动前端
@@ -103,6 +106,7 @@ npm run dev
 | 看板服务 | 8085 | OEE/WebSocket |
 | AI服务 | 8086 | 质量/产量预测 |
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
+| 设备模拟器 | 8883 | 模拟2000+设备数据上报 |
 | MySQL | 3306 | 数据库 |
 | Redis | 6379 | 缓存 |
 | MQTT | 1883 | 设备通信 |
