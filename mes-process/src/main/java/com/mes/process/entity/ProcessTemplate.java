@@ -1,5 +1,6 @@
 package com.mes.process.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mes.common.entity.BaseEntity;
 import lombok.Data;
@@ -15,12 +16,15 @@ import lombok.EqualsAndHashCode;
 @TableName("proc_template")
 public class ProcessTemplate extends BaseEntity {
     /** 模板名称 */
+    @TableField("template_name")
     private String templateName;
 
     /** 模板编码 */
+    @TableField("template_code")
     private String templateCode;
 
     /** 产品型号 */
+    @TableField("product_model")
     private String productModel;
 
     /** 版本号 */
