@@ -50,18 +50,10 @@ public class WorkOrder extends BaseEntity {
     /** 下发人ID */
     private Long issueBy;
     /** 0-未删除 1-已删除 */
+    @TableLogic
     private Integer deleted;
     /** 删除时间 */
     private LocalDateTime deletedTime;
     /** 删除人ID */
     private Long deletedBy;
-
-    /**
-     * 逻辑删除注解
-     * 添加后，所有查询会自动过滤 deleted=1 的记录
-     */
-    @TableLogic
-    public Integer getDeleted() {
-        return deleted;
-    }
 }

@@ -39,17 +39,10 @@ public class ProcessTemplate extends BaseEntity {
     private String description;
 
     /** 0-未删除 1-已删除 */
+    @TableLogic
     private Integer deleted;
     /** 删除时间 */
     private LocalDateTime deletedTime;
     /** 删除人ID */
     private Long deletedBy;
-
-    /**
-     * 逻辑删除注解
-     */
-    @TableLogic
-    public Integer getDeleted() {
-        return deleted;
-    }
 }

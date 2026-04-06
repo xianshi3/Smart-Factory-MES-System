@@ -45,14 +45,10 @@ public class ProcessParameter extends BaseEntity {
     private Integer sortOrder;
 
     /** 0-未删除 1-已删除 */
+    @TableLogic
     private Integer deleted;
     /** 删除时间 */
     private LocalDateTime deletedTime;
     /** 删除人ID */
     private Long deletedBy;
-
-    @TableLogic
-    public Integer getDeleted() {
-        return deleted;
-    }
 }
