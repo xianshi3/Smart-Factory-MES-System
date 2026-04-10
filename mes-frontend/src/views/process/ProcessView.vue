@@ -186,6 +186,10 @@ const handleDetail = async (row: any) => {
 }
 
 const handleEdit = async (row: any) => {
+  if (row.status === 'PUBLISHED') {
+    ElMessage.warning('已发布的模板不能直接修改，请先创建新版本')
+    return
+  }
   try {
     const res = await getTemplateDetail(row.id)
     const data = res.data
@@ -248,8 +252,13 @@ const handleSubmit = async () => {
         }
         dialogVisible.value = false
         loadData()
-      } catch (error) {
-        ElMessage.error('保存失败')
+      } catch (error: any) {
+        const msg = error?.response?.data?.message || error?.message || '保存失败'
+        if (msg.includes('已发布') || msg.includes('版本')) {
+          ElMessage.warning('已发布的模板不能直接修改，请先创建新版本')
+        } else {
+          ElMessage.error(msg)
+        }
       }
     }
   })

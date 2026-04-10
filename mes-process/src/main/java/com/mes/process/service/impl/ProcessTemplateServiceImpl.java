@@ -103,11 +103,13 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
             throw new RuntimeException("已发布的模板不能直接修改，请先创建新版本");
         }
 
-        template.setTemplateName(dto.getTemplateName());
-        template.setTemplateCode(dto.getTemplateCode());
-        template.setProductModel(dto.getProductModel());
-        template.setDescription(dto.getDescription());
-        processTemplateMapper.updateById(template);
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessTemplate>()
+                .set("template_name", dto.getTemplateName())
+                .set("template_code", dto.getTemplateCode())
+                .set("product_model", dto.getProductModel())
+                .set("description", dto.getDescription())
+                .eq("id", id);
+        processTemplateMapper.update(null, updateWrapper);
 
         LambdaQueryWrapper<ProcessParameter> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(ProcessParameter::getTemplateId, id);
