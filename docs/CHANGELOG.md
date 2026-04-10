@@ -766,6 +766,28 @@ Smart-Factory-MES-System/
 - **示例**: result vs checkResult, workOrderCode vs workOrderNo
 - **解决方案**: 统一字段名
 
+### 详情对话框功能
+
+#### 前端页面
+- 工单管理：添加详情对话框，使用el-descriptions展示
+- 工艺模板：添加详情对话框
+- 质量管理：已有追溯功能
+- 设备管理：添加详情对话框
+
+#### 错误处理优化
+- 工艺模板编辑：已发布模板不能直接修改，添加前端提示
+- 保存失败时显示具体错误原因
+
+### 数据库修复
+
+#### 中文乱码修复
+- **问题**: MySQL连接使用latin1字符集
+- **解决**: 使用 `--default-character-set=utf8mb4` 连接
+- **修复数据**:
+  - proc_template: CNC加工工艺、测试模板工艺等
+  - wo_work_order: 智能手机外壳、智能手表表壳等
+  - qms_quality_record: 外观缺陷、产品表面有划痕
+
 ### 质量管理模块完善
 
 #### 1. 创建功能

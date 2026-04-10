@@ -312,6 +312,34 @@ SELECT id, template_name, template_code, status FROM proc_template;
 
 ---
 
+## 当前测试数据
+
+### 工单 (wo_work_order)
+| 工单编号 | 产品名称 | 产品型号 | 状态 |
+|---------|---------|---------|------|
+| WO20260410001 | 智能手机外壳 | iPhone 16 Pro | IN_PRODUCTION |
+| WO20260410002 | 智能手表表壳 | Apple Watch S10 | CREATED |
+| WO20260410003 | 平板电脑外壳 | iPad Pro 13 | COMPLETED |
+| WO20260410004 | 蓝牙耳机外壳 | AirPods Pro 3 | PENDING_QC |
+
+### 工艺模板 (proc_template)
+| 模板名称 | 模板编码 | 产品型号 | 状态 |
+|---------|---------|---------|------|
+| CNC加工工艺 | CNC-001 | iPhone 16 Pro | PUBLISHED |
+| 组装工艺 | ASM-001 | 通用 | PUBLISHED |
+| 检测工艺 | INS-001 | 通用 | PUBLISHED |
+| 测试模板工艺 | TPL001 | Model-A | PUBLISHED |
+| 喷涂模板工艺 | TPL002 | Model-A | PUBLISHED |
+
+### 质检记录 (qms_quality_record)
+| SN | 检验类型 | 检验结果 | 缺陷类型 |
+|-----|---------|---------|---------|
+| SN00100001 | IPQC | PASSED | - |
+| SN00100002 | IPQC | PASSED | - |
+| SN00100003 | IPQC | FAILED | 外观缺陷 |
+
+---
+
 ## 版本历史
 
 | 版本 | 日期 | 说明 |
@@ -319,4 +347,4 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V1 | 初始创建 | 基础表结构 |
 | V2 | 2026-04-06 | 添加 deleted_time, deleted_by 字段 |
 | V3 | 2026-04-10 | 完善质量管理表结构和示例数据 |
-| V3.1 | 2026-04-10 | 数据库已包含11条质检记录 |
+| V3.1 | 2026-04-10 | 修复中文乱码，添加测试数据 |

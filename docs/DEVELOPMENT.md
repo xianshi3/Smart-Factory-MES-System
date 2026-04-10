@@ -474,6 +474,47 @@ export function deleteEntity(id: string | number) {
 **原因**: 前后端字段名不一致
 **解决**: 统一字段名，参考 DTO 定义
 
+### Q4: 工艺模板编辑报错 "已发布的模板不能直接修改"
+**原因**: 已发布模板受保护，需要创建新版本才能修改
+**解决**: 前端添加判断，DRAFT状态才允许编辑
+
+### Q5: 数据库中文乱码
+**原因**: MySQL连接字符集为latin1
+**解决**: 使用 `--default-character-set=utf8mb4` 连接
+
+### Q6: 更新数据报错 "Parameter 'MP_OPTLOCK_VERSION_ORIGINAL' not found"
+**原因**: 使用updateById()触发@Version乐观锁
+**解决**: 使用UpdateWrapper代替updateById()
+
+---
+
+## 9. 详情对话框实现
+
+### 9.1 工单详情
+
+```vue
+<el-dialog v-model="detailVisible" title="工单详情">
+  <el-descriptions :column="2" border>
+    <el-descriptions-item label="工单ID">{{ detailData.id }}</el-descriptions-item>
+    <el-descriptions-item label="工单编号">{{ detailData.orderNo }}</el-descriptions-item>
+    <!-- 更多字段 -->
+  </el-descriptions>
+</el-dialog>
+```
+
+### 9.2 模板详情
+
+类似实现，使用el-descriptions组件展示。
+
+---
+
+## 10. 数据库字符集修复
+
+修复MySQL连接字符集：
+```bash
+docker exec mes-mysql mysql -uroot -proot --default-character-set=utf8mb4 mes_db -e "UPDATE proc_template SET ..."
+```
+
 ---
 
 *最后更新：2026-04-10*
