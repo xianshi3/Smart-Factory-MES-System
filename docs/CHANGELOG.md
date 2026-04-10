@@ -739,9 +739,71 @@ Smart-Factory-MES-System/
 
 ### 访问信息
 
-- 前端地址: http://localhost:3000
+- 前端地址: http://localhost:5173
 - 登录账号: admin / admin123
 - 数据库: mes_db (root/root)
+
+---
+
+## v1.0.10 (2026-04-10)
+
+### 核心问题修复
+
+#### 1. JavaScript Long ID 精度丢失
+- **问题**: 后端 Long 类型 ID 超过 2^53-1 时精度丢失，导致删除失败
+- **原因**: JavaScript Number 安全整数范围为 9007199254740991
+- **解决方案**: 
+  - 后端 BaseEntity 添加 `@JsonSerialize(using = ToStringSerializer.class)`
+  - 前端 API 接受 string | number 类型
+
+#### 2. 乐观锁 @Version 更新失败
+- **问题**: 使用 updateById() 触发 @Version 乐观锁时报错
+- **错误**: `Parameter 'MP_OPTLOCK_VERSION_ORIGINAL' not found`
+- **解决方案**: 使用 UpdateWrapper 代替 updateById()
+
+#### 3. 前后端字段名不匹配
+- **问题**: 前端字段名与后端 DTO 不一致
+- **示例**: result vs checkResult, workOrderCode vs workOrderNo
+- **解决方案**: 统一字段名
+
+### 质量管理模块完善
+
+#### 1. 创建功能
+- 后端: QualityService.createRecord() 已实现
+- 前端: 添加完整创建对话框表单
+
+#### 2. 删除功能
+- 后端: 添加 DELETE /quality/record/{id} 接口
+- 前端: 添加删除按钮和处理函数
+
+### 文件修改清单
+
+| 文件 | 修改内容 |
+|-----|---------|
+| `mes-common/.../BaseEntity.java` | 添加 ToStringSerializer |
+| `mes-frontend/.../services.ts` | 接受 string 类型 ID |
+| `mes-workorder/.../WorkOrderServiceImpl.java` | 使用 UpdateWrapper |
+| `mes-process/.../ProcessTemplateServiceImpl.java` | 使用 UpdateWrapper |
+| `mes-quality/.../QualityService.java` | 添加 deleteRecord 方法 |
+| `mes-quality/.../QualityServiceImpl.java` | 实现删除逻辑 |
+| `mes-quality/.../QualityController.java` | 添加 DELETE 接口 |
+| `mes-quality/.../QualityRecord.java` | 添加 ToStringSerializer |
+| `mes-frontend/.../QualityView.vue` | 添加创建表单和删除按钮 |
+
+### 文档更新
+
+| 文件 | 说明 |
+|-----|------|
+| docs/问题修复记录.md | 修复问题清单 |
+| docs/DEVELOPMENT.md | 添加核心实现模式 |
+| docs/DATABASE.md | 数据库设计文档 |
+| docs/JavaScript-Long-ID精度丢失问题最佳实践.md | 通用解决方案 |
+| docs/博客文章-为什么你的删除功能突然失效了.md | 博客文章 |
+
+### 数据库状态
+
+- qms_quality_record: 11 条记录
+- 所有业务表已添加 deleted_time, deleted_by 字段
 
 ---
 

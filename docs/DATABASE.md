@@ -271,6 +271,47 @@
 
 ---
 
+## 当前数据库状态
+
+### 表记录数统计
+
+| 表名 | 记录数 |
+|-----|-------|
+| sys_user | ≥1 |
+| wo_work_order | ≥10 |
+| wo_work_report | ≥5 |
+| proc_template | ≥3 |
+| proc_parameter | ≥15 |
+| qms_quality_record | 11 |
+| qms_traceability | ≥4 |
+| mes_workstation | ≥5 |
+| dash_device_status | ≥20 |
+
+### 连接信息
+
+- **Host**: localhost:3306 (Docker: mes-mysql:3306)
+- **Database**: mes_db
+- **User**: root
+- **Password**: root
+
+### 常用查询
+
+```sql
+-- 查看所有表
+SHOW TABLES;
+
+-- 查看质检记录
+SELECT id, sn, check_type, check_result FROM qms_quality_record LIMIT 10;
+
+-- 查看工单
+SELECT id, order_no, product_name, status FROM wo_work_order LIMIT 10;
+
+-- 查看工艺模板
+SELECT id, template_name, template_code, status FROM proc_template;
+```
+
+---
+
 ## 版本历史
 
 | 版本 | 日期 | 说明 |
@@ -278,3 +319,4 @@
 | V1 | 初始创建 | 基础表结构 |
 | V2 | 2026-04-06 | 添加 deleted_time, deleted_by 字段 |
 | V3 | 2026-04-10 | 完善质量管理表结构和示例数据 |
+| V3.1 | 2026-04-10 | 数据库已包含11条质检记录 |
