@@ -88,6 +88,25 @@
         </div>
       </el-col>
     </el-row>
+    
+    <el-dialog v-model="detailVisible" title="设备详情" width="600px">
+      <el-descriptions :column="2" border v-if="detailData.id">
+        <el-descriptions-item label="设备ID">{{ detailData.id }}</el-descriptions-item>
+        <el-descriptions-item label="设备编号">{{ detailData.code }}</el-descriptions-item>
+        <el-descriptions-item label="设备名称">{{ detailData.name }}</el-descriptions-item>
+        <el-descriptions-item label="设备状态">
+          <el-tag :type="getStatusType(detailData.status)">{{ getStatusText(detailData.status) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="利用率">{{ detailData.utilization }}</el-descriptions-item>
+        <el-descriptions-item label="运行时长">{{ detailData.runtime }}</el-descriptions-item>
+        <el-descriptions-item label="温度">{{ detailData.temperature }}°C</el-descriptions-item>
+        <el-descriptions-item label="功率">{{ detailData.power }}kW</el-descriptions-item>
+        <el-descriptions-item label="速度">{{ detailData.speed }}mm/s</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -107,6 +126,8 @@ use([CanvasRenderer, PieChart, BarChart, GridComponent, TooltipComponent, Legend
 
 const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
+const detailVisible = ref(false)
+const detailData = ref<any>({})
 
 const utilizationOption = ref({
   tooltip: { trigger: 'axis' },
@@ -210,7 +231,8 @@ const handleRefresh = () => {
 }
 
 const handleDetail = (device: any) => {
-  ElMessage.info(`查看设备详情: ${device.name}`)
+  detailData.value = device
+  detailVisible.value = true
 }
 
 const handleMaintain = (device: any) => {

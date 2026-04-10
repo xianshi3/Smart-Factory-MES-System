@@ -85,6 +85,25 @@
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+    
+    <el-dialog v-model="detailVisible" title="模板详情" width="700px">
+      <el-descriptions :column="2" border v-if="detailData.id">
+        <el-descriptions-item label="模板ID">{{ detailData.id }}</el-descriptions-item>
+        <el-descriptions-item label="模板名称">{{ detailData.templateName }}</el-descriptions-item>
+        <el-descriptions-item label="模板编码">{{ detailData.templateCode }}</el-descriptions-item>
+        <el-descriptions-item label="适用产品型号">{{ detailData.productModel || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getStatusType(detailData.status)">{{ getStatusText(detailData.status) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="版本号">{{ detailData.version }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ detailData.updateTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="描述" :span="2">{{ detailData.description || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -97,6 +116,8 @@ import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, pub
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建模板')
+const detailVisible = ref(false)
+const detailData = ref<any>({})
 const tableData = ref<any[]>([])
 const searchForm = reactive({ name: '', status: '' })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
@@ -157,9 +178,10 @@ const handleCreate = () => {
 const handleDetail = async (row: any) => {
   try {
     const res = await getTemplateDetail(row.id)
-    ElMessage.info(`查看模板详情: ${res.data.name}`)
+    detailData.value = res.data || {}
+    detailVisible.value = true
   } catch (error) {
-    console.error('Failed to load template detail:', error)
+    ElMessage.error('获取详情失败')
   }
 }
 

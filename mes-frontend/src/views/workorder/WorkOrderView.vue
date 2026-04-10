@@ -105,6 +105,33 @@
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+    
+    <el-dialog v-model="detailVisible" title="工单详情" width="700px">
+      <el-descriptions :column="2" border v-if="detailData.id">
+        <el-descriptions-item label="工单ID">{{ detailData.id }}</el-descriptions-item>
+        <el-descriptions-item label="工单编号">{{ detailData.orderNo }}</el-descriptions-item>
+        <el-descriptions-item label="产品名称">{{ detailData.productName }}</el-descriptions-item>
+        <el-descriptions-item label="产品型号">{{ detailData.productModel || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="计划数量">{{ detailData.planQuantity }}</el-descriptions-item>
+        <el-descriptions-item label="已完成数量">{{ detailData.completedQuantity || 0 }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getStatusType(detailData.status)">{{ getStatusText(detailData.status) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="优先级">{{ detailData.priority || 'MEDIUM' }}</el-descriptions-item>
+        <el-descriptions-item label="计划开始时间">{{ detailData.plannedStartTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="计划结束时间">{{ detailData.plannedEndTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="实际开始时间">{{ detailData.actualStartTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="实际结束时间">{{ detailData.actualEndTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="工位ID">{{ detailData.workstationId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="工艺模板ID">{{ detailData.processTemplateId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ detailData.updateTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ detailData.remark || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -112,11 +139,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getWorkOrderPage, createWorkOrder, issueWorkOrder, startWorkOrder, deleteWorkOrder } from '@/api/services'
+import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, deleteWorkOrder } from '@/api/services'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建工单')
+const detailVisible = ref(false)
+const detailData = ref<any>({})
 const tableData = ref<any[]>([])
 const searchForm = reactive({ keyword: '', status: '' })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
@@ -192,8 +221,14 @@ const handleCreate = () => {
   dialogVisible.value = true
 }
 
-const handleDetail = (row: any) => {
-  ElMessage.info(`查看工单详情: ${row.code}`)
+const handleDetail = async (row: any) => {
+  try {
+    const res = await getWorkOrderDetail(row.id)
+    detailData.value = res.data || {}
+    detailVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取详情失败')
+  }
 }
 
 const handleStart = async (row: any) => {

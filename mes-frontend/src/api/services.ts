@@ -4,7 +4,7 @@ export function getWorkOrderPage(params: any) {
   return request({ url: '/workorder/page', method: 'get', params })
 }
 
-export function getWorkOrderDetail(id: number) {
+export function getWorkOrderDetail(id: string | number) {
   return request({ url: `/workorder/${id}`, method: 'get' })
 }
 
