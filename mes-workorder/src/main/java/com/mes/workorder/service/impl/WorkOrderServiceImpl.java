@@ -13,7 +13,6 @@ import com.mes.workorder.dto.UpdateWorkOrderDTO;
 import com.mes.workorder.entity.WorkOrder;
 import com.mes.workorder.entity.WorkReport;
 import com.mes.workorder.enums.WorkOrderStatusEnum;
-import com.mes.workorder.mapper.WorkOrderMapper;
 import com.mes.workorder.mapper.WorkReportMapper;
 import com.mes.workorder.service.WorkOrderService;
 import cn.hutool.core.util.IdUtil;
@@ -152,23 +151,30 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     public Result<Void> delete(Long id, Long userId) {
+        log.info("删除工单, id={}", id);
         WorkOrder order = getById(id);
         if (order == null) {
+            log.warn("工单不存在, id={}", id);
             return Result.error("工单不存在");
         }
 
         // 检查删除条件：只有 CREATED(草稿) 或 CLOSED(已关闭) 状态可删除
         String status = order.getStatus();
+        log.info("工单状态: {}, orderNo: {}", status, order.getOrderNo());
         if (!WorkOrderStatusEnum.CREATED.getCode().equals(status) 
             && !WorkOrderStatusEnum.CLOSED.getCode().equals(status)) {
+            log.warn("状态不正确无法删除, status={}", status);
             return Result.error("只有草稿或已关闭的工单可删除");
         }
 
-        // 逻辑删除 - 使用 BaseEntity 中的 deleted 字段
-        order.setDeleted(1);
-        order.setDeletedTime(LocalDateTime.now());
-        order.setDeletedBy(userId);
-        updateById(order);
+        // 逻辑删除 - 使用wrapper避免乐观锁问题
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
+                .set("deleted", 1)
+                .set("deleted_time", LocalDateTime.now())
+                .set("deleted_by", userId)
+                .eq("id", id);
+        workOrderMapper.update(null, updateWrapper);
+        log.info("删除成功, id={}", id);
 
         return Result.ok();
     }

@@ -30,6 +30,6 @@ export function submitReport(data: any) {
   return request({ url: `${BASE_URL}/report`, method: 'post', data })
 }
 
-export function deleteWorkOrder(id: number) {
+export function deleteWorkOrder(id: string | number) {
   return request({ url: `${BASE_URL}/${id}`, method: 'delete' })
 }

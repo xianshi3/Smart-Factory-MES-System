@@ -39,6 +39,19 @@ public class QualityController {
     }
 
     /**
+     * 删除质检记录
+     * @param id 记录ID
+     * @return 结果
+     */
+    @DeleteMapping("/record/{id}")
+    @Operation(summary = "删除质检记录")
+    public Result<Void> deleteRecord(@PathVariable Long id,
+                                   @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        qualityService.deleteRecord(id, userId);
+        return Result.ok();
+    }
+
+    /**
      * 查询质检详情
      * @param id 记录ID
      * @return 质检记录

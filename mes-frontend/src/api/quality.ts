@@ -22,6 +22,13 @@ export function createQualityRecord(data: any) {
 }
 
 /**
+ * Delete quality inspection record
+ */
+export function deleteQualityRecord(id: string | number) {
+  return request({ url: `/quality/record/${id}`, method: 'delete' })
+}
+
+/**
  * Mark quality inspection as passed
  */
 export function passQuality(id: number) {

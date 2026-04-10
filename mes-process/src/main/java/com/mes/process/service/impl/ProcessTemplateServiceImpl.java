@@ -240,22 +240,21 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
             return Result.error("只有草稿状态的模板可删除");
         }
 
-        // 逻辑删除 - 使用 BaseEntity 中的 deleted 字段
-        template.setDeleted(1);
-        template.setDeletedTime(LocalDateTime.now());
-        template.setDeletedBy(userId);
-        processTemplateMapper.updateById(template);
+        // 逻辑删除 - 使用wrapper避免乐观锁问题
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessTemplate>()
+                .set("deleted", 1)
+                .set("deleted_time", LocalDateTime.now())
+                .set("deleted_by", userId)
+                .eq("id", id);
+        processTemplateMapper.update(null, updateWrapper);
 
-        // 级联删除参数 - 使用 BaseEntity 中的 deleted 字段
-        LambdaQueryWrapper<ProcessParameter> paramWrapper = new LambdaQueryWrapper<>();
-        paramWrapper.eq(ProcessParameter::getTemplateId, id);
-        List<ProcessParameter> params = processParameterMapper.selectList(paramWrapper);
-        for (ProcessParameter param : params) {
-            param.setDeleted(1);
-            param.setDeletedTime(LocalDateTime.now());
-            param.setDeletedBy(userId);
-            processParameterMapper.updateById(param);
-        }
+        // 级联删除参数 - 使用wrapper避免乐观锁问题
+        var paramUpdateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessParameter>()
+                .set("deleted", 1)
+                .set("deleted_time", LocalDateTime.now())
+                .set("deleted_by", userId)
+                .eq("template_id", id);
+        processParameterMapper.update(null, paramUpdateWrapper);
 
         log.info("删除工艺模板成功: id={}", id);
         return Result.ok();

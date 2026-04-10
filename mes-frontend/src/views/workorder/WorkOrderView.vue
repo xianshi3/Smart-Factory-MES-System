@@ -22,6 +22,7 @@
     </div>
     
     <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
+      <el-table-column prop="id" label="ID" width="180" />
       <el-table-column prop="orderNo" label="工单编号" />
       <el-table-column prop="productName" label="产品名称" />
       <el-table-column prop="planQuantity" label="计划数量" />
@@ -216,6 +217,8 @@ const handleIssue = async (row: any) => {
 }
 
 const handleDelete = (row: any) => {
+  const deleteId = String(row.id)
+  console.log('删除工单, id:', deleteId, 'status:', row.status, '原始ID:', row.id)
   ElMessageBox.confirm(
     `确定要删除工单 "${row.orderNo}" 吗？`,
     '删除确认',
@@ -226,11 +229,13 @@ const handleDelete = (row: any) => {
     }
   ).then(async () => {
     try {
-      await deleteWorkOrder(row.id)
+      console.log('开始删除, id:', deleteId)
+      await deleteWorkOrder(deleteId)
       ElMessage.success('删除成功')
       loadData()
     } catch (error: any) {
-      ElMessage.error(error?.response?.data?.message || '删除失败')
+      console.error('删除失败:', error)
+      ElMessage.error(error?.message || error?.response?.data?.message || '删除失败')
     }
   }).catch(() => {
     ElMessage.info('已取消删除')

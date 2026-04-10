@@ -22,6 +22,13 @@ public interface QualityService {
     Long createRecord(CreateQualityRecordDTO dto);
 
     /**
+     * 删除质检记录
+     * @param id 记录ID
+     * @param userId 操作人ID
+     */
+    void deleteRecord(Long id, Long userId);
+
+    /**
      * 质检通过
      * @param id 记录ID
      */

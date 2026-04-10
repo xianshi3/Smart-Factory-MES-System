@@ -1,6 +1,8 @@
 package com.mes.common.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -16,8 +18,10 @@ public class BaseEntity implements Serializable {
     /**
      * 主键ID
      * 使用MyBatis-Plus的ASSIGN_ID策略自动生成
+     * 使用ToStringSerializer将Long序列化为String，避免JavaScript精度丢失
      */
     @TableId(type = IdType.ASSIGN_ID)
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

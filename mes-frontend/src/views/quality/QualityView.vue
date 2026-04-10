@@ -20,20 +20,19 @@
     
     <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
       <el-table-column prop="sn" label="产品序列号" />
-      <el-table-column prop="workOrderCode" label="工单号" />
-      <el-table-column prop="productName" label="产品名称" />
-      <el-table-column prop="result" label="质检结果">
+      <el-table-column prop="workOrderNo" label="工单号" />
+      <el-table-column prop="checkType" label="检验类型" />
+      <el-table-column prop="checkResult" label="质检结果">
         <template #default="{ row }">
-          <el-tag :type="getResultType(row.result)">{{ getResultText(row.result) }}</el-tag>
+          <el-tag :type="getResultType(row.checkResult)">{{ getResultText(row.checkResult) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="inspector" label="质检员" />
-      <el-table-column prop="inspectTime" label="质检时间" />
-      <el-table-column label="操作" width="200">
+      <el-table-column prop="checkTime" label="检验时间" />
+      <el-table-column label="操作" width="250">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
-          <el-button type="success" link @click="handlePass(row)" v-if="row.result === 'pending'">合格</el-button>
-          <el-button type="danger" link @click="handleFail(row)" v-if="row.result === 'pending'">不合格</el-button>
+          <el-button type="success" link @click="handlePass(row)" v-if="row.checkResult === 'PENDING'">合格</el-button>
+          <el-button type="danger" link @click="handleDelete(row)" v-if="row.checkResult === 'PASSED' || row.checkResult === 'FAILED'">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -48,6 +47,47 @@
       @size-change="loadData"
       @current-change="loadData"
     />
+    
+    <el-dialog v-model="createDialogVisible" title="新建质检记录" width="500px">
+      <el-form :model="createForm" label-width="100px">
+        <el-form-item label="工单ID">
+          <el-input v-model="createForm.workOrderId" placeholder="请输入工单ID" />
+        </el-form-item>
+        <el-form-item label="产品序列号">
+          <el-input v-model="createForm.sn" placeholder="请输入产品序列号SN" />
+        </el-form-item>
+        <el-form-item label="设备ID">
+          <el-input v-model="createForm.deviceId" placeholder="请输入设备ID" />
+        </el-form-item>
+        <el-form-item label="检验类型">
+          <el-select v-model="createForm.checkType" placeholder="请选择检验类型">
+            <el-option label="IPQC" value="IPQC" />
+            <el-option label="FQC" value="FQC" />
+            <el-option label="OQC" value="OQC" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="检验结果">
+          <el-select v-model="createForm.checkResult" placeholder="请选择检验结果">
+            <el-option label="合格" value="PASSED" />
+            <el-option label="不合格" value="FAILED" />
+            <el-option label="返工" value="REWORK" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="缺陷类型">
+          <el-input v-model="createForm.defectType" placeholder="请输入缺陷类型" />
+        </el-form-item>
+        <el-form-item label="缺陷描述">
+          <el-input v-model="createForm.defectDesc" type="textarea" :rows="2" placeholder="请输入缺陷描述" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitCreate" :loading="createLoading">创建</el-button>
+      </template>
+    </el-dialog>
     
     <el-dialog 
       v-model="traceDialogVisible" 
@@ -110,11 +150,23 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getQualityPage, passQuality, failQuality, forwardTrace } from '@/api/services'
+import { getQualityPage, passQuality, failQuality, forwardTrace, deleteQualityRecord, createQualityRecord } from '@/api/services'
 
 const loading = ref(false)
+const createLoading = ref(false)
+const createDialogVisible = ref(false)
+const createForm = reactive({
+  workOrderId: null as number | null,
+  sn: '',
+  deviceId: null as number | null,
+  checkType: '',
+  checkResult: '',
+  defectType: '',
+  defectDesc: '',
+  remark: ''
+})
 const traceDialogVisible = ref(false)
 const tableData = ref<any[]>([])
 const searchForm = reactive({ sn: '', result: '' })
@@ -177,7 +229,52 @@ const handleReset = () => {
 }
 
 const handleCreate = () => {
-  ElMessage.info('新建质检记录')
+  Object.assign(createForm, {
+    workOrderId: null,
+    sn: '',
+    deviceId: null,
+    checkType: '',
+    checkResult: '',
+    defectType: '',
+    defectDesc: '',
+    remark: ''
+  })
+  createDialogVisible.value = true
+}
+
+const submitCreate = async () => {
+  if (!createForm.sn) {
+    ElMessage.warning('请输入产品序列号')
+    return
+  }
+  if (!createForm.checkType) {
+    ElMessage.warning('请选择检验类型')
+    return
+  }
+  if (!createForm.checkResult) {
+    ElMessage.warning('请选择检验结果')
+    return
+  }
+  createLoading.value = true
+  try {
+    await createQualityRecord({
+      workOrderId: createForm.workOrderId,
+      sn: createForm.sn,
+      deviceId: createForm.deviceId,
+      checkType: createForm.checkType,
+      checkResult: createForm.checkResult,
+      defectType: createForm.defectType,
+      defectDesc: createForm.defectDesc,
+      remark: createForm.remark
+    })
+    ElMessage.success('创建成功')
+    createDialogVisible.value = false
+    loadData()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '创建失败')
+  } finally {
+    createLoading.value = false
+  }
 }
 
 const handleDetail = async (row: any) => {
@@ -218,6 +315,28 @@ const handleFail = async (row: any) => {
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
+  }
+}
+
+const handleDelete = async (row: any) => {
+  const deleteId = String(row.id)
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除质检记录 "${row.sn}" 吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    await deleteQualityRecord(deleteId)
+    ElMessage.success('删除成功')
+    loadData()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '删除失败')
+    }
   }
 }
 

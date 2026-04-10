@@ -28,7 +28,7 @@ export function submitReport(data: any) {
   return request({ url: '/workorder/report', method: 'post', data })
 }
 
-export function deleteWorkOrder(id: number) {
+export function deleteWorkOrder(id: string | number) {
   return request({ url: `/workorder/${id}`, method: 'delete' })
 }
 
@@ -78,6 +78,10 @@ export function passQuality(id: number) {
 
 export function failQuality(id: number, reason: string) {
   return request({ url: `/quality/record/${id}/fail`, method: 'post', data: { reason } })
+}
+
+export function deleteQualityRecord(id: string | number) {
+  return request({ url: `/quality/record/${id}`, method: 'delete' })
 }
 
 export function forwardTrace(sn: string) {

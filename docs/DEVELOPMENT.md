@@ -362,4 +362,118 @@ npm run dev
 
 ---
 
-*最后更新：2026-04-05*
+## 8. 核心实现模式 (2026-04-10 新增)
+
+### 8.1 创建功能实现
+
+后端 Service:
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public Long create(CreateDTO dto) {
+    Entity entity = new Entity();
+    entity.setField1(dto.getField1());
+    entity.setField2(dto.getField2());
+    mapper.insert(entity);
+    return entity.getId();
+}
+```
+
+后端 Controller:
+```java
+@PostMapping
+public Result<Long> create(@RequestBody CreateDTO dto) {
+    return Result.ok(service.create(dto));
+}
+```
+
+### 8.2 删除功能实现 (使用 UpdateWrapper 避免乐观锁)
+
+后端 Service:
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public void delete(Long id, Long userId) {
+    Entity entity = mapper.selectById(id);
+    if (entity == null) {
+        throw new RuntimeException("记录不存在");
+    }
+
+    var updateWrapper = new UpdateWrapper<Entity>()
+            .set("deleted", 1)
+            .set("deleted_time", LocalDateTime.now())
+            .set("deleted_by", userId)
+            .eq("id", id);
+    mapper.update(null, updateWrapper);
+}
+```
+
+后端 Controller:
+```java
+@DeleteMapping("/{id}")
+public Result<Void> delete(@PathVariable Long id,
+                         @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    service.delete(id, userId);
+    return Result.ok();
+}
+```
+
+### 8.3 解决 JavaScript Long ID 精度丢失
+
+后端实体类:
+```java
+@JsonSerialize(using = ToStringSerializer.class)
+private Long id;
+```
+
+前端 API:
+```typescript
+export function deleteEntity(id: string | number) {
+  return request({ url: `/entity/${id}`, method: 'delete' })
+}
+```
+
+### 8.4 前后端字段名对应
+
+| 后端字段 | 前端字段 |
+|---------|---------|
+| checkResult | checkResult |
+| workOrderNo | workOrderNo |
+| checkType | checkType |
+| checkTime | checkTime |
+
+### 8.5 前端创建对话框
+
+```vue
+<el-dialog v-model="createDialogVisible" title="新建" width="500px">
+  <el-form :model="createForm" label-width="80px">
+    <el-form-item label="名称">
+      <el-input v-model="createForm.name" />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <el-button @click="createDialogVisible = false">取消</el-button>
+    <el-button type="primary" @click="submitCreate">创建</el-button>
+  </template>
+</el-dialog>
+```
+
+---
+
+## 常见问题与解决方案
+
+### Q1: 删除报错 "Parameter 'MP_OPTLOCK_VERSION_ORIGINAL' not found"
+**原因**: 实��类使用 @Version 注解，手动调用 updateById() 触发乐观锁
+**解决**: 使用 UpdateWrapper 代替 updateById()
+
+### Q2: 删除报错 "记录不存在" 但列表显示存在
+**原因**: JavaScript Long ID 精度丢失，超过 2^53-1
+**解决**: 后端添加 @JsonSerialize(using = ToStringSerializer.class)
+
+### Q3: 前端字段有值但后端接收不到
+**原因**: 前后端字段名不一致
+**解决**: 统一字段名，参考 DTO 定义
+
+---
+
+*最后更新：2026-04-10*

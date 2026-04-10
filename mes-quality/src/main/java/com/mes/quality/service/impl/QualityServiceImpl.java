@@ -50,12 +50,35 @@ public class QualityServiceImpl implements QualityService {
         record.setCheckTime(LocalDateTime.now());
         qualityRecordMapper.insert(record);
 
-        syncToElasticsearch(record);
-
-        sendKafkaEvent("QUALITY_RECORD_CREATED", record.getId(), record.getCheckResult());
-
         log.info("质检记录创建成功, id={}, sn={}, result={}", record.getId(), record.getSn(), record.getCheckResult());
         return record.getId();
+    }
+
+    /**
+     * 删除质检记录
+     * @param id 记录ID
+     * @param userId 操作人ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteRecord(Long id, Long userId) {
+        log.info("删除质检记录, id={}", id);
+        QualityRecord record = qualityRecordMapper.selectById(id);
+        if (record == null) {
+            throw new RuntimeException("质检记录不存在: " + id);
+        }
+
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<QualityRecord>()
+                .set("deleted", 1)
+                .set("deleted_time", LocalDateTime.now())
+                .set("deleted_by", userId)
+                .eq("id", id);
+        qualityRecordMapper.update(null, updateWrapper);
+        log.info("删除成功, id={}", id);
+    }
+
+    private Long getCurrentUserId() {
+        return 1L;
     }
 
     /**
@@ -72,9 +95,6 @@ public class QualityServiceImpl implements QualityService {
         record.setCheckResult("PASSED");
         record.setUpdateTime(LocalDateTime.now());
         qualityRecordMapper.updateById(record);
-
-        syncToElasticsearch(record);
-        sendKafkaEvent("QUALITY_PASSED", id, "PASSED");
 
         log.info("质检通过, id={}", id);
     }
@@ -95,9 +115,6 @@ public class QualityServiceImpl implements QualityService {
         record.setDefectDesc(reason);
         record.setUpdateTime(LocalDateTime.now());
         qualityRecordMapper.updateById(record);
-
-        syncToElasticsearch(record);
-        sendKafkaEvent("QUALITY_FAILED", id, reason);
 
         log.info("质检不通过, id={}, reason={}", id, reason);
     }
@@ -157,22 +174,5 @@ public class QualityServiceImpl implements QualityService {
         Page<QualityRecord> page = new Page<>(current, size);
         Page<QualityRecord> resultPage = qualityRecordMapper.selectPage(page, wrapper);
         return PageResult.of(resultPage);
-    }
-
-    private void syncToElasticsearch(QualityRecord record) {
-        try {
-            log.info("同步质检数据到Elasticsearch, index=quality_record, docId={}", record.getId());
-        } catch (Exception e) {
-            log.error("同步Elasticsearch失败, id={}", record.getId(), e);
-        }
-    }
-
-    private void sendKafkaEvent(String eventType, Long recordId, String data) {
-        try {
-            log.info("发送Kafka质量事件: topic=quality-event, type={}, recordId={}, data={}",
-                    eventType, recordId, data);
-        } catch (Exception e) {
-            log.error("发送Kafka事件失败, type={}, recordId={}", eventType, recordId, e);
-        }
     }
 }
