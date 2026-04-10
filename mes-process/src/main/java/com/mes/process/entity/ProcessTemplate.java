@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("proc_template")
+@TableName(value = "proc_template", autoResultMap = true)
 public class ProcessTemplate extends BaseEntity {
     /** 模板名称 */
     @TableField("template_name")
@@ -26,9 +26,6 @@ public class ProcessTemplate extends BaseEntity {
     /** 产品型号 */
     @TableField("product_model")
     private String productModel;
-
-    /** 版本号 */
-    private Integer version;
 
     /** 状态: DRAFT/PUBLISHED */
     private String status;

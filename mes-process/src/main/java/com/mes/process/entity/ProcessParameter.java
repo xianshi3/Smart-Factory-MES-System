@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("proc_parameter")
+@TableName(value = "proc_parameter", autoResultMap = true)
 public class ProcessParameter extends BaseEntity {
     /** 参数ID */
     private Long id;

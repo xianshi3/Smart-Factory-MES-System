@@ -35,7 +35,13 @@ request.interceptors.response.use(
     return res
   },
   error => {
-    console.error('API Error:', error)
+    const response = error.response
+    if (response && response.data) {
+      const message = response.data.message || response.data.msg || JSON.stringify(response.data)
+      console.error('API Error:', message)
+      return Promise.reject(new Error(message))
+    }
+    console.error('API Error:', error.message)
     return Promise.reject(error)
   }
 )

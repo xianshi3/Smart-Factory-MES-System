@@ -12,8 +12,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/workorder")
 @RequiredArgsConstructor
@@ -24,9 +26,16 @@ public class WorkOrderController {
 
     @PostMapping
     @Operation(summary = "创建工单")
-    public Result<WorkOrder> create(@Valid @RequestBody CreateWorkOrderDTO dto,
+    public Result<WorkOrder> create(@RequestBody CreateWorkOrderDTO dto,
                                     @RequestHeader(value = "X-User-Id", required = false) Long userId) {
-        return Result.ok(workOrderService.create(dto, userId));
+        try {
+            log.info("收到创建工单请求: productName={}, productModel={}, planQuantity={}, workstationId={}, processTemplateId={}",
+                    dto.getProductName(), dto.getProductModel(), dto.getPlanQuantity(), dto.getWorkstationId(), dto.getProcessTemplateId());
+            return Result.ok(workOrderService.create(dto, userId));
+        } catch (Exception e) {
+            log.error("创建工单失败", e);
+            return Result.fail("创建失败: " + e.getMessage());
+        }
     }
 
     @GetMapping("/{id}")

@@ -36,3 +36,28 @@ ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
 ALTER TABLE qms_traceability 
 ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
 ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 设备状态表 dash_device_status
+ALTER TABLE dash_device_status 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 生产统计表 dash_production_stats
+ALTER TABLE dash_production_stats 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- OEE数据表 dash_oee_data
+ALTER TABLE dash_oee_data 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 工位表 mes_workstation
+ALTER TABLE mes_workstation 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+
+-- 生产线表 mes_production_line
+ALTER TABLE mes_production_line 
+ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
+ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';

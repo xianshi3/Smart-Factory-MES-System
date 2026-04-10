@@ -54,33 +54,29 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="模板名称" prop="name">
-              <el-input v-model="form.name" />
+            <el-form-item label="模板名称" prop="templateName">
+              <el-input v-model="form.templateName" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="版本" prop="version">
-              <el-input v-model="form.version" />
+            <el-form-item label="模板编码" prop="templateCode">
+              <el-input v-model="form.templateCode" placeholder="如CNC-001" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="类别" prop="category">
-              <el-select v-model="form.category" placeholder="请选择">
-                <el-option label="CNC加工" value="CNC" />
-                <el-option label="组装" value="Assembly" />
-                <el-option label="检测" value="Inspection" />
-              </el-select>
+            <el-form-item label="适用型号" prop="productModel">
+              <el-input v-model="form.productModel" placeholder="如iPhone 16 Pro" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="工序数量">
-              <el-input-number v-model="form.stepCount" :min="1" />
+            <el-form-item label="版本" prop="version">
+              <el-input-number v-model="form.version" :min="1" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="工艺描述">
+        <el-form-item label="描述" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" />
         </el-form-item>
       </el-form>
@@ -107,17 +103,17 @@ const pagination = reactive({ page: 1, size: 10, total: 0 })
 const formRef = ref()
 const form = reactive({
   id: null as number | null,
-  name: '',
-  version: 'V1.0',
-  category: '',
-  stepCount: 1,
+  templateName: '',
+  templateCode: '',
+  productModel: '',
+  version: 1,
   description: ''
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-  version: [{ required: true, message: '请输入版本', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择类别', trigger: 'change' }]
+  templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
+  templateCode: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
+  productModel: [{ required: true, message: '请输入适用产品型号', trigger: 'blur' }]
 }
 
 const loadData = async () => {
@@ -149,10 +145,10 @@ const handleReset = () => {
 
 const handleCreate = () => {
   form.id = null
-  form.name = ''
-  form.version = 'V1.0'
-  form.category = ''
-  form.stepCount = 1
+  form.templateName = ''
+  form.templateCode = ''
+  form.productModel = ''
+  form.version = 1
   form.description = ''
   dialogTitle.value = '新建模板'
   dialogVisible.value = true
@@ -172,10 +168,10 @@ const handleEdit = async (row: any) => {
     const res = await getTemplateDetail(row.id)
     const data = res.data
     form.id = data.id
-    form.name = data.name
+    form.templateName = data.templateName
+    form.templateCode = data.templateCode
+    form.productModel = data.productModel
     form.version = data.version
-    form.category = data.category
-    form.stepCount = data.stepCount || 1
     form.description = data.description || ''
     dialogTitle.value = '编辑模板'
     dialogVisible.value = true

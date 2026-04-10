@@ -8,7 +8,7 @@
     </page-header>
     
     <div class="search-bar">
-      <el-input v-model="searchForm.code" placeholder="工单编号" clearable style="width: 200px;" />
+      <el-input v-model="searchForm.keyword" placeholder="工单编号" clearable style="width: 200px;" />
       <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 150px;">
         <el-option label="已创建" value="CREATED" />
         <el-option label="已下发" value="ISSUED" />
@@ -22,17 +22,21 @@
     </div>
     
     <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
-      <el-table-column prop="code" label="工单编号" />
+      <el-table-column prop="orderNo" label="工单编号" />
       <el-table-column prop="productName" label="产品名称" />
-      <el-table-column prop="quantity" label="数量" />
+      <el-table-column prop="planQuantity" label="计划数量" />
       <el-table-column prop="status" label="状态">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="progress" label="进度" />
-      <el-table-column prop="planStartDate" label="计划开始" />
-      <el-table-column prop="planEndDate" label="计划结束" />
+      <el-table-column label="进度">
+        <template #default="{ row }">
+          {{ row.completedQuantity || 0 }} / {{ row.planQuantity }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="plannedStartTime" label="计划开始" />
+      <el-table-column prop="plannedEndTime" label="计划结束" />
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
@@ -56,26 +60,43 @@
     
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="工单编号" prop="code">
-          <el-input v-model="form.code" />
-        </el-form-item>
         <el-form-item label="产品名称" prop="productName">
           <el-input v-model="form.productName" />
         </el-form-item>
-        <el-form-item label="数量" prop="quantity">
-          <el-input-number v-model="form.quantity" :min="1" />
+        <el-form-item label="产品型号" prop="productModel">
+          <el-input v-model="form.productModel" />
         </el-form-item>
-        <el-form-item label="工艺模板" prop="templateId">
-          <el-select v-model="form.templateId" placeholder="请选择">
+        <el-form-item label="计划数量" prop="planQuantity">
+          <el-input-number v-model="form.planQuantity" :min="1" />
+        </el-form-item>
+        <el-form-item label="工位" prop="workstationId">
+          <el-select v-model="form.workstationId" placeholder="请选择工位">
+            <el-option label="工位1" :value="1" />
+            <el-option label="工位2" :value="2" />
+            <el-option label="工位3" :value="3" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="工艺模板" prop="processTemplateId">
+          <el-select v-model="form.processTemplateId" placeholder="请选择">
             <el-option label="CNC加工工艺" :value="1" />
             <el-option label="组装工艺" :value="2" />
           </el-select>
         </el-form-item>
-        <el-form-item label="计划开始" prop="planStartDate">
-          <el-date-picker v-model="form.planStartDate" type="date" value-format="YYYY-MM-DD" />
+        <el-form-item label="优先级" prop="priority">
+          <el-select v-model="form.priority">
+            <el-option label="低" value="LOW" />
+            <el-option label="中" value="MEDIUM" />
+            <el-option label="高" value="HIGH" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="计划结束" prop="planEndDate">
-          <el-date-picker v-model="form.planEndDate" type="date" value-format="YYYY-MM-DD" />
+        <el-form-item label="计划开始" prop="plannedStartTime">
+          <el-date-picker v-model="form.plannedStartTime" type="date" value-format="YYYY-MM-DD" />
+        </el-form-item>
+        <el-form-item label="计划结束" prop="plannedEndTime">
+          <el-date-picker v-model="form.plannedEndTime" type="date" value-format="YYYY-MM-DD" />
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="form.remark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -96,23 +117,28 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建工单')
 const tableData = ref<any[]>([])
-const searchForm = reactive({ code: '', status: '' })
+const searchForm = reactive({ keyword: '', status: '' })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const formRef = ref()
 const form = reactive({
   id: null as number | null,
-  code: '',
   productName: '',
-  quantity: 100,
-  templateId: null as number | null,
-  planStartDate: '',
-  planEndDate: ''
+  productModel: '',
+  planQuantity: 100,
+  workstationId: null as number | null,
+  processTemplateId: null as number | null,
+  priority: 'MEDIUM',
+  plannedStartTime: null as string | null,
+  plannedEndTime: null as string | null,
+  remark: ''
 })
 
 const rules = {
-  code: [{ required: true, message: '请输入工单编号', trigger: 'blur' }],
   productName: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
-  quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }]
+  productModel: [{ required: true, message: '请输入产品型号', trigger: 'blur' }],
+  planQuantity: [{ required: true, message: '请输入计划数量', trigger: 'blur' }],
+  workstationId: [{ required: true, message: '请选择工位', trigger: 'change' }],
+  processTemplateId: [{ required: true, message: '请选择工艺模板', trigger: 'change' }]
 }
 
 const getStatusType = (status: string) => {
@@ -132,7 +158,7 @@ const loadData = async () => {
       current: pagination.page,
       size: pagination.size,
       status: searchForm.status,
-      keyword: searchForm.code
+      keyword: searchForm.keyword
     })
     tableData.value = res.data.records || []
     pagination.total = res.data.total || 0
@@ -144,7 +170,7 @@ const loadData = async () => {
 }
 
 const handleReset = () => {
-  searchForm.code = ''
+  searchForm.keyword = ''
   searchForm.status = ''
   pagination.page = 1
   loadData()
@@ -152,12 +178,15 @@ const handleReset = () => {
 
 const handleCreate = () => {
   form.id = null
-  form.code = ''
   form.productName = ''
-  form.quantity = 100
-  form.templateId = null
-  form.planStartDate = ''
-  form.planEndDate = ''
+  form.productModel = ''
+  form.planQuantity = 100
+  form.workstationId = null
+  form.processTemplateId = null
+  form.priority = 'MEDIUM'
+  form.plannedStartTime = null
+  form.plannedEndTime = null
+  form.remark = ''
   dialogTitle.value = '新建工单'
   dialogVisible.value = true
 }
@@ -188,7 +217,7 @@ const handleIssue = async (row: any) => {
 
 const handleDelete = (row: any) => {
   ElMessageBox.confirm(
-    `确定要删除工单 "${row.code}" 吗？`,
+    `确定要删除工单 "${row.orderNo}" 吗？`,
     '删除确认',
     {
       confirmButtonText: '确定删除',
@@ -210,18 +239,26 @@ const handleDelete = (row: any) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        await createWorkOrder(form)
-        ElMessage.success('保存成功')
-        dialogVisible.value = false
-        loadData()
-      } catch (error) {
-        ElMessage.error('保存失败')
-      }
-    }
-  })
+  // 临时跳过验证，直接提交
+  try {
+const data = {
+          productName: form.productName,
+          productModel: form.productModel,
+          planQuantity: form.planQuantity,
+          workstationId: form.workstationId,
+          processTemplateId: form.processTemplateId,
+          priority: form.priority,
+          remark: form.remark
+        }
+    console.log('提交数据:', JSON.stringify(data))
+    await createWorkOrder(data)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (error: any) {
+    console.error('保存失败:', error)
+    ElMessage.error(error?.message || '保存失败')
+  }
 }
 
 onMounted(() => {

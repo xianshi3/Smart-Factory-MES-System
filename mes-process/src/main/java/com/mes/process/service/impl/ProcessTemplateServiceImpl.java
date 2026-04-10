@@ -51,8 +51,8 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         template.setTemplateName(dto.getTemplateName());
         template.setTemplateCode(dto.getTemplateCode());
         template.setProductModel(dto.getProductModel());
+        template.setDescription(dto.getDescription());
         template.setStatus("DRAFT");
-        template.setVersion(1);
         processTemplateMapper.insert(template);
 
         if (dto.getParameters() != null && !dto.getParameters().isEmpty()) {
@@ -106,6 +106,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         template.setTemplateName(dto.getTemplateName());
         template.setTemplateCode(dto.getTemplateCode());
         template.setProductModel(dto.getProductModel());
+        template.setDescription(dto.getDescription());
         processTemplateMapper.updateById(template);
 
         LambdaQueryWrapper<ProcessParameter> deleteWrapper = new LambdaQueryWrapper<>();

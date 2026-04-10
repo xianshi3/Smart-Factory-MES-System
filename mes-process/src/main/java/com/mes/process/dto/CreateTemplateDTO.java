@@ -17,6 +17,8 @@ public class CreateTemplateDTO {
     private String templateCode;
     /** 产品型号 */
     private String productModel;
+    /** 描述信息 */
+    private String description;
     /** 参数列表 */
     private List<ParameterItem> parameters;
 

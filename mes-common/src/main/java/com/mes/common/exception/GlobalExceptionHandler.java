@@ -30,9 +30,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidation(MethodArgumentNotValidException e) {
+        log.error("参数校验失败: {}", e.getMessage());
         FieldError fieldError = e.getBindingResult().getFieldError();
         String message = fieldError != null ? fieldError.getDefaultMessage() : "参数校验失败";
-        return Result.fail(400, message);
+        log.error("校验失败字段: {}", fieldError);
+        return Result.fail(400, "参数错误: " + message);
     }
 
     /**
