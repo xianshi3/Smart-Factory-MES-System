@@ -304,18 +304,6 @@ const handleLogoutAll = () => {
 const handleExportData = () => {
   ElMessage.info('数据导出功能开发中')
 }
-</script>
-  ElMessageBox.confirm('确定要强制下线当前登录的所有设备吗？', '提示', { type: 'warning' })
-    .then(() => {
-      ElMessage.success('已强制下线其他设备')
-    })
-    .catch(() => {})
-}
-
-const handleExportData = () => {
-  ElMessage.info('数据导出功能开发中')
-}
-</script>
 
 <style scoped>
 .profile-container {
