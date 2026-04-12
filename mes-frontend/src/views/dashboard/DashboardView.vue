@@ -248,10 +248,17 @@ watch(() => themeStore.isDark, () => {
 .refresh-btn {
   width: 42px;
   height: 42px;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-light) !important;
+  color: var(--text-secondary) !important;
   transition: all var(--transition-normal);
   animation: fadeIn 0.5s ease;
 }
-.refresh-btn:hover { transform: rotate(180deg); }
+.refresh-btn:hover { 
+  transform: rotate(180deg);
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
 
 .stats-grid {
   display: grid;
