@@ -544,6 +544,75 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.23 (2026-04-12)
+
+### 个人中心功能完善
+
+#### 1. 数据库扩展
+
+- 扩展 `sys_user` 表，新增字段：
+  - `nickname` - 昵称
+  - `avatar` - 头像URL
+  - `employee_no` - 员工编号
+  - `department` - 部门
+  - `position` - 岗位
+  - `manager_id` - 直接上级ID
+  - `hire_date` - 入职日期
+
+#### 2. 示例用户数据
+
+- `admin` - 系统管理员 (EMP-001, 信息技术部)
+- `zhangsan` - 生产主管 (EMP-002, 生产部)
+- `lisi` - 生产员工 (EMP-003)
+- `wangwu` - 质检员 (EMP-004, 质量管理部)
+- `zhaoliu` - 设备工程师 (EMP-005, 设备动力部)
+
+#### 3. 后端API新增
+
+- `PUT /auth/profile` - 更新个人资料 (UpdateUserDTO)
+- `PUT /auth/password` - 修改密码 (UpdatePasswordDTO)
+- 新增DTO：UpdateUserDTO、UpdatePasswordDTO
+
+#### 4. 前端功能
+
+- 个人中心页面：企业化设计
+  - 用户信息卡片：渐变背景、头像、统计信息
+  - 基本信息：员工编号、部门、岗位、入职时间
+  - 账号安全：密码修改、手机/邮箱绑定、强制下线
+  - 快捷操作：我的工单、设备监控、系统设置、导出数据
+- 系统设置页面：企业级配置
+  - 外观：主题模式、紧凑模式、动画效果
+  - 生产管理：自动编号、默认模板、报工审核、自动结单
+  - 设备管理：心跳超时、温度阈值、WebSocket推送、设备控制
+  - 质量管理：默认质检类型、不良品标记、质量追溯
+  - 通知设置：设备告警、工单进度、质量异常、系统公告
+  - 数据设置：自动刷新、日志级别
+
+#### 5. 样式优化
+
+- 刷新按钮：添加背景和边框，悬停高亮
+- 状态筛选器：自定义标签按钮，状态圆点指示
+- 下拉框：修复白色边框、圆角统一、嵌套样式
+
+### 文件更新
+
+| 模块 | 文件 |
+|------|------|
+| 数据库 | `sql/init.sql` - 扩展用户表，新增示例数据 |
+| 后端 | `AuthController.java` - 新增API |
+| 后端 | `AuthService.java` - 新增方法 |
+| 后端 | `User.java` - 新增字段 |
+| 后端 | `UpdateUserDTO.java` (new) |
+| 后端 | `UpdatePasswordDTO.java` (new) |
+| 前端 | `api/auth.ts` - 新增API函数 |
+| 前端 | `views/profile/ProfileView.vue` - 全新设计 |
+| 前端 | `views/settings/SettingsView.vue` - 全新设计 |
+| 前端 | `views/dashboard/DashboardView.vue` - 刷新按钮优化 |
+| 前端 | `views/device/DeviceView.vue` - 状态筛选器优化 |
+| 全局 | `styles/global.scss` - 下拉框、按钮样式优化 |
+
+---
+
 ## v1.0.22 (2026-04-12)
 
 ### 前端UI全面美化
