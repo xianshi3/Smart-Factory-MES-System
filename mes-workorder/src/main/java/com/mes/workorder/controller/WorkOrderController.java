@@ -65,6 +65,13 @@ public class WorkOrderController {
         return Result.ok();
     }
 
+    @PostMapping("/{id}/complete")
+    @Operation(summary = "完成工单")
+    public Result<Void> complete(@PathVariable Long id) {
+        workOrderService.complete(id);
+        return Result.ok();
+    }
+
     @PostMapping("/report")
     @Operation(summary = "提交报工")
     public Result<WorkReport> submitReport(@Valid @RequestBody SubmitReportDTO dto,

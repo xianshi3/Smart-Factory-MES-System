@@ -24,6 +24,10 @@ export function startWorkOrder(id: number) {
   return request({ url: `/workorder/${id}/start`, method: 'post' })
 }
 
+export function completeWorkOrder(id: number) {
+  return request({ url: `/workorder/${id}/complete`, method: 'post' })
+}
+
 export function submitReport(data: any) {
   return request({ url: '/workorder/report', method: 'post', data })
 }
@@ -114,4 +118,16 @@ export function predictQuality(data: any) {
 
 export function predictProduction(data: any) {
   return request({ url: 'http://localhost:8086/api/v1/predict/production', method: 'post', data })
+}
+
+export function startDevice(deviceId: number) {
+  return request({ url: `/api/dashboard/device/${deviceId}/start`, method: 'post' })
+}
+
+export function stopDevice(deviceId: number) {
+  return request({ url: `/api/dashboard/device/${deviceId}/stop`, method: 'post' })
+}
+
+export function getProductionReport(params: any) {
+  return request({ url: `/api/dashboard/report/production`, method: 'get', params })
 }

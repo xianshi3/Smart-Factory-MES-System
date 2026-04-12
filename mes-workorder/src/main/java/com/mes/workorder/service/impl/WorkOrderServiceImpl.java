@@ -73,6 +73,20 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void complete(Long id) {
+        WorkOrder wo = getByIdOrThrow(id);
+        if (!WorkOrderStatusEnum.IN_PRODUCTION.getCode().equals(wo.getStatus()) 
+            && !WorkOrderStatusEnum.PENDING_QC.getCode().equals(wo.getStatus())) {
+            throw new BizException(ErrorCode.WORKORDER_STATUS_ERROR.getCode(), "只有生产中或待质检状态的工单可以完成");
+        }
+        transitionStatus(wo, WorkOrderStatusEnum.COMPLETED);
+        wo.setActualEndTime(LocalDateTime.now());
+        updateById(wo);
+        log.info("工单完成: id={}, orderNo={}", id, wo.getOrderNo());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long id, UpdateWorkOrderDTO dto) {
         WorkOrder wo = getByIdOrThrow(id);
         if (dto.getStatus() != null) {

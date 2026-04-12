@@ -1,15 +1,22 @@
 <!-- Work Order Management View -->
 <template>
   <div class="workorder-container">
-    <page-header title="工单管理">
-      <template #actions>
-        <el-button type="primary" @click="handleCreate">新建工单</el-button>
-      </template>
-    </page-header>
+    <div class="page-header">
+      <div class="header-title">
+        <el-icon size="24"><Document /></el-icon>
+        <h1>工单管理</h1>
+      </div>
+      <el-button type="primary" @click="handleCreate">
+        <el-icon><Plus /></el-icon>
+        <span>新建工单</span>
+      </el-button>
+    </div>
     
     <div class="search-bar">
-      <el-input v-model="searchForm.keyword" placeholder="工单编号" clearable style="width: 200px;" />
-      <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 150px;">
+      <el-input v-model="searchForm.keyword" placeholder="工单编号" clearable>
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+      <el-select v-model="searchForm.status" placeholder="状态" clearable>
         <el-option label="已创建" value="CREATED" />
         <el-option label="已下发" value="ISSUED" />
         <el-option label="生产中" value="IN_PRODUCTION" />
@@ -21,51 +28,58 @@
       <el-button @click="handleReset">重置</el-button>
     </div>
     
-    <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
-      <el-table-column prop="id" label="ID" width="180" />
-      <el-table-column prop="orderNo" label="工单编号" />
-      <el-table-column prop="productName" label="产品名称" />
-      <el-table-column prop="planQuantity" label="计划数量" />
-      <el-table-column prop="status" label="状态">
-        <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="进度">
-        <template #default="{ row }">
-          {{ row.completedQuantity || 0 }} / {{ row.planQuantity }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="plannedStartTime" label="计划开始" />
-      <el-table-column prop="plannedEndTime" label="计划结束" />
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
-          <el-button type="success" link @click="handleStart(row)" v-if="row.status === 'CREATED' || row.status === 'ISSUED'">开始</el-button>
-          <el-button type="warning" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
-          <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'CREATED' || row.status === 'CLOSED'">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    
-    <el-pagination
-      v-model:current-page="pagination.page"
-      v-model:page-size="pagination.size"
-      :total="pagination.total"
-      :page-sizes="[10, 20, 50]"
-      layout="total, sizes, prev, pager, next"
-      style="margin-top: 20px; justify-content: flex-end;"
-      @size-change="loadData"
-      @current-change="loadData"
-    />
+    <div class="table-card">
+      <el-table :data="tableData" v-loading="loading">
+        <el-table-column prop="orderNo" label="工单编号" min-width="150" />
+        <el-table-column prop="productName" label="产品名称" min-width="150" />
+        <el-table-column prop="planQuantity" label="计划数量" width="100" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="进度" width="120">
+          <template #default="{ row }">
+            <el-progress 
+              :percentage="Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)" 
+              :stroke-width="6"
+              :show-text="false"
+            />
+            <span>{{ row.completedQuantity || 0 }} / {{ row.planQuantity }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="plannedStartTime" label="计划开始" width="120" />
+        <el-table-column prop="plannedEndTime" label="计划结束" width="120" />
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
+            <el-button type="success" link @click="handleStart(row)" v-if="row.status === 'CREATED' || row.status === 'ISSUED'">开始</el-button>
+            <el-button type="warning" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
+            <el-button type="info" link @click="handleReport(row)" v-if="row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'">报工</el-button>
+            <el-button type="success" link @click="handleComplete(row)" v-if="row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'">完成</el-button>
+            <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'CREATED' || row.status === 'CLOSED'">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.size"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @size-change="loadData"
+        @current-change="loadData"
+      />
+    </div>
     
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="产品名称" prop="productName">
-          <el-input v-model="form.productName" />
+          <el-input v-model="form.productName" placeholder="请输入产品名称" />
         </el-form-item>
         <el-form-item label="产品型号" prop="productModel">
-          <el-input v-model="form.productModel" />
+          <el-input v-model="form.productModel" placeholder="请输入产品型号" />
         </el-form-item>
         <el-form-item label="计划数量" prop="planQuantity">
           <el-input-number v-model="form.planQuantity" :min="1" />
@@ -132,24 +146,64 @@
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+    
+    <el-dialog v-model="reportVisible" title="提交报工" width="500px">
+      <el-form :model="reportForm" label-width="100px">
+        <el-form-item label="工单编号">
+          <el-input :value="reportForm.orderNo" disabled />
+        </el-form-item>
+        <el-form-item label="报工数量">
+          <el-input-number v-model="reportForm.reportQuantity" :min="1" :max="reportForm.remaining" />
+        </el-form-item>
+        <el-form-item label="良品数量">
+          <el-input-number v-model="reportForm.qualifiedQuantity" :min="0" :max="reportForm.reportQuantity" />
+        </el-form-item>
+        <el-form-item label="不良数量">
+          <el-input-number v-model="reportForm.defectiveQuantity" :min="0" :max="reportForm.reportQuantity" />
+        </el-form-item>
+        <el-form-item label="设备">
+          <el-select v-model="reportForm.deviceId" placeholder="请选择设备">
+            <el-option v-for="d in devices" :key="d.id" :label="d.deviceName || d.device_code" :value="d.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="reportForm.remark" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reportVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitReport">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/common/PageHeader.vue'
-import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, deleteWorkOrder } from '@/api/services'
+import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport, getDeviceStatus } from '@/api/services'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建工单')
 const detailVisible = ref(false)
+const reportVisible = ref(false)
 const detailData = ref<any>({})
 const tableData = ref<any[]>([])
+const devices = ref<any[]>([])
 const searchForm = reactive({ keyword: '', status: '' })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const formRef = ref()
+const reportForm = reactive({
+  workOrderId: null as number | null,
+  orderNo: '',
+  reportQuantity: 1,
+  qualifiedQuantity: 1,
+  defectiveQuantity: 0,
+  deviceId: null as number | null,
+  remark: '',
+  remaining: 0
+})
 const form = reactive({
   id: null as number | null,
   productName: '',
@@ -253,7 +307,6 @@ const handleIssue = async (row: any) => {
 
 const handleDelete = (row: any) => {
   const deleteId = String(row.id)
-  console.log('删除工单, id:', deleteId, 'status:', row.status, '原始ID:', row.id)
   ElMessageBox.confirm(
     `确定要删除工单 "${row.orderNo}" 吗？`,
     '删除确认',
@@ -264,12 +317,10 @@ const handleDelete = (row: any) => {
     }
   ).then(async () => {
     try {
-      console.log('开始删除, id:', deleteId)
       await deleteWorkOrder(deleteId)
       ElMessage.success('删除成功')
       loadData()
     } catch (error: any) {
-      console.error('删除失败:', error)
       ElMessage.error(error?.message || error?.response?.data?.message || '删除失败')
     }
   }).catch(() => {
@@ -277,41 +328,157 @@ const handleDelete = (row: any) => {
   })
 }
 
-const handleSubmit = async () => {
-  if (!formRef.value) return
-  // 临时跳过验证，直接提交
+const handleReport = (row: any) => {
+  reportForm.workOrderId = row.id
+  reportForm.orderNo = row.orderNo
+  reportForm.reportQuantity = 1
+  reportForm.qualifiedQuantity = 1
+  reportForm.defectiveQuantity = 0
+  reportForm.deviceId = null
+  reportForm.remark = ''
+  reportForm.remaining = (row.planQuantity || 0) - (row.completedQuantity || 0)
+  reportVisible.value = true
+}
+
+const handleSubmitReport = async () => {
   try {
-const data = {
-          productName: form.productName,
-          productModel: form.productModel,
-          planQuantity: form.planQuantity,
-          workstationId: form.workstationId,
-          processTemplateId: form.processTemplateId,
-          priority: form.priority,
-          remark: form.remark
-        }
-    console.log('提交数据:', JSON.stringify(data))
+    await submitReport({
+      workOrderId: reportForm.workOrderId,
+      reportQuantity: reportForm.reportQuantity,
+      qualifiedQuantity: reportForm.qualifiedQuantity,
+      defectiveQuantity: reportForm.defectiveQuantity,
+      deviceId: reportForm.deviceId,
+      remark: reportForm.remark
+    })
+    ElMessage.success('报工提交成功')
+    reportVisible.value = false
+    loadData()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '报工提交失败')
+  }
+}
+
+const handleComplete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要完成工单 "${row.orderNo}" 吗？完成后将无法再进行报工操作。`,
+      '完成确认',
+      { confirmButtonText: '确定完成', cancelButtonText: '取消', type: 'warning' }
+    )
+    await completeWorkOrder(row.id)
+    ElMessage.success('工单已完成')
+    loadData()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '操作失败')
+    }
+  }
+}
+
+const loadDevices = async () => {
+  try {
+    const res = await getDeviceStatus()
+    devices.value = res?.data || res || []
+  } catch (e) {
+    console.error('Failed to load devices:', e)
+  }
+}
+
+const handleSubmit = async () => {
+  try {
+    const data = {
+      productName: form.productName,
+      productModel: form.productModel,
+      planQuantity: form.planQuantity,
+      workstationId: form.workstationId,
+      processTemplateId: form.processTemplateId,
+      priority: form.priority,
+      remark: form.remark
+    }
     await createWorkOrder(data)
     ElMessage.success('保存成功')
     dialogVisible.value = false
     loadData()
   } catch (error: any) {
-    console.error('保存失败:', error)
     ElMessage.error(error?.message || '保存失败')
   }
 }
 
 onMounted(() => {
   loadData()
+  loadDevices()
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .workorder-container {
-  .search-bar {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-  }
+  padding: 24px;
+  background: var(--bg-app);
+  min-height: 100%;
 }
-</style>
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  animation: fadeIn 0.5s ease;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.header-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.5s ease 0.1s both;
+}
+
+.search-bar .el-input {
+  width: 220px;
+}
+
+.search-bar .el-select {
+  width: 150px;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  animation: fadeIn 0.5s ease 0.2s both;
+}
+
+.table-card .el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--hover-bg);
+  --el-table-border-color: var(--border-color);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-secondary);
+}
+
+.table-card .el-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+html.light .header-title h1 { color: #1a1a2e; }
+html.light .table-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}</style>

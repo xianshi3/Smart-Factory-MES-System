@@ -517,4 +517,210 @@ docker exec mes-mysql mysql -uroot -proot --default-character-set=utf8mb4 mes_db
 
 ---
 
-*最后更新：2026-04-10*
+## 11. 逻辑删除与唯一约束问题修复 (2026-04-12 新增)
+
+### 问题描述
+
+使用 MyBatis-Plus 逻辑删除 (`@TableLogic`) 时，创建新记录报错：
+```
+Duplicate entry '123' for key 'proc_template.uk_template_code'
+```
+
+### 问题根因
+
+数据库唯一约束只关注单列，不考虑 `deleted` 状态。软删除的记录 (`deleted=1`) 仍然占据唯一索引。
+
+### 解决方案
+
+#### 1. 修改数据库唯一约束（推荐）
+
+```sql
+-- 将单列唯一索引改为复合索引
+ALTER TABLE proc_template DROP INDEX uk_template_code;
+ALTER TABLE proc_template ADD UNIQUE INDEX uk_template_code (template_code, deleted);
+```
+
+#### 2. 批量修复脚本
+
+```sql
+-- 所有使用逻辑删除的表都需要修复
+ALTER TABLE mes_db.wo_work_order DROP INDEX uk_order_no;
+ALTER TABLE mes_db.wo_work_order ADD UNIQUE INDEX uk_order_no (order_no, deleted);
+
+ALTER TABLE mes_db.dash_device_status DROP INDEX uk_device_code;
+ALTER TABLE mes_db.dash_device_status ADD UNIQUE INDEX uk_device_code (device_code, deleted);
+
+-- ... 其他表类似
+```
+
+### 设计规范
+
+使用逻辑删除的表，唯一约束必须包含 `deleted` 字段：
+
+```sql
+-- 正确示范
+CREATE TABLE xxx (
+    code VARCHAR(50),
+    deleted TINYINT DEFAULT 0,
+    UNIQUE KEY uk_code (code, deleted)
+);
+```
+
+---
+
+*最后更新：2026-04-12*
+
+---
+
+## 12. WebSocket 实时推送
+
+### 后端配置
+
+```java
+// WebSocketConfig.java
+@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(handler, "/ws/dashboard")
+                .setAllowedOrigins("http://localhost:3000");
+    }
+}
+```
+
+### 前端使用
+
+```typescript
+// utils/websocket.ts
+import { wsService } from '@/utils/websocket'
+
+// 连接
+wsService.subscribe((data) => {
+  devices.value = data.devices
+})
+
+// 断开
+wsService.disconnect()
+```
+
+### 端点
+
+- WebSocket: `ws://localhost:8085/ws/dashboard`
+- 推送频率: 5秒/次
+
+---
+
+## 13. 报工功能
+
+### 前端实现
+
+工单页面添加"报工"按钮，弹出对话框填写：
+- 报工数量
+- 良品数量
+- 不良数量
+- 设备选择
+- 备注
+
+### 后端接口
+
+```java
+POST /workorder/report
+{
+  "workOrderId": 123,
+  "reportQuantity": 100,
+  "qualifiedQuantity": 98,
+  "defectiveQuantity": 2,
+  "deviceId": 1,
+  "remark": ""
+}
+```
+
+---
+
+## 15. 工单完成功能
+
+### 后端接口
+
+```java
+// WorkOrderService.java
+void complete(Long id);
+
+// WorkOrderController.java
+@PostMapping("/{id}/complete")
+public Result<Void> complete(@PathVariable Long id)
+```
+
+### 前端调用
+
+```typescript
+// services.ts
+export function completeWorkOrder(id: number) {
+  return request({ url: `/workorder/${id}/complete`, method: 'post' })
+}
+
+// WorkOrderView.vue
+<el-button @click="handleComplete(row)">完成</el-button>
+```
+
+---
+
+## 16. 设备控制功能
+
+### 后端接口
+
+```java
+// DashboardController.java
+@PostMapping("/device/{deviceId}/start")
+public Result<Void> startDevice(@PathVariable Long deviceId)
+
+@PostMapping("/device/{deviceId}/stop")  
+public Result<Void> stopDevice(@PathVariable Long deviceId)
+```
+
+### 前端调用
+
+```typescript
+// services.ts
+export function startDevice(deviceId: number)
+export function stopDevice(deviceId: number)
+
+// DeviceView.vue
+<el-button @click="handleStart(device)">启动</el-button>
+<el-button @click="handleStop(device)">停止</el-button>
+```
+
+---
+
+## 17. 生产报表功能
+
+### 后端接口
+
+```java
+@GetMapping("/report/production")
+public Map<String, Object> getProductionReport(
+    @RequestParam(required = false) String startDate,
+    @RequestParam(required = false) String endDate)
+```
+
+返回数据：
+```json
+{
+  "totalOutput": 1000,
+  "totalQualified": 950,
+  "qualifyRate": 95.0,
+  "avgOee": 85.5,
+  "dailyData": [...],
+  "totalDays": 7
+}
+```
+
+### 前端页面
+
+- 路由: `/report`
+- 组件: `views/report/ReportView.vue`
+- 功能: 统计卡片、日趋势图表、明细表格
+
+---
+
+*最后更新：2026-04-12*

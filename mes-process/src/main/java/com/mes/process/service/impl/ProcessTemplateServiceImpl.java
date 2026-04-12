@@ -1,6 +1,7 @@
 package com.mes.process.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
@@ -47,6 +48,17 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(CreateTemplateDTO dto) {
+        // 检查模板编码是否已存在（包括已删除的记录）
+        // 使用原生SQL查询避免 @TableLogic 自动过滤
+        Long count = processTemplateMapper.selectCount(
+            new LambdaQueryWrapper<ProcessTemplate>()
+                .eq(ProcessTemplate::getTemplateCode, dto.getTemplateCode())
+                .last("AND (deleted = 0 OR deleted IS NULL)")
+        );
+        if (count > 0) {
+            throw new RuntimeException("模板编码 " + dto.getTemplateCode() + " 已存在，请使用不同的编码");
+        }
+
         ProcessTemplate template = new ProcessTemplate();
         template.setTemplateName(dto.getTemplateName());
         template.setTemplateCode(dto.getTemplateCode());
@@ -243,7 +255,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         }
 
         // 逻辑删除 - 使用wrapper避免乐观锁问题
-        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessTemplate>()
+        var updateWrapper = new UpdateWrapper<ProcessTemplate>()
                 .set("deleted", 1)
                 .set("deleted_time", LocalDateTime.now())
                 .set("deleted_by", userId)
@@ -251,7 +263,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         processTemplateMapper.update(null, updateWrapper);
 
         // 级联删除参数 - 使用wrapper避免乐观锁问题
-        var paramUpdateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessParameter>()
+        var paramUpdateWrapper = new UpdateWrapper<ProcessParameter>()
                 .set("deleted", 1)
                 .set("deleted_time", LocalDateTime.now())
                 .set("deleted_by", userId)

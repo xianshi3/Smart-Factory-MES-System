@@ -5,13 +5,11 @@ import com.mes.dashboard.entity.DeviceStatus;
 import com.mes.dashboard.entity.OeeData;
 import com.mes.dashboard.entity.ProductionStats;
 import com.mes.dashboard.service.DashboardService;
+import com.mes.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -89,5 +87,62 @@ public class DashboardController {
     @GetMapping("/alarms")
     public List<DeviceStatus> getAlarmDevices() {
         return dashboardService.getAlarmDevices();
+    }
+
+    /**
+     * 启动设备
+     * @param deviceId 设备ID
+     * @return 操作结果
+     */
+    @Operation(summary = "启动设备")
+    @PostMapping("/device/{deviceId}/start")
+    public Result<Void> startDevice(@PathVariable Long deviceId) {
+        dashboardService.startDevice(deviceId);
+        return Result.ok();
+    }
+
+    /**
+     * 停止设备
+     * @param deviceId 设备ID
+     * @return 操作结果
+     */
+    @Operation(summary = "停止设备")
+    @PostMapping("/device/{deviceId}/stop")
+    public Result<Void> stopDevice(@PathVariable Long deviceId) {
+        dashboardService.stopDevice(deviceId);
+        return Result.ok();
+    }
+
+    /**
+     * 设备控制（启动/停止）
+     * @param deviceId 设备ID
+     * @param action 操作类型 start/stop
+     * @return 操作结果
+     */
+    @Operation(summary = "设备控制")
+    @PostMapping("/device/{deviceId}/control")
+    public Result<Void> controlDevice(@PathVariable Long deviceId, @RequestParam String action) {
+        if ("start".equals(action)) {
+            dashboardService.startDevice(deviceId);
+        } else if ("stop".equals(action)) {
+            dashboardService.stopDevice(deviceId);
+        } else {
+            return Result.fail("无效的操作: " + action);
+        }
+        return Result.ok();
+    }
+
+    /**
+     * 生产报表
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 报表数据
+     */
+    @Operation(summary = "生产报表")
+    @GetMapping("/report/production")
+    public Map<String, Object> getProductionReport(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return dashboardService.getProductionReport(startDate, endDate);
     }
 }

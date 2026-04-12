@@ -1,4 +1,9 @@
-# Maven
+# ========================================
+# Smart Factory MES System - Git忽略配置
+# 项目: 智能工厂制造执行系统
+# ========================================
+
+# ==================== Maven ====================
 target/
 *.class
 *.jar
@@ -6,7 +11,7 @@ target/
 *.ear
 *.log
 
-# IDE
+# ==================== IDE ====================
 .idea/
 *.iml
 .vscode/
@@ -14,69 +19,69 @@ target/
 *.swo
 *~
 
-# OS
+# ==================== 操作系统 ====================
 .DS_Store
 Thumbs.db
 
-# Logs
+# ==================== 日志 ====================
 logs/
 *.log
 
-# Temp
+# ==================== 临时文件 ====================
 tmp/
 temp/
 *.tmp
 
-# Build
+# ==================== 构建输出 ====================
 dist/
 build/
 out/
 
-# Node
+# ==================== Node.js ====================
 node_modules/
 npm-debug.log*
 yarn-error.log
 yarn.lock
 package-lock.json
 
-# Env
+# ==================== 环境变量 ====================
 .env.local
 .env.*.local
 
-# Test
+# ==================== 测试 ====================
 coverage/
 .nyc_output/
 
-# Gradle
+# ==================== Gradle ====================
 .gradle/
 build/
 
-# Spring Boot
+# ==================== Spring Boot ====================
 *.pid
 
-# Secrets
+# ==================== 密钥证书 ====================
 *.pem
 *.key
 *.crt
 
-# Docker
+# ==================== Docker ====================
 docker-compose.local.yml
 
-# MES specific
+# ==================== MES特定 ====================
 *.original
 
-# Python
+# ==================== Python ====================
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 .vs/
 
-# .NET
+# ==================== .NET ====================
 bin/
 obj/
 
-# AI Tool
+# ==================== AI工具 ====================
 .opencode/
 *.dll
 *.exe
@@ -84,6 +89,6 @@ obj/
 *.runtimeconfig.json
 *.deps.json
 
-# Mono
+# ==================== Mono ====================
 *.user
 *.suo

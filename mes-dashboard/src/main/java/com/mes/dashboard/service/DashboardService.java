@@ -58,4 +58,24 @@ public interface DashboardService {
      * @return 告警设备列表
      */
     List<DeviceStatus> getAlarmDevices();
+
+    /**
+     * 启动设备
+     * @param deviceId 设备ID
+     */
+    void startDevice(Long deviceId);
+
+    /**
+     * 停止设备
+     * @param deviceId 设备ID
+     */
+    void stopDevice(Long deviceId);
+
+    /**
+     * 获取生产报表
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 报表数据
+     */
+    Map<String, Object> getProductionReport(String startDate, String endDate);
 }

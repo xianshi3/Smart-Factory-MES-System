@@ -215,6 +215,72 @@ public class DashboardServiceImpl implements DashboardService {
         return deviceStatusMapper.selectList(query);
     }
 
+    @Override
+    public void startDevice(Long deviceId) {
+        DeviceStatus device = deviceStatusMapper.selectById(deviceId);
+        if (device == null) {
+            throw new RuntimeException("设备不存在: " + deviceId);
+        }
+        device.setStatus("ONLINE");
+        deviceStatusMapper.updateById(device);
+        
+        redisTemplate.opsForValue().set("device:control:" + deviceId, "START", Duration.ofMinutes(5));
+        
+        log.info("设备启动成功: deviceId={}, code={}", deviceId, device.getDeviceCode());
+    }
+
+    @Override
+    public void stopDevice(Long deviceId) {
+        DeviceStatus device = deviceStatusMapper.selectById(deviceId);
+        if (device == null) {
+            throw new RuntimeException("设备不存在: " + deviceId);
+        }
+        device.setStatus("OFFLINE");
+        deviceStatusMapper.updateById(device);
+        
+        redisTemplate.opsForValue().set("device:control:" + deviceId, "STOP", Duration.ofMinutes(5));
+        
+        log.info("设备停止成功: deviceId={}, code={}", deviceId, device.getDeviceCode());
+    }
+
+    @Override
+    public Map<String, Object> getProductionReport(String startDate, String endDate) {
+        Map<String, Object> report = new HashMap<>();
+        
+        LambdaQueryWrapper<ProductionStats> query = new LambdaQueryWrapper<>();
+        if (startDate != null && !startDate.isEmpty()) {
+            query.ge(ProductionStats::getStatDate, startDate);
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            query.le(ProductionStats::getStatDate, endDate);
+        }
+        query.orderByDesc(ProductionStats::getStatDate);
+        
+        List<ProductionStats> stats = productionStatsMapper.selectList(query);
+        
+        int totalOutput = stats.stream().mapToInt(s -> s.getCompletedQuantity() != null ? s.getCompletedQuantity() : 0).sum();
+        int totalQualified = stats.stream().mapToInt(s -> s.getQualifiedQuantity() != null ? s.getQualifiedQuantity() : 0).sum();
+        double avgOee = stats.stream().filter(s -> s.getOeeRate() != null).mapToDouble(s -> s.getOeeRate()).average().orElse(0.0);
+        
+        List<Map<String, Object>> dailyData = stats.stream().map(s -> {
+            Map<String, Object> day = new HashMap<>();
+            day.put("date", s.getStatDate());
+            day.put("output", s.getCompletedQuantity());
+            day.put("qualified", s.getQualifiedQuantity());
+            day.put("oee", s.getOeeRate());
+            return day;
+        }).toList();
+        
+        report.put("totalOutput", totalOutput);
+        report.put("totalQualified", totalQualified);
+        report.put("qualifyRate", totalOutput > 0 ? round2((double) totalQualified / totalOutput * 100) : 0);
+        report.put("avgOee", round2(avgOee * 100));
+        report.put("dailyData", dailyData);
+        report.put("totalDays", stats.size());
+        
+        return report;
+    }
+
     private double round2(double value) {
         return Math.round(value * 10000.0) / 10000.0;
     }

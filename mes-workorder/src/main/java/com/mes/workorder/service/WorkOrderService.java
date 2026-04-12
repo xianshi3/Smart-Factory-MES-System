@@ -13,6 +13,7 @@ public interface WorkOrderService extends IService<WorkOrder> {
     WorkOrder create(CreateWorkOrderDTO dto, Long userId);
     void issue(Long id);
     void startProduction(Long id);
+    void complete(Long id);
     void updateStatus(Long id, UpdateWorkOrderDTO dto);
     Result<Void> delete(Long id, Long userId);
     WorkReport submitReport(SubmitReportDTO dto, Long operatorId);

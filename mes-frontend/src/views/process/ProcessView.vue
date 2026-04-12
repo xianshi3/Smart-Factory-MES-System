@@ -1,15 +1,22 @@
 <!-- Process Template Management View -->
 <template>
   <div class="process-container">
-    <page-header title="工艺管理">
-      <template #actions>
-        <el-button type="primary" @click="handleCreate">新建模板</el-button>
-      </template>
-    </page-header>
+    <div class="page-header">
+      <div class="header-title">
+        <el-icon size="24"><Setting /></el-icon>
+        <h1>工艺管理</h1>
+      </div>
+      <el-button type="primary" @click="handleCreate">
+        <el-icon><Plus /></el-icon>
+        <span>新建模板</span>
+      </el-button>
+    </div>
     
     <div class="search-bar">
-      <el-input v-model="searchForm.name" placeholder="模板名称" clearable style="width: 200px;" />
-      <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 150px;">
+      <el-input v-model="searchForm.name" placeholder="模板名称" clearable>
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+      <el-select v-model="searchForm.status" placeholder="状态" clearable>
         <el-option label="草稿" value="DRAFT" />
         <el-option label="已发布" value="PUBLISHED" />
       </el-select>
@@ -17,45 +24,46 @@
       <el-button @click="handleReset">重置</el-button>
     </div>
     
-    <el-table :data="tableData" style="width: 100%; margin-top: 20px;" v-loading="loading">
-      <el-table-column prop="templateName" label="模板名称" />
-      <el-table-column prop="version" label="版本" />
-      <el-table-column prop="status" label="状态">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'info'">
-            {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="productModel" label="适用型号" />
-      <el-table-column prop="createTime" label="创建时间" />
-      <el-table-column label="操作" width="250">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
-          <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
-          <el-button type="success" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
-          <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'DRAFT'">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-card">
+      <el-table :data="tableData" v-loading="loading">
+        <el-table-column prop="templateName" label="模板名称" min-width="150" />
+        <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'info'">
+              {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="productModel" label="适用型号" min-width="150" />
+        <el-table-column prop="createTime" label="创建时间" width="180" />
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
+            <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
+            <el-button type="success" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
+            <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'DRAFT'">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.size"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @size-change="loadData"
+        @current-change="loadData"
+      />
+    </div>
     
-    <el-pagination
-      v-model:current-page="pagination.page"
-      v-model:page-size="pagination.size"
-      :total="pagination.total"
-      :page-sizes="[10, 20, 50]"
-      layout="total, sizes, prev, pager, next"
-      style="margin-top: 20px; justify-content: flex-end;"
-      @size-change="loadData"
-      @current-change="loadData"
-    />
-    
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="模板名称" prop="templateName">
-              <el-input v-model="form.templateName" />
+              <el-input v-model="form.templateName" placeholder="请输入模板名称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -77,7 +85,7 @@
           </el-col>
         </el-row>
         <el-form-item label="描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="3" />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入描述" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -110,7 +118,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/common/PageHeader.vue'
 import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate, deleteTemplate } from '@/api/services'
 
 const loading = ref(false)
@@ -137,16 +144,14 @@ const rules = {
   productModel: [{ required: true, message: '请输入适用产品型号', trigger: 'blur' }]
 }
 
+const getStatusType = (status: string) => status === 'PUBLISHED' ? 'success' : 'info'
+const getStatusText = (status: string) => status === 'PUBLISHED' ? '已发布' : '草稿'
+
 const loadData = async () => {
   loading.value = true
   try {
-    const params: any = {
-      current: pagination.page,
-      size: pagination.size
-    }
-    if (searchForm.name) {
-      params.keyword = searchForm.name
-    }
+    const params: any = { current: pagination.page, size: pagination.size }
+    if (searchForm.name) params.keyword = searchForm.name
     const res = await getTemplatePage(params)
     tableData.value = res.data.records || []
     pagination.total = res.data.total || 0
@@ -220,11 +225,7 @@ const handleDelete = (row: any) => {
   ElMessageBox.confirm(
     `确定要删除模板 "${row.templateName}" 吗？`,
     '删除确认',
-    {
-      confirmButtonText: '确定删除',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
+    { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
   ).then(async () => {
     try {
       await deleteTemplate(row.id)
@@ -233,9 +234,7 @@ const handleDelete = (row: any) => {
     } catch (error: any) {
       ElMessage.error(error?.response?.data?.message || '删除失败')
     }
-  }).catch(() => {
-    ElMessage.info('已取消删除')
-  })
+  }).catch(() => {})
 }
 
 const handleSubmit = async () => {
@@ -269,41 +268,75 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .process-container {
-  .search-bar {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-  }
-  
-  :deep(.el-table) {
-    background: transparent;
-    
-    th, td {
-      background: transparent;
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    th {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
-  
-  :deep(.el-pagination) {
-    .el-pagination__total, .el-pagination__jump {
-      color: #ffffff;
-    }
-    
-    .el-pager li {
-      background: transparent;
-      color: #ffffff;
-      
-      &.is-active {
-        color: #e94560;
-      }
-    }
-  }
+  padding: 24px;
+  background: var(--bg-app);
+  min-height: 100%;
 }
-</style>
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  animation: fadeIn 0.5s ease;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.header-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.5s ease 0.1s both;
+}
+
+.search-bar .el-input {
+  width: 220px;
+}
+
+.search-bar .el-select {
+  width: 150px;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  animation: fadeIn 0.5s ease 0.2s both;
+}
+
+.table-card .el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--hover-bg);
+  --el-table-border-color: var(--border-color);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-secondary);
+}
+
+.table-card .el-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+html.light .header-title h1 { color: #1a1a2e; }
+html.light .table-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}</style>

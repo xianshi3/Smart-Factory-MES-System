@@ -9,7 +9,8 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import router from './router'
 import App from './App.vue'
-import './styles/index.scss'
+import './styles/global.scss'
+import './utils/echarts'
 
 const app = createApp(App)
 const pinia = createPinia()
