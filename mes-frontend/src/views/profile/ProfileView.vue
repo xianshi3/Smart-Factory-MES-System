@@ -21,11 +21,11 @@
             </div>
           </div>
           <div class="user-info">
-            <h2>{{ userStore.user?.username || '管理员' }}</h2>
-            <p class="user-role">{{ userStore.user?.role || '系统管理员' }}</p>
+            <h2>{{ userInfo.realName || userInfo.username || '管理员' }}</h2>
+            <p class="user-role">{{ userInfo.role === 'ADMIN' ? '系统管理员' : userInfo.role === 'MANAGER' ? '生产主管' : '生产员工' }}</p>
             <div class="user-tags">
-              <el-tag type="primary" size="small">在职</el-tag>
-              <el-tag size="small">生产部门</el-tag>
+              <el-tag type="primary" size="small">{{ userInfo.status === 1 ? '在职' : '离职' }}</el-tag>
+              <el-tag size="small">{{ userInfo.department || '生产部' }}</el-tag>
             </div>
           </div>
           <div class="profile-stats">
@@ -38,7 +38,7 @@
               <span class="stat-label">完成率</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value">2026-01-15</span>
+              <span class="stat-value">{{ userInfo.hireDate || '2025-01-15' }}</span>
               <span class="stat-label">入职时间</span>
             </div>
           </div>
@@ -60,27 +60,27 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="info-label">用户名</span>
-            <span class="info-value">{{ userStore.user?.username || '-' }}</span>
+            <span class="info-value">{{ userInfo.username || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">员工编号</span>
-            <span class="info-value">EMP-20260115</span>
+            <span class="info-value">{{ userInfo.employeeNo || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">所属部门</span>
-            <span class="info-value">生产部</span>
+            <span class="info-value">{{ userInfo.department || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">岗位</span>
-            <span class="info-value">生产主管</span>
+            <span class="info-value">{{ userInfo.position || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">手机号码</span>
-            <span class="info-value">{{ userStore.user?.phone || '138****8888' }}</span>
+            <span class="info-value">{{ userInfo.phone || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">电子邮箱</span>
-            <span class="info-value">{{ userStore.user?.email || 'admin@smartmes.com' }}</span>
+            <span class="info-value">{{ userInfo.email || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">办公地点</span>
@@ -88,7 +88,7 @@
           </div>
           <div class="info-item">
             <span class="info-label">直接上级</span>
-            <span class="info-value">张总监</span>
+            <span class="info-value">{{ userInfo.managerId ? '张总监' : '-' }}</span>
           </div>
         </div>
       </div>
@@ -204,15 +204,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { getUserInfo, updateProfile, changePassword } from '@/api/auth'
 import { User, Camera, Document, Edit, Lock, Iphone, Message, Key, Operation, Monitor, Setting, Download } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 
+const userInfo = ref<any>({
+  username: '',
+  realName: '',
+  nickname: '',
+  phone: '',
+  email: '',
+  employeeNo: '',
+  department: '',
+  position: '',
+  managerId: null,
+  hireDate: '',
+  role: ''
+})
+
+const loading = ref(false)
 const showPasswordDialog = ref(false)
 const passwordFormRef = ref()
 
@@ -243,6 +259,22 @@ const passwordRules = {
   ]
 }
 
+const loadUserInfo = async () => {
+  try {
+    loading.value = true
+    const res = await getUserInfo()
+    userInfo.value = res.data || res
+  } catch (e) {
+    console.error('获取用户信息失败', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadUserInfo()
+})
+
 const editBasicInfo = () => {
   ElMessage.info('编辑功能开发中')
 }
@@ -250,17 +282,29 @@ const editBasicInfo = () => {
 const handleChangePassword = async () => {
   try {
     await passwordFormRef.value?.validate()
+    await changePassword(passwordForm)
     ElMessage.success('密码修改成功')
     showPasswordDialog.value = false
     passwordForm.oldPassword = ''
     passwordForm.newPassword = ''
     passwordForm.confirmPassword = ''
-  } catch (e) {
-    // validation failed
+  } catch (e: any) {
+    ElMessage.error(e?.message || '修改失败')
   }
 }
 
 const handleLogoutAll = () => {
+  ElMessageBox.confirm('确定要强制下线当前登录的所有设备吗？', '提示', { type: 'warning' })
+    .then(() => {
+      ElMessage.success('已强制下线其他设备')
+    })
+    .catch(() => {})
+}
+
+const handleExportData = () => {
+  ElMessage.info('数据导出功能开发中')
+}
+</script>
   ElMessageBox.confirm('确定要强制下线当前登录的所有设备吗？', '提示', { type: 'warning' })
     .then(() => {
       ElMessage.success('已强制下线其他设备')

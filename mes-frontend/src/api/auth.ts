@@ -20,3 +20,29 @@ export function register(data: any) {
 export function getUserInfo() {
   return request({ url: '/auth/info', method: 'get' })
 }
+
+/**
+ * Update user profile API
+ */
+export function updateProfile(data: {
+  realName?: string
+  nickname?: string
+  phone?: string
+  email?: string
+  avatar?: string
+  department?: string
+  position?: string
+}) {
+  return request({ url: '/auth/profile', method: 'put', data })
+}
+
+/**
+ * Change password API
+ */
+export function changePassword(data: {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}) {
+  return request({ url: '/auth/password', method: 'put', data })
+}

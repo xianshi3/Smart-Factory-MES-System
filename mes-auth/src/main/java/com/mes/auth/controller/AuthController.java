@@ -2,6 +2,8 @@ package com.mes.auth.controller;
 
 import com.mes.auth.dto.LoginDTO;
 import com.mes.auth.dto.RegisterDTO;
+import com.mes.auth.dto.UpdatePasswordDTO;
+import com.mes.auth.dto.UpdateUserDTO;
 import com.mes.auth.service.AuthService;
 import com.mes.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,5 +52,27 @@ public class AuthController {
     @Operation(summary = "获取当前用户信息")
     public Result<Object> info(@RequestHeader("Authorization") String token) {
         return Result.ok(authService.getUserInfoFromToken(token));
+    }
+
+    /**
+     * 更新当前用户信息
+     */
+    @PutMapping("/profile")
+    @Operation(summary = "更新个人资料")
+    public Result<Void> updateProfile(@RequestHeader("Authorization") String token, 
+                                     @Valid @RequestBody UpdateUserDTO dto) {
+        authService.updateUserProfile(token, dto);
+        return Result.ok();
+    }
+
+    /**
+     * 修改密码
+     */
+    @PutMapping("/password")
+    @Operation(summary = "修改密码")
+    public Result<Void> changePassword(@RequestHeader("Authorization") String token,
+                                       @Valid @RequestBody UpdatePasswordDTO dto) {
+        authService.changePassword(token, dto);
+        return Result.ok();
     }
 }

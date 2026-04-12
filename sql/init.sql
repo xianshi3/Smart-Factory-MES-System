@@ -18,21 +18,38 @@ CREATE TABLE `sys_user` (
     `username` varchar(50) NOT NULL COMMENT '用户名',
     `password` varchar(255) NOT NULL COMMENT '密码',
     `real_name` varchar(50) DEFAULT NULL COMMENT '真实姓名',
+    `nickname` varchar(50) DEFAULT NULL COMMENT '昵称',
     `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
     `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
-    `status` int DEFAULT '1' COMMENT '状态: 1-启用 0-禁用',
-    `role` varchar(20) DEFAULT 'USER' COMMENT '角色: ADMIN/USER',
+    `avatar` varchar(255) DEFAULT NULL COMMENT '头像URL',
+    `employee_no` varchar(50) DEFAULT NULL COMMENT '员工编号',
+    `department` varchar(50) DEFAULT NULL COMMENT '部门',
+    `position` varchar(50) DEFAULT NULL COMMENT '岗位',
+    `manager_id` bigint DEFAULT NULL COMMENT '直接上级ID',
+    `hire_date` date DEFAULT NULL COMMENT '入职日期',
+    `status` int DEFAULT '1' COMMENT '状态: 1-在职 0-离职',
+    `role` varchar(20) DEFAULT 'USER' COMMENT '角色: ADMIN/USER/MANAGER',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
     `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_username` (`username`)
+    UNIQUE KEY `uk_username` (`username`),
+    UNIQUE KEY `uk_employee_no` (`employee_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- Insert default admin user (password: admin123, BCrypt hashed)
-INSERT INTO `sys_user` (`username`, `password`, `real_name`, `phone`, `email`, `status`, `role`)
-VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '系统管理员', '13800138000', 'admin@mes.com', 1, 'ADMIN');
+INSERT INTO `sys_user` (`username`, `password`, `real_name`, `nickname`, `phone`, `email`, `avatar`, `employee_no`, `department`, `position`, `manager_id`, `hire_date`, `status`, `role`)
+VALUES 
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN'),
+('zhangsan', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER'),
+('lisi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER'),
+('wangwu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER'),
+('zhaoliu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER');
+
+-- Update manager relationship
+UPDATE sys_user SET manager_id = 1 WHERE username = 'zhangsan';
+UPDATE sys_user SET manager_id = 2 WHERE username IN ('lisi', 'wangwu', 'zhaoliu');
 
 -- =====================================================
 -- 2. Work Order Module (wo_work_order, wo_work_report)

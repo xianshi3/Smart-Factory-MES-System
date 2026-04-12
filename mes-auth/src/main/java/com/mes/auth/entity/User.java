@@ -19,12 +19,26 @@ public class User extends BaseEntity {
     private String password;
     /** 真实姓名 */
     private String realName;
+    /** 昵称 */
+    private String nickname;
     /** 手机号 */
     private String phone;
     /** 邮箱 */
     private String email;
-    /** 状态：1-启用 0-禁用 */
+    /** 头像URL */
+    private String avatar;
+    /** 员工编号 */
+    private String employeeNo;
+    /** 部门 */
+    private String department;
+    /** 岗位 */
+    private String position;
+    /** 直接上级ID */
+    private Long managerId;
+    /** 入职日期 */
+    private java.time.LocalDate hireDate;
+    /** 状态：1-在职 0-离职 */
     private Integer status;
-    /** 角色：ADMIN-管理员 USER-普通用户 */
+    /** 角色：ADMIN-管理员 MANAGER-主管 USER-普通用户 */
     private String role;
 }
