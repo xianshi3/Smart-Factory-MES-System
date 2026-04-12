@@ -122,7 +122,11 @@ const pageTitle = computed(() => menuTitles[route.path] || 'MES系统')
 const breadcrumb = computed(() => menuBreadcrumbs[route.path] || '')
 
 const handleCommand = (command: string) => {
-  if (command === 'logout') {
+  if (command === 'profile') {
+    router.push('/profile')
+  } else if (command === 'settings') {
+    router.push('/settings')
+  } else if (command === 'logout') {
     ElMessageBox.confirm('确定退出登录?', '提示', { type: 'warning' })
       .then(() => { userStore.logout(); router.push('/login') })
       .catch(() => {})
