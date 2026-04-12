@@ -184,13 +184,15 @@ html, body {
   box-shadow: var(--shadow-lg) !important;
   padding: 6px !important;
   margin-top: 4px !important;
+  overflow: visible !important;
 }
 
-.el-select-dropdown__item {
+.el-select-dropdown .el-select-dropdown__item {
   color: var(--text-primary) !important;
   border-radius: var(--radius-sm) !important;
   padding: 8px 12px !important;
   margin: 2px 0 !important;
+  border: none !important;
 }
 
 .el-select-dropdown__item.is-hovering {
@@ -207,6 +209,23 @@ html, body {
   content: "✓";
   margin-right: 8px;
   color: var(--accent);
+}
+
+/* Select Group */
+.el-select-group {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.el-select-group__wrap {
+  padding: 0 !important;
+}
+
+.el-select-group__title {
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  background: var(--bg-hover) !important;
 }
 
 /* Popper Dropdown Common */
