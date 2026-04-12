@@ -102,12 +102,39 @@
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-          <el-radio-group v-model="statusFilter" size="small">
-            <el-radio-button label="">全部</el-radio-button>
-            <el-radio-button label="running">运行中</el-radio-button>
-            <el-radio-button label="idle">空闲</el-radio-button>
-            <el-radio-button label="fault">故障</el-radio-button>
-          </el-radio-group>
+          <div class="status-filter">
+            <div 
+              class="filter-btn" 
+              :class="{ active: statusFilter === '' }"
+              @click="statusFilter = ''"
+            >
+              全部
+            </div>
+            <div 
+              class="filter-btn running" 
+              :class="{ active: statusFilter === 'running' }"
+              @click="statusFilter = 'running'"
+            >
+              <span class="status-dot"></span>
+              运行中
+            </div>
+            <div 
+              class="filter-btn idle" 
+              :class="{ active: statusFilter === 'idle' }"
+              @click="statusFilter = 'idle'"
+            >
+              <span class="status-dot"></span>
+              空闲
+            </div>
+            <div 
+              class="filter-btn fault" 
+              :class="{ active: statusFilter === 'fault' }"
+              @click="statusFilter = 'fault'"
+            >
+              <span class="status-dot"></span>
+              故障
+            </div>
+          </div>
         </div>
       </div>
       
@@ -833,6 +860,65 @@ html.light .stat-item,
 html.light .chart-card,
 html.light .alarm-card,
 html.light .device-card { box-shadow: var(--shadow-sm); }
+
+/* Status Filter */
+.status-filter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-btn.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-btn .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.filter-btn.running .status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.filter-btn.idle .status-dot {
+  background: var(--info);
+}
+
+.filter-btn.fault .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+
+.filter-btn.running.active .status-dot,
+.filter-btn.idle.active .status-dot,
+.filter-btn.fault.active .status-dot {
+  box-shadow: 0 0 8px currentColor;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
