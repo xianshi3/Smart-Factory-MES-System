@@ -189,6 +189,29 @@ html, body {
   color: var(--accent);
 }
 
+/* Popper Dropdown Common */
+.el-popper {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.el-popper__arrow::before {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.el-select-popper.el-popper,
+.el-popper.el-select-popper {
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-select-popper .el-popper__arrow::before,
+.el-popper .el-popper__arrow::before {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
 /* Radio Group */
 .el-radio-group {
   display: flex;
