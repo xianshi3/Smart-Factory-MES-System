@@ -2,7 +2,7 @@
   <div class="stat-card" :class="[`stat-${theme}`, { 'has-trend': trend !== undefined }]" :style="{ animationDelay: `${delay}s` }">
     <div class="stat-glow"></div>
     <div class="stat-icon">
-      <el-icon size="24"><component :is="icon" /></el-icon>
+      <el-icon size="22"><component :is="icon" /></el-icon>
     </div>
     <div class="stat-content">
       <div class="stat-value">{{ value }}</div>
@@ -29,20 +29,22 @@ defineProps<{
 <style scoped>
 .stat-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 20px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   animation: fadeInUp 0.5s ease forwards;
   opacity: 0;
 }
+
 .stat-card:hover {
   transform: translateY(-4px);
   border-color: var(--accent);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
+
 .stat-glow {
   position: absolute;
   top: -50%;
@@ -54,12 +56,13 @@ defineProps<{
   transition: 0.5s ease;
   pointer-events: none;
 }
+
 .stat-card:hover .stat-glow { opacity: 1; }
 
-.stat-primary .stat-glow { background: radial-gradient(circle, rgba(233, 69, 96, 0.2) 0%, transparent 70%); }
-.stat-success .stat-glow { background: radial-gradient(circle, rgba(0, 196, 140, 0.2) 0%, transparent 70%); }
-.stat-warning .stat-glow { background: radial-gradient(circle, rgba(255, 159, 67, 0.2) 0%, transparent 70%); }
-.stat-info .stat-glow { background: radial-gradient(circle, rgba(0, 168, 204, 0.2) 0%, transparent 70%); }
+.stat-primary .stat-glow { background: radial-gradient(circle, var(--accent-light) 0%, transparent 70%); }
+.stat-success .stat-glow { background: radial-gradient(circle, var(--success-light) 0%, transparent 70%); }
+.stat-warning .stat-glow { background: radial-gradient(circle, var(--warning-light) 0%, transparent 70%); }
+.stat-info .stat-glow { background: radial-gradient(circle, var(--info-light) 0%, transparent 70%); }
 
 .stat-icon {
   width: 48px;
@@ -67,17 +70,18 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-bottom: 14px;
 }
-.stat-primary .stat-icon { background: rgba(233, 69, 96, 0.15); color: var(--accent); }
-.stat-success .stat-icon { background: rgba(0, 196, 140, 0.15); color: #00c48c; }
-.stat-warning .stat-icon { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
-.stat-info .stat-icon { background: rgba(0, 168, 204, 0.15); color: #00a8cc; }
+
+.stat-primary .stat-icon { background: var(--accent-light); color: var(--accent); }
+.stat-success .stat-icon { background: var(--success-light); color: var(--success); }
+.stat-warning .stat-icon { background: var(--warning-light); color: var(--warning); }
+.stat-info .stat-icon { background: var(--info-light); color: var(--info); }
 
 .stat-content { position: relative; z-index: 1; }
 .stat-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -99,13 +103,12 @@ defineProps<{
   padding: 4px 8px;
   border-radius: 20px;
 }
-.stat-trend.up { background: rgba(0, 196, 140, 0.15); color: #00c48c; }
-.stat-trend.down { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
+.stat-trend.up { background: var(--success-light); color: var(--success); }
+.stat-trend.down { background: var(--danger-light); color: var(--danger); }
 
-html.light .stat-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); }
-html.light .stat-card:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); }
-html.light .stat-icon { background: #f0f2f5 !important; }
-html.light .stat-label { color: #8a8aa0; }
+html.light .stat-card { box-shadow: var(--shadow-sm); }
+html.light .stat-card:hover { box-shadow: var(--shadow-md); }
+html.light .stat-icon { background: var(--bg-hover) !important; }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }

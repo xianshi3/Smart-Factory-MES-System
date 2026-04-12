@@ -27,13 +27,15 @@ defineProps<{
 <style scoped>
 .chart-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 20px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 }
+
 .chart-card:hover {
   border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -48,14 +50,18 @@ defineProps<{
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card-title .el-icon {
+  color: var(--accent);
 }
 
 .chart-container {
   width: 100%;
 }
 
-html.light .chart-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
-html.light .card-title { color: #1a1a2e; }
+html.light .chart-card { box-shadow: var(--shadow-sm); }
+html.light .card-title { color: var(--text-primary); }
 </style>

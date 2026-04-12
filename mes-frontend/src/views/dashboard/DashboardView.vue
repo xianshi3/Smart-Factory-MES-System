@@ -5,11 +5,13 @@
         <h1 class="welcome-title">
           欢迎回来, <span class="username">{{ userStore.user?.username || '管理员' }}</span>
         </h1>
-        <p class="welcome-subtitle">{{ currentDate }} {{ currentTime }}</p>
+        <p class="welcome-subtitle">{{ currentDate }} · {{ currentTime }}</p>
       </div>
-      <el-button type="primary" circle @click="refresh" class="refresh-btn">
-        <el-icon><Refresh /></el-icon>
-      </el-button>
+      <div class="header-actions">
+        <el-button circle @click="refresh" class="refresh-btn">
+          <el-icon><Refresh /></el-icon>
+        </el-button>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -153,14 +155,14 @@ const updateCharts = () => {
       smooth: true,
       symbol: 'circle',
       symbolSize: 8,
-      lineStyle: { color: '#e94560', width: 3 },
-      itemStyle: { color: '#e94560' },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(233,69,96,0.4)' }, { offset: 1, color: 'rgba(233,69,96,0)' }] } }
+      lineStyle: { color: '#6366f1', width: 3 },
+      itemStyle: { color: '#6366f1' },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.4)' }, { offset: 1, color: 'rgba(99,102,241,0)' }] } }
     }]
   }
 
   const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '告警': 0, '维护中': 0 }
-  const colors: Record<string, string> = { '运行中': '#00c48c', '空闲': '#00a8cc', '告警': '#ff6b6b', '维护中': '#ff9f43' }
+  const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '告警': '#ef4444', '维护中': '#f59e0b' }
   devices.value.forEach(d => {
     const statusMap: Record<string, string> = { ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中' }
     const statusText = statusMap[d.status] || '空闲'
@@ -234,7 +236,7 @@ watch(() => themeStore.isDark, () => {
   margin-bottom: 4px;
 }
 .username {
-  background: linear-gradient(135deg, var(--accent), #667eea);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -246,7 +248,7 @@ watch(() => themeStore.isDark, () => {
 .refresh-btn {
   width: 42px;
   height: 42px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   animation: fadeIn 0.5s ease;
 }
 .refresh-btn:hover { transform: rotate(180deg); }
@@ -300,9 +302,9 @@ watch(() => themeStore.isDark, () => {
   border-radius: 50%;
 }
 
-.summary-item.online .summary-dot { background: #00c48c; }
-.summary-item.idle .summary-dot { background: #00a8cc; }
-.summary-item.alarm .summary-dot { background: #ff6b6b; }
+.summary-item.online .summary-dot { background: var(--success); }
+.summary-item.idle .summary-dot { background: var(--info); }
+.summary-item.alarm .summary-dot { background: var(--danger); }
 
 .device-grid {
   display: grid;
@@ -310,9 +312,9 @@ watch(() => themeStore.isDark, () => {
   gap: 16px;
 }
 
-html.light .section-title { color: #1a1a2e; }
-html.light .welcome-title { color: #1a1a2e; }
-html.light .welcome-subtitle { color: #8a8aa0; }
+html.light .section-title { color: var(--text-primary); }
+html.light .welcome-title { color: var(--text-primary); }
+html.light .welcome-subtitle { color: var(--text-muted); }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }

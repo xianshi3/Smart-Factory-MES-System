@@ -1,15 +1,17 @@
-<!-- Production Report View -->
 <template>
   <div class="report-container">
     <div class="page-header">
-      <div class="header-title">
-        <el-icon size="24"><DataAnalysis /></el-icon>
-        <h1>生产报表</h1>
+      <div class="header-left">
+        <div class="header-title">
+          <el-icon size="24"><DataAnalysis /></el-icon>
+          <h1>生产报表</h1>
+        </div>
+        <p class="header-subtitle">产量统计 · 良品率分析 · OEE监控</p>
       </div>
       <div class="header-actions">
         <el-button type="primary" @click="handleExport">
           <el-icon><Download /></el-icon>
-          导出报表
+          导出
         </el-button>
         <el-button @click="loadData">
           <el-icon><Refresh /></el-icon>
@@ -18,7 +20,7 @@
       </div>
     </div>
 
-    <div class="search-bar">
+    <div class="filter-bar">
       <el-date-picker
         v-model="searchForm.dateRange"
         type="daterange"
@@ -26,15 +28,19 @@
         start-placeholder="开始日期"
         end-placeholder="结束日期"
         value-format="YYYY-MM-DD"
+        class="date-picker"
       />
-      <el-button type="primary" @click="loadData">查询</el-button>
+      <el-button type="primary" @click="loadData">
+        <el-icon><Search /></el-icon>
+        查询
+      </el-button>
       <el-button @click="handleReset">重置</el-button>
     </div>
 
-    <div class="stats-grid">
+    <div class="stats-row">
       <div class="stat-card" v-for="(stat, index) in stats" :key="stat.label" :style="{ animationDelay: `${index * 0.1}s` }">
         <div class="stat-icon" :class="stat.theme">
-          <el-icon size="28"><component :is="stat.icon" /></el-icon>
+          <el-icon size="24"><component :is="stat.icon" /></el-icon>
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stat.value }}</div>
@@ -43,7 +49,7 @@
       </div>
     </div>
 
-    <div class="chart-section">
+    <div class="content-row">
       <div class="chart-card">
         <div class="card-header">
           <span class="card-title">
@@ -52,57 +58,83 @@
           </span>
         </div>
         <div class="chart-container">
-          <v-chart :option="outputChart" autoresize style="height: 300px" />
+          <v-chart :option="outputChart" autoresize style="height: 280px" />
         </div>
       </div>
     </div>
 
-    <div class="table-card">
-      <div class="card-header">
-        <span class="card-title">
+    <div class="table-section">
+      <div class="section-header">
+        <span class="section-title">
           <el-icon><List /></el-icon>
-          每日生产明细
+          生产明细
         </span>
+        <span class="data-count">共 {{ tableData.length }} 条记录</span>
       </div>
-      <el-table :data="tableData" v-loading="loading">
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="output" label="产量" width="100" />
-        <el-table-column prop="qualified" label="良品数" width="100" />
-        <el-table-column prop="defective" label="不良数" width="100">
-          <template #default="{ row }">
-            {{ (row.output || 0) - (row.qualified || 0) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="oee" label="OEE(%)" width="100">
-          <template #default="{ row }">
-            {{ row.oee ? row.oee.toFixed(1) : '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="良品率" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getRateType(row)" size="small">
-              {{ getRate(row) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
+      
+      <div class="table-wrapper">
+        <el-table 
+          :data="tableData" 
+          v-loading="loading"
+          stripe
+          class="modern-table"
+        >
+          <el-table-column prop="date" label="日期" min-width="120" align="center">
+            <template #default="{ row }">
+              <span class="date-cell">{{ row.date }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="output" label="产量" min-width="100" align="center">
+            <template #default="{ row }">
+              <span class="number-cell primary">{{ row.output || 0 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="qualified" label="良品数" min-width="100" align="center">
+            <template #default="{ row }">
+              <span class="number-cell success">{{ row.qualified || 0 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="不良数" min-width="100" align="center">
+            <template #default="{ row }">
+              <span class="number-cell danger">{{ (row.output || 0) - (row.qualified || 0) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="oee" label="OEE" min-width="100" align="center">
+            <template #default="{ row }">
+              <span class="number-cell" :class="getOeeClass(row.oee)">
+                {{ row.oee ? row.oee.toFixed(1) + '%' : '-' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="良品率" min-width="120" align="center">
+            <template #default="{ row }">
+              <div class="rate-cell">
+                <div class="rate-bar">
+                  <div class="rate-fill" :style="{ width: getRate(row) }" :class="getRateClass(row)"></div>
+                </div>
+                <span class="rate-text" :class="getRateClass(row)">{{ getRate(row) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      
+      <el-empty v-if="!loading && tableData.length === 0" description="暂无生产数据" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
-import { DataAnalysis, Download, Refresh, TrendCharts, List, Coin, CircleCheck, Warning, Odometer } from '@element-plus/icons-vue'
+import { DataAnalysis, Download, Refresh, TrendCharts, List, Coin, CircleCheck, Warning, Odometer, Search } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
 const loading = ref(false)
 const tableData = ref<any[]>([])
-const searchForm = reactive({
-  dateRange: [] as string[]
-})
+const searchForm = reactive({ dateRange: [] as string[] })
 
 const stats = ref([
   { label: '总产量', value: 0, icon: 'Coin', theme: 'primary' },
@@ -118,12 +150,19 @@ const getRate = (row: any) => {
   return ((row.qualified / row.output) * 100).toFixed(1) + '%'
 }
 
-const getRateType = (row: any) => {
-  if (!row.output) return 'info'
+const getRateClass = (row: any) => {
+  if (!row.output) return ''
   const rate = (row.qualified / row.output) * 100
-  if (rate >= 95) return 'success'
-  if (rate >= 85) return 'warning'
-  return 'danger'
+  if (rate >= 95) return 'high'
+  if (rate >= 85) return 'medium'
+  return 'low'
+}
+
+const getOeeClass = (oee: number) => {
+  if (!oee) return ''
+  if (oee >= 85) return 'high'
+  if (oee >= 70) return 'medium'
+  return 'low'
 }
 
 const loadData = async () => {
@@ -163,13 +202,19 @@ const updateChart = () => {
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
 
   outputChart.value = {
-    tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
+    tooltip: { 
+      trigger: 'axis', 
+      backgroundColor: bgColor, 
+      borderColor, 
+      textStyle: { color: textColor },
+      axisPointer: { type: 'shadow' }
+    },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: { 
       type: 'category', 
       data: tableData.value.map(d => d.date),
       axisLine: { lineStyle: { color: lineColor } },
-      axisLabel: { color: textColor }
+      axisLabel: { color: textColor, fontSize: 12 }
     },
     yAxis: { 
       type: 'value',
@@ -181,14 +226,22 @@ const updateChart = () => {
       {
         name: '产量',
         type: 'bar',
+        barWidth: '35%',
         data: tableData.value.map(d => d.output),
-        itemStyle: { color: '#5470c6' }
+        itemStyle: { 
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#6366f1' }, { offset: 1, color: '#8b5cf6' }] },
+          borderRadius: [4, 4, 0, 0]
+        }
       },
       {
         name: '良品',
         type: 'bar',
+        barWidth: '35%',
         data: tableData.value.map(d => d.qualified),
-        itemStyle: { color: '#91cc75' }
+        itemStyle: { 
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#34d399' }] },
+          borderRadius: [4, 4, 0, 0]
+        }
       }
     ]
   }
@@ -203,9 +256,7 @@ const handleExport = () => {
   ElMessage.success('报表导出功能开发中')
 }
 
-onMounted(() => {
-  loadData()
-})
+onMounted(() => { loadData() })
 </script>
 
 <style scoped>
@@ -218,10 +269,11 @@ onMounted(() => {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
+
+.header-left {}
 
 .header-title {
   display: flex;
@@ -235,23 +287,40 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.header-title .el-icon { color: var(--accent); }
+
+.header-subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+  margin-left: 36px;
+}
+
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
-.search-bar {
+.filter-bar {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease 0.1s both;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  align-items: center;
 }
 
-.stats-grid {
+.date-picker {
+  width: 280px;
+}
+
+.stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
@@ -259,80 +328,191 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
-  animation: fadeIn 0.5s ease both;
+  animation: fadeInUp 0.5s ease both;
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.stat-icon.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
-.stat-icon.success { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
-.stat-icon.danger { background: linear-gradient(135deg, #eb3349, #f45c43); color: #fff; }
-.stat-icon.info { background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; }
+.stat-icon.primary { background: var(--accent-light); color: var(--accent); }
+.stat-icon.success { background: var(--success-light); color: var(--success); }
+.stat-icon.danger { background: var(--danger-light); color: var(--danger); }
+.stat-icon.info { background: var(--info-light); color: var(--info); }
 
-.stat-content {
-  flex: 1;
-}
+.stat-content { flex: 1; }
+.stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+.stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+.content-row { margin-bottom: 20px; }
 
-.stat-label {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.chart-section {
-  margin-bottom: 24px;
-}
-
-.chart-card, .table-card {
+.chart-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
-  animation: fadeIn 0.5s ease 0.3s both;
+  animation: fadeIn 0.5s ease 0.2s both;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
+.card-header { margin-bottom: 16px; }
 
 .card-title {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
-html.light .card-title { color: #1a1a2e; }
-html.light .stat-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
-html.light .chart-card, html.light .table-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
+.card-title .el-icon { color: var(--accent); }
+
+.table-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 20px;
+  animation: fadeIn 0.5s ease 0.3s both;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-title .el-icon { color: var(--accent); }
+
+.data-count {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.modern-table {
+  width: 100%;
+}
+
+:deep(.modern-table .el-table__header th) {
+  background: var(--bg-hover) !important;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+:deep(.modern-table .el-table__body td) {
+  padding: 14px 8px;
+}
+
+:deep(.modern-table .el-table__row--striped td) {
+  background: var(--bg-hover) !important;
+}
+
+:deep(.modern-table .el-table__row:hover td) {
+  background: var(--bg-hover) !important;
+}
+
+.date-cell {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.number-cell {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.number-cell.primary { color: var(--accent); }
+.number-cell.success { color: var(--success); }
+.number-cell.danger { color: var(--danger); }
+.number-cell.high { color: var(--success); }
+.number-cell.medium { color: var(--warning); }
+.number-cell.low { color: var(--danger); }
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rate-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  max-width: 80px;
+}
+
+.rate-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.rate-fill.high { background: linear-gradient(90deg, #10b981, #34d399); }
+.rate-fill.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.rate-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+.rate-text {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 45px;
+}
+
+.rate-text.high { color: var(--success); }
+.rate-text.medium { color: var(--warning); }
+.rate-text.low { color: var(--danger); }
+
+html.light .stat-card,
+html.light .chart-card,
+html.light .table-section {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 1200px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid,
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: 1fr; }
+  .page-header { flex-direction: column; gap: 16px; }
+  .header-actions { width: 100%; }
+  .filter-bar { flex-wrap: wrap; }
+  .date-picker { width: 100%; }
 }
 </style>

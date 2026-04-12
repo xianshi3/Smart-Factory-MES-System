@@ -1,80 +1,103 @@
-<!-- Work Order Management View -->
 <template>
-  <div class="workorder-container">
+  <div class="page-wrapper">
     <div class="page-header">
-      <div class="header-title">
-        <el-icon size="24"><Document /></el-icon>
-        <h1>工单管理</h1>
+      <div class="header-left">
+        <div class="page-title">
+          <el-icon><Document /></el-icon>
+          <h1>工单管理</h1>
+        </div>
+        <p class="page-desc">生产工单 · 进度跟踪 · 报工管理</p>
       </div>
-      <el-button type="primary" @click="handleCreate">
+      <el-button type="primary" class="create-btn" @click="handleCreate">
         <el-icon><Plus /></el-icon>
-        <span>新建工单</span>
+        新建工单
       </el-button>
     </div>
-    
-    <div class="search-bar">
-      <el-input v-model="searchForm.keyword" placeholder="工单编号" clearable>
+
+    <div class="filter-bar">
+      <el-input v-model="searchForm.keyword" placeholder="工单编号..." clearable class="search-input">
         <template #prefix><el-icon><Search /></el-icon></template>
       </el-input>
-      <el-select v-model="searchForm.status" placeholder="状态" clearable>
+      <el-select v-model="searchForm.status" placeholder="状态" clearable class="status-select">
         <el-option label="已创建" value="CREATED" />
         <el-option label="已下发" value="ISSUED" />
         <el-option label="生产中" value="IN_PRODUCTION" />
-        <el-option label="待质检" value="PENDING_QC" />
         <el-option label="已完成" value="COMPLETED" />
         <el-option label="已关闭" value="CLOSED" />
       </el-select>
-      <el-button type="primary" @click="loadData">搜索</el-button>
+      <el-button type="primary" @click="loadData">查询</el-button>
       <el-button @click="handleReset">重置</el-button>
     </div>
-    
-    <div class="table-card">
-      <el-table :data="tableData" v-loading="loading">
-        <el-table-column prop="orderNo" label="工单编号" min-width="150" />
-        <el-table-column prop="productName" label="产品名称" min-width="150" />
-        <el-table-column prop="planQuantity" label="计划数量" width="100" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="进度" width="120">
-          <template #default="{ row }">
-            <el-progress 
-              :percentage="Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)" 
-              :stroke-width="6"
-              :show-text="false"
-            />
-            <span>{{ row.completedQuantity || 0 }} / {{ row.planQuantity }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="plannedStartTime" label="计划开始" width="120" />
-        <el-table-column prop="plannedEndTime" label="计划结束" width="120" />
-        <el-table-column label="操作" width="260" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
-            <el-button type="success" link @click="handleStart(row)" v-if="row.status === 'CREATED' || row.status === 'ISSUED'">开始</el-button>
-            <el-button type="warning" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
-            <el-button type="info" link @click="handleReport(row)" v-if="row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'">报工</el-button>
-            <el-button type="success" link @click="handleComplete(row)" v-if="row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'">完成</el-button>
-            <el-button type="danger" link @click="handleDelete(row)" v-if="row.status === 'CREATED' || row.status === 'CLOSED'">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+
+    <div class="card-grid">
+      <div 
+        v-for="(row, index) in tableData" 
+        :key="row.id" 
+        class="order-card"
+        :style="{ animationDelay: `${index * 0.05}s` }"
+      >
+        <div class="card-header">
+          <span class="order-no">{{ row.orderNo }}</span>
+          <span :class="['status-dot', `status-dot--${statusConfig[row.status]?.tag}`]"></span>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-product">{{ row.productName }}</div>
+          <div class="card-meta">
+            <span class="meta-item">
+              <el-icon><Coin /></el-icon>
+              <span>计划: {{ row.planQuantity }}</span>
+            </span>
+            <span class="meta-item">
+              <el-icon><CircleCheck /></el-icon>
+              <span>完成: {{ row.completedQuantity || 0 }}</span>
+            </span>
+          </div>
+          
+          <div class="card-progress">
+            <div class="progress-info">
+              <span class="progress-label">进度</span>
+              <span class="progress-value">{{ getProgress(row) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: getProgress(row) + '%' }"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <span :class="['status-tag', `status-tag--${statusConfig[row.status]?.tag}`]">
+            {{ statusConfig[row.status]?.text }}
+          </span>
+          <div class="card-actions" @click.stop>
+            <el-button type="primary" size="small" link @click="handleStart(row)" v-if="canStart(row)">开始</el-button>
+            <el-button type="warning" size="small" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
+            <el-button type="info" size="small" link @click="handleReport(row)" v-if="canReport(row)">报工</el-button>
+            <el-button type="success" size="small" link @click="handleComplete(row)" v-if="canComplete(row)">完成</el-button>
+          </div>
+        </div>
+      </div>
       
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <el-icon size="48"><Document /></el-icon>
+        <p>暂无工单数据</p>
+      </div>
+    </div>
+
+    <div class="pagination-wrapper">
       <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :total="pagination.total"
-        :page-sizes="[10, 20, 50]"
+        :page-sizes="[12, 24, 48]"
         layout="total, sizes, prev, pager, next"
         @size-change="loadData"
         @current-change="loadData"
       />
     </div>
-    
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="产品名称" prop="productName">
           <el-input v-model="form.productName" placeholder="请输入产品名称" />
         </el-form-item>
@@ -82,33 +105,27 @@
           <el-input v-model="form.productModel" placeholder="请输入产品型号" />
         </el-form-item>
         <el-form-item label="计划数量" prop="planQuantity">
-          <el-input-number v-model="form.planQuantity" :min="1" />
+          <el-input-number v-model="form.planQuantity" :min="1" style="width: 100%" />
         </el-form-item>
         <el-form-item label="工位" prop="workstationId">
-          <el-select v-model="form.workstationId" placeholder="请选择工位">
+          <el-select v-model="form.workstationId" placeholder="请选择" style="width: 100%">
             <el-option label="工位1" :value="1" />
             <el-option label="工位2" :value="2" />
             <el-option label="工位3" :value="3" />
           </el-select>
         </el-form-item>
         <el-form-item label="工艺模板" prop="processTemplateId">
-          <el-select v-model="form.processTemplateId" placeholder="请选择">
+          <el-select v-model="form.processTemplateId" placeholder="请选择" style="width: 100%">
             <el-option label="CNC加工工艺" :value="1" />
             <el-option label="组装工艺" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="优先级" prop="priority">
-          <el-select v-model="form.priority">
+          <el-select v-model="form.priority" style="width: 100%">
             <el-option label="低" value="LOW" />
             <el-option label="中" value="MEDIUM" />
             <el-option label="高" value="HIGH" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="计划开始" prop="plannedStartTime">
-          <el-date-picker v-model="form.plannedStartTime" type="date" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="计划结束" prop="plannedEndTime">
-          <el-date-picker v-model="form.plannedEndTime" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="2" />
@@ -119,52 +136,39 @@
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
-    
-    <el-dialog v-model="detailVisible" title="工单详情" width="700px">
-      <el-descriptions :column="2" border v-if="detailData.id">
-        <el-descriptions-item label="工单ID">{{ detailData.id }}</el-descriptions-item>
+
+    <el-dialog v-model="detailVisible" title="工单详情" width="500px">
+      <el-descriptions :column="2" border>
         <el-descriptions-item label="工单编号">{{ detailData.orderNo }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <span :class="['status-tag', `status-tag--${statusConfig[detailData.status]?.tag}`]">
+            {{ statusConfig[detailData.status]?.text }}
+          </span>
+        </el-descriptions-item>
         <el-descriptions-item label="产品名称">{{ detailData.productName }}</el-descriptions-item>
         <el-descriptions-item label="产品型号">{{ detailData.productModel || '-' }}</el-descriptions-item>
         <el-descriptions-item label="计划数量">{{ detailData.planQuantity }}</el-descriptions-item>
-        <el-descriptions-item label="已完成数量">{{ detailData.completedQuantity || 0 }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(detailData.status)">{{ getStatusText(detailData.status) }}</el-tag>
+        <el-descriptions-item label="已完成">{{ detailData.completedQuantity || 0 }}</el-descriptions-item>
+        <el-descriptions-item label="计划开始">{{ detailData.plannedStartTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="计划结束">{{ detailData.plannedEndTime || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="优先级">{{ detailData.priority || 'MEDIUM' }}</el-descriptions-item>
-        <el-descriptions-item label="计划开始时间">{{ detailData.plannedStartTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="计划结束时间">{{ detailData.plannedEndTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="实际开始时间">{{ detailData.actualStartTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="实际结束时间">{{ detailData.actualEndTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="工位ID">{{ detailData.workstationId || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="工艺模板ID">{{ detailData.processTemplateId || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ detailData.updateTime || '-' }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ detailData.remark || '-' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
-    
-    <el-dialog v-model="reportVisible" title="提交报工" width="500px">
-      <el-form :model="reportForm" label-width="100px">
-        <el-form-item label="工单编号">
-          <el-input :value="reportForm.orderNo" disabled />
-        </el-form-item>
+
+    <el-dialog v-model="reportVisible" title="提交报工" width="400px">
+      <el-form :model="reportForm" label-width="80px">
         <el-form-item label="报工数量">
-          <el-input-number v-model="reportForm.reportQuantity" :min="1" :max="reportForm.remaining" />
+          <el-input-number v-model="reportForm.reportQuantity" :min="1" :max="reportForm.remaining" style="width: 100%" />
         </el-form-item>
         <el-form-item label="良品数量">
-          <el-input-number v-model="reportForm.qualifiedQuantity" :min="0" :max="reportForm.reportQuantity" />
+          <el-input-number v-model="reportForm.qualifiedQuantity" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="不良数量">
-          <el-input-number v-model="reportForm.defectiveQuantity" :min="0" :max="reportForm.reportQuantity" />
-        </el-form-item>
-        <el-form-item label="设备">
-          <el-select v-model="reportForm.deviceId" placeholder="请选择设备">
-            <el-option v-for="d in devices" :key="d.id" :label="d.deviceName || d.device_code" :value="d.id" />
-          </el-select>
+          <el-input-number v-model="reportForm.defectiveQuantity" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="reportForm.remark" type="textarea" :rows="2" />
@@ -181,7 +185,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport, getDeviceStatus } from '@/api/services'
+import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport } from '@/api/services'
+import { Document, Plus, Search, Coin, CircleCheck } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -190,20 +195,11 @@ const detailVisible = ref(false)
 const reportVisible = ref(false)
 const detailData = ref<any>({})
 const tableData = ref<any[]>([])
-const devices = ref<any[]>([])
+
 const searchForm = reactive({ keyword: '', status: '' })
-const pagination = reactive({ page: 1, size: 10, total: 0 })
+const pagination = reactive({ page: 1, size: 12, total: 0 })
 const formRef = ref()
-const reportForm = reactive({
-  workOrderId: null as number | null,
-  orderNo: '',
-  reportQuantity: 1,
-  qualifiedQuantity: 1,
-  defectiveQuantity: 0,
-  deviceId: null as number | null,
-  remark: '',
-  remaining: 0
-})
+
 const form = reactive({
   id: null as number | null,
   productName: '',
@@ -212,67 +208,66 @@ const form = reactive({
   workstationId: null as number | null,
   processTemplateId: null as number | null,
   priority: 'MEDIUM',
-  plannedStartTime: null as string | null,
-  plannedEndTime: null as string | null,
   remark: ''
 })
+
+const reportForm = reactive({
+  workOrderId: null as number | null,
+  orderNo: '',
+  reportQuantity: 1,
+  qualifiedQuantity: 1,
+  defectiveQuantity: 0,
+  remark: '',
+  remaining: 0
+})
+
+const statusConfig: Record<string, { tag: string; text: string }> = {
+  CREATED: { tag: 'info', text: '已创建' },
+  ISSUED: { tag: 'warning', text: '已下发' },
+  IN_PRODUCTION: { tag: 'primary', text: '生产中' },
+  PENDING_QC: { tag: 'warning', text: '待质检' },
+  COMPLETED: { tag: 'success', text: '已完成' },
+  CLOSED: { tag: 'info', text: '已关闭' }
+}
 
 const rules = {
   productName: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
   productModel: [{ required: true, message: '请输入产品型号', trigger: 'blur' }],
-  planQuantity: [{ required: true, message: '请输入计划数量', trigger: 'blur' }],
   workstationId: [{ required: true, message: '请选择工位', trigger: 'change' }],
   processTemplateId: [{ required: true, message: '请选择工艺模板', trigger: 'change' }]
 }
 
-const getStatusType = (status: string) => {
-  const map: Record<string, string> = { CREATED: 'info', ISSUED: 'warning', IN_PRODUCTION: 'primary', PENDING_QC: 'warning', COMPLETED: 'success', CLOSED: 'info' }
-  return map[status] || 'info'
-}
-
-const getStatusText = (status: string) => {
-  const map: Record<string, string> = { CREATED: '已创建', ISSUED: '已下发', IN_PRODUCTION: '生产中', PENDING_QC: '待质检', COMPLETED: '已完成', CLOSED: '已关闭' }
-  return map[status] || status
-}
+const getProgress = (row: any) => Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
+const canStart = (row: any) => row.status === 'CREATED' || row.status === 'ISSUED'
+const canReport = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
+const canComplete = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
 
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getWorkOrderPage({
-      current: pagination.page,
-      size: pagination.size,
-      status: searchForm.status,
-      keyword: searchForm.keyword
-    })
+    const res = await getWorkOrderPage({ current: pagination.page, size: pagination.size, status: searchForm.status, keyword: searchForm.keyword })
     tableData.value = res.data.records || []
     pagination.total = res.data.total || 0
-  } catch (error) {
-    console.error('Failed to load work orders:', error)
-  } finally {
-    loading.value = false
-  }
+  } catch (error) { console.error('Failed to load:', error) }
+  finally { loading.value = false }
 }
 
-const handleReset = () => {
-  searchForm.keyword = ''
-  searchForm.status = ''
-  pagination.page = 1
-  loadData()
-}
+const handleReset = () => { searchForm.keyword = ''; searchForm.status = ''; pagination.page = 1; loadData() }
 
 const handleCreate = () => {
   form.id = null
-  form.productName = ''
-  form.productModel = ''
-  form.planQuantity = 100
-  form.workstationId = null
-  form.processTemplateId = null
-  form.priority = 'MEDIUM'
-  form.plannedStartTime = null
-  form.plannedEndTime = null
-  form.remark = ''
+  Object.assign(form, { productName: '', productModel: '', planQuantity: 100, workstationId: null, processTemplateId: null, priority: 'MEDIUM', remark: '' })
   dialogTitle.value = '新建工单'
   dialogVisible.value = true
+}
+
+const handleSubmit = async () => {
+  try {
+    await createWorkOrder(form)
+    ElMessage.success('创建成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (error: any) { ElMessage.error(error?.message || '创建失败') }
 }
 
 const handleDetail = async (row: any) => {
@@ -280,138 +275,47 @@ const handleDetail = async (row: any) => {
     const res = await getWorkOrderDetail(row.id)
     detailData.value = res.data || {}
     detailVisible.value = true
-  } catch (error) {
-    ElMessage.error('获取详情失败')
-  }
+  } catch { ElMessage.error('获取详情失败') }
 }
 
 const handleStart = async (row: any) => {
-  try {
-    await startWorkOrder(row.id)
-    ElMessage.success('工单已开始生产')
-    loadData()
-  } catch (error) {
-    ElMessage.error('操作失败')
-  }
+  try { await startWorkOrder(row.id); ElMessage.success('工单已开始'); loadData() }
+  catch { ElMessage.error('操作失败') }
 }
 
 const handleIssue = async (row: any) => {
-  try {
-    await issueWorkOrder(row.id)
-    ElMessage.success('工单已下发')
-    loadData()
-  } catch (error) {
-    ElMessage.error('操作失败')
-  }
+  try { await issueWorkOrder(row.id); ElMessage.success('工单已下发'); loadData() }
+  catch { ElMessage.error('操作失败') }
 }
 
-const handleDelete = (row: any) => {
-  const deleteId = String(row.id)
-  ElMessageBox.confirm(
-    `确定要删除工单 "${row.orderNo}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定删除',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(async () => {
-    try {
-      await deleteWorkOrder(deleteId)
-      ElMessage.success('删除成功')
-      loadData()
-    } catch (error: any) {
-      ElMessage.error(error?.message || error?.response?.data?.message || '删除失败')
-    }
-  }).catch(() => {
-    ElMessage.info('已取消删除')
-  })
+const handleComplete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定完成工单 "${row.orderNo}" 吗？`, '确认', { type: 'warning' })
+    await completeWorkOrder(row.id)
+    ElMessage.success('工单已完成')
+    loadData()
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '操作失败') }
 }
 
 const handleReport = (row: any) => {
-  reportForm.workOrderId = row.id
-  reportForm.orderNo = row.orderNo
-  reportForm.reportQuantity = 1
-  reportForm.qualifiedQuantity = 1
-  reportForm.defectiveQuantity = 0
-  reportForm.deviceId = null
-  reportForm.remark = ''
-  reportForm.remaining = (row.planQuantity || 0) - (row.completedQuantity || 0)
+  Object.assign(reportForm, { workOrderId: row.id, orderNo: row.orderNo, reportQuantity: 1, qualifiedQuantity: 1, defectiveQuantity: 0, remark: '', remaining: (row.planQuantity || 0) - (row.completedQuantity || 0) })
   reportVisible.value = true
 }
 
 const handleSubmitReport = async () => {
   try {
-    await submitReport({
-      workOrderId: reportForm.workOrderId,
-      reportQuantity: reportForm.reportQuantity,
-      qualifiedQuantity: reportForm.qualifiedQuantity,
-      defectiveQuantity: reportForm.defectiveQuantity,
-      deviceId: reportForm.deviceId,
-      remark: reportForm.remark
-    })
-    ElMessage.success('报工提交成功')
+    await submitReport({ workOrderId: reportForm.workOrderId, reportQuantity: reportForm.reportQuantity, qualifiedQuantity: reportForm.qualifiedQuantity, defectiveQuantity: reportForm.defectiveQuantity, remark: reportForm.remark })
+    ElMessage.success('报工成功')
     reportVisible.value = false
     loadData()
-  } catch (error: any) {
-    ElMessage.error(error?.message || '报工提交失败')
-  }
+  } catch (e: any) { ElMessage.error(e?.message || '报工失败') }
 }
 
-const handleComplete = async (row: any) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要完成工单 "${row.orderNo}" 吗？完成后将无法再进行报工操作。`,
-      '完成确认',
-      { confirmButtonText: '确定完成', cancelButtonText: '取消', type: 'warning' }
-    )
-    await completeWorkOrder(row.id)
-    ElMessage.success('工单已完成')
-    loadData()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error(error?.message || '操作失败')
-    }
-  }
-}
-
-const loadDevices = async () => {
-  try {
-    const res = await getDeviceStatus()
-    devices.value = res?.data || res || []
-  } catch (e) {
-    console.error('Failed to load devices:', e)
-  }
-}
-
-const handleSubmit = async () => {
-  try {
-    const data = {
-      productName: form.productName,
-      productModel: form.productModel,
-      planQuantity: form.planQuantity,
-      workstationId: form.workstationId,
-      processTemplateId: form.processTemplateId,
-      priority: form.priority,
-      remark: form.remark
-    }
-    await createWorkOrder(data)
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    loadData()
-  } catch (error: any) {
-    ElMessage.error(error?.message || '保存失败')
-  }
-}
-
-onMounted(() => {
-  loadData()
-  loadDevices()
-})
+onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.workorder-container {
+.page-wrapper {
   padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
@@ -421,64 +325,177 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease;
+  margin-bottom: 20px;
 }
 
-.header-title {
+.header-left { display: flex; align-items: center; gap: 16px; }
+.page-title { display: flex; align-items: center; gap: 10px; }
+.page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); }
+.page-title .el-icon { font-size: 24px; color: var(--accent); }
+.page-desc { font-size: 13px; color: var(--text-muted); }
+
+.create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.search-input { width: 200px; }
+.status-select { width: 120px; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.order-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+}
+
+.order-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.order-no {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: monospace;
+}
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot--info { background: var(--info); }
+.status-dot--warning { background: var(--warning); }
+.status-dot--primary { background: var(--accent); }
+.status-dot--success { background: var(--success); }
+
+.card-body { margin-bottom: 14px; }
+
+.card-product {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.meta-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-.header-title h1 {
-  font-size: 24px;
-  font-weight: 600;
-}
+.meta-item .el-icon { font-size: 14px; }
 
-.search-bar {
+.card-progress {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease 0.1s both;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.search-bar .el-input {
-  width: 220px;
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.search-bar .el-select {
-  width: 150px;
+.progress-label { font-size: 12px; color: var(--text-muted); }
+.progress-value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+
+.progress-bar {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.table-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.status-tag {
+  padding: 4px 10px;
   border-radius: 12px;
-  padding: 20px;
-  animation: fadeIn 0.5s ease 0.2s both;
+  font-size: 12px;
+  font-weight: 500;
 }
+.status-tag--info { background: var(--info-light); color: var(--info); }
+.status-tag--warning { background: var(--warning-light); color: var(--warning); }
+.status-tag--primary { background: var(--accent-light); color: var(--accent); }
+.status-tag--success { background: var(--success-light); color: var(--success); }
 
-.table-card .el-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-header-bg-color: var(--hover-bg);
-  --el-table-border-color: var(--border-color);
-  --el-table-text-color: var(--text-primary);
-  --el-table-header-text-color: var(--text-secondary);
-}
+.card-actions { display: flex; gap: 4px; }
 
-.table-card .el-pagination {
-  margin-top: 16px;
+.empty-state {
+  grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
 }
 
-html.light .header-title h1 { color: #1a1a2e; }
-html.light .table-card { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); }
+.empty-state .el-icon { margin-bottom: 12px; opacity: 0.5; }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+.pagination-wrapper {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+html.light .page-title h1 { color: var(--text-primary); }
+html.light .filter-bar { background: var(--bg-card); box-shadow: var(--shadow-sm); }
+html.light .order-card:hover { box-shadow: var(--shadow-md); }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
   to { opacity: 1; transform: translateY(0); }
-}</style>
+}
+</style>

@@ -1,0 +1,144 @@
+/* ========================================
+   Global Table Styles - Clean & Responsive
+   Compatible with light/dark theme switching
+======================================== */
+
+/* Base Table Reset */
+.el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--table-header-bg, #1a1a2e);
+  --el-table-row-hover-bg-color: var(--table-row-hover, #252545);
+  --el-table-border-color: var(--border-color, #2a2a3e);
+  --el-table-text-color: var(--text-primary, #fff);
+  --el-table-header-text-color: var(--text-secondary, #b0b0b0);
+  
+  width: 100% !important;
+  font-size: 14px;
+  background: transparent !important;
+}
+
+.el-table::before, .el-table::after { display: none !important; }
+
+/* Header Styles */
+.el-table th.el-table__cell {
+  background: var(--table-header-bg, #1a1a2e) !important;
+  color: var(--text-secondary, #b0b0b0) !important;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 12px !important;
+  border-bottom: 1px solid var(--border-color, #2a2a3e) !important;
+  border-right: none !important;
+  user-select: none;
+}
+
+/* Body Cell Styles */
+.el-table td.el-table__cell {
+  background: transparent !important;
+  color: var(--text-primary, #fff) !important;
+  padding: 12px !important;
+  border-bottom: 1px solid var(--border-color, #2a2a3e) !important;
+  border-right: none !important;
+}
+
+/* Row Hover */
+.el-table .el-table__body tr:hover > td.el-table__cell {
+  background: var(--table-row-hover, #252545) !important;
+}
+
+/* Striped Rows */
+.el-table .el-table__body tr.el-table__row--striped > td.el-table__cell {
+  background: var(--table-stripe, #1e1e35) !important;
+}
+
+/* Empty State */
+.el-table__empty-block {
+  background: transparent !important;
+  padding: 60px 0 !important;
+}
+
+/* ========================================
+   Table Card Container
+======================================== */
+.table-card {
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid var(--border-color, #2a2a3e);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.table-card .el-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Pagination inside table card */
+.table-card .el-pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #2a2a3e);
+}
+
+/* ========================================
+   Column Alignment Helpers
+======================================== */
+.el-table-column--left { text-align: left; }
+.el-table-column--center { text-align: center; }
+.el-table-column--right { text-align: right; }
+
+/* ========================================
+   Light Theme Overrides
+======================================== */
+html.light {
+  --table-header-bg: #f8f9fb;
+  --table-row-hover: #f0f2f5;
+  --table-stripe: #fafafa;
+  --border-color: #e0e2e8;
+}
+
+html.light .el-table th.el-table__cell {
+  background: #f8f9fb !important;
+  color: #5a5a7a !important;
+}
+
+html.light .el-table td.el-table__cell {
+  color: #1a1a2e !important;
+  border-bottom-color: #e0e2e8 !important;
+}
+
+html.light .el-table .el-table__body tr:hover > td.el-table__cell {
+  background: #f0f2f5 !important;
+}
+
+html.light .el-table .el-table__body tr.el-table__row--striped > td.el-table__cell {
+  background: #fafafa !important;
+}
+
+html.light .table-card {
+  background: #ffffff;
+  border-color: #e0e2e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+html.light .table-card .el-pagination {
+  border-top-color: #e0e2e8;
+}
+
+/* ========================================
+   Responsive Fixes
+======================================== */
+@media (max-width: 768px) {
+  .table-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+  
+  .el-table th.el-table__cell,
+  .el-table td.el-table__cell {
+    padding: 10px 8px !important;
+    font-size: 13px;
+  }
+}

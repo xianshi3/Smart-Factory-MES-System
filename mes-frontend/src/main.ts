@@ -10,6 +10,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import router from './router'
 import App from './App.vue'
 import './styles/global.scss'
+import './styles/table-modern.scss'
 import './utils/echarts'
 
 const app = createApp(App)

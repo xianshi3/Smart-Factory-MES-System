@@ -19,7 +19,7 @@
     <div class="stats-row">
       <div class="stat-item" v-for="(stat, index) in stats" :key="stat.label" :style="{ animationDelay: `${index * 0.1}s` }">
         <div class="stat-icon" :class="stat.theme">
-          <el-icon size="24"><component :is="stat.icon" /></el-icon>
+          <el-icon size="22"><component :is="stat.icon" /></el-icon>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ stat.value }}</div>
@@ -121,7 +121,7 @@
         >
           <div class="device-header">
             <div class="device-icon">
-              <el-icon size="22"><Monitor /></el-icon>
+              <el-icon size="20"><Monitor /></el-icon>
             </div>
             <div class="device-info">
               <span class="device-name">{{ device.name }}</span>
@@ -249,7 +249,7 @@
     <el-dialog v-model="predictVisible" title="AI 预测分析" width="500px">
       <div class="predict-dialog-content" v-if="predictData">
         <div class="predict-header">
-          <el-icon size="48" color="#00c48c"><Cpu /></el-icon>
+          <el-icon size="48" color="var(--success)"><Cpu /></el-icon>
           <h3>{{ predictData.deviceName }}</h3>
         </div>
         <el-result
@@ -379,13 +379,13 @@ const updateCharts = () => {
     series: [{
       data: utilizations,
       type: 'bar',
-      itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#e94560' }, { offset: 1, color: '#0f3460' }] }, borderRadius: [4, 4, 0, 0] },
+      itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#6366f1' }, { offset: 1, color: '#8b5cf6' }] }, borderRadius: [4, 4, 0, 0] },
       barWidth: '50%'
     }]
   }
 
   const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '故障': 0, '维护中': 0 }
-  const colors: Record<string, string> = { '运行中': '#00c48c', '空闲': '#00a8cc', '故障': '#ff6b6b', '维护中': '#ff9f43' }
+  const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '故障': '#ef4444', '维护中': '#f59e0b' }
   deviceList.value.forEach(d => {
     const map: Record<string, string> = { running: '运行中', idle: '空闲', fault: '故障', maintenance: '维护中' }
     statusCounts[map[d.status]] = (statusCounts[map[d.status]] || 0) + 1
@@ -543,10 +543,8 @@ watch(() => themeStore.isDark, () => {
   margin-bottom: 4px;
 }
 
-.page-subtitle {
-  color: var(--text-muted);
-  font-size: 14px;
-}
+.page-title .el-icon { color: var(--accent); }
+.page-subtitle { color: var(--text-muted); font-size: 14px; }
 
 .stats-row {
   display: grid;
@@ -560,10 +558,10 @@ watch(() => themeStore.isDark, () => {
   align-items: center;
   gap: 16px;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 20px;
-  animation: fadeIn 0.5s ease forwards;
+  animation: fadeInUp 0.5s ease forwards;
   opacity: 0;
 }
 
@@ -573,32 +571,24 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
-.stat-icon.primary { background: rgba(233, 69, 96, 0.15); color: var(--accent); }
-.stat-icon.success { background: rgba(0, 196, 140, 0.15); color: #00c48c; }
-.stat-icon.info { background: rgba(0, 168, 204, 0.15); color: #00a8cc; }
-.stat-icon.danger { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
+.stat-icon.primary { background: var(--accent-light); color: var(--accent); }
+.stat-icon.success { background: var(--success-light); color: var(--success); }
+.stat-icon.info { background: var(--info-light); color: var(--info); }
+.stat-icon.danger { background: var(--danger-light); color: var(--danger); }
 
 .stat-info {}
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--text-muted);
-}
+.stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
 .charts-row { margin-bottom: 20px; }
 
 .chart-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 20px;
 }
 
@@ -614,43 +604,37 @@ watch(() => themeStore.isDark, () => {
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
 }
+
+.card-title .el-icon { color: var(--accent); }
 
 .alarm-section { margin-bottom: 20px; }
 
 .alarm-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 20px;
   animation: fadeIn 0.5s ease 0.3s both;
 }
 
-.alarm-icon {
-  color: #ff6b6b;
-}
+.alarm-icon { color: var(--danger); }
 
-.alarm-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.alarm-list { display: flex; flex-direction: column; gap: 12px; }
 
 .alarm-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: var(--hover-bg);
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
-.alarm-item:hover {
-  background: var(--bg-card);
-}
+.alarm-item:hover { background: var(--bg-card); }
 
 .alarm-icon-wrapper {
   width: 36px;
@@ -658,20 +642,18 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
-.alarm-icon-wrapper.danger { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
-.alarm-icon-wrapper.warning { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
-.alarm-icon-wrapper.info { background: rgba(0, 168, 204, 0.15); color: #00a8cc; }
+.alarm-icon-wrapper.danger { background: var(--danger-light); color: var(--danger); }
+.alarm-icon-wrapper.warning { background: var(--warning-light); color: var(--warning); }
+.alarm-icon-wrapper.info { background: var(--info-light); color: var(--info); }
 
 .alarm-content { flex: 1; }
 .alarm-title { color: var(--text-primary); font-size: 14px; margin-bottom: 4px; }
 .alarm-meta { display: flex; gap: 16px; color: var(--text-muted); font-size: 12px; }
 
-.device-section {
-  animation: fadeIn 0.5s ease 0.4s both;
-}
+.device-section { animation: fadeIn 0.5s ease 0.4s both; }
 
 .section-header {
   display: flex;
@@ -689,11 +671,7 @@ watch(() => themeStore.isDark, () => {
   font-weight: 600;
 }
 
-.section-actions {
-  display: flex;
-  gap: 12px;
-}
-
+.section-actions { display: flex; gap: 12px; }
 .search-input { width: 200px; }
 
 .device-grid {
@@ -704,17 +682,17 @@ watch(() => themeStore.isDark, () => {
 
 .device-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  animation: fadeIn 0.4s ease forwards;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: all var(--transition-normal);
+  animation: fadeInUp 0.4s ease forwards;
   opacity: 0;
 }
 
 .device-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   border-color: var(--accent);
 }
 
@@ -724,7 +702,7 @@ watch(() => themeStore.isDark, () => {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .device-icon {
@@ -733,39 +711,26 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--hover-bg);
-  border-radius: 10px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
 }
 
-.device-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.device-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.device-code {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.device-info { flex: 1; display: flex; flex-direction: column; }
+.device-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.device-code { font-size: 12px; color: var(--text-muted); }
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
 }
 
-.status-badge.running { background: rgba(0, 196, 140, 0.15); color: #00c48c; }
-.status-badge.idle { background: rgba(0, 168, 204, 0.15); color: #00a8cc; }
-.status-badge.fault { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
-.status-badge.maintenance { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
+.status-badge.running { background: var(--success-light); color: var(--success); }
+.status-badge.idle { background: var(--info-light); color: var(--info); }
+.status-badge.fault { background: var(--danger-light); color: var(--danger); }
+.status-badge.maintenance { background: var(--warning-light); color: var(--warning); }
 
 .device-metrics { margin-bottom: 16px; }
 
@@ -773,13 +738,10 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.metric-label {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.metric-label { font-size: 12px; color: var(--text-muted); }
 
 .progress-wrapper {
   display: flex;
@@ -800,45 +762,24 @@ watch(() => themeStore.isDark, () => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #0f3460);
+  background: var(--gradient-primary);
   border-radius: 3px;
   transition: width 0.5s ease;
 }
 
-.progress-value {
-  font-size: 12px;
-  color: var(--text-secondary);
-  min-width: 35px;
-}
+.progress-value { font-size: 12px; color: var(--text-secondary); min-width: 35px; }
 
-.metric-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-}
-
-.metric-row .metric-item {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.metric-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.metric-value.temp-high { color: #ff6b6b; }
+.metric-row { display: flex; justify-content: space-between; margin-top: 12px; }
+.metric-row .metric-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+.metric-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.metric-value.temp-high { color: var(--danger); }
 
 .device-actions {
   display: flex;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-light);
 }
-
-.detail-content {}
 
 .detail-header {
   display: flex;
@@ -846,7 +787,7 @@ watch(() => themeStore.isDark, () => {
   gap: 20px;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .detail-icon-large {
@@ -855,8 +796,8 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--hover-bg);
-  border-radius: 16px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-lg);
   color: var(--accent);
 }
 
@@ -868,8 +809,8 @@ watch(() => themeStore.isDark, () => {
 
 .predict-section {
   padding: 16px;
-  background: var(--hover-bg);
-  border-radius: 8px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
 }
 
 .predict-section h4 {
@@ -881,38 +822,25 @@ watch(() => themeStore.isDark, () => {
   margin-bottom: 12px;
 }
 
-.predict-content {}
+.predict-confidence { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
 
-.predict-confidence {
-  color: var(--text-muted);
-  font-size: 12px;
-  margin-top: 8px;
-}
+.predict-header { text-align: center; padding: 20px; }
+.predict-header h3 { color: var(--text-primary); margin-top: 12px; }
 
-.predict-dialog-content {}
-
-.predict-header {
-  text-align: center;
-  padding: 20px;
-}
-
-.predict-header h3 {
-  color: var(--text-primary);
-  margin-top: 12px;
-}
-
-html.light .page-title { color: #1a1a2e; }
-html.light .section-title { color: #1a1a2e; }
-html.light .page-subtitle { color: #8a8aa0; }
+html.light .page-title { color: var(--text-primary); }
+html.light .section-title { color: var(--text-primary); }
 html.light .stat-item,
 html.light .chart-card,
 html.light .alarm-card,
-html.light .device-card {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-}
+html.light .device-card { box-shadow: var(--shadow-sm); }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 

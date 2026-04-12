@@ -544,6 +544,90 @@ Smart-Factory-MES-System/
 
 ---
 
+## v1.0.22 (2026-04-12)
+
+### 前端UI全面美化
+
+#### 1. 设计系统升级 (global.scss)
+
+- **配色方案**：统一使用现代紫蓝渐变色系 (`#6366f1` 为主色调)
+- **CSS变量**：重新定义完整的 design tokens
+  - 圆角变量：`--radius-sm/ md/ lg/ xl`
+  - 阴影变量：`--shadow-sm/ md/ lg`
+  - 过渡变量：`--transition-fast/ normal/ slow`
+  - 渐变变量：`--gradient-primary/ success/ warning/ danger`
+- **组件样式**：统一所有 Element Plus 组件样式
+
+#### 2. 布局美化 (MainLayout.vue)
+
+- **Logo区域**：渐变图标 + 主标题 + 副标题
+- **菜单优化**：悬停和选中效果，图标对齐
+- **头部**：页面标题 + 面包屑导航
+- **用户菜单**：头像 + 下拉菜单美化
+
+#### 3. 卡片组件优化
+
+- **StatCard**：渐变背景图标，悬停光晕效果
+- **DeviceCard**：状态颜色统一，渐变进度条
+- **ChartCard**：悬停边框高亮
+
+#### 4. 页面视图美化
+
+| 页面 | 优化内容 |
+|------|----------|
+| Dashboard | 欢迎区优化，统计卡片动画 |
+| Device | 设备卡片悬停上浮，告警列表美化 |
+| WorkOrder | 卡片渐变进度条，动画入场 |
+| Process | 模板卡片优化，版本标签 |
+| Quality | 质检卡片信息图标，状态标签 |
+| Report | 重新布局，表格斑马纹，良品率进度条 |
+
+#### 5. 按钮样式修复
+
+- **圆角**：统一 8px，小按钮 6px，大按钮 10px
+- **颜色**：
+  - 主按钮：紫蓝渐变 `#6366f1 → #8b5cf6`
+  - 成功：绿色渐变 `#10b981 → #34d399`
+  - 警告：黄色渐变 `#f59e0b → #fbbf24`
+  - 危险：红色渐变 `#ef4444 → #f87171`
+  - 信息：青色渐变 `#06b6d4 → #22d3ee`
+- **悬停**：上浮效果 + 阴影
+
+#### 6. 主题切换兼容
+
+- 深色/浅色主题完全兼容
+- 所有颜色使用 CSS 变量
+- 悬停和选中状态正确显示
+
+#### 7. 生产报表页面优化
+
+- **布局**：头部副标题，搜索栏统一卡片样式
+- **统计**：4列网格布局
+- **表格**：
+  - 斑马纹效果
+  - 自定义单元格样式
+  - 良品率进度条可视化
+  - OEE 颜色分类
+- **响应式**：适配不同屏幕宽度
+
+### 文件更新
+
+| 文件 | 说明 |
+|------|------|
+| `mes-frontend/src/styles/global.scss` | 设计系统升级 |
+| `mes-frontend/src/views/layout/MainLayout.vue` | 布局美化 |
+| `mes-frontend/src/components/common/StatCard.vue` | 统计卡片优化 |
+| `mes-frontend/src/components/common/DeviceCard.vue` | 设备卡片优化 |
+| `mes-frontend/src/components/common/ChartCard.vue` | 图表卡片优化 |
+| `mes-frontend/src/views/dashboard/DashboardView.vue` | 首页美化 |
+| `mes-frontend/src/views/device/DeviceView.vue` | 设备页美化 |
+| `mes-frontend/src/views/workorder/WorkOrderView.vue` | 工单页美化 |
+| `mes-frontend/src/views/process/ProcessView.vue` | 工艺页美化 |
+| `mes-frontend/src/views/quality/QualityView.vue` | 质量页美化 |
+| `mes-frontend/src/views/report/ReportView.vue` | **重新设计** 报表页 |
+
+---
+
 ## v1.0.21 (2026-04-12)
 
 ### 功能新增

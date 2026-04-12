@@ -1,0 +1,265 @@
+/* ========================================
+   Modern Data Table Styles
+   Clean, Beautiful & Responsive
+   Theme Compatible
+======================================== */
+
+/* Table Container */
+.modern-table {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+/* Table Element */
+.modern-table .el-table {
+  background: transparent;
+  border: none;
+}
+
+.modern-table .el-table::before,
+.modern-table .el-table::after {
+  display: none;
+}
+
+/* Header */
+.modern-table .el-table__header-wrapper th.el-table__cell {
+  background: var(--table-header-bg) !important;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 12px !important;
+  border-bottom: 1px solid var(--border-color);
+  border-right: none;
+}
+
+/* Body Cells */
+.modern-table .el-table__body-wrapper td.el-table__cell {
+  background: transparent !important;
+  color: var(--text-primary);
+  padding: 14px 12px !important;
+  border-bottom: 1px solid var(--border-color);
+  border-right: none;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+/* Row Hover */
+.modern-table .el-table__body tr:hover > td {
+  background: var(--table-row-hover) !important;
+}
+
+/* Row Stripe */
+.modern-table .el-table__body tr.el-table__row--striped > td {
+  background: var(--table-stripe) !important;
+}
+
+/* Empty State */
+.modern-table .el-table__empty-block {
+  background: transparent !important;
+  padding: 60px 0;
+}
+
+/* Pagination */
+.modern-table .el-pagination {
+  padding: 16px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.modern-table .el-pagination .el-pager li {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin: 0 4px;
+  min-width: 32px;
+  height: 32px;
+  line-height: 30px;
+}
+
+.modern-table .el-pagination .el-pager li:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.modern-table .el-pagination .el-pager li.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.modern-table .el-pagination button {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 32px;
+}
+
+.modern-table .el-pagination button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ========================================
+   Status Tags
+======================================== */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-tag--success {
+  background: rgba(0, 200, 140, 0.15);
+  color: var(--success, #00c48c);
+}
+
+.status-tag--warning {
+  background: rgba(255, 159, 67, 0.15);
+  color: var(--warning, #ff9f43);
+}
+
+.status-tag--danger {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--danger, #ff6b6b);
+}
+
+.status-tag--info {
+  background: rgba(78, 205, 196, 0.15);
+  color: var(--info, #00a8cc);
+}
+
+.status-tag--primary {
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent, #e94560);
+}
+
+/* ========================================
+   Action Buttons
+======================================== */
+.table-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.table-actions .el-button {
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.table-actions .el-button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.table-actions .el-button--primary:hover {
+  background: #d63d55;
+  border-color: #d63d55;
+}
+
+/* ========================================
+   Progress Bar in Table
+======================================== */
+.table-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.table-progress .el-progress {
+  width: 100%;
+}
+
+.table-progress .el-progress-bar__outer {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.table-progress .el-progress-bar__inner {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+}
+
+.table-progress__text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ========================================
+   Light Theme
+======================================== */
+html.light .modern-table {
+  background: #fff;
+  border-color: #e8ecf0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+html.light .modern-table .el-table__header-wrapper th.el-table__cell {
+  background: #fafbfc !important;
+  color: #5a5a7a;
+}
+
+html.light .modern-table .el-table__body-wrapper td.el-table__cell {
+  color: #1a1a2e;
+  border-bottom-color: #e8ecf0;
+}
+
+html.light .modern-table .el-table__body tr:hover > td {
+  background: #f5f7fa !important;
+}
+
+html.light .modern-table .el-table__body tr.el-table__row--striped > td {
+  background: #fafafa !important;
+}
+
+html.light .modern-table .el-pagination {
+  background: #fff;
+  border-top-color: #e8ecf0;
+}
+
+html.light .modern-table .el-pagination .el-pager li {
+  background: #fff;
+  color: #5a5a7a;
+  border-color: #e8ecf0;
+}
+
+html.light .modern-table .el-pagination .el-pager li:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+html.light .modern-table .el-pagination button {
+  background: #fff;
+  color: #5a5a7a;
+  border-color: #e8ecf0;
+}
+
+/* ========================================
+   Responsive
+======================================== */
+@media (max-width: 768px) {
+  .modern-table {
+    border-radius: 12px;
+  }
+  
+  .modern-table .el-table__header-wrapper th.el-table__cell,
+  .modern-table .el-table__body-wrapper td.el-table__cell {
+    padding: 12px 8px !important;
+    font-size: 13px;
+  }
+}
