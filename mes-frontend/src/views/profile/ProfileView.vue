@@ -304,6 +304,7 @@ const handleLogoutAll = () => {
 const handleExportData = () => {
   ElMessage.info('数据导出功能开发中')
 }
+</script>
 
 <style scoped>
 .profile-container {
