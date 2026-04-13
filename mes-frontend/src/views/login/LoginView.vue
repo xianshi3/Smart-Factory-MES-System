@@ -199,9 +199,9 @@ const handleLogin = async () => {
   padding: 60px;
   position: relative;
   overflow: hidden;
-  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 36%;
-  max-width: 64%;
+  flex-basis: 48%;
+  width: 48%;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .left-bg {
@@ -311,9 +311,9 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 36%;
-  max-width: 64%;
+  flex-basis: 52%;
+  width: 52%;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .login-box {
