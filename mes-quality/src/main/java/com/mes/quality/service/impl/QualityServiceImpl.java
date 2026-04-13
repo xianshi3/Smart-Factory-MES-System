@@ -40,8 +40,11 @@ public class QualityServiceImpl implements QualityService {
     public Long createRecord(CreateQualityRecordDTO dto) {
         QualityRecord record = new QualityRecord();
         record.setWorkOrderId(dto.getWorkOrderId());
+        record.setWorkOrderNo(dto.getWorkOrderNo());
         record.setSn(dto.getSn());
         record.setDeviceId(dto.getDeviceId());
+        record.setWorkstationId(dto.getWorkstationId());
+        record.setOperatorId(dto.getOperatorId());
         record.setCheckType(dto.getCheckType());
         record.setCheckResult(dto.getCheckResult());
         record.setDefectType(dto.getDefectType());

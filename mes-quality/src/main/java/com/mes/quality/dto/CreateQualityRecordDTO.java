@@ -15,11 +15,20 @@ public class CreateQualityRecordDTO {
     @Schema(description = "工单ID")
     private Long workOrderId;
 
+    @Schema(description = "工单号")
+    private String workOrderNo;
+
     @Schema(description = "产品序列号SN")
     private String sn;
 
     @Schema(description = "设备ID")
     private Long deviceId;
+
+    @Schema(description = "工位ID")
+    private Long workstationId;
+
+    @Schema(description = "操作员ID")
+    private Long operatorId;
 
     @Schema(description = "检验类型: IPQC/FQC/OQC")
     private String checkType;
