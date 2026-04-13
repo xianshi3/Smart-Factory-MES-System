@@ -59,7 +59,13 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         WorkOrder wo = getByIdOrThrow(id);
         transitionStatus(wo, WorkOrderStatusEnum.ISSUED);
         wo.setIssueBy(getCurrentUserId());
-        updateById(wo);
+        
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
+                .set("status", wo.getStatus())
+                .set("issue_by", wo.getIssueBy())
+                .set("update_time", LocalDateTime.now())
+                .eq("id", id);
+        workOrderMapper.update(null, updateWrapper);
     }
 
     @Override
@@ -67,8 +73,13 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     public void startProduction(Long id) {
         WorkOrder wo = getByIdOrThrow(id);
         transitionStatus(wo, WorkOrderStatusEnum.IN_PRODUCTION);
-        wo.setActualStartTime(LocalDateTime.now());
-        updateById(wo);
+        
+        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
+                .set("status", wo.getStatus())
+                .set("actual_start_time", LocalDateTime.now())
+                .set("update_time", LocalDateTime.now())
+                .eq("id", id);
+        workOrderMapper.update(null, updateWrapper);
     }
 
     @Override
