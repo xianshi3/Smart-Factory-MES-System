@@ -10,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
  * 提供用户登录、注册、Token验证等功能
  */
 @SpringBootApplication
-@MapperScan("com.mes.auth.mapper")
+@MapperScan({"com.mes.auth.mapper", "com.mes.common.mapper"})
 @ComponentScan(basePackages = {"com.mes.auth", "com.mes.common"})
 public class AuthApplication {
     public static void main(String[] args) {

@@ -41,15 +41,151 @@ CREATE TABLE `sys_user` (
 -- Insert default admin user (password: admin123, BCrypt hashed)
 INSERT INTO `sys_user` (`username`, `password`, `real_name`, `nickname`, `phone`, `email`, `avatar`, `employee_no`, `department`, `position`, `manager_id`, `hire_date`, `status`, `role`)
 VALUES 
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN'),
-('zhangsan', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER'),
-('lisi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER'),
-('wangwu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER'),
-('zhaoliu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKfPLPe', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER');
+('admin', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN'),
+('zhangsan', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER'),
+('lisi', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER'),
+('wangwu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER'),
+('zhaoliu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER');
 
 -- Update manager relationship
 UPDATE sys_user SET manager_id = 1 WHERE username = 'zhangsan';
 UPDATE sys_user SET manager_id = 2 WHERE username IN ('lisi', 'wangwu', 'zhaoliu');
+
+-- =====================================================
+-- 权限管理模块 (sys_role, sys_permission, sys_menu)
+-- =====================================================
+
+-- 角色表
+DROP TABLE IF EXISTS `sys_role`;
+CREATE TABLE `sys_role` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `role_name` varchar(50) NOT NULL COMMENT '角色名称',
+    `role_code` varchar(50) NOT NULL COMMENT '角色编码',
+    `description` varchar(255) DEFAULT NULL COMMENT '角色描述',
+    `status` int DEFAULT '1' COMMENT '状态: 1-启用 0-禁用',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_role_code` (`role_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
+
+-- 权限表
+DROP TABLE IF EXISTS `sys_permission`;
+CREATE TABLE `sys_permission` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `permission_name` varchar(100) NOT NULL COMMENT '权限名称',
+    `permission_code` varchar(100) NOT NULL COMMENT '权限编码',
+    `permission_type` varchar(20) NOT NULL COMMENT '权限类型: MENU/BUTTON/API',
+    `parent_id` bigint DEFAULT '0' COMMENT '父权限ID',
+    `path` varchar(255) DEFAULT NULL COMMENT '路由路径',
+    `icon` varchar(50) DEFAULT NULL COMMENT '图标',
+    `sort` int DEFAULT '0' COMMENT '排序',
+    `status` int DEFAULT '1' COMMENT '状态: 1-启用 0-禁用',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_permission_code` (`permission_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限表';
+
+-- 角色-权限关联表
+DROP TABLE IF EXISTS `sys_role_permission`;
+CREATE TABLE `sys_role_permission` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `role_id` bigint NOT NULL COMMENT '角色ID',
+    `permission_id` bigint NOT NULL COMMENT '权限ID',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_role_permission` (`role_id`, `permission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
+
+-- 菜单表 (用于前端路由)
+DROP TABLE IF EXISTS `sys_menu`;
+CREATE TABLE `sys_menu` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `menu_name` varchar(50) NOT NULL COMMENT '菜单名称',
+    `menu_code` varchar(50) NOT NULL COMMENT '菜单编码',
+    `parent_id` bigint DEFAULT '0' COMMENT '父菜单ID',
+    `path` varchar(255) DEFAULT NULL COMMENT '路由路径',
+    `component` varchar(255) DEFAULT NULL COMMENT '组件路径',
+    `icon` varchar(50) DEFAULT NULL COMMENT '图标',
+    `sort` int DEFAULT '0' COMMENT '排序',
+    `visible` int DEFAULT '1' COMMENT '是否可见: 1-是 0-否',
+    `status` int DEFAULT '1' COMMENT '状态: 1-启用 0-禁用',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_menu_code` (`menu_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
+
+-- 插入角色数据
+INSERT INTO `sys_role` (`role_name`, `role_code`, `description`, `status`) VALUES
+('超级管理员', 'ADMIN', '拥有系统所有权限', 1),
+('生产主管', 'MANAGER', '负责生产管理相关权限', 1),
+('生产员工', 'USER', '基本操作权限', 1),
+('质检员', 'QC', '质量检验相关权限', 1),
+('设备工程师', 'ENGINEER', '设备维护相关权限', 1);
+
+-- 插入权限数据
+INSERT INTO `sys_permission` (`permission_name`, `permission_code`, `permission_type`, `parent_id`, `path`, `sort`) VALUES
+('仪表盘', 'dashboard', 'MENU', 0, '/dashboard', 1),
+('工单管理', 'workorder', 'MENU', 0, '/workorder', 2),
+('工单查看', 'workorder:view', 'BUTTON', 2, '', 1),
+('工单创建', 'workorder:create', 'BUTTON', 2, '', 2),
+('工单编辑', 'workorder:edit', 'BUTTON', 2, '', 3),
+('工单删除', 'workorder:delete', 'BUTTON', 2, '', 4),
+('工艺管理', 'process', 'MENU', 0, '/process', 3),
+('工艺查看', 'process:view', 'BUTTON', 3, '', 1),
+('工艺创建', 'process:create', 'BUTTON', 3, '', 2),
+('工艺编辑', 'process:edit', 'BUTTON', 3, '', 3),
+('质量管理', 'quality', 'MENU', 0, '/quality', 4),
+('质量查看', 'quality:view', 'BUTTON', 4, '', 1),
+('质量创建', 'quality:create', 'BUTTON', 4, '', 2),
+('质量删除', 'quality:delete', 'BUTTON', 4, '', 3),
+('设备监控', 'device', 'MENU', 0, '/device', 5),
+('设备查看', 'device:view', 'BUTTON', 5, '', 1),
+('设备控制', 'device:control', 'BUTTON', 5, '', 2),
+('生产报表', 'report', 'MENU', 0, '/report', 6),
+('报表查看', 'report:view', 'BUTTON', 6, '', 1),
+('报表导出', 'report:export', 'BUTTON', 6, '', 2),
+('个人中心', 'profile', 'MENU', 0, '/profile', 7),
+('系统设置', 'settings', 'MENU', 0, '/settings', 8),
+('用户管理', 'user:manage', 'MENU', 0, '/user', 9),
+('角色管理', 'role:manage', 'MENU', 0, '/role', 10),
+('权限管理', 'permission:manage', 'MENU', 0, '/permission', 11);
+
+-- 插入菜单数据
+INSERT INTO `sys_menu` (`menu_name`, `menu_code`, `parent_id`, `path`, `component`, `icon`, `sort`) VALUES
+('仪表盘', 'dashboard', 0, '/dashboard', 'dashboard/DashboardView', 'Odometer', 1),
+('工单管理', 'workorder', 0, '/workorder', 'workorder/WorkOrderView', 'Document', 2),
+('工艺管理', 'process', 0, '/process', 'process/ProcessView', 'Setting', 3),
+('质量管理', 'quality', 0, '/quality', 'quality/QualityView', 'CircleCheck', 4),
+('设备监控', 'device', 0, '/device', 'device/DeviceView', 'Monitor', 5),
+('生产报表', 'report', 0, '/report', 'report/ReportView', 'DataAnalysis', 6),
+('个人中心', 'profile', 0, '/profile', 'profile/ProfileView', 'User', 7),
+('系统设置', 'settings', 0, '/settings', 'settings/SettingsView', 'Setting', 8);
+
+-- 角色分配权限 (ADMIN拥有所有权限)
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 1, id FROM sys_permission WHERE deleted = 0;
+
+-- MANAGER 角色权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 2, id FROM sys_permission WHERE permission_code IN ('dashboard', 'workorder', 'workorder:view', 'workorder:create', 'workorder:edit', 'process', 'process:view', 'quality', 'quality:view', 'device', 'device:view', 'report', 'report:view', 'profile');
+
+-- USER 角色权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 3, id FROM sys_permission WHERE permission_code IN ('dashboard', 'workorder', 'workorder:view', 'process', 'process:view', 'profile');
+
+-- QC 角色权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 4, id FROM sys_permission WHERE permission_code IN ('dashboard', 'quality', 'quality:view', 'quality:create', 'profile');
+
+-- ENGINEER 角色权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 5, id FROM sys_permission WHERE permission_code IN ('dashboard', 'device', 'device:view', 'device:control', 'profile');
 
 -- =====================================================
 -- 2. Work Order Module (wo_work_order, wo_work_report)

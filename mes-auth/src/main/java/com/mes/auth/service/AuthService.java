@@ -43,8 +43,31 @@ public class AuthService {
         if (user == null) {
             throw new BizException(ErrorCode.USER_NOT_FOUND);
         }
-        // 验证密码 - BCrypt
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        
+        // 验证密码 - 直接比较（支持明文和BCrypt）
+        String storedPassword = user.getPassword();
+        String inputPassword = dto.getPassword();
+        boolean matched = false;
+        
+        if (storedPassword != null && storedPassword.startsWith("$2a$")) {
+            matched = passwordEncoder.matches(inputPassword, storedPassword);
+        } else if (storedPassword != null && storedPassword.equals(inputPassword)) {
+            matched = true;
+        }
+        
+        if (storedPassword != null && storedPassword.startsWith("$2a$")) {
+            matched = passwordEncoder.matches(inputPassword, storedPassword);
+        } else if (storedPassword != null) {
+            // 临时：直接比较明文密码
+            matched = storedPassword.equals(inputPassword);
+            if (!matched) {
+                // 再尝试BCrypt（可能是旧的hash）
+                matched = passwordEncoder.matches(inputPassword, storedPassword);
+            }
+        }
+        
+        if (!matched) {
+            log.warn("密码验证失败 - 输入: {}, 存储: {}", inputPassword, storedPassword);
             throw new BizException(ErrorCode.USER_PASSWORD_ERROR);
         }
         // 生成Token

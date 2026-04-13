@@ -82,31 +82,50 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
+import { usePermissionStore } from '@/stores/permission'
 import { Cpu, User, Sunny, Moon, ArrowDown, Setting, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const themeStore = useThemeStore()
+const permissionStore = usePermissionStore()
 
-const menuItems = [
-  { path: '/dashboard', title: '首页', icon: 'Odometer' },
-  { path: '/workorder', title: '工单管理', icon: 'Document' },
-  { path: '/process', title: '工艺管理', icon: 'Setting' },
-  { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
-  { path: '/device', title: '设备监控', icon: 'Monitor' },
-  { path: '/report', title: '生产报表', icon: 'DataAnalysis' }
-]
+const menuItems = computed(() => {
+  const menuList = permissionStore.menus
+  if (!menuList || !Array.isArray(menuList) || menuList.length === 0) {
+    return [
+      { path: '/dashboard', title: '首页', icon: 'Odometer' },
+      { path: '/workorder', title: '工单管理', icon: 'Document' },
+      { path: '/process', title: '工艺管理', icon: 'Setting' },
+      { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
+      { path: '/device', title: '设备监控', icon: 'Monitor' },
+      { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
+      { path: '/role', title: '角色管理', icon: 'Key' }
+    ]
+  }
+  return menuList.map((menu: any) => ({
+    path: menu.path,
+    title: menu.menuName,
+    icon: menu.icon || 'Menu'
+  }))
+})
 
-const menuTitles: Record<string, string> = {
-  '/dashboard': '首页', '/workorder': '工单管理', '/process': '工艺管理',
-  '/quality': '质量管理', '/device': '设备监控', '/report': '生产报表'
-}
+const menuTitles = computed(() => {
+  const titles: Record<string, string> = {}
+  const menuList = permissionStore.menus
+  if (menuList && Array.isArray(menuList)) {
+    menuList.forEach((menu: any) => {
+      titles[menu.path] = menu.menuName
+    })
+  }
+  return titles
+})
 
 const menuBreadcrumbs: Record<string, string> = {
   '/dashboard': '概览 / Dashboard',
@@ -118,8 +137,12 @@ const menuBreadcrumbs: Record<string, string> = {
 }
 
 const activeMenu = computed(() => route.path)
-const pageTitle = computed(() => menuTitles[route.path] || 'MES系统')
+const pageTitle = computed(() => menuTitles.value[route.path] || 'MES系统')
 const breadcrumb = computed(() => menuBreadcrumbs[route.path] || '')
+
+onMounted(() => {
+  permissionStore.loadMenus()
+})
 
 const handleCommand = (command: string) => {
   if (command === 'profile') {

@@ -52,6 +52,13 @@ export default defineConfig({
         bypass: (req) => {
           if (req.headers.accept?.includes('text/html')) return '/'
         }
+      },
+      '/auth': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
       }
     }
   }

@@ -12,6 +12,7 @@ import App from './App.vue'
 import './styles/global.scss'
 import './styles/table-modern.scss'
 import './utils/echarts'
+import { vPermission } from './directives/permission'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -23,4 +24,5 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
+app.directive('permission', vPermission)
 app.mount('#app')
