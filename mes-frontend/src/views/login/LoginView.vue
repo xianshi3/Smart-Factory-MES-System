@@ -1,6 +1,12 @@
 <template>
   <div class="login-page">
     <div class="login-left">
+      <div class="left-bg">
+        <div class="bg-circle circle-1"></div>
+        <div class="bg-circle circle-2"></div>
+        <div class="bg-circle circle-3"></div>
+      </div>
+      
       <div class="brand-content">
         <div class="brand-logo">
           <Monitor :size="36" />
@@ -127,15 +133,54 @@ const handleLogin = async () => {
 }
 
 .login-left {
-  width: 45%;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+  width: 48%;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f1d2e 50%, #0a1422 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.left-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.circle-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  top: -150px;
+  right: -100px;
+}
+
+.circle-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  bottom: -100px;
+  left: -80px;
+}
+
+.circle-3 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  top: 40%;
+  left: 20%;
 }
 
 .brand-content {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -143,63 +188,70 @@ const handleLogin = async () => {
 }
 
 .brand-logo {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 18px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.35);
 }
 
 .login-left h1 {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
 }
 
 .login-left > .brand-content > p {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 48px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 56px;
 }
 
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 15px;
 }
 
 .feature-item .el-icon {
-  width: 24px;
-  height: 24px;
-  background: rgba(99, 102, 241, 0.2);
+  width: 26px;
+  height: 26px;
+  background: rgba(99, 102, 241, 0.25);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1;
+  color: #818cf8;
+}
+
+.brand-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .brand-footer p {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.25);
   font-size: 13px;
 }
 
 .login-right {
-  width: 55%;
-  background: #f5f7fa;
+  width: 52%;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,18 +259,18 @@ const handleLogin = async () => {
 }
 
 .login-box {
-  width: 380px;
+  width: 400px;
 }
 
 .login-header {
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .login-header h2 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .login-header p {
@@ -227,22 +279,32 @@ const handleLogin = async () => {
 }
 
 .login-form :deep(.el-form-item) {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.login-form :deep(.el-input__wrapper:hover) {
+  border-color: #a5b4fc;
+}
+
+.login-form :deep(.el-input__wrapper.is-focus) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .login-form :deep(.el-input__inner) {
-  height: 44px;
+  height: 48px;
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
 
 .form-options :deep(.el-checkbox__label) {
@@ -252,13 +314,23 @@ const handleLogin = async () => {
 
 .login-btn {
   width: 100%;
-  height: 46px;
-  font-size: 15px;
-  border-radius: 8px;
+  height: 50px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  transition: all 0.3s;
+}
+
+.login-btn:hover {
+  background: linear-gradient(135deg, #5558e3, #7c4de4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 
 html.dark .login-left {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f1d2e 50%, #0a1422 100%);
 }
 
 html.dark .login-right {
@@ -294,7 +366,7 @@ html.dark .form-options :deep(.el-checkbox__label) {
   .login-left {
     width: 100%;
     padding: 40px;
-    min-height: 280px;
+    min-height: 260px;
   }
   
   .login-right {
