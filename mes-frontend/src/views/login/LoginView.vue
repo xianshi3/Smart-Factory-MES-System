@@ -77,10 +77,6 @@
             {{ loading ? '登录中...' : '登 录' }}
           </el-button>
         </el-form>
-        
-        <div class="login-tips">
-          <p>默认账号: admin / admin123</p>
-        </div>
       </div>
     </div>
   </div>
