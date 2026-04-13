@@ -1,6 +1,6 @@
 <template>
-  <div class="login-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
-    <div class="login-left" :style="leftStyle">
+  <div class="login-page">
+    <div class="login-left">
       <div class="left-bg">
         <div class="bg-circle circle-1"></div>
         <div class="bg-circle circle-2"></div>
@@ -43,7 +43,7 @@
       </div>
     </div>
     
-    <div class="login-right" :style="rightStyle">
+    <div class="login-right">
       <div class="login-box">
         <div class="login-header">
           <h2>欢迎登录</h2>
@@ -96,10 +96,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance } from 'element-plus'
-import { Check, User, Lock } from '@element-plus/icons-vue'
+import { Check } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -109,40 +109,6 @@ const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(false)
 const loginForm = reactive({ username: '', password: '' })
-const mouseX = ref(50)
-
-const leftStyle = computed(() => ({
-  flex: `0 0 ${leftWidth.value}%`,
-  width: `${leftWidth.value}%`
-}))
-
-const rightStyle = computed(() => ({
-  flex: `0 0 ${rightWidth.value}%`,
-  width: `${rightWidth.value}%`
-}))
-
-const leftWidth = computed(() => {
-  const center = 50
-  const mousePercent = mouseX.value
-  let width = center
-  if (mousePercent < center) {
-    width = center + (center - mousePercent) * 0.4
-  } else {
-    width = center - (mousePercent - center) * 0.4
-  }
-  return Math.max(30, Math.min(70, width))
-})
-
-const rightWidth = computed(() => 100 - leftWidth.value)
-
-const handleMouseMove = (e: MouseEvent) => {
-  const percent = (e.clientX / window.innerWidth) * 100
-  mouseX.value = percent
-}
-
-const handleMouseLeave = () => {
-  mouseX.value = 50
-}
 
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -172,17 +138,11 @@ const handleLogin = async () => {
 .login-page {
   display: flex;
   min-height: 100vh;
-  overflow: hidden;
-  cursor: default;
-}
-
-.login-left,
-.login-right {
-  height: 100vh;
-  transition: width 0.25s ease-out;
 }
 
 .login-left {
+  flex: 0 0 48%;
+  width: 48%;
   background: linear-gradient(135deg, #1e3a5f 0%, #0f1d2e 50%, #0a1422 100%);
   display: flex;
   flex-direction: column;
@@ -190,8 +150,6 @@ const handleLogin = async () => {
   padding: 60px;
   position: relative;
   overflow: hidden;
-  flex: 0 0 50%;
-  width: 50%;
 }
 
 .left-bg {
@@ -296,13 +254,13 @@ const handleLogin = async () => {
 }
 
 .login-right {
+  flex: 0 0 52%;
+  width: 52%;
   background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px;
-  flex: 0 0 50%;
-  width: 50%;
 }
 
 .login-box {
@@ -413,8 +371,6 @@ html.dark .form-options :deep(.el-checkbox__label) {
   .login-right {
     flex: none;
     width: 100%;
-    min-width: auto;
-    max-width: none;
   }
   
   .login-left {
