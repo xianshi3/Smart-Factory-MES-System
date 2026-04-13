@@ -1,23 +1,47 @@
 <template>
-  <div class="login-wrapper">
-    <div class="login-main">
-      <div class="login-brand">
-        <div class="brand-icon">
-          <Monitor :size="32" />
+  <div class="login-page">
+    <div class="login-left">
+      <div class="brand-content">
+        <div class="brand-logo">
+          <Monitor :size="36" />
         </div>
-        <div class="brand-info">
-          <h1>Smart MES</h1>
-          <p>智能工厂执行系统</p>
+        <h1>Smart MES</h1>
+        <p>智能工厂执行系统</p>
+        
+        <div class="feature-list">
+          <div class="feature-item">
+            <el-icon><Check /></el-icon>
+            <span>生产管理数字化</span>
+          </div>
+          <div class="feature-item">
+            <el-icon><Check /></el-icon>
+            <span>设备监控智能化</span>
+          </div>
+          <div class="feature-item">
+            <el-icon><Check /></el-icon>
+            <span>质量追溯全程化</span>
+          </div>
         </div>
       </div>
       
+      <div class="brand-footer">
+        <p>© 2026 Smart Factory MES</p>
+      </div>
+    </div>
+    
+    <div class="login-right">
       <div class="login-box">
         <div class="login-header">
-          <h2>账号登录</h2>
-          <p>请输入您的账号信息</p>
+          <h2>欢迎登录</h2>
+          <p>请输入账号密码登录系统</p>
         </div>
         
-        <el-form ref="loginFormRef" :model="loginForm" :rules="rules" @keyup.enter="handleLogin">
+        <el-form 
+          ref="loginFormRef" 
+          :model="loginForm" 
+          :rules="rules" 
+          @keyup.enter="handleLogin"
+        >
           <el-form-item prop="username">
             <el-input 
               v-model="loginForm.username" 
@@ -38,8 +62,8 @@
             />
           </el-form-item>
           
-          <div class="login-options">
-            <el-checkbox v-model="rememberMe">记住登录</el-checkbox>
+          <div class="form-options">
+            <el-checkbox v-model="rememberMe">记住我</el-checkbox>
           </div>
           
           <el-button 
@@ -53,10 +77,6 @@
           </el-button>
         </el-form>
       </div>
-      
-      <div class="login-footer">
-        <p>© 2026 Smart Factory MES</p>
-      </div>
     </div>
   </div>
 </template>
@@ -65,7 +85,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance } from 'element-plus'
-import { Monitor, User, Lock } from '@element-plus/icons-vue'
+import { Monitor, Check, User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -101,70 +121,109 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-wrapper {
+.login-page {
+  display: flex;
   min-height: 100vh;
+}
+
+.login-left {
+  width: 45%;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 60px;
+}
+
+.brand-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.login-main {
-  width: 100%;
-  max-width: 420px;
-}
-
-.login-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
   color: #fff;
+  margin-bottom: 24px;
 }
 
-.brand-icon {
-  width: 56px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
+.login-left h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.login-left > .brand-content > p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 48px;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+}
+
+.feature-item .el-icon {
+  width: 24px;
+  height: 24px;
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #6366f1;
 }
 
-.brand-info h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.brand-info p {
+.brand-footer p {
+  color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
-  opacity: 0.8;
+}
+
+.login-right {
+  width: 55%;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
 }
 
 .login-box {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 380px;
 }
 
 .login-header {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
 }
 
 .login-header h2 {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
-  color: #303133;
+  color: #1e293b;
   margin-bottom: 8px;
 }
 
 .login-header p {
   font-size: 14px;
-  color: #909399;
+  color: #64748b;
 }
 
 .login-form :deep(.el-form-item) {
@@ -179,52 +238,72 @@ const handleLogin = async () => {
   height: 44px;
 }
 
-.login-options {
+.form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
 }
 
-.login-options :deep(.el-checkbox__label) {
-  color: #606266;
+.form-options :deep(.el-checkbox__label) {
+  color: #64748b;
   font-size: 14px;
 }
 
 .login-btn {
   width: 100%;
-  height: 44px;
-  font-size: 16px;
+  height: 46px;
+  font-size: 15px;
   border-radius: 8px;
 }
 
-.login-footer {
-  text-align: center;
-  margin-top: 24px;
-}
-
-.login-footer p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
-}
-
-html.dark .login-wrapper {
+html.dark .login-left {
   background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
 }
 
-html.dark .login-box {
-  background: #1a1a2e;
+html.dark .login-right {
+  background: #0f172a;
 }
 
 html.dark .login-header h2 {
-  color: #fff;
+  color: #f1f5f9;
 }
 
 html.dark .login-header p {
-  color: #909399;
+  color: #94a3b8;
 }
 
-html.dark .login-options :deep(.el-checkbox__label) {
-  color: #909399;
+html.dark .login-form :deep(.el-input__wrapper) {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+html.dark .login-form :deep(.el-input__inner) {
+  color: #f1f5f9;
+}
+
+html.dark .form-options :deep(.el-checkbox__label) {
+  color: #94a3b8;
+}
+
+@media (max-width: 1024px) {
+  .login-page {
+    flex-direction: column;
+  }
+  
+  .login-left {
+    width: 100%;
+    padding: 40px;
+    min-height: 280px;
+  }
+  
+  .login-right {
+    width: 100%;
+    padding: 40px;
+  }
+  
+  .feature-list {
+    display: none;
+  }
 }
 </style>
