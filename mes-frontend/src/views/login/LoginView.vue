@@ -1,54 +1,45 @@
 <template>
-  <div class="login-page">
-    <div class="login-left">
-      <div class="brand-section">
-        <div class="brand-logo">
-          <el-icon :size="40"><Monitor /></el-icon>
-        </div>
-        <h1 class="brand-title">Smart MES</h1>
-        <p class="brand-subtitle">智能工厂执行系统</p>
-        
-        <div class="brand-features">
-          <div class="feature-item">
-            <el-icon><Check /></el-icon>
-            <span>生产管理数字化</span>
-          </div>
-          <div class="feature-item">
-            <el-icon><Check /></el-icon>
-            <span>设备监控智能化</span>
-          </div>
-          <div class="feature-item">
-            <el-icon><Check /></el-icon>
-            <span>质量追溯全程化</span>
-          </div>
-        </div>
+  <div class="login-container">
+    <div class="login-bg">
+      <div class="bg-gradient"></div>
+      <div class="bg-particles">
+        <div class="particle" v-for="i in 20" :key="i" :style="{ '--delay': i * 0.5 + 's', '--x': Math.random() * 100 + '%' }"></div>
       </div>
-      
-      <div class="brand-footer">
-        <p>© 2026 Smart Factory MES</p>
+      <div class="bg-lines">
+        <div class="line" v-for="i in 5" :key="i" :style="{ '--delay': i * 0.3 + 's' }"></div>
       </div>
     </div>
     
-    <div class="login-right">
-      <div class="login-box">
-        <div class="login-title">
-          <h2>欢迎登录</h2>
-          <p>请输入账号密码登录系统</p>
+    <div class="login-card">
+      <div class="card-header">
+        <div class="company-logo">
+          <div class="logo-inner">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 22V12"/>
+              <path d="M22 7L12 12L2 7"/>
+              <circle cx="12" cy="12" r="2"/>
+            </svg>
+          </div>
+        </div>
+        <h1>Smart MES</h1>
+        <p>智能工厂执行系统</p>
+      </div>
+      
+      <div class="card-body">
+        <div class="welcome-text">
+          <h2>欢迎回来</h2>
+          <span>请使用您的账号登录系统</span>
         </div>
         
-        <el-form 
-          ref="loginFormRef" 
-          :model="loginForm" 
-          :rules="rules" 
-          @keyup.enter="handleLogin"
-          class="login-form"
-        >
+        <el-form ref="loginFormRef" :model="loginForm" :rules="rules" @keyup.enter="handleLogin">
           <el-form-item prop="username">
             <el-input 
               v-model="loginForm.username" 
-              placeholder="请输入用户名"
+              placeholder="用户名 / 邮箱 / 手机号"
               prefix-icon="User"
               size="large"
+              class="custom-input"
             />
           </el-form-item>
           
@@ -56,28 +47,45 @@
             <el-input 
               v-model="loginForm.password" 
               type="password" 
-              placeholder="请输入密码"
+              placeholder="请输入登录密码"
               prefix-icon="Lock"
               size="large"
+              class="custom-input"
               show-password
             />
           </el-form-item>
           
-          <div class="form-extra">
-            <el-checkbox v-model="rememberMe">记住我</el-checkbox>
+          <div class="form-options">
+            <el-checkbox v-model="rememberMe">下次自动登录</el-checkbox>
+            <a href="javascript:;" class="forgot-link">忘记密码？</a>
           </div>
           
           <el-button 
             type="primary" 
             size="large" 
             :loading="loading" 
-            class="submit-btn"
+            class="login-btn"
             @click="handleLogin"
           >
-            {{ loading ? '登录中...' : '登 录' }}
+            <span v-if="!loading">
+              <span>立即登录</span>
+              <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+            </span>
+            <span v-else>正在登录...</span>
           </el-button>
         </el-form>
       </div>
+      
+      <div class="card-footer">
+        <div class="security-tips">
+          <el-icon><Lock /></el-icon>
+          <span>您的数据安全由我们保障</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="login-footer">
+      <p>© 2026 Smart Factory MES · 智能制造解决方案提供商</p>
     </div>
   </div>
 </template>
@@ -86,7 +94,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance } from 'element-plus'
-import { Monitor, Check, User, Lock } from '@element-plus/icons-vue'
+import { User, Lock, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -122,254 +130,347 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-page {
-  display: flex;
+.login-container {
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #0a0a0f;
+  padding: 20px;
 }
 
-.login-left {
-  width: 45%;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 60px;
-  position: relative;
+.login-bg {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
 }
 
-.login-left::before {
+.bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+}
+
+.bg-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 50%;
+  left: var(--x);
+  top: 50%;
+  animation: particle-float 15s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes particle-float {
+  0%, 100% { 
+    transform: translateY(0) translateX(0); 
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  50% { 
+    transform: translateY(-100vh) translateX(50px); 
+  }
+}
+
+.bg-lines {
+  position: absolute;
+  inset: 0;
+  perspective: 1000px;
+}
+
+.line {
+  position: absolute;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(99, 102, 241, 0.1), transparent);
+  left: calc(var(--delay) * 20%);
+  animation: line-scan 8s linear infinite;
+}
+
+@keyframes line-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: rgba(18, 18, 24, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.login-card::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
-  animation: rotate 20s linear infinite;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
 }
 
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.card-header {
+  text-align: center;
+  padding: 48px 40px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.brand-section {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.company-logo {
+  margin-bottom: 24px;
 }
 
-.brand-logo {
-  width: 80px;
-  height: 80px;
+.logo-inner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 20px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  margin-bottom: 24px;
   box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
 }
 
-.brand-title {
-  font-size: 36px;
-  font-weight: 700;
+.logo-inner svg {
+  width: 32px;
+  height: 32px;
+}
+
+.card-header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.card-header p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 4px;
+}
+
+.card-body {
+  padding: 40px;
+}
+
+.welcome-text {
+  margin-bottom: 32px;
+}
+
+.welcome-text h2 {
+  font-size: 20px;
+  font-weight: 500;
   color: #fff;
   margin-bottom: 8px;
 }
 
-.brand-subtitle {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 48px;
-}
-
-.brand-features {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 15px;
-}
-
-.feature-item .el-icon {
-  width: 24px;
-  height: 24px;
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
-}
-
-.brand-footer {
-  position: relative;
-  z-index: 1;
-}
-
-.brand-footer p {
-  color: rgba(255, 255, 255, 0.3);
+.welcome-text span {
   font-size: 13px;
-}
-
-.login-right {
-  width: 55%;
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-
-.login-box {
-  width: 400px;
-}
-
-.login-title {
-  margin-bottom: 40px;
-}
-
-.login-title h2 {
-  font-size: 28px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 8px;
-}
-
-.login-title p {
-  font-size: 14px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .login-form :deep(.el-form-item) {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   box-shadow: none;
-  border: 1px solid #e2e8f0;
   padding: 4px 12px;
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  border-color: #6366f1;
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .login-form :deep(.el-input__inner) {
   height: 44px;
+  color: #fff;
 }
 
-.form-extra {
+.login-form :deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.login-form :deep(.el-input__prefix) {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.form-extra :deep(.el-checkbox__label) {
-  color: #64748b;
+.form-options :deep(.el-checkbox__label) {
+  color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
 }
 
-.submit-btn {
+.form-options :deep(.el-checkbox__inner) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.forgot-link:hover {
+  color: #6366f1;
+}
+
+.login-btn {
   width: 100%;
-  height: 48px;
+  height: 50px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
 }
 
-.submit-btn:hover {
+.login-btn:hover {
   background: linear-gradient(135deg, #5558e3, #7c4de4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
 }
 
-.login-tips {
-  margin-top: 24px;
-  padding: 12px 16px;
-  background: #f1f5f9;
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.arrow-icon {
+  transition: transform 0.3s;
+}
+
+.login-btn:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+.card-footer {
+  padding: 0 40px 32px;
+}
+
+.security-tips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(99, 102, 241, 0.08);
   border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
 }
 
-.login-tips p {
-  font-size: 13px;
-  color: #64748b;
+.security-tips .el-icon {
+  color: #6366f1;
 }
 
-html.dark .login-left {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+.login-footer {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
 }
 
-html.dark .login-right {
-  background: #0f172a;
+.login-footer p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
 }
 
-html.dark .login-title h2 {
-  color: #f1f5f9;
+html.light .login-container {
+  background: #f8f9fc;
 }
 
-html.dark .login-title p {
-  color: #94a3b8;
+html.light .login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
-html.dark .login-form :deep(.el-input__wrapper) {
-  background: #1e293b;
-  border-color: #334155;
+html.light .card-header h1 {
+  color: #1a1a2e;
 }
 
-html.dark .login-form :deep(.el-input__inner) {
-  color: #f1f5f9;
+html.light .card-header p {
+  color: rgba(0, 0, 0, 0.4);
 }
 
-html.dark .login-form :deep(.el-input__inner::placeholder) {
-  color: #64748b;
+html.light .welcome-text h2 {
+  color: #1a1a2e;
 }
 
-html.dark .login-tips {
-  background: #1e293b;
+html.light .welcome-text span {
+  color: rgba(0, 0, 0, 0.4);
 }
 
-html.dark .login-tips p {
-  color: #94a3b8;
+html.light .login-form :deep(.el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-@media (max-width: 1024px) {
-  .login-page {
-    flex-direction: column;
-  }
-  
-  .login-left {
-    width: 100%;
-    padding: 40px;
-    min-height: 300px;
-  }
-  
-  .login-right {
-    width: 100%;
-    padding: 40px;
-  }
-  
-  .brand-features {
-    display: none;
-  }
+html.light .login-form :deep(.el-input__inner) {
+  color: #1a1a2e;
+}
+
+html.light .login-form :deep(.el-input__inner::placeholder) {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+html.light .form-options :deep(.el-checkbox__label) {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+html.light .forgot-link {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+html.light .security-tips {
+  background: rgba(99, 102, 241, 0.08);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+html.light .login-footer p {
+  color: rgba(0, 0, 0, 0.2);
 }
 </style>
