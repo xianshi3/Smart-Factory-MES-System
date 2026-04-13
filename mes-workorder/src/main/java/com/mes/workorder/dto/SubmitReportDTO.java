@@ -7,7 +7,6 @@ import lombok.Data;
 public class SubmitReportDTO {
     @NotNull(message = "工单ID不能为空")
     private Long workOrderId;
-    @NotNull(message = "设备ID不能为空")
     private Long deviceId;
     @NotNull(message = "报工数量不能为空")
     private Integer reportQuantity;
