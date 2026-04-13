@@ -238,7 +238,7 @@ const rules = {
 }
 
 const getProgress = (row: any) => Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
-const canStart = (row: any) => row.status === 'CREATED' || row.status === 'ISSUED'
+const canStart = (row: any) => row.status === 'ISSUED'
 const canReport = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
 const canComplete = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
 
@@ -279,13 +279,23 @@ const handleDetail = async (row: any) => {
 }
 
 const handleStart = async (row: any) => {
-  try { await startWorkOrder(row.id); ElMessage.success('工单已开始'); loadData() }
-  catch { ElMessage.error('操作失败') }
+  try { 
+    await startWorkOrder(row.id); 
+    ElMessage.success('工单已开始'); 
+    loadData() 
+  } catch (e: any) { 
+    ElMessage.error(e?.message || '操作失败，请先下发工单') 
+  }
 }
 
 const handleIssue = async (row: any) => {
-  try { await issueWorkOrder(row.id); ElMessage.success('工单已下发'); loadData() }
-  catch { ElMessage.error('操作失败') }
+  try { 
+    await issueWorkOrder(row.id); 
+    ElMessage.success('工单已下发'); 
+    loadData() 
+  } catch (e: any) { 
+    ElMessage.error(e?.message || '下发失败') 
+  }
 }
 
 const handleComplete = async (row: any) => {
