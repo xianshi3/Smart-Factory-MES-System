@@ -70,6 +70,7 @@
             {{ statusConfig[row.status]?.text }}
           </span>
           <div class="card-actions" @click.stop>
+            <el-button type="danger" size="small" link @click="handleDelete(row)" v-if="canDelete(row)">删除</el-button>
             <el-button type="primary" size="small" link @click="handleStart(row)" v-if="canStart(row)">开始</el-button>
             <el-button type="warning" size="small" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
             <el-button type="info" size="small" link @click="handleReport(row)" v-if="canReport(row)">报工</el-button>
@@ -239,6 +240,7 @@ const rules = {
 
 const getProgress = (row: any) => Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
 const canStart = (row: any) => row.status === 'ISSUED'
+const canDelete = (row: any) => row.status === 'CREATED' || row.status === 'CLOSED'
 const canReport = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
 const canComplete = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
 
@@ -296,6 +298,15 @@ const handleIssue = async (row: any) => {
   } catch (e: any) { 
     ElMessage.error(e?.message || '下发失败') 
   }
+}
+
+const handleDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定删除工单 "${row.orderNo}" 吗？`, '确认删除', { type: 'warning' })
+    await deleteWorkOrder(row.id)
+    ElMessage.success('删除成功')
+    loadData()
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '删除失败') }
 }
 
 const handleComplete = async (row: any) => {
