@@ -250,7 +250,7 @@ CREATE TABLE `proc_template` (
     `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
     `version_lock` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_template_code` (`template_code`),
+    UNIQUE KEY `uk_template_code` (`template_code`, `deleted`),
     KEY `idx_status` (`status`),
     KEY `idx_product_model` (`product_model`),
     KEY `idx_deleted` (`deleted`)
