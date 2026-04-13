@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
     <div class="login-left" :style="leftStyle">
       <div class="left-bg">
         <div class="bg-circle circle-1"></div>
@@ -109,7 +109,7 @@ const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(false)
 const loginForm = reactive({ username: '', password: '' })
-const mouseX = ref(0)
+const mouseX = ref(50)
 
 const leftStyle = computed(() => ({
   flex: `0 0 ${leftWidth.value}%`,
@@ -179,7 +179,7 @@ const handleLogin = async () => {
 .login-left,
 .login-right {
   height: 100vh;
-  transition: flex 0.25s ease-out, width 0.25s ease-out;
+  transition: width 0.25s ease-out;
 }
 
 .login-left {
