@@ -201,24 +201,24 @@ const handleLogin = async () => {
 }
 
 .brand-logo svg {
-  width: 56px;
-  height: 56px;
-  margin-bottom: 28px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 24px;
 }
 
 .login-left h1 {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   letter-spacing: 1px;
   text-align: center;
 }
 
 .login-left > .brand-content > p {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 32px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 28px;
   text-align: center;
 }
 
@@ -232,14 +232,14 @@ const handleLogin = async () => {
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 15px;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
 }
 
 .feature-item .el-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   background: rgba(99, 102, 241, 0.25);
   border-radius: 50%;
   display: flex;
@@ -265,18 +265,19 @@ const handleLogin = async () => {
 }
 
 .login-box {
-  width: 400px;
+  width: 360px;
 }
 
 .login-header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
+  text-align: center;
 }
 
 .login-header h2 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .login-header p {
@@ -285,11 +286,12 @@ const handleLogin = async () => {
 }
 
 .login-form :deep(.el-form-item) {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: 10px;
+  border-radius: 8px;
+  padding: 4px 12px;
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
@@ -302,27 +304,27 @@ const handleLogin = async () => {
 }
 
 .login-form :deep(.el-input__inner) {
-  height: 48px;
+  height: 44px;
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .form-options :deep(.el-checkbox__label) {
   color: #64748b;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .login-btn {
   width: 100%;
-  height: 50px;
-  font-size: 16px;
+  height: 44px;
+  font-size: 15px;
   font-weight: 500;
-  border-radius: 10px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: none;
   transition: all 0.3s;
