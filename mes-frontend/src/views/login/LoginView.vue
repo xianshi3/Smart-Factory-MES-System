@@ -1,9 +1,6 @@
 <template>
-  <div class="login-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
-    <div 
-      class="login-left"
-      :style="{ flex: leftFlex + '%' }"
-    >
+  <div class="login-page">
+    <div class="login-left" :style="leftStyle">
       <div class="left-bg">
         <div class="bg-circle circle-1"></div>
         <div class="bg-circle circle-2"></div>
@@ -46,10 +43,7 @@
       </div>
     </div>
     
-    <div 
-      class="login-right"
-      :style="{ flex: rightFlex + '%' }"
-    >
+    <div class="login-right" :style="rightStyle">
       <div class="login-box">
         <div class="login-header">
           <h2>欢迎登录</h2>
@@ -68,8 +62,6 @@
               placeholder="请输入用户名"
               prefix-icon="User"
               size="large"
-              @focus="isInputFocus = true"
-              @blur="isInputFocus = false"
             />
           </el-form-item>
           
@@ -81,8 +73,6 @@
               prefix-icon="Lock"
               size="large"
               show-password
-              @focus="isInputFocus = true"
-              @blur="isInputFocus = false"
             />
           </el-form-item>
           
@@ -106,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance } from 'element-plus'
 import { Check, User, Lock } from '@element-plus/icons-vue'
@@ -119,37 +109,39 @@ const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(false)
 const loginForm = reactive({ username: '', password: '' })
-const leftFlex = ref(48)
-const rightFlex = ref(52)
-const isInputFocus = ref(false)
-const hasEntered = ref(false)
+const mouseX = ref(0)
 
-const updateFlex = (x: number) => {
-  if (isInputFocus.value || hasEntered.value) return
-  hasEntered.value = true
-  
-  const windowWidth = window.innerWidth
-  const center = windowWidth / 2
-  let flexPercent: number
-  
-  if (x < center) {
-    flexPercent = 48 + ((center - x) / center) * 14
+const leftStyle = computed(() => ({
+  flex: `0 0 ${leftWidth.value}%`,
+  width: `${leftWidth.value}%`
+}))
+
+const rightStyle = computed(() => ({
+  flex: `0 0 ${rightWidth.value}%`,
+  width: `${rightWidth.value}%`
+}))
+
+const leftWidth = computed(() => {
+  const center = 50
+  const mousePercent = mouseX.value
+  let width = center
+  if (mousePercent < center) {
+    width = center + (center - mousePercent) * 0.4
   } else {
-    flexPercent = 48 - ((x - center) / center) * 14
+    width = center - (mousePercent - center) * 0.4
   }
-  
-  leftFlex.value = Math.max(36, Math.min(64, flexPercent))
-  rightFlex.value = 100 - leftFlex.value
-}
+  return Math.max(30, Math.min(70, width))
+})
+
+const rightWidth = computed(() => 100 - leftWidth.value)
 
 const handleMouseMove = (e: MouseEvent) => {
-  updateFlex(e.clientX)
+  const percent = (e.clientX / window.innerWidth) * 100
+  mouseX.value = percent
 }
 
 const handleMouseLeave = () => {
-  hasEntered.value = false
-  leftFlex.value = 48
-  rightFlex.value = 52
+  mouseX.value = 50
 }
 
 const rules = {
@@ -181,6 +173,13 @@ const handleLogin = async () => {
   display: flex;
   min-height: 100vh;
   overflow: hidden;
+  cursor: default;
+}
+
+.login-left,
+.login-right {
+  height: 100vh;
+  transition: flex 0.25s ease-out, width 0.25s ease-out;
 }
 
 .login-left {
@@ -191,9 +190,8 @@ const handleLogin = async () => {
   padding: 60px;
   position: relative;
   overflow: hidden;
-  flex-basis: 48%;
-  width: 48%;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 0 0 50%;
+  width: 50%;
 }
 
 .left-bg {
@@ -303,9 +301,8 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  flex-basis: 52%;
-  width: 52%;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 0 0 50%;
+  width: 50%;
 }
 
 .login-box {
