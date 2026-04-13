@@ -1,14 +1,29 @@
 <template>
-  <div class="login-page">
-    <div class="login-left">
+  <div class="login-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
+    <div 
+      class="login-left"
+      :style="{ transform: `translateX(${parallaxX * 0.02}px) translateY(${parallaxY * 0.02}px)` }"
+    >
       <div class="left-bg">
-        <div class="bg-circle circle-1"></div>
-        <div class="bg-circle circle-2"></div>
-        <div class="bg-circle circle-3"></div>
+        <div 
+          class="bg-circle circle-1"
+          :style="{ transform: `translate(${parallaxX * 0.1}px, ${parallaxY * 0.1}px)` }"
+        ></div>
+        <div 
+          class="bg-circle circle-2"
+          :style="{ transform: `translate(${parallaxX * 0.15}px, ${parallaxY * 0.15}px)` }"
+        ></div>
+        <div 
+          class="bg-circle circle-3"
+          :style="{ transform: `translate(${parallaxX * 0.08}px, ${parallaxY * 0.08}px)` }"
+        ></div>
       </div>
       
       <div class="brand-content">
-        <div class="brand-logo">
+        <div 
+          class="brand-logo"
+          :style="{ transform: `translate(${parallaxX * 0.05}px, ${parallaxY * 0.05}px)` }"
+        >
           <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="6" y="30" width="36" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
             <rect x="10" y="34" width="8" height="6" stroke="currentColor" stroke-width="2"/>
@@ -18,10 +33,14 @@
             <circle cx="24" cy="22" r="2" fill="currentColor"/>
           </svg>
         </div>
-        <h1>Smart MES</h1>
-        <p>智能工厂执行系统</p>
         
-        <div class="feature-list">
+        <h1 :style="{ transform: `translateX(${parallaxX * 0.03}px)` }">Smart MES</h1>
+        <p :style="{ transform: `translateX(${parallaxX * 0.02}px)` }">智能工厂执行系统</p>
+        
+        <div 
+          class="feature-list"
+          :style="{ transform: `translateX(${parallaxX * 0.04}px)` }"
+        >
           <div class="feature-item">
             <el-icon><Check /></el-icon>
             <span>生产管理数字化</span>
@@ -42,7 +61,10 @@
       </div>
     </div>
     
-    <div class="login-right">
+    <div 
+      class="login-right"
+      :style="{ transform: `translateX(${parallaxX * 0.015}px) translateY(${parallaxY * 0.015}px)` }"
+    >
       <div class="login-box">
         <div class="login-header">
           <h2>欢迎登录</h2>
@@ -95,10 +117,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance } from 'element-plus'
-import { Monitor, Check, User, Lock } from '@element-plus/icons-vue'
+import { Check, User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -108,6 +130,35 @@ const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(false)
 const loginForm = reactive({ username: '', password: '' })
+const parallaxX = ref(0)
+const parallaxY = ref(0)
+
+let animationFrameId: number | null = null
+
+const handleMouseMove = (e: MouseEvent) => {
+  const x = e.clientX - window.innerWidth / 2
+  const y = e.clientY - window.innerHeight / 2
+  
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+  
+  animationFrameId = requestAnimationFrame(() => {
+    parallaxX.value = x
+    parallaxY.value = y
+  })
+}
+
+const handleMouseLeave = () => {
+  parallaxX.value = 0
+  parallaxY.value = 0
+}
+
+onUnmounted(() => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+})
 
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -137,6 +188,8 @@ const handleLogin = async () => {
 .login-page {
   display: flex;
   min-height: 100vh;
+  overflow: hidden;
+  cursor: default;
 }
 
 .login-left {
@@ -148,6 +201,7 @@ const handleLogin = async () => {
   padding: 60px;
   position: relative;
   overflow: hidden;
+  transition: transform 0.15s ease-out;
 }
 
 .left-bg {
@@ -159,6 +213,7 @@ const handleLogin = async () => {
 .bg-circle {
   position: absolute;
   border-radius: 50%;
+  transition: transform 0.15s ease-out;
 }
 
 .circle-1 {
@@ -192,15 +247,14 @@ const handleLogin = async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transition: transform 0.15s ease-out;
 }
 
 .brand-logo {
-  width: 80px;
-  height: 80px;
   display: flex;
-  align-items: center;
   justify-content: center;
   color: #fff;
+  transition: transform 0.15s ease-out;
 }
 
 .brand-logo svg {
@@ -215,18 +269,21 @@ const handleLogin = async () => {
   color: #fff;
   margin-bottom: 10px;
   letter-spacing: 1px;
+  transition: transform 0.15s ease-out;
 }
 
 .login-left > .brand-content > p {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.55);
   margin-bottom: 32px;
+  transition: transform 0.15s ease-out;
 }
 
 .feature-list {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  transition: transform 0.15s ease-out;
 }
 
 .feature-item {
@@ -265,6 +322,7 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: 40px;
+  transition: transform 0.15s ease-out;
 }
 
 .login-box {
@@ -370,6 +428,7 @@ html.dark .form-options :deep(.el-checkbox__label) {
 @media (max-width: 1024px) {
   .login-page {
     flex-direction: column;
+    overflow: auto;
   }
   
   .login-left {
