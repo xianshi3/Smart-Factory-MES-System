@@ -122,10 +122,12 @@ const loginForm = reactive({ username: '', password: '' })
 const leftFlex = ref(48)
 const rightFlex = ref(52)
 const isInputFocus = ref(false)
-let timer: ReturnType<typeof setTimeout> | null = null
+const lastX = ref(0)
 
 const updateFlex = (x: number) => {
   if (isInputFocus.value) return
+  if (Math.abs(x - lastX.value) < 10) return
+  lastX.value = x
   
   const windowWidth = window.innerWidth
   const center = windowWidth / 2
@@ -142,22 +144,12 @@ const updateFlex = (x: number) => {
 }
 
 const handleMouseMove = (e: MouseEvent) => {
-  if (isInputFocus.value) return
-  
-  if (timer) clearTimeout(timer)
-  
-  timer = setTimeout(() => {
-    updateFlex(e.clientX)
-  }, 150)
+  updateFlex(e.clientX)
 }
 
 const handleMouseLeave = () => {
-  if (timer) clearTimeout(timer)
-  
-  timer = setTimeout(() => {
-    leftFlex.value = 48
-    rightFlex.value = 52
-  }, 300)
+  leftFlex.value = 48
+  rightFlex.value = 52
 }
 
 const rules = {
