@@ -9,7 +9,14 @@
       
       <div class="brand-content">
         <div class="brand-logo">
-          <Monitor :size="36" />
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="30" width="36" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+            <rect x="10" y="34" width="8" height="6" stroke="currentColor" stroke-width="2"/>
+            <rect x="22" y="34" width="8" height="6" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 30V18L24 10L36 18V30" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="24" cy="22" r="4" stroke="currentColor" stroke-width="2"/>
+            <circle cx="24" cy="22" r="2" fill="currentColor"/>
+          </svg>
         </div>
         <h1>Smart MES</h1>
         <p>智能工厂执行系统</p>
@@ -190,14 +197,16 @@ const handleLogin = async () => {
 .brand-logo {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
+}
+
+.brand-logo svg {
+  width: 56px;
+  height: 56px;
   margin-bottom: 28px;
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.35);
 }
 
 .login-left h1 {
@@ -211,7 +220,7 @@ const handleLogin = async () => {
 .login-left > .brand-content > p {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 56px;
+  margin-bottom: 32px;
 }
 
 .feature-list {
