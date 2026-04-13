@@ -2,11 +2,17 @@ package com.mes.common.exception;
 
 import com.mes.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+
+import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
  * 全局异常处理器
@@ -30,11 +36,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidation(MethodArgumentNotValidException e) {
-        log.error("参数校验失败: {}", e.getMessage());
-        FieldError fieldError = e.getBindingResult().getFieldError();
-        String message = fieldError != null ? fieldError.getDefaultMessage() : "参数校验失败";
-        log.error("校验失败字段: {}", fieldError);
-        return Result.fail(400, "参数错误: " + message);
+        StringBuilder errors = new StringBuilder();
+        e.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.append(fieldName).append(": ").append(errorMessage).append("; ");
+        });
+        String message = errors.length() > 0 ? errors.toString() : "参数校验失败";
+        log.error("参数校验失败: {}", message);
+        return Result.fail(400, message);
     }
 
     /**
@@ -42,9 +52,76 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     public Result<Void> handleBindException(BindException e) {
-        FieldError fieldError = e.getFieldError();
-        String message = fieldError != null ? fieldError.getDefaultMessage() : "参数绑定失败";
+        StringBuilder errors = new StringBuilder();
+        e.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.append(fieldName).append(": ").append(errorMessage).append("; ");
+        });
+        String message = errors.length() > 0 ? errors.toString() : "参数绑定失败";
+        log.error("参数绑定失败: {}", message);
         return Result.fail(400, message);
+    }
+
+    /**
+     * 处理参数类型不匹配异常
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<Void> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String message = String.format("参数 '%s' 类型错误: 期望 %s，实际 %s", 
+            e.getName(), 
+            e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "未知",
+            e.getValue());
+        log.error("参数类型不匹配: {}", message);
+        return Result.fail(400, message);
+    }
+
+    /**
+     * 处理数据库唯一约束冲突
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<Void> handleDuplicateKey(DuplicateKeyException e) {
+        String message = "数据已存在，请检查唯一约束字段";
+        String causeMessage = e.getMostSpecificCause().getMessage();
+        if (causeMessage != null && causeMessage.contains("Duplicate entry")) {
+            message = extractDuplicateMessage(causeMessage);
+        }
+        log.error("唯一约束冲突: {}", message);
+        return Result.fail(400, message);
+    }
+
+    /**
+     * 处理数据完整性异常
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<Void> handleDataIntegrity(DataIntegrityViolationException e) {
+        String message = "数据操作失败";
+        Throwable cause = e.getMostSpecificCause();
+        if (cause instanceof SQLIntegrityConstraintViolationException) {
+            SQLIntegrityConstraintViolationException sqlEx = (SQLIntegrityConstraintViolationException) cause;
+            String sqlMessage = sqlEx.getMessage();
+            if (sqlMessage != null) {
+                if (sqlMessage.contains("cannot be null") || sqlMessage.contains("doesn't have a default value")) {
+                    String field = extractFieldFromSQLMessage(sqlMessage);
+                    message = field + " 不能为空";
+                } else if (sqlMessage.contains("Duplicate entry")) {
+                    message = extractDuplicateMessage(sqlMessage);
+                } else {
+                    message = "数据错误: " + sqlMessage;
+                }
+            }
+        }
+        log.error("数据完整性异常: {}", message);
+        return Result.fail(400, message);
+    }
+
+    /**
+     * 处理404异常
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public Result<Void> handleNotFound(NoHandlerFoundException e) {
+        log.error("请求路径不存在: {}", e.getRequestURL());
+        return Result.fail(404, "请求路径不存在: " + e.getRequestURL());
     }
 
     /**
@@ -53,6 +130,54 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
         log.error("系统异常", e);
-        return Result.fail(500, "系统内部错误");
+        
+        String message = "系统内部错误";
+        Throwable cause = e.getCause();
+        if (cause != null) {
+            String causeMessage = cause.getMessage();
+            if (causeMessage != null && causeMessage.length() > 0) {
+                message = causeMessage.length() > 100 ? causeMessage.substring(0, 100) : causeMessage;
+            }
+        }
+        
+        return Result.fail(500, message);
+    }
+
+    /**
+     * 从SQL消息中提取重复数据信息
+     */
+    private String extractDuplicateMessage(String sqlMessage) {
+        try {
+            int start = sqlMessage.indexOf("'") + 1;
+            int end = sqlMessage.lastIndexOf("'");
+            if (start > 0 && end > start) {
+                String value = sqlMessage.substring(start, end);
+                return "数据 '" + value + "' 已存在";
+            }
+        } catch (Exception ignored) {}
+        return "数据已存在，请检查唯一约束字段";
+    }
+
+    /**
+     * 从SQL消息中提取字段名
+     */
+    private String extractFieldFromSQLMessage(String sqlMessage) {
+        try {
+            if (sqlMessage.contains("Field '")) {
+                int start = sqlMessage.indexOf("Field '") + 7;
+                int end = sqlMessage.indexOf("'", start);
+                if (end > start) {
+                    return sqlMessage.substring(start, end);
+                }
+            }
+            if (sqlMessage.contains("column ")) {
+                int start = sqlMessage.indexOf("column ") + 7;
+                int end = sqlMessage.indexOf(" ", start);
+                if (end > start) {
+                    return sqlMessage.substring(start, end);
+                }
+            }
+        } catch (Exception ignored) {}
+        return "字段";
     }
 }
