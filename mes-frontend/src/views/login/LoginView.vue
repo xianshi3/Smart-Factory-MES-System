@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page" @mousemove="handleMouseMove">
+  <div class="login-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
     <div 
       class="login-left"
       :style="{ flex: leftFlex + '%' }"
@@ -68,6 +68,8 @@
               placeholder="请输入用户名"
               prefix-icon="User"
               size="large"
+              @focus="isInputFocus = true"
+              @blur="isInputFocus = false"
             />
           </el-form-item>
           
@@ -79,6 +81,8 @@
               prefix-icon="Lock"
               size="large"
               show-password
+              @focus="isInputFocus = true"
+              @blur="isInputFocus = false"
             />
           </el-form-item>
           
@@ -117,21 +121,43 @@ const rememberMe = ref(false)
 const loginForm = reactive({ username: '', password: '' })
 const leftFlex = ref(48)
 const rightFlex = ref(52)
+const isInputFocus = ref(false)
+let timer: ReturnType<typeof setTimeout> | null = null
 
-const handleMouseMove = (e: MouseEvent) => {
-  const windowWidth = window.innerWidth
-  const mouseX = e.clientX
-  const center = windowWidth / 2
+const updateFlex = (x: number) => {
+  if (isInputFocus.value) return
   
+  const windowWidth = window.innerWidth
+  const center = windowWidth / 2
   let flexPercent: number
-  if (mouseX < center) {
-    flexPercent = 48 + ((center - mouseX) / center) * 12
+  
+  if (x < center) {
+    flexPercent = 48 + ((center - x) / center) * 14
   } else {
-    flexPercent = 48 - ((mouseX - center) / center) * 12
+    flexPercent = 48 - ((x - center) / center) * 14
   }
   
-  leftFlex.value = Math.max(35, Math.min(65, flexPercent))
+  leftFlex.value = Math.max(36, Math.min(64, flexPercent))
   rightFlex.value = 100 - leftFlex.value
+}
+
+const handleMouseMove = (e: MouseEvent) => {
+  if (isInputFocus.value) return
+  
+  if (timer) clearTimeout(timer)
+  
+  timer = setTimeout(() => {
+    updateFlex(e.clientX)
+  }, 150)
+}
+
+const handleMouseLeave = () => {
+  if (timer) clearTimeout(timer)
+  
+  timer = setTimeout(() => {
+    leftFlex.value = 48
+    rightFlex.value = 52
+  }, 300)
 }
 
 const rules = {
@@ -173,9 +199,9 @@ const handleLogin = async () => {
   padding: 60px;
   position: relative;
   overflow: hidden;
-  transition: flex 0.3s ease-out;
-  min-width: 35%;
-  max-width: 65%;
+  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 36%;
+  max-width: 64%;
 }
 
 .left-bg {
@@ -285,9 +311,9 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  transition: flex 0.3s ease-out;
-  min-width: 35%;
-  max-width: 65%;
+  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 36%;
+  max-width: 64%;
 }
 
 .login-box {
@@ -351,10 +377,13 @@ const handleLogin = async () => {
   border-radius: 10px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: none;
+  transition: all 0.3s;
 }
 
 .login-btn:hover {
   background: linear-gradient(135deg, #5558e3, #7c4de4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 
 html.dark .login-left {
