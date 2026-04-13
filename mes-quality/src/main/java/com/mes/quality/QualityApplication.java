@@ -3,6 +3,7 @@ package com.mes.quality;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * 质量管理模块启动类
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 @MapperScan("com.mes.quality.mapper")
+@ComponentScan(basePackages = {"com.mes.quality", "com.mes.common"})
 public class QualityApplication {
 
     public static void main(String[] args) {

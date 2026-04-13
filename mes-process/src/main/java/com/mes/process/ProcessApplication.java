@@ -3,6 +3,7 @@ package com.mes.process;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * 工艺管理模块启动类
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 @MapperScan("com.mes.process.mapper")
+@ComponentScan(basePackages = {"com.mes.process", "com.mes.common"})
 public class ProcessApplication {
     public static void main(String[] args) {
         SpringApplication.run(ProcessApplication.class, args);

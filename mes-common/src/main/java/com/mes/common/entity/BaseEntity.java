@@ -54,11 +54,4 @@ public class BaseEntity implements Serializable {
      * 删除人ID
      */
     private Long deletedBy;
-
-    /**
-     * 乐观锁版本号
-     * 用于并发控制，防止脏更新
-     */
-    @Version
-    private Integer version;
 }

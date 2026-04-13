@@ -3,6 +3,7 @@ package com.mes.workorder;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * 工单服务启动类
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 @MapperScan("com.mes.workorder.mapper")
+@ComponentScan(basePackages = {"com.mes.workorder", "com.mes.common"})
 public class WorkOrderApplication {
     public static void main(String[] args) {
         SpringApplication.run(WorkOrderApplication.class, args);
