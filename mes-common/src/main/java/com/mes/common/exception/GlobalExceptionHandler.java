@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.method.annotation.RequestHeaderMethodArgumentResolver;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
@@ -94,6 +96,16 @@ public class GlobalExceptionHandler {
             e.getValue());
         log.error("参数类型不匹配: {}", message);
         return Result.fail(400, message);
+    }
+
+    /**
+     * 处理缺少请求头异常
+     */
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleMissingRequestHeader(org.springframework.web.bind.MissingRequestHeaderException e) {
+        log.error("缺少请求头: {}", e.getHeaderName());
+        return Result.fail(401, "请先登录");
     }
 
     /**
