@@ -1,14 +1,16 @@
 <template>
   <el-container class="layout-container">
-    <el-aside width="240">
-      <div class="logo">
+    <el-aside :width="isCollapse ? '64px' : '220px'">
+      <div class="logo" :class="{ collapsed: isCollapse }" @click="isCollapse = !isCollapse">
         <div class="logo-icon">
           <el-icon size="24"><Cpu /></el-icon>
         </div>
-        <div class="logo-text">
-          <span class="logo-title">Smart MES</span>
-          <span class="logo-subtitle">智能工厂</span>
-        </div>
+        <transition name="fade">
+          <div class="logo-text" v-show="!isCollapse">
+            <span class="logo-title">Smart MES</span>
+            <span class="logo-subtitle">智能工厂</span>
+          </div>
+        </transition>
       </div>
       
       <el-menu 
@@ -16,16 +18,14 @@
         class="el-menu-vertical" 
         router
         :ellipsis="false"
+        :collapse="isCollapse"
+        :collapse-transition="false"
       >
         <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
           <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.title }}</span>
+          <template #title>{{ item.title }}</template>
         </el-menu-item>
       </el-menu>
-      
-      <div class="sidebar-footer">
-        <div class="version-tag">v1.0.0</div>
-      </div>
     </el-aside>
     
     <el-container class="main-container">
@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -95,6 +95,8 @@ const router = useRouter()
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
+
+const isCollapse = ref(false)
 
 const menuItems = computed(() => {
   const menuList = permissionStore.menus
@@ -169,16 +171,25 @@ const handleCommand = (command: string) => {
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease;
+  overflow: hidden;
 }
 
 .logo {
-  height: 70px;
+  height: 64px;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 0 20px;
   border-bottom: 1px solid var(--border-color);
   background: linear-gradient(135deg, var(--accent-light), transparent);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.logo.collapsed {
+  padding: 0 16px;
+  justify-content: center;
 }
 
 .logo-icon {
@@ -211,11 +222,30 @@ const handleCommand = (command: string) => {
   letter-spacing: 1px;
 }
 
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 .el-menu-vertical {
   flex: 1;
   background: transparent;
   border: none;
   padding: 8px;
+  overflow-y: auto;
+}
+
+.el-menu-vertical:not(.el-menu--collapse) {
+  width: 100%;
+}
+
+.el-menu--collapse {
+  padding: 8px 4px;
 }
 
 .el-menu-item {
@@ -243,21 +273,6 @@ const handleCommand = (command: string) => {
 .el-menu-item .el-icon {
   margin-right: 10px;
   font-size: 18px;
-}
-
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
-
-.version-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  background: var(--bg-hover);
-  border-radius: 20px;
-  color: var(--text-muted);
-  font-size: 11px;
 }
 
 .main-container {
@@ -361,16 +376,6 @@ const handleCommand = (command: string) => {
   background: var(--bg-app);
   padding: 24px;
   overflow-y: auto;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 html.light .logo-title { color: #1a1a2e; }
