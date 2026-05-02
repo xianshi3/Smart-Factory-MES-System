@@ -1,3 +1,4 @@
+# MES Auth Service Configuration
 server:
   port: 8081
   error:
