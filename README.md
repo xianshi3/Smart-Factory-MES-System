@@ -26,24 +26,24 @@ Smart-Factory-MES-System/
 │   ├── README.md              # 文档中心索引
 │   ├── DESIGN.md              # 技术设计文档
 │   ├── DEVELOPMENT.md         # 开发文档
-│   ├── CHANGELOG.md           # 更新日志
-│   └── DOC_DELETE.md          # 删除功能设计
+│   ├── CHANGELOG.md          # 更新日志
+│   └── DATABASE.md          # 数据库文档
 ├── mes-common/                # 公共模块
-├── mes-gateway/               # API网关 (9090)
+├── mes-gateway/              # API网关 (9090)
 ├── mes-auth/                 # 认证服务 (8081)
-├── mes-workorder/            # 工单服务 (8082)
-├── mes-process/              # 工艺服务 (8083)
+├── mes-workorder/           # 工单服务 (8082)
+├── mes-process/             # 工艺服务 (8083)
 ├── mes-quality/             # 质量服务 (8084)
 ├── mes-dashboard/           # 看板服务 (8085)
-├── mes-device-gateway/      # .NET 设备网关 (5000)
+├── mes-device-gateway/       # .NET 设备网关 (5000)
 ├── mes-ai-service/          # Python AI 服务 (8086)
-├── mes-device-simulator/    # 设备模拟器 (8883)
-├── mes-frontend/            # Vue 3 前端 (3000)
-├── sql/                     # 数据库脚本
-├── scripts/                 # 工具脚本
+├── mes-device-simulator-wpf/ # WPF设备模拟器
+├── mes-frontend/           # Vue 3 前端 (3000)
+├── sql/                    # 数据库脚本
+├── scripts/                # 工具脚本
 ├── start-all.bat            # 统一启动器
-├── clean.bat                # 清理缓存
-└── docker-compose.yml       # 基础设施
+├── clean.bat               # 清理缓存
+└── docker-compose.yml      # 基础设施
 ```
 
 ## 快速开始
@@ -57,7 +57,7 @@ Smart-Factory-MES-System/
 | Node.js | 18+ | 前端开发服务器 |
 | Python | 3.11+ | AI 服务 (可选) |
 | Docker | 24+ | MySQL、Redis 容器 |
-| .NET SDK | 8.0+ | 设备网关 (可选) |
+| .NET SDK | 8.0+ | 设备网关/模拟器 |
 
 ### 方式一：图形界面启动（推荐）
 
@@ -162,6 +162,7 @@ npm run dev
 | 看板服务 | http://localhost:8085 | Spring Boot |
 | AI服务 | http://localhost:8086 | FastAPI (Python) |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
+| WPF模拟器 | 直接运行exe | WPF桌面应用 |
 | MySQL | localhost:3306 | Docker 容器 |
 | Redis | localhost:6379 | Docker 容器 |
 
@@ -190,7 +191,7 @@ npm run dev
 
 ## 版本
 
-v1.0.21 - 2026-04-12
+v1.0.25 - 2026-05-02
 
 ---
 

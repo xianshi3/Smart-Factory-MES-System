@@ -27,6 +27,41 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
+    @Operation(summary = "设备模拟数据")
+    @PostMapping("/device/simulate")
+    public Result<Void> simulateDevice(@RequestBody DeviceStatus device) {
+        dashboardService.saveDeviceData(device);
+        return Result.ok();
+    }
+
+    @Operation(summary = "创建设备")
+    @PostMapping("/device")
+    public Result<DeviceStatus> createDevice(@RequestBody DeviceStatus device) {
+        dashboardService.createDevice(device);
+        return Result.ok(device);
+    }
+
+    @Operation(summary = "删除设备")
+    @DeleteMapping("/device/{deviceCode}")
+    public Result<Void> deleteDevice(@PathVariable String deviceCode) {
+        dashboardService.deleteDeviceByCode(deviceCode);
+        return Result.ok();
+    }
+
+    @Operation(summary = "清空所有设备")
+    @DeleteMapping("/devices/all")
+    public Result<Void> deleteAllDevices() {
+        dashboardService.deleteAllDevices();
+        return Result.ok();
+    }
+
+    @Operation(summary = "更新设备")
+    @PutMapping("/device")
+    public Result<DeviceStatus> updateDevice(@RequestBody DeviceStatus device) {
+        dashboardService.updateDevice(device);
+        return Result.ok(device);
+    }
+
     /**
      * 生产总览
      * @return 总览数据

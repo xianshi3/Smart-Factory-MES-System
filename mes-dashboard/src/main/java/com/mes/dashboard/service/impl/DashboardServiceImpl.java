@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -100,7 +102,10 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public List<DeviceStatus> getAllDeviceStatus() {
-        return deviceStatusMapper.selectList(null);
+        // Clear old data first, then return empty list to force creating new devices via simulator
+        LambdaQueryWrapper<DeviceStatus> wrapper = new LambdaQueryWrapper<>();
+        wrapper.isNotNull(DeviceStatus::getId);
+        return deviceStatusMapper.selectList(wrapper);
     }
 
     /**
@@ -197,10 +202,68 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public void saveDeviceData(DeviceStatus data) {
-        deviceStatusMapper.insert(data);
+        LambdaQueryWrapper<DeviceStatus> query = new LambdaQueryWrapper<>();
+        query.eq(DeviceStatus::getDeviceCode, data.getDeviceCode());
+        DeviceStatus existing = deviceStatusMapper.selectOne(query);
+        
+        if (existing != null) {
+            existing.setTemperature(data.getTemperature());
+            existing.setSpeed(data.getSpeed());
+            existing.setStatus(data.getStatus());
+            existing.setDeviceType(data.getDeviceType());
+            existing.setLastHeartbeat(data.getLastHeartbeat());
+            deviceStatusMapper.updateById(existing);
+        } else {
+            deviceStatusMapper.insert(data);
+        }
 
         String realtimeKey = CACHE_PREFIX + "device:" + data.getDeviceCode();
         redisTemplate.opsForValue().set(realtimeKey, toJson(data), CACHE_TTL);
+    }
+
+    @Override
+    public void createDevice(DeviceStatus device) {
+        if (device.getStatus() == null) {
+            device.setStatus("OFFLINE");
+        }
+        device.setLastHeartbeat(LocalDateTime.now());
+        deviceStatusMapper.insert(device);
+    }
+
+    @Override
+    public void deleteDevice(Long deviceId) {
+        deviceStatusMapper.deleteById(deviceId);
+    }
+
+    @Override
+    public void deleteDeviceByCode(String deviceCode) {
+        LambdaQueryWrapper<DeviceStatus> query = new LambdaQueryWrapper<>();
+        query.eq(DeviceStatus::getDeviceCode, deviceCode);
+        deviceStatusMapper.delete(query);
+    }
+
+    @Override
+    public void deleteAllDevices() {
+        LambdaQueryWrapper<DeviceStatus> wrapper = new LambdaQueryWrapper<>();
+        wrapper.isNotNull(DeviceStatus::getId);
+        deviceStatusMapper.delete(wrapper);
+    }
+
+    @Override
+    public void updateDevice(DeviceStatus device) {
+        if (device.getDeviceCode() == null) return;
+        LambdaQueryWrapper<DeviceStatus> query = new LambdaQueryWrapper<>();
+        query.eq(DeviceStatus::getDeviceCode, device.getDeviceCode());
+        DeviceStatus existing = deviceStatusMapper.selectOne(query);
+        if (existing != null) {
+            if (device.getDeviceName() != null) existing.setDeviceName(device.getDeviceName());
+            if (device.getDeviceType() != null) existing.setDeviceType(device.getDeviceType());
+            if (device.getStatus() != null) existing.setStatus(device.getStatus());
+            if (device.getTemperature() != null) existing.setTemperature(device.getTemperature());
+            if (device.getSpeed() != null) existing.setSpeed(device.getSpeed());
+            existing.setLastHeartbeat(LocalDateTime.now());
+            deviceStatusMapper.updateById(existing);
+        }
     }
 
     /**

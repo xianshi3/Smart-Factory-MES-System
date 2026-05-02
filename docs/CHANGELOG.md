@@ -5,8 +5,37 @@
 Smart Factory MES System - 智能工厂制造执行系统
 
 - **创建日期**: 2026-04-04
-- **技术栈**: Java (Spring Cloud) + .NET 8 + Python + Vue 3
+- **技术栈**: Java (Spring Cloud) + .NET 8 + Python + Vue 3 + WPF
 - **架构**: 微服务架构，支持2000+设备并发连接
+
+---
+
+## v1.0.25 (2026-05-02)
+
+### 新增功能
+
+#### 1. WPF设备模拟器
+- 创建WPF桌面应用替代旧的Node.js模拟器
+- 支持设备创建/更新/删除操作
+- 支持实时数据模拟推送
+- 支持亮色/暗色主题切换
+- 现代化UI设计
+
+#### 2. 设备管理API
+- POST /api/dashboard/device - 创建设备
+- PUT /api/dashboard/device - 更新设备
+- DELETE /api/dashboard/device/{deviceCode} - 删除设备
+- DELETE /api/dashboard/devices/all - 清空所有设备
+
+#### 3. 前端优化
+- 设备列表每5秒自动刷新
+- 搜索支持设备ID和名称
+- 运行时长根据最后心跳真实计算
+- 修复设备数据显示
+
+#### 4. 代码清理
+- 删除旧的mes-device-simulator (Node.js版本)
+- 统一使用WPF设备模拟器
 
 ---
 

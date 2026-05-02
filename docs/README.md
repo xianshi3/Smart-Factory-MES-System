@@ -8,12 +8,19 @@
 |------|------|
 | [README.md](../README.md) | 项目简介、快速开始、访问地址 |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 开发文档、技术栈、API接口 |
+| [DATABASE.md](./DATABASE.md) | 数据库设计文档 |
 
 ### 技术设计
 
 | 文档 | 说明 |
 |------|------|
-| [DESIGN.md](./DESIGN.md) | 系统架构、技术选型、数据库设计 |
+| [DESIGN.md](./DESIGN.md) | 系统架构、技术选型 |
+
+### 设备模拟器
+
+| 文档 | 说明 |
+|------|------|
+| [mes-device-simulator-wpf/README.md](../mes-device-simulator-wpf/README.md) | WPF设备模拟器使用说明 |
 
 ### 更新记录
 

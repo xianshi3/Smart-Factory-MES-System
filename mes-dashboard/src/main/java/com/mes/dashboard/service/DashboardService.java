@@ -53,6 +53,16 @@ public interface DashboardService {
      */
     void saveDeviceData(DeviceStatus data);
 
+    void createDevice(DeviceStatus device);
+
+    void deleteDevice(Long deviceId);
+
+    void deleteDeviceByCode(String deviceCode);
+
+    void deleteAllDevices();
+
+    void updateDevice(DeviceStatus device);
+
     /**
      * 获取告警设备列表
      * @return 告警设备列表

@@ -23,6 +23,9 @@ public class DeviceStatus extends BaseEntity {
     /** 设备名称 */
     private String deviceName;
 
+    /** 设备类型 */
+    private String deviceType;
+
     /** 状态: ONLINE/OFFLINE/ALARM */
     private String status;
 

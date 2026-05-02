@@ -328,7 +328,11 @@ const statusOption = ref({})
 const filteredDevices = computed(() => {
   let result = deviceList.value
   if (searchKeyword.value) {
-    result = result.filter(d => d.name?.toLowerCase().includes(searchKeyword.value.toLowerCase()))
+    const kw = searchKeyword.value.toLowerCase()
+    result = result.filter(d => 
+      d.name?.toLowerCase().includes(kw) || 
+      d.code?.toLowerCase().includes(kw)
+    )
   }
   if (statusFilter.value) {
     result = result.filter(d => d.status === statusFilter.value)
@@ -351,37 +355,76 @@ const getAlarmClass = (level: string) => {
   return map[level] || 'info'
 }
 
+const calculateRuntime = (lastHeartbeat: string) => {
+  if (!lastHeartbeat) return '0h'
+  try {
+    const start = new Date(lastHeartbeat).getTime()
+    const now = Date.now()
+    const hours = Math.floor((now - start) / 3600000)
+    if (hours < 1) return '<1h'
+    return `${hours}h`
+  } catch {
+    return '0h'
+  }
+}
+
 const fetchDeviceData = async () => {
   try {
+    console.log('[Device] Fetching data from API...')
     const [deviceRes, alarmRes] = await Promise.all([getDeviceStatus(), getAlarmDevices()])
     
-    const devices = deviceRes?.data || deviceRes || []
-    if (Array.isArray(devices)) {
+    console.log('[Device] Raw deviceRes:', deviceRes)
+    
+    // Handle all possible response formats
+    let devices = []
+    if (Array.isArray(deviceRes)) {
+      devices = deviceRes
+    } else if (deviceRes?.data?.value) {
+      devices = deviceRes.data.value
+    } else if (deviceRes?.data) {
+      devices = Array.isArray(deviceRes.data) ? deviceRes.data : [deviceRes.data]
+    } else if (deviceRes?.value) {
+      devices = deviceRes.value
+    }
+    
+    console.log('[Device] Parsed devices:', devices)
+    
+    if (devices.length > 0) {
       deviceList.value = devices.map((item: any, index: number) => ({
         id: item.id,
-        name: item.deviceName || item.device_code || `设备${index + 1}`,
-        code: item.device_code || '',
+        name: item.deviceName || item.deviceCode || `设备${index + 1}`,
+        code: item.deviceCode || '',
         status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
         utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
-        runtime: item.lastHeartbeat ? `${Math.floor(Math.random() * 200) + 10}h` : '0h',
+        runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
         temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
         power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
       }))
+      console.log('[Device] Mapped deviceList:', deviceList.value)
     }
 
-    const alarms = alarmRes?.data || alarmRes || []
-    alarmList.value = Array.isArray(alarms) ? alarms : []
+    let alarms = []
+    if (Array.isArray(alarmRes)) {
+      alarms = alarmRes
+    } else if (alarmRes?.data?.value) {
+      alarms = alarmRes.data.value
+    } else if (alarmRes?.data) {
+      alarms = Array.isArray(alarmRes.data) ? alarmRes.data : [alarmRes.data]
+    } else if (alarmRes?.value) {
+      alarms = alarmRes.value
+    }
+    alarmList.value = alarms
 
     stats.value = [
       { label: '设备总数', value: deviceList.value.length, icon: 'Monitor', theme: 'primary' },
-      { label: '运行中', value: deviceList.value.filter(d => d.status === 'running').length, icon: 'CircleCheck', theme: 'success' },
-      { label: '空闲', value: deviceList.value.filter(d => d.status === 'idle').length, icon: 'VideoPause', theme: 'info' },
-      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, icon: 'WarningFilled', theme: 'danger' }
+      { label: '运行中', value: deviceList.value.filter((d: any) => d.status === 'running').length, icon: 'CircleCheck', theme: 'success' },
+      { label: '空闲', value: deviceList.value.filter((d: any) => d.status === 'idle').length, icon: 'VideoPause', theme: 'info' },
+      { label: '故障', value: deviceList.value.filter((d: any) => d.status === 'fault').length, icon: 'WarningFilled', theme: 'danger' }
     ]
 
     updateCharts()
   } catch (error) {
-    console.error('Failed to fetch device data:', error)
+    console.error('[Device] Fetch error:', error)
     ElMessage.error('获取设备数据失败')
   }
 }
@@ -522,12 +565,22 @@ const handleAck = (alarm: any) => {
 
 onMounted(() => {
   fetchDeviceData()
-  refreshInterval = setInterval(fetchDeviceData, 30000)
+  refreshInterval = setInterval(fetchDeviceData, 5000)
   
   wsService.connect()
-  wsUnsubscribe.value = wsService.subscribe((data) => {
+  wsUnsubscribe.value = wsService.subscribe((data: any) => {
+    console.log('[WebSocket] Received:', data)
     if (data.devices) {
-      deviceList.value = data.devices
+      deviceList.value = data.devices.map((item: any, index: number) => ({
+        id: item.id,
+        name: item.deviceName || item.deviceCode || `设备${index + 1}`,
+        code: item.deviceCode || '',
+        status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
+        utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
+        runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
+        temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
+        power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
+      }))
       updateStats()
       updateCharts()
     }

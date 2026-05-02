@@ -15,6 +15,34 @@ export function getDeviceStatus() {
 }
 
 /**
+ * Create a new device
+ */
+export function createDevice(data: any) {
+  return request({ url: '/dashboard/device', method: 'post', data })
+}
+
+/**
+ * Delete a device
+ */
+export function deleteDevice(deviceId: number) {
+  return request({ url: `/dashboard/device/${deviceId}`, method: 'delete' })
+}
+
+/**
+ * Delete all devices
+ */
+export function deleteAllDevices() {
+  return request({ url: '/dashboard/devices/all', method: 'delete' })
+}
+
+/**
+ * Update a device
+ */
+export function updateDevice(data: any) {
+  return request({ url: '/dashboard/device', method: 'put', data })
+}
+
+/**
  * Get today's production statistics
  */
 export function getTodayStats() {
