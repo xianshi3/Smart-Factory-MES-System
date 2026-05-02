@@ -9,8 +9,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 基础实体类
- * 所有业务实体的基类，包含通用字段
+ * Base Entity
+ * Base class for all business entities with common fields
  */
 @Data
 public class BaseEntity implements Serializable {
