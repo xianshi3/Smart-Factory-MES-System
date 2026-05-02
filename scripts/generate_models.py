@@ -15,6 +15,7 @@ create_minimal_onnx('mes-ai-service/src/models/saved_models/output_predict.onnx'
 
 print('已创建示例ONNX模型文件')
 
+
 import os
 for f in os.listdir('mes-ai-service/src/models/saved_models'):
     size = os.path.getsize(f'mes-ai-service/src/models/saved_models/{f}')

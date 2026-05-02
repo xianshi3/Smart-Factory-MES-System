@@ -39,4 +39,5 @@ docker exec -i mes-mysql mysql -uroot -proot mes_db < sql/V2__add_delete_fields.
 
 ---
 
+
 *最后更新: 2026-04-06*
