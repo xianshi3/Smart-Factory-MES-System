@@ -1,0 +1,25 @@
+-- Alarm Event Table
+CREATE TABLE IF NOT EXISTS dash_alarm_event (
+    id BIGINT NOT NULL COMMENT 'Primary Key' PRIMARY KEY,
+    alarm_code VARCHAR(64) COMMENT 'Alarm Code',
+    message TEXT COMMENT 'Alarm Message',
+    level VARCHAR(32) DEFAULT 'WARNING' COMMENT 'Alarm Level: CRITICAL/WARNING/INFO',
+    alarm_type VARCHAR(64) COMMENT 'Alarm Type',
+    device_code VARCHAR(64) COMMENT 'Device Code',
+    device_name VARCHAR(128) COMMENT 'Device Name',
+    status VARCHAR(32) DEFAULT 'ACTIVE' COMMENT 'Status: ACTIVE/ACKNOWLEDGED/RESOLVED',
+    occurrence_time DATETIME COMMENT 'Occurrence Time',
+    ack_time DATETIME COMMENT 'Acknowledgement Time',
+    ack_user VARCHAR(64) COMMENT 'Acknowledged User',
+    resolve_time DATETIME COMMENT 'Resolution Time',
+    resolve_user VARCHAR(64) COMMENT 'Resolved User',
+    remarks TEXT COMMENT 'Remarks',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Create Time',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update Time',
+    deleted INT DEFAULT 0 COMMENT 'Logical Delete: 0-Not Deleted, 1-Deleted',
+    deleted_time DATETIME COMMENT 'Delete Time',
+    deleted_by BIGINT COMMENT 'Deleted By User',
+    INDEX idx_device_code (device_code),
+    INDEX idx_status (status),
+    INDEX idx_occurrence_time (occurrence_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alarm Event Table';

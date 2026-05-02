@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { usePermissionStore } from '@/stores/permission'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -8,6 +9,18 @@ import 'nprogress/nprogress.css'
  * Router guard before each route navigation
  */
 NProgress.configure({ showSpinner: false })
+
+const pathMenuCodeMap: Record<string, string> = {
+  '/': 'dashboard',
+  '/dashboard': 'dashboard',
+  '/workorder': 'workorder',
+  '/process': 'process',
+  '/quality': 'quality',
+  '/device': 'device',
+  '/report': 'report',
+  '/alarm': 'alarm',
+  '/role': 'role'
+}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -64,6 +77,11 @@ const routes: RouteRecordRaw[] = [
         path: 'role',
         name: 'Role',
         component: () => import('@/views/role/RoleView.vue')
+      },
+      {
+        path: 'alarm',
+        name: 'Alarm',
+        component: () => import('@/views/alarm/AlarmView.vue')
       }
     ]
   }
@@ -80,13 +98,22 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   NProgress.start()
   const userStore = useUserStore()
-  if (to.path !== '/login' && !userStore.token) {
-    next('/login')
-  } else if (to.path === '/login' && userStore.token) {
-    next('/')
-  } else {
-    next()
+  
+  if (to.path === '/login') {
+    if (userStore.token) {
+      next('/dashboard')
+    } else {
+      next()
+    }
+    return
   }
+  
+  if (!userStore.token) {
+    next('/login')
+    return
+  }
+  
+  next()
 })
 
 /**

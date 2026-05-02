@@ -108,6 +108,7 @@ const menuItems = computed(() => {
       { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
       { path: '/device', title: '设备监控', icon: 'Monitor' },
       { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
+      { path: '/alarm', title: '报警管理', icon: 'Warning' },
       { path: '/role', title: '角色管理', icon: 'Key' }
     ]
   }
@@ -135,6 +136,7 @@ const menuBreadcrumbs: Record<string, string> = {
   '/process': '生产管理 / 工艺管理',
   '/quality': '质量管理 / 质检管理',
   '/device': '设备管理 / 监控中心',
+  '/alarm': '设备管理 / 报警管理',
   '/report': '数据分析 / 生产报表'
 }
 
@@ -142,8 +144,10 @@ const activeMenu = computed(() => route.path)
 const pageTitle = computed(() => menuTitles.value[route.path] || 'MES系统')
 const breadcrumb = computed(() => menuBreadcrumbs[route.path] || '')
 
-onMounted(() => {
-  permissionStore.loadMenus()
+onMounted(async () => {
+  await userStore.getUserInfo()
+  const userRoles = userStore.userInfo?.role ? [userStore.userInfo.role] : ['ADMIN']
+  permissionStore.loadMenus(userRoles)
 })
 
 const handleCommand = (command: string) => {

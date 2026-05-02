@@ -131,3 +131,31 @@ export function stopDevice(deviceId: number) {
 export function getProductionReport(params: any) {
   return request({ url: `/api/dashboard/report/production`, method: 'get', params })
 }
+
+export function getAllAlarms() {
+  return request({ url: '/api/alarm', method: 'get' })
+}
+
+export function getAlarmsByStatus(status: string) {
+  return request({ url: `/api/alarm/status/${status}`, method: 'get' })
+}
+
+export function createAlarm(data: any) {
+  return request({ url: '/api/alarm', method: 'post', data })
+}
+
+export function acknowledgeAlarm(alarmId: number, userId: string) {
+  return request({ url: `/api/alarm/${alarmId}/ack`, method: 'post', params: { userId } })
+}
+
+export function resolveAlarm(alarmId: number, userId: string, remarks: string) {
+  return request({ url: `/api/alarm/${alarmId}/resolve`, method: 'post', params: { userId, remarks } })
+}
+
+export function deleteAlarm(alarmId: number) {
+  return request({ url: `/api/alarm/${alarmId}`, method: 'delete' })
+}
+
+export function getActiveAlarmCount() {
+  return request({ url: '/api/alarm/count/active', method: 'get' })
+}

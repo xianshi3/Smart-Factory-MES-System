@@ -27,10 +27,18 @@ export const usePermissionStore = defineStore('permission', () => {
     { menuName: '质量管理', menuCode: 'quality', path: '/quality', icon: 'CircleCheck', sort: 4 },
     { menuName: '设备监控', menuCode: 'device', path: '/device', icon: 'Monitor', sort: 5 },
     { menuName: '生产报表', menuCode: 'report', path: '/report', icon: 'DataAnalysis', sort: 6 },
-    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 7 }
+    { menuName: '报警管理', menuCode: 'alarm', path: '/alarm', icon: 'Warning', sort: 7 },
+    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 }
   ]
 
-  const menus = ref<Menu[]>(defaultMenus)
+  const roleMenus: Record<string, string[]> = {
+    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role'],
+    OPERATOR: ['dashboard', 'workorder', 'device', 'report'],
+    TECHNICIAN: ['dashboard', 'process', 'quality', 'device'],
+    VIEWER: ['dashboard']
+  }
+
+  const menus = ref<Menu[]>([])
   const permissions = ref<Permission[]>([])
   const loading = ref(false)
 
@@ -38,6 +46,7 @@ export const usePermissionStore = defineStore('permission', () => {
     if (!menus.value || !Array.isArray(menus.value)) return []
     return menus.value.map(m => m.menuCode)
   })
+
   const permissionCodes = computed(() => {
     if (!permissions.value || !Array.isArray(permissions.value)) return []
     return permissions.value.map(p => p.permissionCode)
@@ -51,19 +60,29 @@ export const usePermissionStore = defineStore('permission', () => {
     return menuCodes.value.includes(code)
   }
 
-  const loadMenus = async () => {
-    try {
-      loading.value = true
-      const res = await request({ url: '/auth/menu/user', method: 'get' })
-      const data = res?.data || res
-      if (Array.isArray(data) && data.length > 0) {
-        menus.value = data
+  const filterMenusByRole = (userRoles: string[]): Menu[] => {
+    let allowedCodes: string[] = []
+    for (const role of userRoles) {
+      const roleCodeList = roleMenus[role.toUpperCase()]
+      if (roleCodeList) {
+        allowedCodes = [...new Set([...allowedCodes, ...roleCodeList])]
       }
-    } catch (e) {
-      console.warn('获取菜单失败，使用默认菜单', e)
-    } finally {
-      loading.value = false
     }
+    if (allowedCodes.length === 0) {
+      allowedCodes = roleMenus.VIEWER
+    }
+    return defaultMenus
+      .filter(m => allowedCodes.includes(m.menuCode))
+      .sort((a, b) => a.sort - b.sort)
+  }
+
+  const loadMenus = async (userRoles?: string[]) => {
+    if (userRoles && userRoles.length > 0) {
+      menus.value = filterMenusByRole(userRoles)
+    } else {
+      menus.value = defaultMenus
+    }
+    loading.value = false
   }
 
   const loadPermissions = async () => {
