@@ -1,3 +1,4 @@
+# MES Quality Service Configuration
 server:
   port: 8084
   error:
