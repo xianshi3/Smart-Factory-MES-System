@@ -6,8 +6,6 @@ server:
     include-exception: true
 
 spring:
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -23,6 +21,16 @@ spring:
       host: localhost
       port: 6379
       database: 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: mes-dashboard-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

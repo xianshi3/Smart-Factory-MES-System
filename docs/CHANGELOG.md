@@ -70,6 +70,21 @@ Smart Factory MES System - 智能工厂制造执行系统
 - 修复删除后无法创建相同编码数据的问题
 - 删除多余文档
 
+#### 2. 菜单和权限管理
+- 新增MenuView.vue菜单管理页面
+- 新增PermissionView.vue权限管理页面
+- 新增PermissionController.java权限管理接口
+- 增强MenuController.java CRUD接口
+
+#### 3. 数据库编码修复
+- 修复JDBC连接字符编码为UTF-8
+- 修复数据库中文乱码问题
+
+#### 4. Kafka集成
+- 添加Kafka Docker容器到docker-compose.yml
+- 恢复mes-dashboard Kafka配置
+- 实现设备数据Kafka消费
+
 ---
 
 ## v1.0.25 (2026-05-02)
