@@ -5,6 +5,19 @@ from src.schemas.schemas import (
     ProductionPredictResponse,
     ModelStatusResponse,
 )
+from src.schemas.prediction import (
+    QualityPredictionRequest,
+    QualityPredictionResponse,
+    BatchPredictionRequest,
+    BatchPredictionResponse,
+    ModelInfoResponse,
+    DeviceFaultPredictionRequest,
+    DeviceFaultPredictionResponse,
+    ProcessParamRecommendationRequest,
+    ProcessParamRecommendationResponse,
+    AnomalyDetectionRequest,
+    AnomalyDetectionResponse,
+)
 
 __all__ = [
     "QualityPredictRequest",
@@ -12,4 +25,15 @@ __all__ = [
     "ProductionPredictRequest",
     "ProductionPredictResponse",
     "ModelStatusResponse",
+    "QualityPredictionRequest",
+    "QualityPredictionResponse",
+    "BatchPredictionRequest",
+    "BatchPredictionResponse",
+    "ModelInfoResponse",
+    "DeviceFaultPredictionRequest",
+    "DeviceFaultPredictionResponse",
+    "ProcessParamRecommendationRequest",
+    "ProcessParamRecommendationResponse",
+    "AnomalyDetectionRequest",
+    "AnomalyDetectionResponse",
 ]

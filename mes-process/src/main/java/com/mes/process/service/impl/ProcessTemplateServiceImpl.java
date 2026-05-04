@@ -48,12 +48,10 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(CreateTemplateDTO dto) {
-        // 检查模板编码是否已存在（包括已删除的记录）
-        // 使用原生SQL查询避免 @TableLogic 自动过滤
+        // 检查模板编码是否已存在
         Long count = processTemplateMapper.selectCount(
             new LambdaQueryWrapper<ProcessTemplate>()
                 .eq(ProcessTemplate::getTemplateCode, dto.getTemplateCode())
-                .last("AND (deleted = 0 OR deleted IS NULL)")
         );
         if (count > 0) {
             throw new RuntimeException("模板编码 " + dto.getTemplateCode() + " 已存在，请使用不同的编码");
@@ -254,21 +252,14 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
             return Result.error("只有草稿状态的模板可删除");
         }
 
-        // 逻辑删除 - 使用wrapper避免乐观锁问题
-        var updateWrapper = new UpdateWrapper<ProcessTemplate>()
-                .set("deleted", 1)
-                .set("deleted_time", LocalDateTime.now())
-                .set("deleted_by", userId)
-                .eq("id", id);
-        processTemplateMapper.update(null, updateWrapper);
+        // 物理删除参数
+        processParameterMapper.delete(
+            new LambdaQueryWrapper<ProcessParameter>()
+                .eq(ProcessParameter::getTemplateId, id)
+        );
 
-        // 级联删除参数 - 使用wrapper避免乐观锁问题
-        var paramUpdateWrapper = new UpdateWrapper<ProcessParameter>()
-                .set("deleted", 1)
-                .set("deleted_time", LocalDateTime.now())
-                .set("deleted_by", userId)
-                .eq("template_id", id);
-        processParameterMapper.update(null, paramUpdateWrapper);
+        // 物理删除模板
+        processTemplateMapper.deleteById(id);
 
         log.info("删除工艺模板成功: id={}", id);
         return Result.ok();
