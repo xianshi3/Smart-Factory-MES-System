@@ -19,7 +19,9 @@ const pathMenuCodeMap: Record<string, string> = {
   '/device': 'device',
   '/report': 'report',
   '/alarm': 'alarm',
-  '/role': 'role'
+  '/role': 'role',
+  '/menu': 'menu',
+  '/permission': 'permission'
 }
 
 const routes: RouteRecordRaw[] = [
@@ -82,6 +84,16 @@ const routes: RouteRecordRaw[] = [
         path: 'alarm',
         name: 'Alarm',
         component: () => import('@/views/alarm/AlarmView.vue')
+      },
+      {
+        path: 'menu',
+        name: 'Menu',
+        component: () => import('@/views/menu/MenuView.vue')
+      },
+      {
+        path: 'permission',
+        name: 'Permission',
+        component: () => import('@/views/permission/PermissionView.vue')
       }
     ]
   }
