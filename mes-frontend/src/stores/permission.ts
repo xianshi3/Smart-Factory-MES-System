@@ -28,11 +28,13 @@ export const usePermissionStore = defineStore('permission', () => {
     { menuName: '设备监控', menuCode: 'device', path: '/device', icon: 'Monitor', sort: 5 },
     { menuName: '生产报表', menuCode: 'report', path: '/report', icon: 'DataAnalysis', sort: 6 },
     { menuName: '报警管理', menuCode: 'alarm', path: '/alarm', icon: 'Warning', sort: 7 },
-    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 }
+    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 },
+    { menuName: '菜单管理', menuCode: 'menu', path: '/menu', icon: 'Menu', sort: 9 },
+    { menuName: '权限管理', menuCode: 'permission', path: '/permission', icon: 'Lock', sort: 10 }
   ]
 
   const roleMenus: Record<string, string[]> = {
-    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role'],
+    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role', 'menu', 'permission'],
     OPERATOR: ['dashboard', 'workorder', 'device', 'report'],
     TECHNICIAN: ['dashboard', 'process', 'quality', 'device'],
     VIEWER: ['dashboard']
