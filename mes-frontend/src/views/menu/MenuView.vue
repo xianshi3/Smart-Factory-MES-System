@@ -79,7 +79,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Menu } from '@element-plus/icons-vue'
-import axios from 'axios'
+import request from '@/api'
 
 interface Menu {
   id: number
@@ -103,8 +103,8 @@ const topMenus = computed(() => menus.value.filter(m => !m.parentId || m.parentI
 
 const loadData = async () => {
   try {
-    const res = await axios.get('/api/auth/menu/list')
-    menus.value = res.data.data || []
+    const res = await request({ url: '/auth/menu/list', method: 'get' })
+    menus.value = res.data?.data || res?.data || []
   } catch (e) {
     console.error(e)
   }
@@ -125,10 +125,10 @@ const handleEdit = (row: Menu) => {
 const handleSubmit = async () => {
   try {
     if (form.value.id) {
-      await axios.put('/api/auth/menu', form.value)
+      await request({ url: '/auth/menu', method: 'put', data: form.value })
       ElMessage.success('更新成功')
     } else {
-      await axios.post('/api/auth/menu', form.value)
+      await request({ url: '/auth/menu', method: 'post', data: form.value })
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -141,7 +141,7 @@ const handleSubmit = async () => {
 const handleDelete = async (row: Menu) => {
   try {
     await ElMessageBox.confirm(`确定删除菜单 "${row.menuName}" 吗?`, '提示', { type: 'warning' })
-    await axios.delete(`/api/auth/menu/${row.id}`)
+    await request({ url: `/auth/menu/${row.id}`, method: 'delete' })
     ElMessage.success('删除成功')
     loadData()
   } catch (e: any) {
