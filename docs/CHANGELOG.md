@@ -63,6 +63,13 @@ Smart Factory MES System - 智能工厂制造执行系统
 2. mes-ai-service/requirements.txt - 添加pytest、joblib、onnx依赖
 3. mes-ai-service/Dockerfile - 添加models和tests目录
 
+### 问题修复
+
+#### 1. 逻辑删除问题修复
+- 禁用@TableLogic，改用物理删除
+- 修复删除后无法创建相同编码数据的问题
+- 删除多余文档
+
 ---
 
 ## v1.0.25 (2026-05-02)
