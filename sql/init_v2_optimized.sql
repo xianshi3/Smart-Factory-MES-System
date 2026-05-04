@@ -160,7 +160,8 @@ INSERT INTO `sys_menu` (`menu_name`, `menu_code`, `parent_id`, `path`, `componen
 ('质量管理', 'quality', 0, '/quality', 'quality/QualityView', 'CircleCheck', 4),
 ('设备监控', 'device', 0, '/device', 'device/DeviceView', 'Monitor', 5),
 ('生产报表', 'report', 0, '/report', 'report/ReportView', 'DataAnalysis', 6),
-('角色管理', 'role', 0, '/role', 'role/RoleView', 'Key', 7);
+('报警管理', 'alarm', 0, '/alarm', 'alarm/AlarmView', 'Warning', 7),
+('角色管理', 'role', 0, '/role', 'role/RoleView', 'Key', 8);
 
 -- =====================================================
 -- 6. Work Order Module (wo_work_order) - OPTIMIZED
