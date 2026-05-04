@@ -15,7 +15,9 @@
     </div>
 
     <el-table :data="menus" row-key="id" :tree-props="{ children: 'children' }" default-expand-all>
-      <el-table-column prop="menuName" label="菜单名称" />
+      <el-table-column prop="menuName" label="菜单名称">
+        <template #default="{ row }">{{ row.menuName }}</template>
+      </el-table-column>
       <el-table-column prop="menuCode" label="菜单编码" />
       <el-table-column prop="path" label="路由路径" />
       <el-table-column prop="component" label="组件" />
@@ -104,9 +106,16 @@ const topMenus = computed(() => menus.value.filter(m => !m.parentId || m.parentI
 const loadData = async () => {
   try {
     const res = await request({ url: '/auth/menu/list', method: 'get' })
-    menus.value = res.data?.data || res?.data || []
+    console.log('Menu API response:', res)
+    const list = res.data?.data
+    if (list) {
+      menus.value = list
+    } else {
+      menus.value = res.data || res || []
+    }
+    console.log('Render menus:', menus.value)
   } catch (e) {
-    console.error(e)
+    console.error('Load menu error:', e)
   }
 }
 
