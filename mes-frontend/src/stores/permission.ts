@@ -63,19 +63,8 @@ export const usePermissionStore = defineStore('permission', () => {
   }
 
   const filterMenusByRole = (userRoles: string[]): Menu[] => {
-    let allowedCodes: string[] = []
-    for (const role of userRoles) {
-      const roleCodeList = roleMenus[role.toUpperCase()]
-      if (roleCodeList) {
-        allowedCodes = [...new Set([...allowedCodes, ...roleCodeList])]
-      }
-    }
-    if (allowedCodes.length === 0) {
-      allowedCodes = roleMenus.VIEWER
-    }
-    return defaultMenus
-      .filter(m => allowedCodes.includes(m.menuCode))
-      .sort((a, b) => a.sort - b.sort)
+    // 临时: 显示所有菜单
+    return defaultMenus.sort((a, b) => a.sort - b.sort)
   }
 
   const loadMenus = async (userRoles?: string[]) => {
