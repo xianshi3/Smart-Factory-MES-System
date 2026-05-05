@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '64px' : '220px'">
-      <div class="logo" :class="{ collapsed: isCollapse }" @click="isCollapse = !isCollapse">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside-container">
+      <div class="logo" :class="{ collapsed: isCollapse }" @click="toggleCollapse">
         <div class="logo-icon">
           <el-icon size="24"><Cpu /></el-icon>
         </div>
@@ -11,6 +11,9 @@
             <span class="logo-subtitle">智能工厂</span>
           </div>
         </transition>
+        <div class="collapse-btn" :class="{ collapsed: isCollapse }">
+          <el-icon><ArrowLeft v-if="!isCollapse" /><ArrowRight v-else /></el-icon>
+        </div>
       </div>
       
       <el-menu 
@@ -18,6 +21,9 @@
         class="el-menu-vertical" 
         router
         :ellipsis="false"
+        :collapse="isCollapse"
+        :collapse-transition="true"
+      >
         :collapse="isCollapse"
         :collapse-transition="false"
       >
@@ -102,7 +108,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { usePermissionStore } from '@/stores/permission'
-import { Cpu, User, Sunny, Moon, ArrowDown, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { Cpu, User, Sunny, Moon, ArrowDown, ArrowLeft, ArrowRight, Setting, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,6 +117,10 @@ const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
+
+const toggleCollapse = () => {
+  isCollapse.value = !isCollapse.value
+}
 
 interface MenuItem {
   path: string
@@ -237,6 +247,10 @@ const handleCommand = (command: string) => {
   overflow: hidden;
 }
 
+.aside-container {
+  position: relative;
+}
+
 .logo {
   height: 64px;
   display: flex;
@@ -247,6 +261,7 @@ const handleCommand = (command: string) => {
   background: linear-gradient(135deg, var(--accent-light), transparent);
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .logo.collapsed {
@@ -283,6 +298,33 @@ const handleCommand = (command: string) => {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.collapse-btn {
+  position: absolute;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  z-index: 10;
+}
+
+.collapse-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collapse-btn.collapsed {
+  transform: rotate(180deg);
 }
 
 .fade-enter-active,
