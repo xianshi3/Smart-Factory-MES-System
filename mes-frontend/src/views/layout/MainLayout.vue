@@ -24,9 +24,6 @@
         :collapse="isCollapse"
         :collapse-transition="true"
       >
-        :collapse="isCollapse"
-        :collapse-transition="false"
-      >
         <template v-for="group in menuGroups" :key="group.title">
           <el-sub-menu v-if="!isCollapse" :index="group.title">
             <template #title>
