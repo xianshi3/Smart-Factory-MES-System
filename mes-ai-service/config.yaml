@@ -11,7 +11,7 @@ model:
     version: "1.0.0"
 
 llm:
-  api_key: "4a91b805b02e4693bc57b8d40292e595.bTm1SBzfsWvWMRXo"
+  api_key: "${ZHIPU_API_KEY}"
   model: "glm-4-flash"
 
 kafka:

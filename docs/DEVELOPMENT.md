@@ -19,14 +19,12 @@ Smart-Factory-MES-System/
 ├── mes-dashboard/           # 看板服务 (8085)
 ├── mes-device-gateway/      # .NET设备网关 (5000)
 ├── mes-ai-service/          # Python AI服务 (8086)
-├── mes-device-simulator/    # 设备模拟器
+├── mes-device-simulator-wpf/ # WPF设备模拟器
 ├── mes-frontend/            # Vue 3前端 (3000)
 ├── sql/                      # 数据库脚本
 ├── start-all.bat            # 统一启动器
 ├── docker-compose.yml        # 基础设施配置
-├── DESIGN.md                 # 技术设计文档
-├── DEVELOPMENT.md            # 本文档
-├── CHANGELOG.md              # 更新日志
+├── docs/                    # 项目文档
 └── README.md                # 项目简介
 ```
 
@@ -39,6 +37,15 @@ Smart-Factory-MES-System/
 | 设备接入 | .NET 8 + MQTT + Kafka | .NET 8 |
 | AI服务 | Python 3.11 + FastAPI + LightGBM + XGBoost | FastAPI 0.115 |
 | 基础设施 | MySQL 8.0.33 + Redis 7 + Kafka 3.4 + EMQX 5.8 | - |
+
+### 1.3 环境配置
+
+敏感信息通过 `.env.local` 文件配置（不提交到git）：
+
+```bash
+# mes-ai-service/.env.local
+ZHIPU_API_KEY=your-api-key-here
+```
 
 ---
 
@@ -568,7 +575,7 @@ CREATE TABLE xxx (
 
 ---
 
-*最后更新：2026-04-12*
+*最后更新：2026-05-05*
 
 ---
 

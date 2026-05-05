@@ -1,20 +1,39 @@
 # MES AI Service
 
-智能工厂MES系统 - AI服务模块，提供质量预测、产量预测、设备故障预测、工艺参数推荐、异常检测等AI能力。
+智能工厂MES系统 - AI服务模块，提供质量预测、产量预测、设备故障预测、工艺参数推荐、异常检测、大模型智能分析等AI能力。
 
 ## 功能特性
 
+### 预测模块
 - **质量预测**: 基于LightGBM二分类模型，预测产品合格率
 - **产量预测**: 基于XGBoost回归模型，预测未来产量趋势
 - **设备故障预测**: 基于历史数据分析，预测设备故障风险
 - **工艺参数推荐**: 根据产品类型推荐最佳工艺参数
 - **异常检测**: 实时检测传感器数据异常
 - **ONNX推理**: 支持ONNX格式模型加载与高性能推理
+
+### 大模型模块
+- **智能对话**: 智谱AI GLM-4 大模型支持
+- **生产分析**: AI智能分析生产数据
+- **根因分析**: AI辅助故障根因分析
+- **能耗优化**: AI推荐节能方案
+- **产能预测**: AI预测产能趋势
+
+### 数据处理
 - **Kafka集成**: 异步消费设备数据，实时特征工程
 - **Redis缓存**: 推理结果缓存，提升响应速度
 - **批量预测**: 支持批量预测多个工单
 
 ## 快速启动
+
+### 环境配置
+
+创建 `.env.local` 文件配置敏感信息：
+
+```bash
+# 智谱AI API Key
+ZHIPU_API_KEY=your-api-key-here
+```
 
 ### Docker部署
 ```bash
@@ -26,10 +45,18 @@ docker run -p 8086:8086 mes-ai-service
 ```bash
 cd mes-ai-service
 pip install -r requirements.txt
-python -m src.main
+
+# 方式一：使用虚拟环境
+.venv\Scripts\activate.bat
+python src/main.py
+
+# 方式二：直接运行
+python src/main.py
 ```
 
 ## API接口
+
+### 预测API
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -39,9 +66,25 @@ python -m src.main
 | POST | `/api/v1/predict/device/fault` | 设备故障预测 |
 | POST | `/api/v1/predict/process/recommend` | 工艺参数推荐 |
 | POST | `/api/v1/predict/anomaly` | 异常检测 |
-| POST | `/api/v1/predict/production` | 产量预测(旧版) |
+| POST | `/api/v1/predict/production` | 产量预测 |
 | GET | `/api/v1/model/status` | 模型状态 |
 | POST | `/api/v1/model/retrain` | 触发重训练 |
+
+### 大模型API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/llm/chat` | 智能对话 |
+| POST | `/api/v1/llm/analyze` | 生产数据分析 |
+| POST | `/api/v1/llm/root-cause` | 根因分析 |
+| POST | `/api/v1/llm/energy` | 能耗优化建议 |
+| POST | `/api/v1/llm/capacity` | 产能预测分析 |
+| GET | `/api/v1/llm/info` | 模型信息 |
+
+### 健康检查
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
 | GET | `/api/v1/health` | 健康检查 |
 
 ## 请求示例
@@ -76,37 +119,25 @@ curl -X POST http://localhost:8086/api/v1/predict/device/fault \
   }'
 ```
 
-### 工艺参数推荐
+### 智能对话
 ```bash
-curl -X POST http://localhost:8086/api/v1/predict/process/recommend \
+curl -X POST http://localhost:8086/api/v1/llm/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "product_type": "PET Bottle",
-    "material_properties": {"density": 1.2, "hardness": 75}
+    "message": "帮我分析今天上午的生产情况",
+    "context": {"date": "2026-05-05"}
   }'
 ```
 
-### 异常检测
+### 生产数据分析
 ```bash
-curl -X POST http://localhost:8086/api/v1/predict/anomaly \
+curl -X POST http://localhost:8086/api/v1/llm/analyze \
   -H "Content-Type: application/json" \
   -d '{
-    "sensor_data": {
-      "temperature": 110.0,
-      "speed": 50.0,
-      "pressure": 10.0
-    },
-    "device_code": "DEV001"
+    "data_type": "quality",
+    "time_range": "24h"
   }'
 ```
-
-## 模型训练
-
-```bash
-python -m src.models.train
-```
-
-训练完成后模型保存在 `models/` 目录。
 
 ## 配置说明
 
@@ -125,16 +156,15 @@ model:
     onnx_path: "src/models/saved_models/output_predict.onnx"
     version: "1.0.0"
 
+# 大模型配置（敏感信息通过环境变量 ZHIPU_API_KEY 设置）
+llm:
+  api_key: "${ZHIPU_API_KEY}"
+  model: "glm-4-flash"
+
 redis:
   host: "localhost"
   port: 6379
   db: 1
-```
-
-## 测试
-
-```bash
-pytest tests/test_prediction.py -v
 ```
 
 ## 项目结构
@@ -151,18 +181,18 @@ mes-ai-service/
 │   ├── services/            # 业务逻辑
 │   │   ├── quality_predictor.py   # 质量预测服务
 │   │   ├── inference_service.py # 推理服务
+│   │   ├── llm_service.py      # 智谱AI大模型服务
+│   │   ├── analysis_service.py  # AI分析服务
 │   │   └── feature_engineering.py # 特征工程
-│   ├── schemas/             # Pydantic模型
-│   │   ├── schemas.py        # 旧版模型
-│   │   └── prediction.py    # 扩展预测模型
 │   ├── router/             # 路由
-│   │   └── prediction.py   # 预测路由
+│   │   ├── prediction.py   # 预测路由
+│   │   ├── llm.py        # 大模型路由
+│   │   └── analysis.py   # 分析路由
 │   └── utils/              # 工具函数
 │       └── kafka_consumer.py
-├── tests/                  # 测试
-│   └── test_prediction.py
 ├── models/                # 训练模型输出
 ├── config.yaml            # 配置文件
+├── .env.local            # 本地敏感配置（不提交）
 ├── requirements.txt       # Python依赖
 └── Dockerfile           # Docker镜像
 ```
@@ -177,6 +207,14 @@ mes-ai-service/
 | XGBoost | 2.1 |
 | ONNX Runtime | 1.19 |
 | scikit-learn | 1.5 |
+| 智谱AI SDK | - |
+
+## 测试
+
+```bash
+pytest tests/test_prediction.py -v
+```
 
 ---
-*最后更新: 2026-05-04*
+
+*最后更新: 2026-05-05*
