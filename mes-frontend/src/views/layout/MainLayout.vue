@@ -262,11 +262,12 @@ const handleCommand = (command: string) => {
 }
 
 .logo.collapsed {
-  padding: 0 16px;
+  padding: 0;
   justify-content: center;
 }
 
 .logo-icon {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   display: flex;
@@ -347,7 +348,24 @@ const handleCommand = (command: string) => {
 }
 
 .el-menu--collapse {
-  padding: 8px 4px;
+  padding: 8px 0;
+  width: 64px !important;
+}
+
+.el-menu--collapse .el-menu-item {
+  justify-content: center;
+  padding: 0 !important;
+  min-width: 0;
+  margin: 2px 4px;
+}
+
+.el-menu--collapse .el-menu-item .el-icon {
+  margin: 0;
+  font-size: 20px;
+}
+
+.el-menu--collapse .el-menu-item span {
+  display: none;
 }
 
 /* 子菜单样式 - 主题兼容 */
