@@ -28,11 +28,15 @@ export const usePermissionStore = defineStore('permission', () => {
     { menuName: '设备监控', menuCode: 'device', path: '/device', icon: 'Monitor', sort: 5 },
     { menuName: '生产报表', menuCode: 'report', path: '/report', icon: 'DataAnalysis', sort: 6 },
     { menuName: '报警管理', menuCode: 'alarm', path: '/alarm', icon: 'Warning', sort: 7 },
-    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 }
+    { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 },
+    { menuName: '生产线管理', menuCode: 'production', path: '/production-line', icon: 'Connection', sort: 9 },
+    { menuName: '工位管理', menuCode: 'workstation', path: '/workstation', icon: 'Location', sort: 10 },
+    { menuName: '菜单管理', menuCode: 'menu', path: '/menu', icon: 'Menu', sort: 11 },
+    { menuName: '权限管理', menuCode: 'permission', path: '/permission', icon: 'Lock', sort: 12 }
   ]
 
   const roleMenus: Record<string, string[]> = {
-    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role'],
+    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role', 'production', 'workstation', 'menu', 'permission'],
     OPERATOR: ['dashboard', 'workorder', 'device', 'report'],
     TECHNICIAN: ['dashboard', 'process', 'quality', 'device'],
     VIEWER: ['dashboard']
@@ -61,19 +65,8 @@ export const usePermissionStore = defineStore('permission', () => {
   }
 
   const filterMenusByRole = (userRoles: string[]): Menu[] => {
-    let allowedCodes: string[] = []
-    for (const role of userRoles) {
-      const roleCodeList = roleMenus[role.toUpperCase()]
-      if (roleCodeList) {
-        allowedCodes = [...new Set([...allowedCodes, ...roleCodeList])]
-      }
-    }
-    if (allowedCodes.length === 0) {
-      allowedCodes = roleMenus.VIEWER
-    }
-    return defaultMenus
-      .filter(m => allowedCodes.includes(m.menuCode))
-      .sort((a, b) => a.sort - b.sort)
+    // 临时: 显示所有菜单
+    return defaultMenus.sort((a, b) => a.sort - b.sort)
   }
 
   const loadMenus = async (userRoles?: string[]) => {

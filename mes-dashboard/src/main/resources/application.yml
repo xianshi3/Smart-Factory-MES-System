@@ -6,19 +6,16 @@ server:
     include-exception: true
 
 spring:
-  application:
-    name: mes-dashboard
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/mes_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/mes_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: root
     druid:
       initial-size: 5
       min-idle: 5
       max-active: 20
-      max-wait: 60000
   data:
     redis:
       host: localhost

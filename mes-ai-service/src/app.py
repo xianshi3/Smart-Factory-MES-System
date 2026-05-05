@@ -10,6 +10,9 @@ from src.schemas.schemas import (
 )
 from src.services.inference_service import InferenceService
 from src.services.feature_engineering import FeatureEngineering
+from src.router.prediction import router as prediction_router
+from src.router.llm import router as llm_router
+from src.router.analysis import router as analysis_router
 from datetime import datetime
 import yaml
 import os
@@ -86,5 +89,9 @@ def create_app() -> FastAPI:
         """触发模型重训练"""
         result = inference_service.trigger_retrain()
         return {"status": "success", "message": "Retrain triggered", "result": result}
+
+    app.include_router(prediction_router)
+    app.include_router(llm_router)
+    app.include_router(analysis_router)
 
     return app

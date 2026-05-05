@@ -239,7 +239,7 @@
       <el-empty v-if="filteredDevices.length === 0" description="暂无设备数据" />
     </div>
 
-    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog">
+    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog" destroy-on-close>
       <div class="detail-content" v-if="detailData">
         <div class="detail-header">
           <div class="detail-icon-large">
@@ -247,27 +247,64 @@
           </div>
           <div class="detail-info">
             <h3>{{ detailData.name }}</h3>
-            <p>设备编号: {{ detailData.code }}</p>
-            <p>运行时间: {{ detailData.runtime }}</p>
+            <p><el-icon><Ticket /></el-icon> {{ detailData.code }}</p>
+            <p><el-icon><Timer /></el-icon> 运行 {{ detailData.runtime || '0时' }}</p>
           </div>
-          <el-tag :type="getStatusType(detailData.status)" size="large">
+          <el-tag :type="getStatusType(detailData.status)" size="large" class="status-tag">
             {{ getStatusText(detailData.status) }}
           </el-tag>
         </div>
 
-        <el-descriptions :column="2" border class="detail-descriptions">
-          <el-descriptions-item label="利用率">{{ detailData.utilization }}</el-descriptions-item>
-          <el-descriptions-item label="运行时长">{{ detailData.runtime }}</el-descriptions-item>
-          <el-descriptions-item label="温度">{{ detailData.temperature }}°C</el-descriptions-item>
-          <el-descriptions-item label="功率">{{ detailData.power }}kW</el-descriptions-item>
-        </el-descriptions>
+        <div class="detail-stats">
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.utilization || 0 }}%</div>
+            <div class="stat-card-label">设备利用率</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.temperature || 0 }}°C</div>
+            <div class="stat-card-label">当前温度</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.power || 0 }}</div>
+            <div class="stat-card-label">功率(kW)</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.efficiency || 0 }}%</div>
+            <div class="stat-card-label">OEE效率</div>
+          </div>
+        </div>
 
-        <div class="predict-section" v-if="detailData.status === 'running'">
-          <h4><el-icon><Cpu /></el-icon> AI 预测分析</h4>
-          <div class="predict-content">
-            <el-tag type="success">设备运行正常</el-tag>
-            <p>预测未来 24 小时内无需维护</p>
-            <p class="predict-confidence">预测置信度: 95%</p>
+        <div class="detail-section" v-if="detailData.status === 'running'">
+          <div class="section-title">
+            <el-icon><Cpu /></el-icon> AI 预测分析
+          </div>
+          <div class="ai-predict-card">
+            <div class="predict-badge success">
+              <el-icon><CircleCheck /></el-icon>
+              设备运行正常
+            </div>
+            <p class="predict-message">预测未来 24 小时内无需维护</p>
+            <p class="predict-confidence">预测置信度: <span>95%</span></p>
+          </div>
+        </div>
+
+        <div class="ai-actions">
+          <div class="section-title">
+            <el-icon><MagicStick /></el-icon> 智能分析功能
+          </div>
+          <div class="action-buttons">
+            <el-button type="default" @click="handleSPCAnalysis">
+              <el-icon><Histogram /></el-icon> SPC分析
+            </el-button>
+            <el-button type="default" @click="handleEnergyOptimization">
+              <el-icon><Lightning /></el-icon> 能耗优化
+            </el-button>
+            <el-button type="default" @click="handleCapacityPrediction">
+              <el-icon><TrendCharts /></el-icon> 产能预测
+            </el-button>
+            <el-button type="primary" @click="handleLLMChat">
+              <el-icon><ChatLineRound /></el-icon> AI对话
+            </el-button>
           </div>
         </div>
       </div>
@@ -276,19 +313,45 @@
     <el-dialog v-model="predictVisible" title="AI 预测分析" width="500px">
       <div class="predict-dialog-content" v-if="predictData">
         <div class="predict-header">
-          <el-icon size="48" color="var(--success)"><Cpu /></el-icon>
+          <el-icon size="48" :color="predictData.faultLevel === 'danger' ? 'var(--danger)' : predictData.faultLevel === 'warning' ? 'var(--warning)' : 'var(--success)'"><Cpu /></el-icon>
           <h3>{{ predictData.deviceName }}</h3>
         </div>
         <el-result
-          icon="success"
+          :icon="predictData.faultLevel === 'danger' ? 'error' : predictData.faultLevel === 'warning' ? 'warning' : 'success'"
           title="预测结果"
-          :sub-title="predictData.message || '设备运行状态良好，未来24小时预计无需维护'"
+          :sub-title="predictData.message"
         >
           <template #extra>
-            <el-tag type="success">置信度: {{ predictData.confidence || '95%' }}</el-tag>
+            <el-tag :type="predictData.faultLevel">{{ predictData.confidence }}</el-tag>
           </template>
         </el-result>
+        <div v-if="predictData.riskFactors && predictData.riskFactors.length > 0" class="risk-factors">
+          <h4>风险因素:</h4>
+          <el-tag v-for="(factor, index) in predictData.riskFactors" :key="index" type="warning" style="margin: 4px;">
+            {{ factor.description || factor.factor }}
+          </el-tag>
+        </div>
       </div>
+    </el-dialog>
+
+    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化建议' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI智能分析'" width="600px">
+      <div v-if="aiAnalysisLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" size="40"><Loading /></el-icon>
+        <p style="margin-top: 10px; color: var(--text-muted);">AI分析中...</p>
+      </div>
+      <div v-else-if="aiAnalysisResult" class="ai-analysis-result">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item v-for="(value, key) in aiAnalysisResult" :key="key" :label="key">
+            {{ typeof value === 'object' ? JSON.stringify(value) : value }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <div v-else style="text-align: center; padding: 40px;">
+        <p>暂无分析结果</p>
+      </div>
+      <template #footer>
+        <el-button @click="aiAnalysisVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -296,10 +359,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getDeviceStatus, getAlarmDevices, predictProduction, startDevice, stopDevice } from '@/api/services'
+import { getDeviceStatus, getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
 import { wsService } from '@/utils/websocket'
-import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
 
@@ -311,6 +374,10 @@ const detailVisible = ref(false)
 const detailData = ref<any>({})
 const predictVisible = ref(false)
 const predictData = ref<any>({})
+const aiAnalysisVisible = ref(false)
+const aiAnalysisLoading = ref(false)
+const aiAnalysisResult = ref<any>(null)
+const currentAnalysisType = ref('')
 
 let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)
@@ -430,6 +497,15 @@ const fetchDeviceData = async () => {
 }
 
 const updateCharts = () => {
+  console.log('[Device] updateCharts called, deviceList:', deviceList.value.length)
+  
+  if (!deviceList.value || deviceList.value.length === 0) {
+    console.log('[Device] No device data for charts')
+    utilizationOption.value = { title: { text: '暂无数据' } }
+    statusOption.value = { title: { text: '暂无数据' } }
+    return
+  }
+  
   const isDark = themeStore.isDark
   const textColor = isDark ? '#fff' : '#333'
   const lineColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
@@ -438,28 +514,41 @@ const updateCharts = () => {
   const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
 
-  const deviceNames = deviceList.value.map(d => d.name)
-  const utilizations = deviceList.value.map(d => parseInt(d.utilization) || 0)
+  // Device utilization - top 8 devices only
+  const topDevices = [...deviceList.value].sort((a, b) => {
+    const ua = parseInt(a.utilization) || 0
+    const ub = parseInt(b.utilization) || 0
+    return ub - ua
+  }).slice(0, 8)
+  
+  const deviceNames = topDevices.map((d: any) => d.code || d.name)
+  const utilizations = topDevices.map((d: any) => parseInt(d.utilization) || 0)
+  
+  console.log('[Device] Chart data - names:', deviceNames, 'utilizations:', utilizations)
 
   utilizationOption.value = {
     tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-    xAxis: { type: 'category', data: deviceNames, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor, rotate: 30 } },
-    yAxis: { type: 'value', max: 100, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor }, splitLine: { lineStyle: { color: splitLineColor } } },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+    xAxis: { type: 'category', data: deviceNames, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor, rotate: 0 } },
+    yAxis: { type: 'value', max: 100, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor, formatter: '{value}%' }, splitLine: { lineStyle: { color: splitLineColor } } },
     series: [{
       data: utilizations,
       type: 'bar',
       itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#6366f1' }, { offset: 1, color: '#8b5cf6' }] }, borderRadius: [4, 4, 0, 0] },
-      barWidth: '50%'
+      barWidth: '60%',
+      label: { show: true, position: 'top', color: textColor, formatter: '{c}%' }
     }]
   }
 
+  // Device status pie chart
   const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '故障': 0, '维护中': 0 }
   const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '故障': '#ef4444', '维护中': '#f59e0b' }
-  deviceList.value.forEach(d => {
-    const map: Record<string, string> = { running: '运行中', idle: '空闲', fault: '故障', maintenance: '维护中' }
-    statusCounts[map[d.status]] = (statusCounts[map[d.status]] || 0) + 1
+  deviceList.value.forEach((d: any) => {
+    const statusName = d.status === 'running' ? '运行中' : d.status === 'idle' ? '空闲' : d.status === 'fault' ? '故障' : '维护中'
+    statusCounts[statusName] = (statusCounts[statusName] || 0) + 1
   })
+  
+  console.log('[Device] Status counts:', statusCounts)
 
   statusOption.value = {
     tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
@@ -468,8 +557,8 @@ const updateCharts = () => {
       type: 'pie',
       radius: ['40%', '65%'],
       center: ['50%', '45%'],
-      data: Object.entries(statusCounts).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: colors[k] } })),
-      label: { show: true, color: textColor, fontSize: 12 },
+      data: Object.entries(statusCounts).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: colors[k] } })),
+      label: { show: true, color: textColor, fontSize: 12, formatter: '{b}: {c}' },
       emphasis: { itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.5)' } }
     }]
   }
@@ -491,22 +580,24 @@ const handlePredict = async (device: any) => {
     for (let i = 0; i < 7; i++) {
       historyData.push({
         temperature: device.temperature + (Math.random() - 0.5) * 10,
-        speed: parseInt(device.utilization) * 15 + (Math.random() - 0.5) * 50,
-        output: parseInt(device.utilization) * 10 + Math.floor(Math.random() * 20)
+        speed: parseInt(device.utilization || '0') * 15 + (Math.random() - 0.5) * 50,
       })
     }
     
-    const res = await predictProduction({
-      device_id: device.code,
+    const res = await predictDeviceFault({
+      device_code: device.code,
       history_data: historyData,
-      days_ahead: 7
+      hours_ahead: 24
     })
     if (res) {
+      const faultLevel = res.prediction === 'FAULT' ? 'danger' : res.prediction === 'WARNING' ? 'warning' : 'success'
       predictData.value = {
         deviceName: device.name,
-        message: `预测未来7天产量: ${res.predicted_quantity?.toFixed(0) || 0} 件`,
-        confidence: res.model_version ? `模型: ${res.model_version}` : '95%',
-        result: res
+        message: `设备故障概率: ${(res.fault_probability * 100).toFixed(1)}%`,
+        confidence: res.model_version ? `模型: ${res.model_version}` : `置信度: ${(res.confidence * 100).toFixed(0)}%`,
+        result: res,
+        faultLevel: faultLevel,
+        riskFactors: res.risk_factors || []
       }
       predictVisible.value = true
     }
@@ -529,6 +620,103 @@ const handleMaintain = (device: any) => {
   }).then(() => {
     ElMessage.success('已发起维护请求')
   }).catch(() => {})
+}
+
+const handleSPCAnalysis = async () => {
+  try {
+    currentAnalysisType.value = 'spc'
+    aiAnalysisLoading.value = true
+    aiAnalysisVisible.value = true
+    aiAnalysisResult.value = null
+    
+    const measurements = []
+    for (let i = 0; i < 10; i++) {
+      measurements.push(detailData.value.temperature + (Math.random() - 0.5) * 10)
+    }
+    const res = await analyzeSPC({
+      device_code: detailData.value.code,
+      parameter: 'temperature',
+      measurements: measurements
+    })
+    if (res?.success) {
+      aiAnalysisResult.value = res.data
+    }
+  } catch (error: any) {
+    ElMessage.error('SPC分析失败')
+  } finally {
+    aiAnalysisLoading.value = false
+  }
+}
+
+const handleEnergyOptimization = async () => {
+  try {
+    currentAnalysisType.value = 'energy'
+    aiAnalysisLoading.value = true
+    aiAnalysisVisible.value = true
+    aiAnalysisResult.value = null
+    
+    const res = await optimizeEnergy({
+      device_code: detailData.value.code,
+      current_params: {
+        power_consumption: parseFloat(detailData.value.power || '100'),
+        speed: parseFloat(detailData.value.utilization || '50') * 1.5,
+        temperature: parseFloat(detailData.value.temperature || '80')
+      },
+      target_output: 1000
+    })
+    if (res?.success) {
+      aiAnalysisResult.value = res.data
+    }
+  } catch (error: any) {
+    ElMessage.error('能耗优化失败')
+  } finally {
+    aiAnalysisLoading.value = false
+  }
+}
+
+const handleCapacityPrediction = async () => {
+  try {
+    currentAnalysisType.value = 'capacity'
+    aiAnalysisLoading.value = true
+    aiAnalysisVisible.value = true
+    aiAnalysisResult.value = null
+    
+    const res = await predictCapacity({
+      production_line_id: detailData.value.code,
+      product_type: 'PET Bottle',
+      start_date: new Date().toISOString().split('T')[0],
+      days_ahead: 7
+    })
+    if (res?.success) {
+      aiAnalysisResult.value = res.data
+    }
+  } catch (error: any) {
+    ElMessage.error('产能预测失败')
+  } finally {
+    aiAnalysisLoading.value = false
+  }
+}
+
+const handleLLMChat = async () => {
+  try {
+    currentAnalysisType.value = 'llm'
+    aiAnalysisLoading.value = true
+    aiAnalysisVisible.value = true
+    aiAnalysisResult.value = null
+    
+    const res = await llmChat({
+      message: `设备 ${detailData.value.name} (${detailData.value.code}) 当前温度${detailData.value.temperature}°C，利用率${detailData.value.utilization}%，已运行${detailData.value.runtime}。请分析设备状态并给出建议。`
+    })
+    if (res?.success && res.content) {
+      aiAnalysisResult.value = { 'AI分析结果': res.content }
+    } else {
+      ElMessage.warning('AI服务暂不可用，请确保已配置智谱AI API Key')
+    }
+  } catch (error: any) {
+    ElMessage.error('AI对话失败')
+  } finally {
+    aiAnalysisLoading.value = false
+  }
 }
 
 const handleStart = async (device: any) => {
@@ -864,10 +1052,12 @@ watch(() => themeStore.isDark, () => {
 .detail-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 24px;
+  background: linear-gradient(135deg, var(--accent-light), transparent);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .detail-icon-large {
@@ -876,33 +1066,134 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-hover);
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
   border-radius: var(--radius-lg);
-  color: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
 
 .detail-info { flex: 1; }
-.detail-info h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 8px; }
-.detail-info p { color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
+.detail-info h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 8px; font-weight: 600; }
+.detail-info p { color: var(--text-secondary); font-size: 14px; margin-bottom: 4px; }
 
 .detail-descriptions { margin-bottom: 20px; }
 
-.predict-section {
-  padding: 16px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-md);
+/* 设备详情统计卡片 */
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.predict-section h4 {
+.stat-card-item {
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 16px;
   margin-bottom: 12px;
 }
 
-.predict-confidence { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+.ai-predict-card {
+  background: linear-gradient(135deg, var(--success-light), transparent);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.predict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.predict-badge.success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.predict-message {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.predict-confidence {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.predict-confidence span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-actions {
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ai-actions .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .el-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-tag {
+  font-size: 14px;
+  padding: 8px 16px;
+}
 
 .predict-header { text-align: center; padding: 20px; }
 .predict-header h3 { color: var(--text-primary); margin-top: 12px; }

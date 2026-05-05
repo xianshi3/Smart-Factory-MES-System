@@ -128,9 +128,9 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENIN
 )
 echo Starting AI Service...
 if exist "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" (
-    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" main.py"
+    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" -m src.main"
 ) else (
-    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && python main.py"
+    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && python -m src.main"
 )
 exit /b
 
@@ -181,7 +181,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8883 " ^| findstr "LISTENIN
     goto menu
 )
 echo Starting Device Simulator...
-start "Device-Simulator" cmd /k "cd /d "%ROOT%\mes-device-simulator" && node src/index.js"
+start "Device-Simulator" cmd /k "cd /d "%ROOT%\mes-device-simulator-wpf" && dotnet run"
 pause
 goto menu
 
@@ -191,7 +191,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8883 " ^| findstr "LISTENIN
     exit /b
 )
 echo Starting Device Simulator...
-start "Device-Simulator" cmd /k "cd /d "%ROOT%\mes-device-simulator" && node src/index.js"
+start "Device-Simulator" cmd /k "cd /d "%ROOT%\mes-device-simulator-wpf" && dotnet run"
 exit /b
 
 :wait_java
@@ -235,6 +235,7 @@ rd /s /q "mes-ai-service\src\services\__pycache__" 2>nul
 rd /s /q "mes-ai-service\src\models\__pycache__" 2>nul
 rd /s /q "mes-ai-service\src\schemas\__pycache__" 2>nul
 rd /s /q "mes-ai-service\src\utils\__pycache__" 2>nul
+rd /s /q "mes-ai-service\src\router\__pycache__" 2>nul
 echo Removing .venv (recreate with: python -m venv .venv)...
 rd /s /q "mes-ai-service\.venv" 2>nul
 echo Removing .idea folders...

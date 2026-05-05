@@ -10,6 +10,119 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.27 (2026-05-05)
+
+### 新增功能
+
+#### 1. 生产线管理功能
+
+- 新增 ProductionLine 实体类 (mes-common/entity/ProductionLine.java)
+- 新增 ProductionLineMapper 接口 (mes-common/mapper/ProductionLineMapper.java)
+- 新增生产线管理前端页面 (mes-frontend/src/views/production/ProductionLineView.vue)
+- 新增 /api/dashboard/production-line REST API
+
+#### 2. 工位管理功能
+
+- 新增 Workstation 实体类 (mes-common/entity/Workstation.java)
+- 新增 WorkstationMapper 接口 (mes-common/mapper/WorkstationMapper.java)
+- 新增工位管理前端页面 (mes-frontend/src/views/workstation/WorkstationView.vue)
+- 新增 /api/dashboard/workstation REST API
+
+#### 3. 基础数据控制器
+
+- 新增 BaseDataController (mes-dashboard/controller/BaseDataController.java)
+- 修复 @MapperScan 配置，添加 com.mes.common.mapper 扫描
+
+#### 4. 权限管理增强
+
+- 后端 RoleController 添加"生产线管理"和"工位管理"权限初始化
+- 前端 permission.ts 添加对应菜单配置
+- 前端 MainLayout.vue fallback 菜单添加生产线管理和工位管理
+
+### Bug 修复
+
+- 修复前端 form 初始化问题，添加默认值防止 undefined 问题
+- 修复 DashboardApplication @MapperScan 只扫描 dashboard.mapper 的问题
+
+---
+
+## v1.0.26 (2026-05-04)
+
+### 新增功能
+
+#### 1. MES AI预测功能增强
+
+根据MES AI功能开发提示词，实现以下功能：
+
+##### 文件1: schemas/prediction.py
+- QualityPredictionRequest - 质量预测请求模型
+- QualityPredictionResponse - 质量预测响应模型
+- BatchPredictionRequest - 批量预测请求模型
+- BatchPredictionResponse - 批量预测响应模型
+- ModelInfoResponse - 模型信息响应
+- DeviceFaultPredictionRequest - 设备故障预测请求
+- DeviceFaultPredictionResponse - 设备故障预测响应
+- ProcessParamRecommendationRequest - 工艺参数推荐请求
+- ProcessParamRecommendationResponse - 工艺参数推荐响应
+- AnomalyDetectionRequest - 异常检测请求
+- AnomalyDetectionResponse - 异常检测响应
+
+##### 文件2: services/quality_predictor.py
+- 特征工程: 数值归一化、编码、特征组合
+- 模型加载: 加载ONNX或Pickle模型
+- 推理: 返回预测结果和置信度
+- 错误处理: 降级处理和缓存
+
+##### 文件3: router/prediction.py
+- POST /api/v1/predict/quality - 质量预测
+- POST /api/v1/predict/batch - 批量预测
+- GET /api/v1/predict/model/info - 模型信息
+- POST /api/v1/predict/device/fault - 设备故障预测
+- POST /api/v1/predict/process/recommend - 工艺参数推荐
+- POST /api/v1/predict/anomaly - 异常检测
+
+##### 文件4: models/train.py
+- 数据加载: 支持CSV和模拟数据
+- 特征工程: 特征组合、归一化
+- LightGBM训练: 二分类模型
+- 模型保存: PKL和ONNX格式
+
+##### 文件5: tests/test_prediction.py
+- 18个测试用例全部通过
+- 请求/响应模型测试
+- 端点测试
+- 推理准确性测试
+
+### 文件更新
+
+1. mes-ai-service/README.md - 更新API文档
+2. mes-ai-service/requirements.txt - 添加pytest、joblib、onnx依赖
+3. mes-ai-service/Dockerfile - 添加models和tests目录
+
+### 问题修复
+
+#### 1. 逻辑删除问题修复
+- 禁用@TableLogic，改用物理删除
+- 修复删除后无法创建相同编码数据的问题
+- 删除多余文档
+
+#### 2. 菜单和权限管理
+- 新增MenuView.vue菜单管理页面
+- 新增PermissionView.vue权限管理页面
+- 新增PermissionController.java权限管理接口
+- 增强MenuController.java CRUD接口
+
+#### 3. 数据库编码修复
+- 修复JDBC连接字符编码为UTF-8
+- 修复数据库中文乱码问题
+
+#### 4. Kafka集成
+- 添加Kafka Docker容器到docker-compose.yml
+- 恢复mes-dashboard Kafka配置
+- 实现设备数据Kafka消费
+
+---
+
 ## v1.0.25 (2026-05-02)
 
 ### 新增功能

@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '64px' : '220px'">
-      <div class="logo" :class="{ collapsed: isCollapse }" @click="isCollapse = !isCollapse">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside-container">
+      <div class="logo" :class="{ collapsed: isCollapse }" @click="toggleCollapse">
         <div class="logo-icon">
           <el-icon size="24"><Cpu /></el-icon>
         </div>
@@ -11,6 +11,9 @@
             <span class="logo-subtitle">智能工厂</span>
           </div>
         </transition>
+        <div class="collapse-btn" :class="{ collapsed: isCollapse }">
+          <el-icon><ArrowLeft v-if="!isCollapse" /><ArrowRight v-else /></el-icon>
+        </div>
       </div>
       
       <el-menu 
@@ -19,12 +22,26 @@
         router
         :ellipsis="false"
         :collapse="isCollapse"
-        :collapse-transition="false"
+        :collapse-transition="true"
       >
-        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <template #title>{{ item.title }}</template>
-        </el-menu-item>
+        <template v-for="group in menuGroups" :key="group.title">
+          <el-sub-menu v-if="!isCollapse" :index="group.title">
+            <template #title>
+              <el-icon><component :is="group.icon" /></el-icon>
+              <span>{{ group.title }}</span>
+            </template>
+            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
+          <template v-else>
+            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </template>
+        </template>
       </el-menu>
     </el-aside>
     
@@ -88,7 +105,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { usePermissionStore } from '@/stores/permission'
-import { Cpu, User, Sunny, Moon, ArrowDown, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { Cpu, User, Sunny, Moon, ArrowDown, ArrowLeft, ArrowRight, Setting, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -98,19 +115,67 @@ const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
 
+const toggleCollapse = () => {
+  isCollapse.value = !isCollapse.value
+}
+
+interface MenuItem {
+  path: string
+  title: string
+  icon: string
+}
+
+interface MenuGroup {
+  title: string
+  icon: string
+  items: MenuItem[]
+}
+
+const menuGroups = computed<MenuGroup[]>(() => {
+  return [
+    { 
+      title: '生产监控', 
+      icon: 'Odometer',
+      items: [
+        { path: '/dashboard', title: '工作台', icon: 'Odometer' },
+        { path: '/device', title: '设备监控', icon: 'Monitor' },
+        { path: '/alarm', title: '报警中心', icon: 'Warning' }
+      ]
+    },
+    { 
+      title: '生产管理', 
+      icon: 'Document',
+      items: [
+        { path: '/workorder', title: '工单管理', icon: 'Document' },
+        { path: '/process', title: '工艺管理', icon: 'Setting' },
+        { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
+        { path: '/report', title: '生产报表', icon: 'DataAnalysis' }
+      ]
+    },
+    { 
+      title: '基础数据', 
+      icon: 'Grid',
+      items: [
+        { path: '/production-line', title: '生产线', icon: 'Connection' },
+        { path: '/workstation', title: '工位管理', icon: 'Location' }
+      ]
+    },
+    { 
+      title: '系统管理', 
+      icon: 'Setting',
+      items: [
+        { path: '/role', title: '角色管理', icon: 'Key' },
+        { path: '/menu', title: '菜单管理', icon: 'Menu' },
+        { path: '/permission', title: '权限管理', icon: 'Lock' }
+      ]
+    }
+  ]
+})
+
 const menuItems = computed(() => {
   const menuList = permissionStore.menus
   if (!menuList || !Array.isArray(menuList) || menuList.length === 0) {
-    return [
-      { path: '/dashboard', title: '首页', icon: 'Odometer' },
-      { path: '/workorder', title: '工单管理', icon: 'Document' },
-      { path: '/process', title: '工艺管理', icon: 'Setting' },
-      { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
-      { path: '/device', title: '设备监控', icon: 'Monitor' },
-      { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
-      { path: '/alarm', title: '报警管理', icon: 'Warning' },
-      { path: '/role', title: '角色管理', icon: 'Key' }
-    ]
+    return menuGroups.value.flatMap(g => g.items)
   }
   return menuList.map((menu: any) => ({
     path: menu.path,
@@ -179,6 +244,10 @@ const handleCommand = (command: string) => {
   overflow: hidden;
 }
 
+.aside-container {
+  position: relative;
+}
+
 .logo {
   height: 64px;
   display: flex;
@@ -189,22 +258,25 @@ const handleCommand = (command: string) => {
   background: linear-gradient(135deg, var(--accent-light), transparent);
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .logo.collapsed {
-  padding: 0 16px;
+  padding: 0;
   justify-content: center;
 }
 
 .logo-icon {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark, #3b82f6));
   border-radius: 10px;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .logo-text {
@@ -226,6 +298,33 @@ const handleCommand = (command: string) => {
   letter-spacing: 1px;
 }
 
+.collapse-btn {
+  position: absolute;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  z-index: 10;
+}
+
+.collapse-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collapse-btn.collapsed {
+  transform: rotate(180deg);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -240,7 +339,7 @@ const handleCommand = (command: string) => {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 8px;
+  padding: 8px 0;
   overflow-y: auto;
 }
 
@@ -249,15 +348,71 @@ const handleCommand = (command: string) => {
 }
 
 .el-menu--collapse {
-  padding: 8px 4px;
+  padding: 8px 0;
+  width: 64px !important;
+}
+
+.el-menu--collapse .el-menu-item {
+  justify-content: center;
+  padding: 0 !important;
+  min-width: 0;
+  margin: 2px 4px;
+}
+
+.el-menu--collapse .el-menu-item .el-icon {
+  margin: 0;
+  font-size: 20px;
+}
+
+.el-menu--collapse .el-menu-item span {
+  display: none;
+}
+
+/* 子菜单样式 - 主题兼容 */
+:deep(.el-sub-menu__title) {
+  color: var(--text-secondary) !important;
+  border-radius: 8px;
+  margin: 4px 8px;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-sub-menu__title:hover) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+:deep(.el-sub-menu .el-menu) {
+  background: transparent !important;
+}
+
+:deep(.el-sub-menu .el-menu-item) {
+  color: var(--text-secondary) !important;
+  border-radius: 8px;
+  margin: 2px 0;
+  min-height: 40px;
+}
+
+:deep(.el-sub-menu .el-menu-item:hover) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+:deep(.el-sub-menu .el-menu-item.is-active) {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+}
+
+/* 折叠时隐藏子菜单 */
+.el-menu--collapse .el-sub-menu {
+  display: none;
 }
 
 .el-menu-item {
   color: var(--text-secondary);
-  margin: 4px 0;
-  border-radius: var(--radius-md);
-  height: 44px;
-  transition: all var(--transition-fast);
+  margin: 2px 8px;
+  border-radius: 8px;
+  height: 42px;
+  transition: all 0.2s ease;
 }
 
 .el-menu-item:hover {
@@ -266,8 +421,9 @@ const handleCommand = (command: string) => {
 }
 
 .el-menu-item.is-active {
-  background: var(--accent-light);
+  background: linear-gradient(90deg, var(--accent-light), transparent);
   color: var(--accent);
+  font-weight: 500;
 }
 
 .el-menu-item.is-active .el-icon {

@@ -42,7 +42,7 @@ public class BaseEntity implements Serializable {
      * 逻辑删除标志
      * 0-未删除 1-已删除
      */
-    @TableLogic
+    //@TableLogic  // 禁用逻辑删除，使用物理删除
     private Integer deleted;
 
     /**

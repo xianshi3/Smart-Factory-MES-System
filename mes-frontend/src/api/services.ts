@@ -120,6 +120,58 @@ export function predictProduction(data: any) {
   return request({ url: 'http://localhost:8086/api/v1/predict/production', method: 'post', data })
 }
 
+export function predictDeviceFault(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/predict/device/fault', method: 'post', data })
+}
+
+export function recommendProcessParams(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/predict/process/recommend', method: 'post', data })
+}
+
+export function detectAnomaly(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/predict/anomaly', method: 'post', data })
+}
+
+export function getAiModelInfo() {
+  return request({ url: 'http://localhost:8086/api/v1/predict/model/info', method: 'get' })
+}
+
+export function llmChat(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/llm/chat', method: 'post', data })
+}
+
+export function llmAnalyze(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/llm/analyze', method: 'post', data })
+}
+
+export function llmRecommend(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/llm/recommend', method: 'post', data })
+}
+
+export function getLlmInfo() {
+  return request({ url: 'http://localhost:8086/api/v1/llm/info', method: 'get' })
+}
+
+export function analyzeSPC(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/analysis/spc/analyze', method: 'post', data })
+}
+
+export function predictCapacity(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/analysis/capacity/predict', method: 'post', data })
+}
+
+export function analyzeRootCause(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/analysis/root-cause/analyze', method: 'post', data })
+}
+
+export function predictDelivery(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/analysis/delivery/predict', method: 'post', data })
+}
+
+export function optimizeEnergy(data: any) {
+  return request({ url: 'http://localhost:8086/api/v1/analysis/energy/optimize', method: 'post', data })
+}
+
 export function startDevice(deviceId: number) {
   return request({ url: `/api/dashboard/device/${deviceId}/start`, method: 'post' })
 }
