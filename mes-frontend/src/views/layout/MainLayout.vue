@@ -244,9 +244,10 @@ const handleCommand = (command: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark, #3b82f6));
   border-radius: 10px;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .logo-text {
@@ -297,20 +298,49 @@ const handleCommand = (command: string) => {
 .menu-group-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  padding: 16px 20px 12px;
+  margin-bottom: 4px;
+}
+
+.menu-group-title .el-icon {
+  font-size: 14px;
+  padding: 4px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+.el-menu--collapse .menu-group-title {
+  display: none;
 }
 
 .el-menu-item {
   color: var(--text-secondary);
-  margin: 4px 0;
+  margin: 2px 8px;
   border-radius: var(--radius-md);
-  height: 44px;
+  height: 42px;
   transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.el-menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: height 0.2s ease;
 }
 
 .el-menu-item:hover {
@@ -318,13 +348,30 @@ const handleCommand = (command: string) => {
   color: var(--text-primary);
 }
 
+.el-menu-item:hover::before {
+  height: 60%;
+}
+
 .el-menu-item.is-active {
-  background: var(--accent-light);
+  background: linear-gradient(90deg, var(--accent-light), transparent);
   color: var(--accent);
+}
+
+.el-menu-item.is-active::before {
+  height: 80%;
 }
 
 .el-menu-item.is-active .el-icon {
   color: var(--accent);
+}
+
+.el-menu-item .el-icon {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.el-menu-item:hover .el-icon {
+  transform: scale(1.1);
 }
 
 .el-menu-item .el-icon {
