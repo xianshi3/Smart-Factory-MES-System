@@ -230,7 +230,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAlarmList, ackAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
+import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
 import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search } from '@element-plus/icons-vue'
 
 const alarms = ref<any[]>([])
@@ -266,7 +266,7 @@ const filteredAlarms = computed(() => {
 const loadAlarms = async () => {
   loading.value = true
   try {
-    const res = await getAlarmList()
+    const res = await getAllAlarms()
     alarms.value = res.data || res || []
   } catch (e: any) {
     console.error('[Alarm] Load error:', e)
@@ -284,7 +284,7 @@ const filterStatus = (status: string) => {
 const handleAck = async (row: any) => {
   try {
     await ElMessageBox.confirm('确认此告警?', '提示', { type: 'info' })
-    await ackAlarm(row.id)
+    await acknowledgeAlarm(row.id, 'currentUser')
     ElMessage.success('告警已确认')
     loadAlarms()
   } catch (e: any) {
@@ -302,7 +302,7 @@ const handleResolve = async (row: any) => {
 
 const submitResolve = async () => {
   try {
-    await resolveAlarm(currentAlarm.value.id, { remarks: resolveRemarks.value })
+    await resolveAlarm(currentAlarm.value.id, 'currentUser', resolveRemarks.value)
     ElMessage.success('告警已解决')
     resolveDialogVisible.value = false
     loadAlarms()
