@@ -22,18 +22,22 @@
         :collapse-transition="false"
       >
         <template v-for="group in menuGroups" :key="group.title">
-          <el-menu-item-group v-show="!isCollapse" :title="group.title">
+          <el-sub-menu v-if="!isCollapse" :index="group.title">
             <template #title>
-              <div class="menu-group-title">
-                <el-icon><component :is="group.icon" /></el-icon>
-                <span>{{ group.title }}</span>
-              </div>
+              <el-icon><component :is="group.icon" /></el-icon>
+              <span>{{ group.title }}</span>
             </template>
-          </el-menu-item-group>
-          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-            <el-icon><component :is="item.icon" /></el-icon>
-            <template #title>{{ item.title }}</template>
-          </el-menu-item>
+            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
+          <template v-else>
+            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </template>
         </template>
       </el-menu>
     </el-aside>
@@ -121,31 +125,43 @@ interface MenuGroup {
 }
 
 const menuGroups = computed<MenuGroup[]>(() => {
-  const allItems: MenuItem[] = [
-    { path: '/dashboard', title: '首页', icon: 'Odometer' },
-    { path: '/workorder', title: '工单管理', icon: 'Document' },
-    { path: '/process', title: '工艺管理', icon: 'Setting' },
-    { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
-    { path: '/device', title: '设备监控', icon: 'Monitor' },
-    { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
-    { path: '/alarm', title: '报警管理', icon: 'Warning' },
-    { path: '/role', title: '角色管理', icon: 'Key' },
-    { path: '/production-line', title: '生产线管理', icon: 'Connection' },
-    { path: '/workstation', title: '工位管理', icon: 'Location' },
-    { path: '/menu', title: '菜单管理', icon: 'Menu' },
-    { path: '/permission', title: '权限管理', icon: 'Lock' }
-  ]
-  
-  const productionItems = allItems.filter(item => 
-    ['/dashboard', '/workorder', '/process', '/quality', '/device', '/report', '/alarm'].includes(item.path)
-  )
-  const systemItems = allItems.filter(item => 
-    ['/role', '/production-line', '/workstation', '/menu', '/permission'].includes(item.path)
-  )
-  
   return [
-    { title: '生产管理', icon: 'DataBoard', items: productionItems },
-    { title: '系统管理', icon: 'Setting', items: systemItems }
+    { 
+      title: '生产监控', 
+      icon: 'Odometer',
+      items: [
+        { path: '/dashboard', title: '工作台', icon: 'Odometer' },
+        { path: '/device', title: '设备监控', icon: 'Monitor' },
+        { path: '/alarm', title: '报警中心', icon: 'Warning' }
+      ]
+    },
+    { 
+      title: '生产管理', 
+      icon: 'Document',
+      items: [
+        { path: '/workorder', title: '工单管理', icon: 'Document' },
+        { path: '/process', title: '工艺管理', icon: 'Setting' },
+        { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
+        { path: '/report', title: '生产报表', icon: 'DataAnalysis' }
+      ]
+    },
+    { 
+      title: '基础数据', 
+      icon: 'Grid',
+      items: [
+        { path: '/production-line', title: '生产线', icon: 'Connection' },
+        { path: '/workstation', title: '工位管理', icon: 'Location' }
+      ]
+    },
+    { 
+      title: '系统管理', 
+      icon: 'Setting',
+      items: [
+        { path: '/role', title: '角色管理', icon: 'Key' },
+        { path: '/menu', title: '菜单管理', icon: 'Menu' },
+        { path: '/permission', title: '权限管理', icon: 'Lock' }
+      ]
+    }
   ]
 })
 
@@ -283,7 +299,7 @@ const handleCommand = (command: string) => {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 8px;
+  padding: 8px 0;
   overflow-y: auto;
 }
 
@@ -295,52 +311,33 @@ const handleCommand = (command: string) => {
   padding: 8px 4px;
 }
 
-.menu-group-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  padding: 16px 20px 12px;
-  margin-bottom: 4px;
+.el-sub-menu .el-menu-item {
+  color: var(--text-secondary);
+  margin: 2px 0;
+  border-radius: 8px;
+  min-height: 42px;
 }
 
-.menu-group-title .el-icon {
-  font-size: 14px;
-  padding: 4px;
+.el-sub-menu .el-menu-item:hover {
   background: var(--bg-hover);
-  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.el-sub-menu .el-menu-item.is-active {
+  background: var(--accent-light);
   color: var(--accent);
 }
 
-.el-menu--collapse .menu-group-title {
+.el-menu--collapse .el-sub-menu {
   display: none;
 }
 
 .el-menu-item {
   color: var(--text-secondary);
   margin: 2px 8px;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   height: 42px;
-  transition: all var(--transition-fast);
-  position: relative;
-  overflow: hidden;
-}
-
-.el-menu-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 0;
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-  transition: height 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .el-menu-item:hover {
@@ -348,30 +345,14 @@ const handleCommand = (command: string) => {
   color: var(--text-primary);
 }
 
-.el-menu-item:hover::before {
-  height: 60%;
-}
-
 .el-menu-item.is-active {
   background: linear-gradient(90deg, var(--accent-light), transparent);
   color: var(--accent);
-}
-
-.el-menu-item.is-active::before {
-  height: 80%;
+  font-weight: 500;
 }
 
 .el-menu-item.is-active .el-icon {
   color: var(--accent);
-}
-
-.el-menu-item .el-icon {
-  font-size: 18px;
-  transition: transform 0.2s ease;
-}
-
-.el-menu-item:hover .el-icon {
-  transform: scale(1.1);
 }
 
 .el-menu-item .el-icon {
