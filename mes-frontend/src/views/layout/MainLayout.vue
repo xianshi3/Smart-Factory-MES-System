@@ -21,10 +21,20 @@
         :collapse="isCollapse"
         :collapse-transition="false"
       >
-        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <template #title>{{ item.title }}</template>
-        </el-menu-item>
+        <template v-for="group in menuGroups" :key="group.title">
+          <el-menu-item-group v-show="!isCollapse" :title="group.title">
+            <template #title>
+              <div class="menu-group-title">
+                <el-icon><component :is="group.icon" /></el-icon>
+                <span>{{ group.title }}</span>
+              </div>
+            </template>
+          </el-menu-item-group>
+          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
     
@@ -98,23 +108,51 @@ const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
 
+interface MenuItem {
+  path: string
+  title: string
+  icon: string
+}
+
+interface MenuGroup {
+  title: string
+  icon: string
+  items: MenuItem[]
+}
+
+const menuGroups = computed<MenuGroup[]>(() => {
+  const allItems: MenuItem[] = [
+    { path: '/dashboard', title: '首页', icon: 'Odometer' },
+    { path: '/workorder', title: '工单管理', icon: 'Document' },
+    { path: '/process', title: '工艺管理', icon: 'Setting' },
+    { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
+    { path: '/device', title: '设备监控', icon: 'Monitor' },
+    { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
+    { path: '/alarm', title: '报警管理', icon: 'Warning' },
+    { path: '/role', title: '角色管理', icon: 'Key' },
+    { path: '/production-line', title: '生产线管理', icon: 'Connection' },
+    { path: '/workstation', title: '工位管理', icon: 'Location' },
+    { path: '/menu', title: '菜单管理', icon: 'Menu' },
+    { path: '/permission', title: '权限管理', icon: 'Lock' }
+  ]
+  
+  const productionItems = allItems.filter(item => 
+    ['/dashboard', '/workorder', '/process', '/quality', '/device', '/report', '/alarm'].includes(item.path)
+  )
+  const systemItems = allItems.filter(item => 
+    ['/role', '/production-line', '/workstation', '/menu', '/permission'].includes(item.path)
+  )
+  
+  return [
+    { title: '生产管理', icon: 'DataBoard', items: productionItems },
+    { title: '系统管理', icon: 'Setting', items: systemItems }
+  ]
+})
+
 const menuItems = computed(() => {
   const menuList = permissionStore.menus
   if (!menuList || !Array.isArray(menuList) || menuList.length === 0) {
-    return [
-      { path: '/dashboard', title: '首页', icon: 'Odometer' },
-      { path: '/workorder', title: '工单管理', icon: 'Document' },
-      { path: '/process', title: '工艺管理', icon: 'Setting' },
-      { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
-      { path: '/device', title: '设备监控', icon: 'Monitor' },
-      { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
-      { path: '/alarm', title: '报警管理', icon: 'Warning' },
-      { path: '/role', title: '角色管理', icon: 'Key' },
-      { path: '/production-line', title: '生产线管理', icon: 'Connection' },
-      { path: '/workstation', title: '工位管理', icon: 'Location' },
-      { path: '/menu', title: '菜单管理', icon: 'Menu' },
-      { path: '/permission', title: '权限管理', icon: 'Lock' }
-    ]
+    return menuGroups.value.flatMap(g => g.items)
   }
   return menuList.map((menu: any) => ({
     path: menu.path,
@@ -254,6 +292,17 @@ const handleCommand = (command: string) => {
 
 .el-menu--collapse {
   padding: 8px 4px;
+}
+
+.menu-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .el-menu-item {
