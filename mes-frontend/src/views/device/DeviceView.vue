@@ -239,7 +239,7 @@
       <el-empty v-if="filteredDevices.length === 0" description="暂无设备数据" />
     </div>
 
-    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog">
+    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog" destroy-on-close>
       <div class="detail-content" v-if="detailData">
         <div class="detail-header">
           <div class="detail-icon-large">
@@ -247,37 +247,64 @@
           </div>
           <div class="detail-info">
             <h3>{{ detailData.name }}</h3>
-            <p>设备编号: {{ detailData.code }}</p>
-            <p>运行时间: {{ detailData.runtime }}</p>
+            <p><el-icon><Ticket /></el-icon> {{ detailData.code }}</p>
+            <p><el-icon><Timer /></el-icon> 运行 {{ detailData.runtime || '0时' }}</p>
           </div>
-          <el-tag :type="getStatusType(detailData.status)" size="large">
+          <el-tag :type="getStatusType(detailData.status)" size="large" class="status-tag">
             {{ getStatusText(detailData.status) }}
           </el-tag>
         </div>
 
-        <el-descriptions :column="2" border class="detail-descriptions">
-          <el-descriptions-item label="利用率">{{ detailData.utilization }}</el-descriptions-item>
-          <el-descriptions-item label="运行时长">{{ detailData.runtime }}</el-descriptions-item>
-          <el-descriptions-item label="温度">{{ detailData.temperature }}°C</el-descriptions-item>
-          <el-descriptions-item label="功率">{{ detailData.power }}kW</el-descriptions-item>
-        </el-descriptions>
-
-        <div class="predict-section" v-if="detailData.status === 'running'">
-          <h4><el-icon><Cpu /></el-icon> AI 预测分析</h4>
-          <div class="predict-content">
-            <el-tag type="success">设备运行正常</el-tag>
-            <p>预测未来 24 小时内无需维护</p>
-            <p class="predict-confidence">预测置信度: 95%</p>
+        <div class="detail-stats">
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.utilization || 0 }}%</div>
+            <div class="stat-card-label">设备利用率</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.temperature || 0 }}°C</div>
+            <div class="stat-card-label">当前温度</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.power || 0 }}</div>
+            <div class="stat-card-label">功率(kW)</div>
+          </div>
+          <div class="stat-card-item">
+            <div class="stat-card-value">{{ detailData.efficiency || 0 }}%</div>
+            <div class="stat-card-label">OEE效率</div>
           </div>
         </div>
 
-        <div class="ai-actions" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-          <h4>智能分析功能</h4>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-            <el-button size="small" @click="handleSPCAnalysis">SPC分析</el-button>
-            <el-button size="small" @click="handleEnergyOptimization">能耗优化</el-button>
-            <el-button size="small" @click="handleCapacityPrediction">产能预测</el-button>
-            <el-button size="small" type="primary" @click="handleLLMChat">AI对话</el-button>
+        <div class="detail-section" v-if="detailData.status === 'running'">
+          <div class="section-title">
+            <el-icon><Cpu /></el-icon> AI 预测分析
+          </div>
+          <div class="ai-predict-card">
+            <div class="predict-badge success">
+              <el-icon><CircleCheck /></el-icon>
+              设备运行正常
+            </div>
+            <p class="predict-message">预测未来 24 小时内无需维护</p>
+            <p class="predict-confidence">预测置信度: <span>95%</span></p>
+          </div>
+        </div>
+
+        <div class="ai-actions">
+          <div class="section-title">
+            <el-icon><MagicStick /></el-icon> 智能分析功能
+          </div>
+          <div class="action-buttons">
+            <el-button type="default" @click="handleSPCAnalysis">
+              <el-icon><Histogram /></el-icon> SPC分析
+            </el-button>
+            <el-button type="default" @click="handleEnergyOptimization">
+              <el-icon><Lightning /></el-icon> 能耗优化
+            </el-button>
+            <el-button type="default" @click="handleCapacityPrediction">
+              <el-icon><TrendCharts /></el-icon> 产能预测
+            </el-button>
+            <el-button type="primary" @click="handleLLMChat">
+              <el-icon><ChatLineRound /></el-icon> AI对话
+            </el-button>
           </div>
         </div>
       </div>
@@ -335,7 +362,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDeviceStatus, getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
 import { wsService } from '@/utils/websocket'
-import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading } from '@element-plus/icons-vue'
+import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
 
@@ -1025,10 +1052,12 @@ watch(() => themeStore.isDark, () => {
 .detail-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 24px;
+  background: linear-gradient(135deg, var(--accent-light), transparent);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .detail-icon-large {
@@ -1037,33 +1066,134 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-hover);
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
   border-radius: var(--radius-lg);
-  color: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
 
 .detail-info { flex: 1; }
-.detail-info h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 8px; }
-.detail-info p { color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
+.detail-info h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 8px; font-weight: 600; }
+.detail-info p { color: var(--text-secondary); font-size: 14px; margin-bottom: 4px; }
 
 .detail-descriptions { margin-bottom: 20px; }
 
-.predict-section {
-  padding: 16px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-md);
+/* 设备详情统计卡片 */
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.predict-section h4 {
+.stat-card-item {
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 16px;
   margin-bottom: 12px;
 }
 
-.predict-confidence { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+.ai-predict-card {
+  background: linear-gradient(135deg, var(--success-light), transparent);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.predict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.predict-badge.success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.predict-message {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.predict-confidence {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.predict-confidence span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-actions {
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ai-actions .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .el-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-tag {
+  font-size: 14px;
+  padding: 8px 16px;
+}
 
 .predict-header { text-align: center; padding: 20px; }
 .predict-header h3 { color: var(--text-primary); margin-top: 12px; }
