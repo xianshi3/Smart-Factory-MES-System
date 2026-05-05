@@ -311,23 +311,41 @@ const handleCommand = (command: string) => {
   padding: 8px 4px;
 }
 
-.el-sub-menu .el-menu-item {
-  color: var(--text-secondary);
-  margin: 2px 0;
+/* 子菜单样式 - 主题兼容 */
+:deep(.el-sub-menu__title) {
+  color: var(--text-secondary) !important;
   border-radius: 8px;
-  min-height: 42px;
+  margin: 4px 8px;
+  transition: all 0.2s ease;
 }
 
-.el-sub-menu .el-menu-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+:deep(.el-sub-menu__title:hover) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
-.el-sub-menu .el-menu-item.is-active {
-  background: var(--accent-light);
-  color: var(--accent);
+:deep(.el-sub-menu .el-menu) {
+  background: transparent !important;
 }
 
+:deep(.el-sub-menu .el-menu-item) {
+  color: var(--text-secondary) !important;
+  border-radius: 8px;
+  margin: 2px 0;
+  min-height: 40px;
+}
+
+:deep(.el-sub-menu .el-menu-item:hover) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+:deep(.el-sub-menu .el-menu-item.is-active) {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+}
+
+/* 折叠时隐藏子菜单 */
 .el-menu--collapse .el-sub-menu {
   display: none;
 }
