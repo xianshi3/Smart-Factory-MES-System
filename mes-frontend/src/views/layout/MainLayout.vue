@@ -110,6 +110,8 @@ const menuItems = computed(() => {
       { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
       { path: '/alarm', title: '报警管理', icon: 'Warning' },
       { path: '/role', title: '角色管理', icon: 'Key' },
+      { path: '/production-line', title: '生产线管理', icon: 'Connection' },
+      { path: '/workstation', title: '工位管理', icon: 'Location' },
       { path: '/menu', title: '菜单管理', icon: 'Menu' },
       { path: '/permission', title: '权限管理', icon: 'Lock' }
     ]

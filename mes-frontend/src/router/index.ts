@@ -21,7 +21,9 @@ const pathMenuCodeMap: Record<string, string> = {
   '/alarm': 'alarm',
   '/role': 'role',
   '/menu': 'menu',
-  '/permission': 'permission'
+  '/permission': 'permission',
+  '/production-line': 'production',
+  '/workstation': 'workstation'
 }
 
 const routes: RouteRecordRaw[] = [
@@ -94,6 +96,16 @@ const routes: RouteRecordRaw[] = [
         path: 'permission',
         name: 'Permission',
         component: () => import('@/views/permission/PermissionView.vue')
+      },
+      {
+        path: 'production-line',
+        name: 'ProductionLine',
+        component: () => import('@/views/production/ProductionLineView.vue')
+      },
+      {
+        path: 'workstation',
+        name: 'Workstation',
+        component: () => import('@/views/workstation/WorkstationView.vue')
       }
     ]
   }

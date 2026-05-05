@@ -10,6 +10,42 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.27 (2026-05-05)
+
+### 新增功能
+
+#### 1. 生产线管理功能
+
+- 新增 ProductionLine 实体类 (mes-common/entity/ProductionLine.java)
+- 新增 ProductionLineMapper 接口 (mes-common/mapper/ProductionLineMapper.java)
+- 新增生产线管理前端页面 (mes-frontend/src/views/production/ProductionLineView.vue)
+- 新增 /api/dashboard/production-line REST API
+
+#### 2. 工位管理功能
+
+- 新增 Workstation 实体类 (mes-common/entity/Workstation.java)
+- 新增 WorkstationMapper 接口 (mes-common/mapper/WorkstationMapper.java)
+- 新增工位管理前端页面 (mes-frontend/src/views/workstation/WorkstationView.vue)
+- 新增 /api/dashboard/workstation REST API
+
+#### 3. 基础数据控制器
+
+- 新增 BaseDataController (mes-dashboard/controller/BaseDataController.java)
+- 修复 @MapperScan 配置，添加 com.mes.common.mapper 扫描
+
+#### 4. 权限管理增强
+
+- 后端 RoleController 添加"生产线管理"和"工位管理"权限初始化
+- 前端 permission.ts 添加对应菜单配置
+- 前端 MainLayout.vue fallback 菜单添加生产线管理和工位管理
+
+### Bug 修复
+
+- 修复前端 form 初始化问题，添加默认值防止 undefined 问题
+- 修复 DashboardApplication @MapperScan 只扫描 dashboard.mapper 的问题
+
+---
+
 ## v1.0.26 (2026-05-04)
 
 ### 新增功能

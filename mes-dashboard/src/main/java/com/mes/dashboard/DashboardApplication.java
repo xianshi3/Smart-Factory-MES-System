@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @description 负责生产看板、设备状态、OEE计算
  */
 @SpringBootApplication
-@MapperScan("com.mes.dashboard.mapper")
+@MapperScan({"com.mes.dashboard.mapper", "com.mes.common.mapper"})
 @ComponentScan(basePackages = {"com.mes.dashboard", "com.mes.common"})
 @EnableScheduling
 public class DashboardApplication {

@@ -29,12 +29,14 @@ export const usePermissionStore = defineStore('permission', () => {
     { menuName: '生产报表', menuCode: 'report', path: '/report', icon: 'DataAnalysis', sort: 6 },
     { menuName: '报警管理', menuCode: 'alarm', path: '/alarm', icon: 'Warning', sort: 7 },
     { menuName: '角色管理', menuCode: 'role', path: '/role', icon: 'Key', sort: 8 },
-    { menuName: '菜单管理', menuCode: 'menu', path: '/menu', icon: 'Menu', sort: 9 },
-    { menuName: '权限管理', menuCode: 'permission', path: '/permission', icon: 'Lock', sort: 10 }
+    { menuName: '生产线管理', menuCode: 'production', path: '/production-line', icon: 'Connection', sort: 9 },
+    { menuName: '工位管理', menuCode: 'workstation', path: '/workstation', icon: 'Location', sort: 10 },
+    { menuName: '菜单管理', menuCode: 'menu', path: '/menu', icon: 'Menu', sort: 11 },
+    { menuName: '权限管理', menuCode: 'permission', path: '/permission', icon: 'Lock', sort: 12 }
   ]
 
   const roleMenus: Record<string, string[]> = {
-    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role', 'menu', 'permission'],
+    ADMIN: ['dashboard', 'workorder', 'process', 'quality', 'device', 'report', 'alarm', 'role', 'production', 'workstation', 'menu', 'permission'],
     OPERATOR: ['dashboard', 'workorder', 'device', 'report'],
     TECHNICIAN: ['dashboard', 'process', 'quality', 'device'],
     VIEWER: ['dashboard']
