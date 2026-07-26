@@ -1,16 +1,24 @@
 # MES Quality Service Configuration
 server:
-  port: 8084
+  port: ${SERVER_PORT:8084}
+  shutdown: graceful
   error:
     include-message: always
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
 
 spring:
   application:
     name: mes-quality
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   datasource:
-    url: jdbc:mysql://localhost:3306/mes_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/mes_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
@@ -20,8 +28,8 @@ spring:
       max-wait: 60000
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       database: 1
 
 mybatis-plus:
@@ -29,7 +37,6 @@ mybatis-plus:
   type-aliases-package: com.mes.quality.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
@@ -41,3 +48,12 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

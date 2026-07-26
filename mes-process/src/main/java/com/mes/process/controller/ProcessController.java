@@ -48,6 +48,9 @@ public class ProcessController {
     @GetMapping("/{id}")
     public Result<ProcessTemplate> getById(@PathVariable Long id) {
         ProcessTemplate template = processTemplateService.getById(id);
+        if (template == null) {
+            return Result.fail(404, "模板不存在");
+        }
         return Result.ok(template);
     }
 
@@ -83,7 +86,7 @@ public class ProcessController {
      */
     @Operation(summary = "参数实时校验")
     @PostMapping("/parameter/check")
-    public Result<?> checkParameters(@RequestBody ParameterCheckDTO dto) {
+    public Result<Object> checkParameters(@RequestBody ParameterCheckDTO dto) {
         return processTemplateService.checkParameters(dto);
     }
 

@@ -437,10 +437,7 @@ const calculateRuntime = (lastHeartbeat: string) => {
 
 const fetchDeviceData = async () => {
   try {
-    console.log('[Device] Fetching data from API...')
     const [deviceRes, alarmRes] = await Promise.all([getDeviceStatus(), getAlarmDevices()])
-    
-    console.log('[Device] Raw deviceRes:', deviceRes)
     
     // Handle all possible response formats
     let devices = []
@@ -467,7 +464,6 @@ const fetchDeviceData = async () => {
         temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
         power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
       }))
-      console.log('[Device] Mapped deviceList:', deviceList.value)
     }
 
     let alarms = []
@@ -497,10 +493,8 @@ const fetchDeviceData = async () => {
 }
 
 const updateCharts = () => {
-  console.log('[Device] updateCharts called, deviceList:', deviceList.value.length)
   
   if (!deviceList.value || deviceList.value.length === 0) {
-    console.log('[Device] No device data for charts')
     utilizationOption.value = { title: { text: '暂无数据' } }
     statusOption.value = { title: { text: '暂无数据' } }
     return
@@ -524,8 +518,6 @@ const updateCharts = () => {
   const deviceNames = topDevices.map((d: any) => d.code || d.name)
   const utilizations = topDevices.map((d: any) => parseInt(d.utilization) || 0)
   
-  console.log('[Device] Chart data - names:', deviceNames, 'utilizations:', utilizations)
-
   utilizationOption.value = {
     tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
     grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
@@ -548,8 +540,6 @@ const updateCharts = () => {
     statusCounts[statusName] = (statusCounts[statusName] || 0) + 1
   })
   
-  console.log('[Device] Status counts:', statusCounts)
-
   statusOption.value = {
     tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
     legend: { bottom: 0, textStyle: { color: textColor } },
@@ -757,7 +747,6 @@ onMounted(() => {
   
   wsService.connect()
   wsUnsubscribe.value = wsService.subscribe((data: any) => {
-    console.log('[WebSocket] Received:', data)
     if (data.devices) {
       deviceList.value = data.devices.map((item: any, index: number) => ({
         id: item.id,

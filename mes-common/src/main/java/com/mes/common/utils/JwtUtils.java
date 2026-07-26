@@ -18,8 +18,7 @@ import java.util.Map;
 @Component
 public class JwtUtils {
 
-    /** JWT密钥 */
-    @Value("${jwt.secret:SmartFactoryMES2024SecretKeyForJWTTokenGeneration!}")
+    @Value("${jwt.secret}")
     private String secret;
 
     /** 过期时间（毫秒），默认24小时 */

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0.33
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: mes_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mes-frontend/package-lock.json
+
+      - name: Build with Maven
+        run: mvn clean package -q
+        env:
+          MYSQL_HOST: localhost
+          MYSQL_PORT: 3306
+          MYSQL_USERNAME: root
+          MYSQL_PASSWORD: root
+          LOG_LEVEL: warn
+
+      - name: Lint Frontend
+        run: |
+          cd mes-frontend
+          npm ci
+          npm run type-check
+        continue-on-error: true
+
+      - name: Build Frontend
+        run: |
+          cd mes-frontend
+          npm run build

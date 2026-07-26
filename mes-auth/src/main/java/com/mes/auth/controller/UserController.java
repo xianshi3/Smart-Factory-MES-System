@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -49,9 +48,10 @@ public class UserController {
     @Operation(summary = "获取用户详情")
     public Result<User> getById(@PathVariable Long id) {
         User user = userMapper.selectById(id);
-        if (user != null) {
-            user.setPassword(null);
+        if (user == null) {
+            return Result.fail(404, "用户不存在");
         }
+        user.setPassword(null);
         return Result.ok(user);
     }
 

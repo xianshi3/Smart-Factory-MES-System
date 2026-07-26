@@ -112,9 +112,7 @@ const form = reactive({
 
 const loadRoles = async () => {
   try {
-    console.log('Loading roles from API...')
     const res = await request({ url: '/auth/role/list', method: 'get' })
-    console.log('Role API response:', res)
     roles.value = res.data || res || []
   } catch (e) {
     console.error('Load roles error:', e)

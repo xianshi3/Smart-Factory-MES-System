@@ -1,52 +1,55 @@
 server:
-  port: 9090
+  port: ${SERVER_PORT:9090}
+  shutdown: graceful
 
 spring:
   application:
     name: mes-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   cloud:
     compatibility-verifier:
       enabled: false
     gateway:
       routes:
         - id: mes-auth
-          uri: http://localhost:8081
+          uri: ${MES_AUTH_URI:http://localhost:8081}
           predicates:
             - Path=/api/auth/**
           filters:
             - StripPrefix=1
         - id: mes-workorder
-          uri: http://localhost:8082
+          uri: ${MES_WORKORDER_URI:http://localhost:8082}
           predicates:
             - Path=/api/workorder/**
           filters:
             - StripPrefix=1
         - id: mes-process
-          uri: http://localhost:8083
+          uri: ${MES_PROCESS_URI:http://localhost:8083}
           predicates:
             - Path=/api/process/**
           filters:
             - StripPrefix=1
         - id: mes-quality
-          uri: http://localhost:8084
+          uri: ${MES_QUALITY_URI:http://localhost:8084}
           predicates:
             - Path=/api/quality/**
           filters:
             - StripPrefix=1
         - id: mes-dashboard
-          uri: http://localhost:8085
+          uri: ${MES_DASHBOARD_URI:http://localhost:8085}
           predicates:
             - Path=/api/dashboard/**
           filters:
             - StripPrefix=1
         - id: mes-alarm
-          uri: http://localhost:8085
+          uri: ${MES_DASHBOARD_URI:http://localhost:8085}
           predicates:
             - Path=/api/alarm/**
           filters:
             - StripPrefix=1
         - id: mes-ai
-          uri: http://localhost:8086
+          uri: ${MES_AI_URI:http://localhost:8086}
           predicates:
             - Path=/api/ai/**
           filters:
@@ -54,12 +57,16 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
+            allowCredentials: true
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

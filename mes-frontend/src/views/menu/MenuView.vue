@@ -106,14 +106,12 @@ const topMenus = computed(() => menus.value.filter(m => !m.parentId || m.parentI
 const loadData = async () => {
   try {
     const res = await request({ url: '/auth/menu/list', method: 'get' })
-    console.log('Menu API response:', res)
     const list = res.data?.data
     if (list) {
       menus.value = list
     } else {
       menus.value = res.data || res || []
     }
-    console.log('Render menus:', menus.value)
   } catch (e) {
     console.error('Load menu error:', e)
   }
