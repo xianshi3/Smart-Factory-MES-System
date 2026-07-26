@@ -60,7 +60,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Connection } from '@element-plus/icons-vue'
-import request from '@/api'
+import { getProductionLineList, createProductionLine, updateProductionLine, deleteProductionLine } from '@/api/dashboard'
 
 interface ProductionLine {
   id: number
@@ -79,7 +79,7 @@ const form = ref<Partial<ProductionLine>>({ id: 0, lineCode: '', lineName: '', s
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await request({ url: '/api/dashboard/production-line/list', method: 'get' })
+    const res = await getProductionLineList()
     list.value = res.data?.data || res.data || []
   } catch (e) {
     console.error(e)
@@ -103,10 +103,10 @@ const handleEdit = (row: ProductionLine) => {
 const handleSubmit = async () => {
   try {
     if (form.value.id) {
-      await request({ url: '/api/dashboard/production-line', method: 'put', data: form.value })
+      await updateProductionLine(form.value)
       ElMessage.success('更新成功')
     } else {
-      await request({ url: '/api/dashboard/production-line', method: 'post', data: form.value })
+      await createProductionLine(form.value)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -119,7 +119,7 @@ const handleSubmit = async () => {
 const handleDelete = async (row: ProductionLine) => {
   try {
     await ElMessageBox.confirm(`确定删除生产线 "${row.lineName}" 吗?`, '提示', { type: 'warning' })
-    await request({ url: `/api/dashboard/production-line/${row.id}`, method: 'delete' })
+    await deleteProductionLine(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (e: any) {

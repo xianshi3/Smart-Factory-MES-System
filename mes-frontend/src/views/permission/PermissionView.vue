@@ -84,7 +84,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Lock } from '@element-plus/icons-vue'
-import request from '@/api'
+import { getPermissionList, createPermission, updatePermission, deletePermission } from '@/api/system'
 
 interface Permission {
   id: number
@@ -107,7 +107,7 @@ const topPermissions = computed(() => permissions.value.filter(p => !p.parentId 
 
 const loadData = async () => {
   try {
-    const res = await request({ url: '/auth/permission/list', method: 'get' })
+    const res = await getPermissionList()
     permissions.value = res.data?.data || res?.data || []
   } catch (e) {
     console.error(e)
@@ -129,10 +129,10 @@ const handleEdit = (row: Permission) => {
 const handleSubmit = async () => {
   try {
     if (form.value.id) {
-      await request({ url: '/auth/permission', method: 'put', data: form.value })
+      await updatePermission(form.value)
       ElMessage.success('更新成功')
     } else {
-      await request({ url: '/auth/permission', method: 'post', data: form.value })
+      await createPermission(form.value)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -145,7 +145,7 @@ const handleSubmit = async () => {
 const handleDelete = async (row: Permission) => {
   try {
     await ElMessageBox.confirm(`确定删除权限 "${row.permissionName}" 吗?`, '提示', { type: 'warning' })
-    await request({ url: `/auth/permission/${row.id}`, method: 'delete' })
+    await deletePermission(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (e: any) {
