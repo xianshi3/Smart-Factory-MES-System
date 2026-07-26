@@ -214,7 +214,6 @@ onMounted(() => {
 
 <style scoped>
 .page-wrapper {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }

@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <div class="stats-row">
+    <div class="stats-grid">
       <div class="stat-item" v-for="(stat, index) in stats" :key="stat.label" :style="{ animationDelay: `${index * 0.1}s` }">
         <div class="stat-icon" :class="stat.theme">
           <el-icon size="22"><component :is="stat.icon" /></el-icon>
@@ -781,12 +781,6 @@ watch(() => themeStore.isDark, () => {
 <style scoped>
 .device-page { padding: 0; }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
 
 .stat-item {
   display: flex;
@@ -1246,6 +1240,6 @@ html.light .device-card { box-shadow: var(--shadow-sm); }
 }
 
 @media (max-width: 1200px) {
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  :deep(.stats-grid) { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

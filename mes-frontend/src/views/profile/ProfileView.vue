@@ -330,7 +330,6 @@ const handleExportData = () => {
 
 <style scoped>
 .profile-container {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }

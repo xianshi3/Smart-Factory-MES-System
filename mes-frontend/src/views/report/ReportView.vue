@@ -274,7 +274,6 @@ onMounted(() => { loadData() })
 
 <style scoped>
 .report-container {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }

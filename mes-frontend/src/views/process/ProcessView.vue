@@ -228,7 +228,7 @@ onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.page-wrapper { padding: 24px; background: var(--bg-app); min-height: 100% }
+.page-wrapper { background: var(--bg-app); min-height: 100% }
 
 .create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
 
