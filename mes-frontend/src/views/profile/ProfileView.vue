@@ -276,7 +276,22 @@ onMounted(() => {
 })
 
 const editBasicInfo = () => {
-  ElMessage.info('编辑功能开发中')
+  editForm.value = { ...userInfo.value }
+  editPasswordForm.value = { ...userInfo.value }
+  showForm.value = true
+  editing.value = true
+}
+
+const saveBasicInfo = async () => {
+  try {
+    await updateProfile(editForm.value)
+    ElMessage.success('保存成功')
+    showForm.value = false
+    editing.value = false
+    loadUserInfo()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  }
 }
 
 const handleChangePassword = async () => {
@@ -302,7 +317,14 @@ const handleLogoutAll = () => {
 }
 
 const handleExportData = () => {
-  ElMessage.info('数据导出功能开发中')
+  const blob = new Blob([JSON.stringify(userInfo.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `user_${userInfo.value?.username || 'profile'}_${new Date().toISOString().slice(0,10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('用户数据已导出')
 }
 </script>
 

@@ -253,7 +253,20 @@ const handleReset = () => {
 }
 
 const handleExport = () => {
-  ElMessage.success('报表导出功能开发中')
+  if (!tableData.value || tableData.value.length === 0) {
+    ElMessage.warning('无数据可导出')
+    return
+  }
+  const headers = Object.keys(tableData.value[0] || {})
+  const csv = [headers.join(','), ...tableData.value.map(r => headers.map(h => `"${String(r[h] || '')}"`).join(','))].join('\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `生产报表_${new Date().toISOString().slice(0,10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('报表已导出为 CSV')
 }
 
 onMounted(() => { loadData() })
