@@ -367,51 +367,11 @@ GET /alarm/device/{deviceId}
 
 ## 配置说明
 
-### 数据库连接配置
-
-各服务的数据库连接在 `src/main/resources/application.yml` 中配置：
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/mes_db
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-```
-
-### Redis 配置
-
-```yaml
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-```
-
-### Kafka 配置
-
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: mes-group
-```
+各服务配置使用环境变量注入，详见 `.env.example` 和各服务 `application.yml`。
 
 ### WebSocket 配置
 
-看板服务支持 WebSocket 实时推送：
-
-```javascript
-// 前端连接
-const ws = new WebSocket('ws://localhost:8085/ws/dashboard');
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('设备状态更新:', data);
-};
-```
+看板服务支持 WebSocket 实时推送。前端通过环境变量 `VITE_WS_URL` 配置连接地址，默认 `ws://localhost:8085/ws/dashboard`。
 
 ---
 
