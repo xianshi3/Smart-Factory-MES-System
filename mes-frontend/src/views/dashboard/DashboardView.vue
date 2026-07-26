@@ -90,8 +90,6 @@ import ChartCard from '@/components/common/ChartCard.vue'
 import { Refresh, Monitor, TrendCharts, PieChart } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
-const themeStore = useThemeStore()
-
 const currentTime = ref('')
 const currentDate = ref('')
 const devices = ref<any[]>([])
