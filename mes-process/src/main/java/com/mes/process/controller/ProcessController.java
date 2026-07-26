@@ -86,7 +86,7 @@ public class ProcessController {
      */
     @Operation(summary = "参数实时校验")
     @PostMapping("/parameter/check")
-    public Result<Object> checkParameters(@RequestBody ParameterCheckDTO dto) {
+    public Result<?> checkParameters(@RequestBody ParameterCheckDTO dto) {
         return processTemplateService.checkParameters(dto);
     }
 
