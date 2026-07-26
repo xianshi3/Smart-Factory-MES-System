@@ -10,18 +10,6 @@
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 开发文档、技术栈、API接口 |
 | [DATABASE.md](./DATABASE.md) | 数据库设计文档 |
 
-### 技术设计
-
-| 文档 | 说明 |
-|------|------|
-| [DESIGN.md](./DESIGN.md) | 系统架构、技术选型 |
-
-### 设备模拟器
-
-| 文档 | 说明 |
-|------|------|
-| [mes-device-simulator-wpf/README.md](../mes-device-simulator-wpf/README.md) | WPF设备模拟器使用说明 |
-
 ### 更新记录
 
 | 文档 | 说明 |
@@ -46,7 +34,9 @@
 | 文档 | 说明 |
 |------|------|
 | [mes-ai-service/README.md](../mes-ai-service/README.md) | AI 服务说明 |
-| [mes-device-simulator/README.md](../mes-device-simulator/README.md) | 设备模拟器说明 |
+| [mes-device-simulator-wpf/README.md](../mes-device-simulator-wpf/README.md) | WPF 设备模拟器说明 |
+
+---
 
 ---
 
@@ -54,7 +44,6 @@
 
 - **启动项目**: 双击 `start-all.bat` 或参考根目录 `README.md`
 - **开发指南**: 参考 `DEVELOPMENT.md`
-- **删除功能**: 参考 `DOC_DELETE.md`
 - **清理缓存**: 运行 `start-all.bat` 选择 `[8] Clean`
 
 ---
@@ -65,4 +54,4 @@
 
 ---
 
-*最后更新: 2026-05-04*
+*最后更新: 2026-07-27*

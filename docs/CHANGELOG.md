@@ -10,34 +10,68 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.29 (2026-07-27)
+
+### 文档更新
+
+- 更新 README.md、DEVELOPMENT.md、DATABASE.md、DOC_DB_VERSION.md 至最新项目状态
+- 移除不存在的 DESIGN.md 引用
+- 更新数据库迁移记录至 V5
+
+---
+
 ## v1.0.28 (2026-07-27)
 
-### Architecture Changes
+### 架构调整
 
-- **Docker runs infrastructure only**: MySQL, Redis, Kafka, Zookeeper, Nacos. Java services run locally via `java -jar`.
-- **Gateway actively in use**: Routes include `/api/**` (StripPrefix=1) and `/ai/**` (StripPrefix=0). No longer "暂未使用".
-- **Frontend Vite proxy**: Proxies `/ai` → `localhost:8086` with `rewrite: path.replace(/^\/ai/, '')`.
-- **AI service port 8086 conflicts with InfluxDB**: Must run `docker stop mes-influxdb` before starting AI service.
-- **SciPy pinned to 1.14.1** to match NumPy 1.26.4.
+- **Docker 仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、Nacos 使用 Docker，Java 服务在宿主机通过 `java -jar` 运行
+- **Gateway 正式启用**：路由 `/api/**` (StripPrefix=1) 和 `/api/ai/**` (StripPrefix=2) 均有效
+- **前端 Vite 代理**：`/ai` → `localhost:8086` (rewrite strip `/ai`)；`/api` → `localhost:9090`；新增 `/dashboard` → `localhost:8085`
+- **AI 服务端口冲突**：端口 8086 与 InfluxDB 冲突，启动前需 `docker stop mes-influxdb`
+- **SciPy 锁定 1.14.1**：以兼容 NumPy 1.26.4
 
 ### Bug Fixes
 
-- **Dockerfile COPY paths**: All Dockerfiles fixed to use correct context paths (e.g., `target/*.jar` → `mes-*/target/*.jar`).
-- **docker-compose.yml**: Added Zookeeper, Kafka, Nacos, InfluxDB services. Set memory limits (mysql: 512M, kafka: 512M, redis: 128M, zk: 128M). Added profiles for selective startup.
-- **WebSocket URL**: Frontend now uses `import.meta.env.VITE_WS_URL` env var instead of hardcoded `localhost:8085`.
-- **Vite proxy rewrite**: Fixed `/ai` proxy rewrite to strip prefix before forwarding to AI service.
-- **Dashboard `@RequestMapping`**: Changed from `/api/dashboard` to `/dashboard` to match Gateway StripPrefix=1 behavior. All sub-controllers updated (DashboardController, AlarmController, BaseDataController).
-- **Gateway routes**: Added `/ai/**` route with StripPrefix=0. Created `application-docker.yml` for Docker profile.
-- **naming/frontend ports**: Fixed nginx.conf to proxy `api` requests to `localhost:9090` (gateway).
-- **userStore import path**: Fixed `userStore` import in `permission.ts` (was importing from wrong path).
-- **`env.d.ts` removed**: Replaced by `src/vite-env.d.ts` (Vue/Vite standard).
-- **`request.ts` removed**: Dead utility replaced by `src/api/index.ts`.
-- **`package-lock.json` tracking**: `.gitignore` updated to keep `package-lock.json` in version control.
-- **SQL migration**: Renamed `V5__fix_unique_constraint.sql` → `V5_5__fix_unique_constraint.sql` for correct Flyway ordering.
+#### 第一批（commit 484d352）
+
+- **Dockerfile COPY 路径**：所有 Dockerfile 修正为正确上下文路径
+- **docker-compose.yml**：新增 Zookeeper、Kafka、Nacos、InfluxDB；设置内存限制（mysql: 512M, kafka: 512M, redis: 128M, zk: 128M）
+- **WebSocket URL**：前端改用 `import.meta.env.VITE_WS_URL` 环境变量
+- **Vite `/ai` 代理**：修复 rewrite 剥离前缀
+- **Dashboard `@RequestMapping`**：从 `/api/dashboard` 改为 `/dashboard` 以匹配 Gateway StripPrefix=1
+- **Gateway 路由**：新增 `/ai/**` 路由，创建 `application-docker.yml`
+- **nginx 代理**：修复 `api` 请求代理到 Gateway :9090
+- **userStore 导入路径**：修正 `permission.ts` 中的导入错误
+- **`env.d.ts` 移除**：替换为 `src/vite-env.d.ts`
+- **`request.ts` 移除**：死代码替换为 `src/api/index.ts`
+- **`package-lock.json` 追踪**：`.gitignore` 更新为保留版本控制
+- **SQL 迁移命名**：`V5__fix_unique_constraint.sql` 重命名为 `V5_5__fix_unique_constraint.sql`
+
+#### 第二批（commit 4a70d94）
+
+- **`docker-compose.dev.yml`**：新增 `mes-auth` 服务（之前缺失）
+- **网络连通性**：`docker-compose.yml` 中所有基础设施服务加入 `mes-network`；Kafka 添加 `depends_on: zookeeper`
+- **ProcessController 路径**：`@RequestMapping("/template")` → `/process/template`，匹配 Gateway StripPrefix=1
+- **auth mapper-locations**：修正缩进，合并两个 `classpath` 路径到同一 key
+- **Gateway AI 路由**：路径从 `/ai/**` → `/api/ai/**`，StripPrefix 0 → 2，正确转发到 AI 服务 `/api/v1/…`
+- **AI 路由双配置**：同时添加到 `application-docker.yml`
+- **前端 AI_BASE_URL**：默认值从 `/ai` 改为 `/api/ai`
+- **nginx 代理**：`/api/ai/…` 通过 `/api` 规则→Gateway→AI 服务，生产环境链路完整
+- **Vite `/dashboard` 代理**：新增规则解决 `dashboard.ts` API 调用 404
+- **移除重复 `getDeviceStatus`**：`services.ts` 中的重复函数已删除
+- **start-all.bat**：AI 服务工作目录 `mes-ai-service\src` → `mes-ai-service`；新增 Gateway 启动/停止/状态；路径改为 `%~dp0`
+- **安全**：移除 `mes-ai-service/.env.local` 中真实的 API key
+- **堆栈泄露**：5 个服务的 `application.yml` 移除 `include-stacktrace: always` 和 `include-exception: true`
+- **`wsConnected` 生命周期**：WebSocket `onopen` 时设置 `wsConnected = true`
+- **protobuf 依赖**：添加到 `requirements.txt`
+- **AI 模型文件**：移除 unused `import os`
+- **GlobalExceptionHandler**：移除重复的 `HttpServletRequest` 导入
+- **DashboardServiceImpl**：修正过时注释
+- **docker-compose-minimal.yml**：移除废弃的 `version: '3.8'`
 
 ### Known Issues
 
-- **Docker proxy blocks image pulls**: Configured mirrors in daemon.json as workaround. `openjdk:17-jdk-slim` and `seataio/seata-server` cannot be pulled via Docker.
+- **Docker proxy blocks image pulls**：已在 daemon.json 配置镜像加速器作为临时方案。`openjdk:17-jdk-slim` 和 `seataio/seata-server` 无法通过 Docker 拉取。
 
 ---
 

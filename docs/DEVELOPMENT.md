@@ -105,7 +105,7 @@ npm run dev
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | 前端 | 3000 | Vue 3应用 |
-| API网关 | 9090 | Spring Cloud Gateway（暂未使用） |
+| API网关 | 9090 | Spring Cloud Gateway（已启用） |
 | 认证服务 | 8081 | 用户登录/注册 |
 | 工单服务 | 8082 | 工单管理 |
 | 工艺服务 | 8083 | 工艺模板 |
@@ -119,8 +119,8 @@ npm run dev
 | MQTT | 1883 | 设备通信 |
 | Kafka | 9092 | 消息队列 |
 
-> 注意：开发环境前端直连各服务（8081-8085），或通过网关（9090）统一路由。网关已启用，
-`/api/**` 路由使用 StripPrefix=1（去掉 `/api` 前缀后转发），`/ai/**` 使用 StripPrefix=0（保留前缀）。
+> 注意：开发环境前端可通过 Vite 代理直连各服务（8081-8085），或通过网关（9090）统一路由。网关已启用，
+`/api/**` 路由使用 StripPrefix=1（去掉 `/api` 前缀后转发），`/api/ai/**` 路由使用 StripPrefix=2（去掉 `/api/ai` 前缀后转发）。
 
 ---
 
@@ -145,7 +145,7 @@ npm run dev
 | mes-process | 8083 | 工艺模板、参数校验 |
 | mes-quality | 8084 | 质检记录、追溯 |
 | mes-dashboard | 8085 | 实时看板、OEE |
-| mes-gateway | 9090 | API路由（暂未使用） |
+| mes-gateway | 9090 | API路由、统一认证 |
 
 ### 5.2 .NET 设备网关 (mes-device-gateway)
 
@@ -286,6 +286,23 @@ npm run dev
 ---
 
 ## 11. 版本记录
+
+### v1.0.29 (2026-07-27)
+- 更新所有文档至最新项目状态
+
+### v1.0.28 (2026-07-27)
+- 基础设施 Docker-only 运行架构，Java 服务本地启动
+- Gateway 正式启用（路由 `/api/**` StripPrefix=1，`/api/ai/**` StripPrefix=2）
+- 修复 Dashboard `@RequestMapping` 前缀匹配问题
+- 修复 Vite 代理 `/ai` 路径重写，新增 `/dashboard` 代理
+- 修复 ProcessController 路径 `/process/template`
+- 添加 mes-auth 到 docker-compose.dev.yml
+- 修复 Docker 网络连通性（所有服务加入 mes-network）
+- 修复 auth mapper-locations 缩进
+- 统一前端 AI URL 为 `/api/ai`，生产环境链路完整
+- 修复 start-all.bat（AI 工作目录、添加 Gateway、`%~dp0` 路径）
+- 安全修复：移除 API key、关闭堆栈泄露
+- 多个代码质量修复（重复导入、未使用变量、过时注释、protobuf 依赖）
 
 ### v1.0.11 (2026-04-05)
 - 前端设备监控页面对接真实API (DeviceView.vue)

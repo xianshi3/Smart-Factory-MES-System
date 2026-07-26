@@ -12,7 +12,6 @@
   <a href="https://github.com/anomalyco/opencode/issues">Issues</a> •
   <a href="#项目展示">Screenshots</a> •
   <a href="#快速开始">Getting Started</a> •
-  <a href="docs/DESIGN.md">Architecture</a> •
   <a href="docs/DEVELOPMENT.md">Development</a>
 </p>
 
@@ -111,7 +110,6 @@
 ```
 Smart-Factory-MES-System/
 ├── docs/                           # 项目文档
-│   ├── DESIGN.md                  # 技术架构设计文档
 │   ├── DEVELOPMENT.md             # 开发指南
 │   ├── DATABASE.md                # 数据库设计
 │   └── CHANGELOG.md              # 更新日志
@@ -439,7 +437,6 @@ ws.onmessage = (event) => {
 
 详细开发指南请参阅：
 
-- [技术架构设计文档](./docs/DESIGN.md)
 - [开发指南文档](./docs/DEVELOPMENT.md)
 - [数据库设计文档](./docs/DATABASE.md)
 - [更新日志](./docs/CHANGELOG.md)
@@ -460,15 +457,20 @@ ws.onmessage = (event) => {
 
 ## 更新日志
 
+### v1.0.29 (2026-07-27)
+
+- 更新所有文档至最新项目状态
+- 修复 30 个问题（架构、路由、安全、配置）
+- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
+
 ### v1.0.28 (2026-07-27)
 
 - 基础设施 Docker-only 运行架构（Java 服务本地直接启动）
-- 网关正式启用，新增 `/ai/**` 路由
-- 修复 Dashboard `@RequestMapping` 前缀匹配问题
-- 修复 Vite 代理 `/ai` 路径重写
-- 前端 WebSocket/AI URL 改用环境变量
-- Docker 内存限制及配置优化
-- AI 服务 SciPy 依赖版本锁定
+- 网关正式启用（`/api/**` StripPrefix=1，`/api/ai/**` StripPrefix=2）
+- 修复 Dashboard `@RequestMapping`、ProcessController 路径匹配
+- 修复 Vite 代理 `/ai` / `/dashboard`、WebSocket/AI URL 改用环境变量
+- Docker 内存限制及网络连通性优化
+- 安全修复：移除 API key、关闭堆栈泄露
 
 ### v1.0.27 (2026-05-05)
 
