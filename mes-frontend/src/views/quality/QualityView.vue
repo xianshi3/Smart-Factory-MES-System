@@ -242,39 +242,10 @@ onMounted(() => { loadData() })
 <style scoped>
 .page-wrapper { padding: 24px; background: var(--bg-app); min-height: 100% }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.header-left { display: flex; align-items: center; gap: 16px; }
-.page-title { display: flex; align-items: center; gap: 10px; }
-.page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); }
-.page-title .el-icon { font-size: 24px; color: var(--accent); }
-.page-desc { font-size: 13px; color: var(--text-muted); }
-
 .create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
-
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 14px 18px;
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
-}
 
 .search-input { width: 200px; }
 .status-select { width: 120px; }
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
 
 .quality-card {
   background: var(--bg-card);
@@ -347,33 +318,6 @@ onMounted(() => { loadData() })
   padding-top: 12px;
   border-top: 1px solid var(--border-light);
 }
-
-.status-tag {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.status-tag--success { background: var(--success-light); color: var(--success); }
-.status-tag--danger { background: var(--danger-light); color: var(--danger); }
-.status-tag--warning { background: var(--warning-light); color: var(--warning); }
-.status-tag--info { background: var(--info-light); color: var(--info); }
-
-.card-actions { display: flex; gap: 4px; }
-
-.empty-state {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-}
-
-.empty-state .el-icon { margin-bottom: 12px; opacity: 0.5; }
-
-.pagination-wrapper { margin-top: 20px; display: flex; justify-content: center; }
 
 .timeline-wrap { max-height: 250px; overflow-y: auto }
 .step-name { font-weight: 500; color: var(--text-primary); }
