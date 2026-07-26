@@ -309,7 +309,6 @@ onMounted(() => { loadData() })
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
-  animation: fadeInUp 0.5s ease both;
 }
 
 .stat-icon {

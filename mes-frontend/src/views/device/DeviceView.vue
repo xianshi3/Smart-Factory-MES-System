@@ -789,8 +789,6 @@ watch(() => themeStore.isDark, () => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px;
-  animation: fadeInUp 0.5s ease forwards;
-  opacity: 0;
 }
 
 .stat-icon {
@@ -914,8 +912,6 @@ watch(() => themeStore.isDark, () => {
   border-radius: var(--radius-lg);
   padding: 18px;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .device-card:hover {
