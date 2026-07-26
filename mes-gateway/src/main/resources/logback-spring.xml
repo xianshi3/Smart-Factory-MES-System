@@ -27,5 +27,5 @@
 
     <logger name="com.mes" level="${LOG_LEVEL}"/>
     <logger name="org.springframework" level="WARN"/>
-    <logger name.org.springframework.cloud.gateway="WARN"/>
+    <logger name="org.springframework.cloud.gateway" level="WARN"/>
 </configuration>

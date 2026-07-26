@@ -18,7 +18,7 @@ import java.util.Map;
 @Component
 public class JwtUtils {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:SmartFactoryMES2024SecretKeyForJWTTokenGeneration!}")
     private String secret;
 
     /** 过期时间（毫秒），默认24小时 */
