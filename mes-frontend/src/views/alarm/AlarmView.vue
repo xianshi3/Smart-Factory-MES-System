@@ -2,11 +2,13 @@
   <div class="alarm-page">
     <div class="page-header">
       <div class="header-left">
-        <div class="header-badge" :class="{ pulse: activeCount > 0 }">
-          <el-icon><WarningFilled /></el-icon>
-          {{ activeCount > 0 ? '紧急' : '正常' }}
+        <div class="page-title">
+          <div class="header-badge" :class="{ pulse: activeCount > 0 }">
+            <el-icon><WarningFilled /></el-icon>
+            {{ activeCount > 0 ? '紧急' : '正常' }}
+          </div>
+          <h1>报警管理中心</h1>
         </div>
-        <h1 class="page-title">报警管理中心</h1>
       </div>
       <div class="header-actions">
         <el-button circle @click="loadAlarms" title="刷新">
