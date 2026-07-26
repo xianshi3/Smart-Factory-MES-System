@@ -22,7 +22,7 @@ defineProps<{
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--el-border-color-light);
   
   .header-title {
     h2 {

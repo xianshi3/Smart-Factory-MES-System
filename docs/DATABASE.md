@@ -348,3 +348,10 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V2 | 2026-04-06 | 添加 deleted_time, deleted_by 字段 |
 | V3 | 2026-04-10 | 完善质量管理表结构和示例数据 |
 | V3.1 | 2026-04-10 | 修复中文乱码，添加测试数据 |
+| V4 | 2026-04-13 | 权限增强（sys_role, sys_permission, sys_menu, sys_role_permission） |
+| V5 | 2026-05-02 | 告警事件表（alarm_event） |
+| V5.5 | 2026-07-27 | 修复唯一约束复合索引 |
+
+---
+
+*最后更新: 2026-07-27*

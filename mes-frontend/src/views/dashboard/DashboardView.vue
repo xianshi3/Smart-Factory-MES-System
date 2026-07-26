@@ -3,7 +3,7 @@
     <div class="dashboard-header">
       <div class="welcome-section">
         <h1 class="welcome-title">
-          欢迎回来, <span class="username">{{ userStore.user?.username || '管理员' }}</span>
+          欢迎回来, <span class="username">{{ userStore.userInfo?.username || '管理员' }}</span>
         </h1>
         <p class="welcome-subtitle">{{ currentDate }} · {{ currentTime }}</p>
       </div>
@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import VChart from 'vue-echarts'
-import { getDeviceStatus } from '@/api/services'
+import { getDeviceStatus } from '@/api/dashboard'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { wsService } from '@/utils/websocket'
@@ -117,7 +117,8 @@ const updateTime = () => {
 const refresh = async () => {
   try {
     const res = await getDeviceStatus()
-    devices.value = res?.data || res || []
+    const raw = res?.data || res
+    devices.value = Array.isArray(raw) ? raw : []
     
     stats.value = [
       { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },

@@ -139,7 +139,7 @@
         </el-table-column>
         <el-table-column prop="level" label="级别" width="100">
           <template #default="{ row }">
-            <div class="level-tag" :class="row.level.toLowerCase()">
+            <div class="level-tag" :class="(row.level || '').toLowerCase()">
               {{ getLevelText(row.level) }}
             </div>
           </template>
@@ -154,7 +154,7 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="110">
           <template #default="{ row }">
-            <div class="status-tag" :class="row.status.toLowerCase()">
+            <div class="status-tag" :class="(row.status || '').toLowerCase()">
               {{ getStatusText(row.status) }}
             </div>
           </template>
@@ -232,6 +232,9 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
 import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
 
 const alarms = ref<any[]>([])
 const loading = ref(false)
@@ -284,7 +287,7 @@ const filterStatus = (status: string) => {
 const handleAck = async (row: any) => {
   try {
     await ElMessageBox.confirm('确认此告警?', '提示', { type: 'info' })
-    await acknowledgeAlarm(row.id, 'currentUser')
+    await acknowledgeAlarm(row.id, userStore.userInfo?.username || 'unknown')
     ElMessage.success('告警已确认')
     loadAlarms()
   } catch (e: any) {
@@ -302,7 +305,7 @@ const handleResolve = async (row: any) => {
 
 const submitResolve = async () => {
   try {
-    await resolveAlarm(currentAlarm.value.id, 'currentUser', resolveRemarks.value)
+    await resolveAlarm(currentAlarm.value.id, userStore.userInfo?.username || 'unknown', resolveRemarks.value)
     ElMessage.success('告警已解决')
     resolveDialogVisible.value = false
     loadAlarms()

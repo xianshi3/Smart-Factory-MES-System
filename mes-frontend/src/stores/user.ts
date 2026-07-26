@@ -15,8 +15,10 @@ export const useUserStore = defineStore('user', () => {
  */
 async function login(username: string, password: string) {
     const res = await loginApi({ username, password })
-    token.value = res.data.token
-    setToken(res.data.token)
+    if (res.data) {
+      token.value = res.data.token
+      setToken(res.data.token)
+    }
     return res.data
   }
 
@@ -26,8 +28,10 @@ async function login(username: string, password: string) {
 async function getUserInfo() {
     if (!token.value) return
     const res = await getUserInfoApi()
-    userInfo.value = res.data
-    roles.value = [res.data.role]
+    if (res.data) {
+      userInfo.value = res.data
+      roles.value = [res.data.role]
+    }
     return res.data
   }
 

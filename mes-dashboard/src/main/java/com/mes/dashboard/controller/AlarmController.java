@@ -15,7 +15,7 @@ import java.util.List;
  */
 @Tag(name = "Alarm Management", description = "Alarm event REST API")
 @RestController
-@RequestMapping("/api/alarm")
+@RequestMapping("/alarm")
 @RequiredArgsConstructor
 public class AlarmController {
 

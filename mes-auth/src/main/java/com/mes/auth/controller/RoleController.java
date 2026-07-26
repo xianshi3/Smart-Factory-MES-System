@@ -116,6 +116,9 @@ public class RoleController {
     @Operation(summary = "获取角色详情")
     public Result<Role> getById(@PathVariable Long id) {
         Role role = roleMapper.selectById(id);
+        if (role == null) {
+            return Result.fail(404, "角色不存在");
+        }
         return Result.ok(role);
     }
 
@@ -374,7 +377,7 @@ public class RoleController {
             }
             return Result.ok();
         } catch (Exception e) {
-            return Result.ok();
+            return Result.fail("分配权限失败: " + e.getMessage());
         }
     }
 }

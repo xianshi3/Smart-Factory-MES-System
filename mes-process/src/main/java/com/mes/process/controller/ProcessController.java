@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Tag(name = "工艺模板管理")
 @RestController
-@RequestMapping("/template")
+@RequestMapping("/process/template")
 @RequiredArgsConstructor
 public class ProcessController {
 
@@ -48,6 +48,9 @@ public class ProcessController {
     @GetMapping("/{id}")
     public Result<ProcessTemplate> getById(@PathVariable Long id) {
         ProcessTemplate template = processTemplateService.getById(id);
+        if (template == null) {
+            return Result.fail(404, "模板不存在");
+        }
         return Result.ok(template);
     }
 

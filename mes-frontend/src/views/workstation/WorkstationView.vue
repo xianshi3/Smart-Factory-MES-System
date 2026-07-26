@@ -67,7 +67,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Location } from '@element-plus/icons-vue'
-import request from '@/api'
+import { getProductionLineList, getWorkstationList, createWorkstation, updateWorkstation, deleteWorkstation } from '@/api/dashboard'
 
 interface Workstation {
   id: number
@@ -99,7 +99,7 @@ const statusMap: Record<string, string> = {
 
 const loadProductionLines = async () => {
   try {
-    const res = await request({ url: '/api/dashboard/production-line/list', method: 'get' })
+    const res = await getProductionLineList()
     productionLines.value = res.data?.data || res.data || []
   } catch (e) {
     console.error(e)
@@ -109,7 +109,7 @@ const loadProductionLines = async () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await request({ url: '/api/dashboard/workstation/list', method: 'get' })
+    const res = await getWorkstationList()
     const stations = res.data?.data || res.data || []
     list.value = stations.map((s: Workstation) => {
       const line = productionLines.value.find(p => p.id === s.productionLineId)
@@ -137,10 +137,10 @@ const handleEdit = (row: Workstation) => {
 const handleSubmit = async () => {
   try {
     if (form.value.id) {
-      await request({ url: '/api/dashboard/workstation', method: 'put', data: form.value })
+      await updateWorkstation(form.value)
       ElMessage.success('更新成功')
     } else {
-      await request({ url: '/api/dashboard/workstation', method: 'post', data: form.value })
+      await createWorkstation(form.value)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -153,7 +153,7 @@ const handleSubmit = async () => {
 const handleDelete = async (row: Workstation) => {
   try {
     await ElMessageBox.confirm(`确定删除工位 "${row.workstationName}" 吗?`, '提示', { type: 'warning' })
-    await request({ url: `/api/dashboard/workstation/${row.id}`, method: 'delete' })
+    await deleteWorkstation(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (e: any) {

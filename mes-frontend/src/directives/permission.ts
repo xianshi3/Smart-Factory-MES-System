@@ -1,4 +1,5 @@
 import type { Directive, DirectiveBinding } from 'vue'
+import { usePermissionStore } from '@/stores/permission'
 
 export const vPermission: Directive = {
   mounted(el: HTMLElement, binding: DirectiveBinding) {
@@ -23,9 +24,6 @@ export const vPermission: Directive = {
     }
   }
 }
-
-// Helper function to check permission (for use in script)
-import { usePermissionStore } from '@/stores/permission'
 
 export function hasPermission(code: string): boolean {
   const permissionStore = usePermissionStore()

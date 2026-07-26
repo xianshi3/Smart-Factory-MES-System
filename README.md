@@ -1,7 +1,7 @@
 # Smart Factory MES System
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Spring%20Cloud-2022.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
+  <img src="https://img.shields.io/badge/Spring%20Cloud-2023.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
   <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?style=for-the-badge&logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Java-17-brightgreen?style=for-the-badge&logo=java" alt="Java 17">
   <img src="https://img.shields.io/badge/.NET-8-brightgreen?style=for-the-badge&logo=.NET" alt=".NET 8">
@@ -12,7 +12,6 @@
   <a href="https://github.com/anomalyco/opencode/issues">Issues</a> •
   <a href="#项目展示">Screenshots</a> •
   <a href="#快速开始">Getting Started</a> •
-  <a href="docs/DESIGN.md">Architecture</a> •
   <a href="docs/DEVELOPMENT.md">Development</a>
 </p>
 
@@ -93,7 +92,7 @@
 | 数据可视化 | ECharts | 5.6 |
 | 构建工具 | Vite | 6.0 |
 | 后端框架 | Spring Boot | 3.2.5 |
-| 微服务 | Spring Cloud | 2022.0.0 |
+| 微服务 | Spring Cloud | 2023.0.0 |
 | ORM | MyBatis-Plus | 3.5.6 |
 | 数据库 | MySQL | 8.0.33 |
 | 缓存 | Redis | 7 |
@@ -111,7 +110,6 @@
 ```
 Smart-Factory-MES-System/
 ├── docs/                           # 项目文档
-│   ├── DESIGN.md                  # 技术架构设计文档
 │   ├── DEVELOPMENT.md             # 开发指南
 │   ├── DATABASE.md                # 数据库设计
 │   └── CHANGELOG.md              # 更新日志
@@ -157,10 +155,8 @@ Smart-Factory-MES-System/
 │   └── package.json
 ├── mes-device-simulator-wpf/      # WPF 设备模拟器
 ├── sql/                          # 数据库脚本
-│   └── init.sql                  # 初始化 SQL
-├── scripts/                      # 工具脚本
+├── Makefile                      # 统一启动/构建命令
 ├── docker-compose.yml             # 基础设施编排
-├── start-all.bat                 # 一键启动脚本
 └── pom.xml                      # Maven 父 POM
 ```
 
@@ -214,55 +210,59 @@ Smart-Factory-MES-System/
 | Docker | 24+ | 基础设施容器 |
 | .NET SDK | 8.0+ | 设备网关 |
 
+> **架构说明**：Docker 仅运行基础设施（MySQL、Redis、Kafka、Zookeeper、Nacos），
+> Java 后端服务在宿主机上通过 `java -jar` 直接运行。AI 服务端口 8086 与 InfluxDB 冲突
+> （两者都使用 8086），启动 AI 前需执行 `docker stop mes-influxdb`。建议将 AI 服务改为非冲突端口。
+
 ### 启动方式
 
-#### 方式一：一键启动（推荐）
+#### 方式一：一键启动（Makefile，推荐）
 
-```powershell
-# 双击运行或命令行执行
-start-all.bat
+```bash
+# 启动所有服务
+make all
+
+# 或先启动基础设施
+make docker
+
+# 再启动 Java 后端（自动编译）
+make backend
+
+# 最后启动 AI 服务和前端
+make ai
+make frontend
 ```
-
-菜单选项说明：
-
-| 选项 | 功能 |
-|------|------|
-| [1] Start All Services | 启动所有服务 |
-| [2] Start Docker | 仅启动 MySQL/Redis |
-| [3] Start Backend | 仅启动 Java 后端 |
-| [4] Start AI Service | 仅启动 AI 预测服务 |
-| [5] Start .NET Gateway | 仅启动设备网关 |
-| [6] Start Frontend | 仅启动 Vue 前端 |
-| [7] Start Device Simulator | 启动设备模拟器 |
-| [9] Stop All Services | 停止所有服务 |
 
 #### 方式二：Docker 启动基础设施
 
-```powershell
-# 启动基础设施
-docker-compose up -d
-
-# 查看容器状态
-docker-compose ps
+```bash
+docker compose up -d
+docker compose ps
 ```
 
 #### 方式三：手动启动
 
-```powershell
+```bash
 # 1. 编译后端
 mvn clean package -DskipTests
 
-# 2. 启动各个服务
+# 2. 启动基础设施
+docker compose up -d
+
+# 3. 启动各个 Java 服务
 java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
 java -jar mes-workorder/target/mes-workorder-1.0.0-SNAPSHOT.jar
 java -jar mes-process/target/mes-process-1.0.0-SNAPSHOT.jar
 java -jar mes-quality/target/mes-quality-1.0.0-SNAPSHOT.jar
 java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
+java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
 
-# 3. 启动前端
-cd mes-frontend
-npm install
-npm run dev
+# 4. 启动 AI 服务（需先停掉 InfluxDB）
+docker stop mes-influxdb
+cd mes-ai-service && pip install -r requirements.txt && python src/main.py
+
+# 5. 启动前端
+cd mes-frontend && npm install && npm run dev
 ```
 
 ---
@@ -272,16 +272,17 @@ npm run dev
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端首页 | http://localhost:3000 | Vue 3 应用 |
-| API 网关 | http://localhost:9090 | Spring Cloud Gateway |
-| 认证服务 | http://localhost:8081/swagger-ui.html | Knife4j API 文档 |
-| 工单服务 | http://localhost:8082/swagger-ui.html | - |
-| 工艺服务 | http://localhost:8083/swagger-ui.html | - |
-| 质量服务 | http://localhost:8084/swagger-ui.html | - |
-| 看板服务 | http://localhost:8085/swagger-ui.html | - |
+| API 网关 | http://localhost:9090 | Spring Cloud Gateway（已启用） |
+| 认证服务 | http://localhost:8081/doc.html | Knife4j API 文档 |
+| 工单服务 | http://localhost:8082/doc.html | - |
+| 工艺服务 | http://localhost:8083/doc.html | - |
+| 质量服务 | http://localhost:8084/doc.html | - |
+| 看板服务 | http://localhost:8085/doc.html | - |
 | AI 服务 | http://localhost:8086/docs | FastAPI API 文档 |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
 | MySQL | localhost:3306 | root/root |
 | Redis | localhost:6379 | 无密码 |
+| Nacos | http://localhost:8848/nacos | nacos/nacos |
 
 ### 默认账号
 
@@ -342,63 +343,23 @@ GET /device/status/{deviceId}
 GET /alarm/device/{deviceId}
 ```
 
-完整 API 文档请访问各服务的 Swagger UI：
-- 认证服务：http://localhost:8081/swagger-ui.html
-- 工单服务：http://localhost:8082/swagger-ui.html
-- 工艺服务：http://localhost:8083/swagger-ui.html
-- 质量服务：http://localhost:8084/swagger-ui.html
-- 看板服务：http://localhost:8085/swagger-ui.html
+完整 API 文档请访问各服务的 Knife4j 文档页面：
+- 认证服务：http://localhost:8081/doc.html
+- 工单服务：http://localhost:8082/doc.html
+- 工艺服务：http://localhost:8083/doc.html
+- 质量服务：http://localhost:8084/doc.html
+- 看板服务：http://localhost:8085/doc.html
 - AI 服务：http://localhost:8086/docs
 
 ---
 
 ## 配置说明
 
-### 数据库连接配置
-
-各服务的数据库连接在 `src/main/resources/application.yml` 中配置：
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/mes_db
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-```
-
-### Redis 配置
-
-```yaml
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-```
-
-### Kafka 配置
-
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: mes-group
-```
+各服务配置使用环境变量注入，详见 `.env.example` 和各服务 `application.yml`。
 
 ### WebSocket 配置
 
-看板服务支持 WebSocket 实时推送：
-
-```javascript
-// 前端连接
-const ws = new WebSocket('ws://localhost:8085/ws/dashboard');
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('设备状态更新:', data);
-};
-```
+看板服务支持 WebSocket 实时推送。前端通过环境变量 `VITE_WS_URL` 配置连接地址，默认 `ws://localhost:8085/ws/dashboard`。
 
 ---
 
@@ -424,7 +385,6 @@ ws.onmessage = (event) => {
 
 详细开发指南请参阅：
 
-- [技术架构设计文档](./docs/DESIGN.md)
 - [开发指南文档](./docs/DEVELOPMENT.md)
 - [数据库设计文档](./docs/DATABASE.md)
 - [更新日志](./docs/CHANGELOG.md)
@@ -444,6 +404,21 @@ ws.onmessage = (event) => {
 ---
 
 ## 更新日志
+
+### v1.0.29 (2026-07-27)
+
+- 更新所有文档至最新项目状态
+- 修复 30 个问题（架构、路由、安全、配置）
+- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
+
+### v1.0.28 (2026-07-27)
+
+- 基础设施 Docker-only 运行架构（Java 服务本地直接启动）
+- 网关正式启用（`/api/**` StripPrefix=1，`/api/ai/**` StripPrefix=2）
+- 修复 Dashboard `@RequestMapping`、ProcessController 路径匹配
+- 修复 Vite 代理 `/ai` / `/dashboard`、WebSocket/AI URL 改用环境变量
+- Docker 内存限制及网络连通性优化
+- 安全修复：移除 API key、关闭堆栈泄露
 
 ### v1.0.27 (2026-05-05)
 

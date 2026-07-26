@@ -90,7 +90,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Key, Plus, User } from '@element-plus/icons-vue'
-import request from '@/api'
+import { getRoleList, getRolePermissionsTree, getRolePermissions, assignRolePermissions, createRole, updateRole, deleteRole } from '@/api/system'
 
 const roles = ref<any[]>([])
 const permissions = ref<any[]>([])
@@ -112,9 +112,7 @@ const form = reactive({
 
 const loadRoles = async () => {
   try {
-    console.log('Loading roles from API...')
-    const res = await request({ url: '/auth/role/list', method: 'get' })
-    console.log('Role API response:', res)
+    const res = await getRoleList()
     roles.value = res.data || res || []
   } catch (e) {
     console.error('Load roles error:', e)
@@ -125,7 +123,7 @@ const loadRoles = async () => {
 
 const loadPermissions = async () => {
   try {
-    const res = await request({ url: '/auth/role/permissions', method: 'get' })
+    const res = await getRolePermissionsTree()
     permissions.value = res.data || res || []
   } catch (e) {
     ElMessage.error('加载权限失败')
@@ -159,10 +157,10 @@ const handleEdit = (role: any) => {
 const handleSubmit = async () => {
   try {
     if (form.id) {
-      await request({ url: `/auth/role/${form.id}`, method: 'put', data: form })
+      await updateRole(form.id, form)
       ElMessage.success('更新成功')
     } else {
-      await request({ url: '/auth/role', method: 'post', data: form })
+      await createRole(form)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -176,7 +174,7 @@ const handleSubmit = async () => {
 const handlePermission = async (role: any) => {
   currentRoleId.value = role.id
   try {
-    const res = await request({ url: `/auth/role/${role.id}/permissions`, method: 'get' })
+    const res = await getRolePermissions(role.id)
     checkedPermissions.value = res.data || []
   } catch (e) {
     checkedPermissions.value = [11, 21, 22, 31]
@@ -187,11 +185,7 @@ const handlePermission = async (role: any) => {
 const handlePermissionSubmit = async () => {
   const checkedKeys = treeRef.value?.getCheckedKeys() || []
   try {
-    await request({ 
-      url: `/auth/role/${currentRoleId.value}/permissions`, 
-      method: 'put', 
-      data: checkedKeys 
-    })
+    await assignRolePermissions(currentRoleId.value!, checkedKeys)
     ElMessage.success('权限分配成功')
   } catch (e) {
     ElMessage.error('权限分配失败')
@@ -203,7 +197,7 @@ const handleDelete = (role: any) => {
   ElMessageBox.confirm(`确定删除角色 "${role.roleName}" 吗？`, '删除确认', { type: 'warning' })
     .then(async () => {
       try {
-        await request({ url: `/auth/role/${role.id}`, method: 'delete' })
+        await deleteRole(role.id)
         ElMessage.success('删除成功')
         loadRoles()
       } catch (e) {
