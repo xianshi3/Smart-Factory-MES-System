@@ -662,9 +662,10 @@ background: transparent !important;
   margin-bottom: 20px;
 }
 .header-left { display: flex; align-items: center; gap: 16px; }
-.page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); }
+.page-title, .page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 0; }
 .page-title .el-icon { font-size: 24px; color: var(--accent); }
 .page-desc { font-size: 13px; color: var(--text-muted); }
+.header-actions { display: flex; gap: 8px; align-items: center; }
 
 /* Filter Bar */
 .filter-bar {

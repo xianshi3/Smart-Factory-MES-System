@@ -6,7 +6,7 @@
           <el-icon><Monitor /></el-icon>
           设备监控中心
         </h1>
-        <p class="page-subtitle">实时监控 · 智能预警 · 预测性维护</p>
+        <span class="page-desc">实时监控 · 智能预警 · 预测性维护</span>
       </div>
       <div class="header-actions">
         <el-button type="primary" @click="refresh">
@@ -781,27 +781,6 @@ watch(() => themeStore.isDark, () => {
 
 <style scoped>
 .device-page { padding: 0; }
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.page-title .el-icon { color: var(--accent); }
-.page-subtitle { color: var(--text-muted); font-size: 14px; }
 
 .stats-row {
   display: grid;

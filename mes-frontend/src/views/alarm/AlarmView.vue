@@ -7,7 +7,6 @@
           {{ activeCount > 0 ? '紧急' : '正常' }}
         </div>
         <h1 class="page-title">报警管理中心</h1>
-        <p class="page-subtitle">Enterprise Alarm Management Platform</p>
       </div>
       <div class="header-actions">
         <el-button circle @click="loadAlarms" title="刷新">
@@ -367,16 +366,7 @@ onMounted(() => {
 <style scoped>
 .alarm-page { padding: 0; }
 
-/* 页面头部 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.header-left { display: flex; flex-direction: column; gap: 8px; }
-
+/* 头部徽章 */
 .header-badge {
   display: inline-flex;
   align-items: center;
@@ -401,29 +391,7 @@ onMounted(() => {
   50% { opacity: 0.7; }
 }
 
-.page-title {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin: 0;
-}
-
-.header-actions { display: flex; gap: 8px; }
-
 /* 统计卡片 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
 .stat-card {
   position: relative;
   background: var(--bg-card);
