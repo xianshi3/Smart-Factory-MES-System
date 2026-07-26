@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /app/logs /app/config
 
 # Copy JAR file
-COPY mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar /app/app.jar
+COPY target/mes-gateway-1.0.0-SNAPSHOT.jar /app/app.jar
 
 # Create startup script
 RUN echo '#!/bin/sh\n\
@@ -21,6 +21,6 @@ echo "Starting MES Gateway..."\n\
 exec java -Xms256m -Xmx512m -jar /app/app.jar' > /app/start.sh && \
 chmod +x /app/start.sh
 
-EXPOSE 8080
+EXPOSE 9090
 
 CMD ["/app/start.sh"]

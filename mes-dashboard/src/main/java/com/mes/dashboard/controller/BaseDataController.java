@@ -20,7 +20,7 @@ import java.util.List;
  * @since 2024
  */
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
 @RequiredArgsConstructor
 @Tag(name = "基础数据管理", description = "工位和生产线管理")
 public class BaseDataController {

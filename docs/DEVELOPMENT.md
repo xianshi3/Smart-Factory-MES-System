@@ -119,7 +119,8 @@ npm run dev
 | MQTT | 1883 | 设备通信 |
 | Kafka | 9092 | 消息队列 |
 
-> 注意：开发环境前端直连各服务（8081-8085），暂不需要网关
+> 注意：开发环境前端直连各服务（8081-8085），或通过网关（9090）统一路由。网关已启用，
+`/api/**` 路由使用 StripPrefix=1（去掉 `/api` 前缀后转发），`/ai/**` 使用 StripPrefix=0（保留前缀）。
 
 ---
 
@@ -265,6 +266,9 @@ npm run dev
 2. **Docker命令**：Windows使用 `docker compose`（空格）
 3. **前端账号**：admin / admin123
 4. **AI模型**：示例模型，需真实数据训练后替换
+5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、Nacos 使用 Docker 运行，Java 服务本地 `java -jar` 启动
+6. **AI服务端口冲突**：AI 服务使用 8086 端口，与 InfluxDB 冲突。启动 AI 服务前需执行 `docker stop mes-influxdb`
+7. **Docker镜像拉取**：如果 Docker 代理无法拉取镜像，需配置镜像加速器（daemon.json 中添加 registry-mirrors）
 
 ---
 
@@ -575,7 +579,7 @@ CREATE TABLE xxx (
 
 ---
 
-*最后更新：2026-05-05*
+*最后更新：2026-07-27*
 
 ---
 
@@ -730,4 +734,4 @@ public Map<String, Object> getProductionReport(
 
 ---
 
-*最后更新：2026-04-12*
+*最后更新：2026-07-27*

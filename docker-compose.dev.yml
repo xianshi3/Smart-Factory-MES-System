@@ -1,6 +1,41 @@
-version: '3.8'
-
 services:
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: mes-nacos
+    restart: always
+    ports:
+      - "8848:8848"
+    environment:
+      MODE: standalone
+    networks:
+      - mes-network
+
+  seata:
+    image: seataio/seata-server:1.7.0
+    container_name: mes-seata
+    restart: always
+    ports:
+      - "8091:8091"
+    environment:
+      SEATA_IP: seata
+    networks:
+      - mes-network
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: mes-influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: mes
+      DOCKER_INFLUXDB_INIT_BUCKET: mes_metrics
+    networks:
+      - mes-network
+
   mes-gateway:
     build:
       context: ./mes-gateway
@@ -8,25 +43,9 @@ services:
     container_name: mes-gateway
     restart: always
     ports:
-      - "8080:8080"
+      - "8080:9090"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
-      NACOS_SERVER_ADDR: nacos:8848
-    depends_on:
-      - nacos
-    networks:
-      - mes-network
-
-  mes-auth:
-    build:
-      context: ./mes-auth
-      dockerfile: Dockerfile
-    container_name: mes-auth
-    restart: always
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: docker
       NACOS_SERVER_ADDR: nacos:8848
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
       SPRING_REDIS_HOST: redis
@@ -46,16 +65,13 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
       NACOS_SERVER_ADDR: nacos:8848
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
       SPRING_REDIS_HOST: redis
-      SEATA_SERVER_ADDR: seata:8091
     depends_on:
       - mysql
       - redis
       - nacos
-      - seata
     networks:
       - mes-network
 
@@ -88,7 +104,6 @@ services:
     ports:
       - "8084:8084"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
       NACOS_SERVER_ADDR: nacos:8848
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
       SPRING_REDIS_HOST: redis
@@ -110,7 +125,6 @@ services:
     ports:
       - "8085:8085"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
       NACOS_SERVER_ADDR: nacos:8848
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
       SPRING_REDIS_HOST: redis
@@ -125,4 +139,4 @@ services:
 
 networks:
   mes-network:
-    external: true
+    driver: bridge

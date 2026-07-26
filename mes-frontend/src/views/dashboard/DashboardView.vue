@@ -3,7 +3,7 @@
     <div class="dashboard-header">
       <div class="welcome-section">
         <h1 class="welcome-title">
-          欢迎回来, <span class="username">{{ userStore.user?.username || '管理员' }}</span>
+          欢迎回来, <span class="username">{{ userStore.userInfo?.username || '管理员' }}</span>
         </h1>
         <p class="welcome-subtitle">{{ currentDate }} · {{ currentTime }}</p>
       </div>

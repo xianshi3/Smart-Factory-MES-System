@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @Tag(name = "看板管理", description = "生产看板相关接口")
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
 @RequiredArgsConstructor
 public class DashboardController {
 

@@ -214,6 +214,10 @@ Smart-Factory-MES-System/
 | Docker | 24+ | 基础设施容器 |
 | .NET SDK | 8.0+ | 设备网关 |
 
+> **架构说明**：Docker 仅运行基础设施（MySQL、Redis、Kafka、Zookeeper、Nacos），
+> Java 后端服务在宿主机上通过 `java -jar` 直接运行。AI 服务端口 8086 与 InfluxDB 冲突，
+> 启动 AI 前需执行 `docker stop mes-influxdb`。
+
 ### 启动方式
 
 #### 方式一：一键启动（推荐）
@@ -228,7 +232,7 @@ start-all.bat
 | 选项 | 功能 |
 |------|------|
 | [1] Start All Services | 启动所有服务 |
-| [2] Start Docker | 仅启动 MySQL/Redis |
+| [2] Start Docker | 仅启动 MySQL/Redis/Kafka/Nacos |
 | [3] Start Backend | 仅启动 Java 后端 |
 | [4] Start AI Service | 仅启动 AI 预测服务 |
 | [5] Start .NET Gateway | 仅启动设备网关 |
@@ -239,7 +243,7 @@ start-all.bat
 #### 方式二：Docker 启动基础设施
 
 ```powershell
-# 启动基础设施
+# 启动基础设施（MySQL, Redis, Kafka, ZK, Nacos）
 docker-compose up -d
 
 # 查看容器状态
@@ -252,14 +256,24 @@ docker-compose ps
 # 1. 编译后端
 mvn clean package -DskipTests
 
-# 2. 启动各个服务
+# 2. 启动基础设施
+docker-compose up -d
+
+# 3. 启动各个 Java 服务
 java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
 java -jar mes-workorder/target/mes-workorder-1.0.0-SNAPSHOT.jar
 java -jar mes-process/target/mes-process-1.0.0-SNAPSHOT.jar
 java -jar mes-quality/target/mes-quality-1.0.0-SNAPSHOT.jar
 java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
+java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
 
-# 3. 启动前端
+# 4. 启动 AI 服务（需先停掉 InfluxDB）
+docker stop mes-influxdb
+cd mes-ai-service
+pip install -r requirements.txt
+python src/main.py
+
+# 5. 启动前端
 cd mes-frontend
 npm install
 npm run dev
@@ -272,7 +286,7 @@ npm run dev
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端首页 | http://localhost:3000 | Vue 3 应用 |
-| API 网关 | http://localhost:9090 | Spring Cloud Gateway |
+| API 网关 | http://localhost:9090 | Spring Cloud Gateway（已启用） |
 | 认证服务 | http://localhost:8081/swagger-ui.html | Knife4j API 文档 |
 | 工单服务 | http://localhost:8082/swagger-ui.html | - |
 | 工艺服务 | http://localhost:8083/swagger-ui.html | - |
@@ -282,6 +296,7 @@ npm run dev
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
 | MySQL | localhost:3306 | root/root |
 | Redis | localhost:6379 | 无密码 |
+| Nacos | http://localhost:8848/nacos | nacos/nacos |
 
 ### 默认账号
 
@@ -444,6 +459,16 @@ ws.onmessage = (event) => {
 ---
 
 ## 更新日志
+
+### v1.0.28 (2026-07-27)
+
+- 基础设施 Docker-only 运行架构（Java 服务本地直接启动）
+- 网关正式启用，新增 `/ai/**` 路由
+- 修复 Dashboard `@RequestMapping` 前缀匹配问题
+- 修复 Vite 代理 `/ai` 路径重写
+- 前端 WebSocket/AI URL 改用环境变量
+- Docker 内存限制及配置优化
+- AI 服务 SciPy 依赖版本锁定
 
 ### v1.0.27 (2026-05-05)
 

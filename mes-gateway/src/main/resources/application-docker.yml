@@ -10,47 +10,41 @@ spring:
     gateway:
       routes:
         - id: mes-auth
-          uri: http://localhost:8081
+          uri: http://mes-auth:8081
           predicates:
             - Path=/api/auth/**
           filters:
             - StripPrefix=1
         - id: mes-workorder
-          uri: http://localhost:8082
+          uri: http://mes-workorder:8082
           predicates:
             - Path=/api/workorder/**
           filters:
             - StripPrefix=1
         - id: mes-process
-          uri: http://localhost:8083
+          uri: http://mes-process:8083
           predicates:
             - Path=/api/process/**
           filters:
             - StripPrefix=1
         - id: mes-quality
-          uri: http://localhost:8084
+          uri: http://mes-quality:8084
           predicates:
             - Path=/api/quality/**
           filters:
             - StripPrefix=1
         - id: mes-dashboard
-          uri: http://localhost:8085
+          uri: http://mes-dashboard:8085
           predicates:
             - Path=/api/dashboard/**
           filters:
             - StripPrefix=1
         - id: mes-alarm
-          uri: http://localhost:8085
+          uri: http://mes-dashboard:8085
           predicates:
             - Path=/api/alarm/**
           filters:
             - StripPrefix=1
-        - id: mes-ai
-          uri: http://localhost:8086
-          predicates:
-            - Path=/ai/**
-          filters:
-            - StripPrefix=0
       globalcors:
         cors-configurations:
           '[/**]':

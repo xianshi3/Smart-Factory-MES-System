@@ -1,14 +1,9 @@
-FROM openjdk:17-jdk-slim
+FROM openjdk:17-jdk-slim AS builder
+WORKDIR /build
+COPY target/mes-common-1.0.0-SNAPSHOT.jar /build/
 
-LABEL maintainer="MES System"
-LABEL version="1.0"
-LABEL description="MES Common Module"
-
-WORKDIR /app
-
-COPY mes-common/target/mes-common-1.0.0-SNAPSHOT.jar /app/lib/
-
-RUN mkdir -p /app/ext && \
-    echo "# Common extensions" > /app/ext/README
-
-CMD ["tail", "-f", "/dev/null"]
+FROM alpine:latest
+RUN mkdir -p /app/lib
+COPY --from=builder /build/mes-common-1.0.0-SNAPSHOT.jar /app/lib/
+VOLUME /app/lib
+CMD ["echo", "mes-common is a library module, use as a volume source"]

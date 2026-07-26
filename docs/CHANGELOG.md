@@ -10,6 +10,37 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.28 (2026-07-27)
+
+### Architecture Changes
+
+- **Docker runs infrastructure only**: MySQL, Redis, Kafka, Zookeeper, Nacos. Java services run locally via `java -jar`.
+- **Gateway actively in use**: Routes include `/api/**` (StripPrefix=1) and `/ai/**` (StripPrefix=0). No longer "暂未使用".
+- **Frontend Vite proxy**: Proxies `/ai` → `localhost:8086` with `rewrite: path.replace(/^\/ai/, '')`.
+- **AI service port 8086 conflicts with InfluxDB**: Must run `docker stop mes-influxdb` before starting AI service.
+- **SciPy pinned to 1.14.1** to match NumPy 1.26.4.
+
+### Bug Fixes
+
+- **Dockerfile COPY paths**: All Dockerfiles fixed to use correct context paths (e.g., `target/*.jar` → `mes-*/target/*.jar`).
+- **docker-compose.yml**: Added Zookeeper, Kafka, Nacos, InfluxDB services. Set memory limits (mysql: 512M, kafka: 512M, redis: 128M, zk: 128M). Added profiles for selective startup.
+- **WebSocket URL**: Frontend now uses `import.meta.env.VITE_WS_URL` env var instead of hardcoded `localhost:8085`.
+- **Vite proxy rewrite**: Fixed `/ai` proxy rewrite to strip prefix before forwarding to AI service.
+- **Dashboard `@RequestMapping`**: Changed from `/api/dashboard` to `/dashboard` to match Gateway StripPrefix=1 behavior. All sub-controllers updated (DashboardController, AlarmController, BaseDataController).
+- **Gateway routes**: Added `/ai/**` route with StripPrefix=0. Created `application-docker.yml` for Docker profile.
+- **naming/frontend ports**: Fixed nginx.conf to proxy `api` requests to `localhost:9090` (gateway).
+- **userStore import path**: Fixed `userStore` import in `permission.ts` (was importing from wrong path).
+- **`env.d.ts` removed**: Replaced by `src/vite-env.d.ts` (Vue/Vite standard).
+- **`request.ts` removed**: Dead utility replaced by `src/api/index.ts`.
+- **`package-lock.json` tracking**: `.gitignore` updated to keep `package-lock.json` in version control.
+- **SQL migration**: Renamed `V5__fix_unique_constraint.sql` → `V5_5__fix_unique_constraint.sql` for correct Flyway ordering.
+
+### Known Issues
+
+- **Docker proxy blocks image pulls**: Configured mirrors in daemon.json as workaround. `openjdk:17-jdk-slim` and `seataio/seata-server` cannot be pulled via Docker.
+
+---
+
 ## v1.0.27 (2026-05-05)
 
 ### 新增功能

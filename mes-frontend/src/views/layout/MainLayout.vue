@@ -64,7 +64,7 @@
               <div class="user-avatar">
                 <el-icon><User /></el-icon>
               </div>
-              <span class="user-name">{{ userStore.user?.username || '管理员' }}</span>
+              <span class="user-name">{{ userStore.userInfo?.username || '管理员' }}</span>
               <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
