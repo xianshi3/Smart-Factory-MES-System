@@ -20,8 +20,6 @@
 - **产能预测**: AI预测产能趋势
 
 ### 数据处理
-- **Kafka集成**: 异步消费设备数据，实时特征工程
-- **Redis缓存**: 推理结果缓存，提升响应速度
 - **批量预测**: 支持批量预测多个工单
 
 ## 快速启动
@@ -76,10 +74,7 @@ python src/main.py
 |------|------|------|
 | POST | `/api/v1/llm/chat` | 智能对话 |
 | POST | `/api/v1/llm/analyze` | 生产数据分析 |
-| POST | `/api/v1/llm/root-cause` | 根因分析 |
-| POST | `/api/v1/llm/energy` | 能耗优化建议 |
-| POST | `/api/v1/llm/capacity` | 产能预测分析 |
-| GET | `/api/v1/llm/info` | 模型信息 |
+| POST | `/api/v1/predict/process/recommend` | 工艺参数推荐 |
 
 ### 健康检查
 
@@ -188,7 +183,6 @@ mes-ai-service/
 │   │   ├── prediction.py   # 预测路由
 │   │   ├── llm.py        # 大模型路由
 │   │   └── analysis.py   # 分析路由
-│   └── utils/              # 工具函数
 ├── models/                # 训练模型输出
 ├── config.yaml            # 配置文件
 ├── .env.local            # 本地敏感配置（不提交）

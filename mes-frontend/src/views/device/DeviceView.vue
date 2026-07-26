@@ -759,7 +759,6 @@ onMounted(() => {
         temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
         power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
       }))
-      updateStats()
       updateCharts()
     }
   })
