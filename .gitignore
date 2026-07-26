@@ -79,10 +79,10 @@ __pycache__/
 # ==================== .NET ====================
 bin/
 obj/
+.vs/
 
-# ==================== AI Tools ====================
-.opencode/
-*.dll
+# ==================== AI Models (binary) ====================
+*.onnx
 *.exe
 *.pdb
 *.runtimeconfig.json

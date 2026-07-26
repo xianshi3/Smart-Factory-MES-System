@@ -1,7 +1,7 @@
 # Smart Factory MES System
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Spring%20Cloud-2022.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
+  <img src="https://img.shields.io/badge/Spring%20Cloud-2023.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
   <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?style=for-the-badge&logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Java-17-brightgreen?style=for-the-badge&logo=java" alt="Java 17">
   <img src="https://img.shields.io/badge/.NET-8-brightgreen?style=for-the-badge&logo=.NET" alt=".NET 8">
@@ -92,7 +92,7 @@
 | 数据可视化 | ECharts | 5.6 |
 | 构建工具 | Vite | 6.0 |
 | 后端框架 | Spring Boot | 3.2.5 |
-| 微服务 | Spring Cloud | 2022.0.0 |
+| 微服务 | Spring Cloud | 2023.0.0 |
 | ORM | MyBatis-Plus | 3.5.6 |
 | 数据库 | MySQL | 8.0.33 |
 | 缓存 | Redis | 7 |
@@ -211,8 +211,8 @@ Smart-Factory-MES-System/
 | .NET SDK | 8.0+ | 设备网关 |
 
 > **架构说明**：Docker 仅运行基础设施（MySQL、Redis、Kafka、Zookeeper、Nacos），
-> Java 后端服务在宿主机上通过 `java -jar` 直接运行。AI 服务端口 8086 与 InfluxDB 冲突，
-> 启动 AI 前需执行 `docker stop mes-influxdb`。
+> Java 后端服务在宿主机上通过 `java -jar` 直接运行。AI 服务端口 8086 与 InfluxDB 冲突
+> （两者都使用 8086），启动 AI 前需执行 `docker stop mes-influxdb`。建议将 AI 服务改为非冲突端口。
 
 ### 启动方式
 
@@ -273,11 +273,11 @@ cd mes-frontend && npm install && npm run dev
 |------|------|------|
 | 前端首页 | http://localhost:3000 | Vue 3 应用 |
 | API 网关 | http://localhost:9090 | Spring Cloud Gateway（已启用） |
-| 认证服务 | http://localhost:8081/swagger-ui.html | Knife4j API 文档 |
-| 工单服务 | http://localhost:8082/swagger-ui.html | - |
-| 工艺服务 | http://localhost:8083/swagger-ui.html | - |
-| 质量服务 | http://localhost:8084/swagger-ui.html | - |
-| 看板服务 | http://localhost:8085/swagger-ui.html | - |
+| 认证服务 | http://localhost:8081/doc.html | Knife4j API 文档 |
+| 工单服务 | http://localhost:8082/doc.html | - |
+| 工艺服务 | http://localhost:8083/doc.html | - |
+| 质量服务 | http://localhost:8084/doc.html | - |
+| 看板服务 | http://localhost:8085/doc.html | - |
 | AI 服务 | http://localhost:8086/docs | FastAPI API 文档 |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
 | MySQL | localhost:3306 | root/root |
@@ -343,12 +343,12 @@ GET /device/status/{deviceId}
 GET /alarm/device/{deviceId}
 ```
 
-完整 API 文档请访问各服务的 Swagger UI：
-- 认证服务：http://localhost:8081/swagger-ui.html
-- 工单服务：http://localhost:8082/swagger-ui.html
-- 工艺服务：http://localhost:8083/swagger-ui.html
-- 质量服务：http://localhost:8084/swagger-ui.html
-- 看板服务：http://localhost:8085/swagger-ui.html
+完整 API 文档请访问各服务的 Knife4j 文档页面：
+- 认证服务：http://localhost:8081/doc.html
+- 工单服务：http://localhost:8082/doc.html
+- 工艺服务：http://localhost:8083/doc.html
+- 质量服务：http://localhost:8084/doc.html
+- 看板服务：http://localhost:8085/doc.html
 - AI 服务：http://localhost:8086/docs
 
 ---
