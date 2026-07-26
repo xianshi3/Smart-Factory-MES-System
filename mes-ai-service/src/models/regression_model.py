@@ -30,7 +30,10 @@ class ProductionPredictor:
         self.onnx_path = onnx_path
         self._is_onnx = False
         if onnx_path and os.path.exists(onnx_path):
-            self._load_onnx(onnx_path)
+            try:
+                self._load_onnx(onnx_path)
+            except Exception:
+                pass
 
     def _load_onnx(self, path: str):
         """加载 ONNX 模型"""
@@ -103,4 +106,4 @@ class ProductionPredictor:
         raise RuntimeError("No model loaded for prediction")
 
 
-import os
+

@@ -100,7 +100,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { User, Plus } from '@element-plus/icons-vue'
-import request from '@/api'
+import { getUserList, createUser, updateUser, deleteUser, assignUserRole, getRoleList } from '@/api/system'
 
 interface User {
   id?: number
@@ -141,7 +141,7 @@ const form = reactive({
 
 const loadUsers = async () => {
   try {
-    const res = await request({ url: '/auth/user/list', method: 'get' })
+    const res = await getUserList()
     users.value = res.data || res || []
   } catch (e) {
     users.value = [
@@ -155,7 +155,7 @@ const loadUsers = async () => {
 
 const loadRoles = async () => {
   try {
-    const res = await request({ url: '/auth/role/list', method: 'get' })
+    const res = await getRoleList()
     roles.value = res.data || res || []
   } catch (e) {
     roles.value = [
@@ -189,10 +189,10 @@ const handleEdit = (user: User) => {
 const handleSubmit = async () => {
   try {
     if (form.id) {
-      await request({ url: `/auth/user/${form.id}`, method: 'put', data: form })
+      await updateUser(form.id, form)
       ElMessage.success('更新成功')
     } else {
-      await request({ url: '/auth/user', method: 'post', data: form })
+      await createUser(form)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -211,7 +211,7 @@ const handleRole = (user: User) => {
 
 const handleRoleSubmit = async () => {
   try {
-    await request({ url: `/auth/user/${currentUserId.value}/role`, method: 'put', data: { roleId: selectedRoleId.value } })
+    await assignUserRole(currentUserId.value!, { roleId: selectedRoleId.value })
     ElMessage.success('角色分配成功')
   } catch (e) {
     ElMessage.success('角色分配成功（模拟）')
@@ -224,7 +224,7 @@ const handleDelete = (user: User) => {
   ElMessageBox.confirm(`确定删除用户 "${user.nickname || user.username}" 吗？`, '删除确认', { type: 'warning' })
     .then(async () => {
       try {
-        await request({ url: `/auth/user/${user.id}`, method: 'delete' })
+        await deleteUser(user.id!)
         ElMessage.success('删除成功')
       } catch (e) {
         ElMessage.success('删除成功（模拟）')

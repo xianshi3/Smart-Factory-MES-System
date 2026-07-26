@@ -164,8 +164,9 @@ INSERT INTO `sys_menu` (`menu_name`, `menu_code`, `parent_id`, `path`, `componen
 ('质量管理', 'quality', 0, '/quality', 'quality/QualityView', 'CircleCheck', 4),
 ('设备监控', 'device', 0, '/device', 'device/DeviceView', 'Monitor', 5),
 ('生产报表', 'report', 0, '/report', 'report/ReportView', 'DataAnalysis', 6),
-('个人中心', 'profile', 0, '/profile', 'profile/ProfileView', 'User', 7),
-('系统设置', 'settings', 0, '/settings', 'settings/SettingsView', 'Setting', 8);
+('报警管理', 'alarm', 0, '/alarm', 'alarm/AlarmView', 'Warning', 7),
+('个人中心', 'profile', 0, '/profile', 'profile/ProfileView', 'User', 8),
+('系统设置', 'settings', 0, '/settings', 'settings/SettingsView', 'Setting', 9);
 
 -- 角色分配权限 (ADMIN拥有所有权限)
 INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)

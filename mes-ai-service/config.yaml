@@ -10,6 +10,10 @@ model:
     onnx_path: "src/models/saved_models/output_predict.onnx"
     version: "1.0.0"
 
+llm:
+  api_key: "${ZHIPU_API_KEY}"
+  model: "glm-4-flash"
+
 kafka:
   bootstrap_servers: "localhost:9092"
   group_id: "ai-service-group"

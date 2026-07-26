@@ -68,20 +68,12 @@ export function getQualityPage(params: any) {
   return request({ url: '/quality/record/page', method: 'get', params })
 }
 
-export function getQualityDetail(id: number) {
-  return request({ url: `/quality/record/${id}`, method: 'get' })
-}
-
 export function createQualityRecord(data: any) {
   return request({ url: '/quality/record', method: 'post', data })
 }
 
 export function passQuality(id: number) {
   return request({ url: `/quality/record/${id}/pass`, method: 'post' })
-}
-
-export function failQuality(id: number, reason: string) {
-  return request({ url: `/quality/record/${id}/fail`, method: 'post', data: { reason } })
 }
 
 export function deleteQualityRecord(id: string | number) {
@@ -92,32 +84,30 @@ export function forwardTrace(sn: string) {
   return request({ url: '/quality/trace/forward', method: 'get', params: { sn } })
 }
 
-export function reverseTrace(workOrderId: number) {
-  return request({ url: '/quality/trace/reverse', method: 'get', params: { workOrderId } })
+const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/api/ai'
+
+export function predictDeviceFault(data: any) {
+  return request({ url: `${AI_BASE_URL}/api/v1/predict/device/fault`, method: 'post', data })
 }
 
-export function getDeviceStatus() {
-  return request({ url: '/api/dashboard/devices', method: 'get' })
+export function predictCapacity(data: any) {
+  return request({ url: `${AI_BASE_URL}/api/v1/analysis/capacity/predict`, method: 'post', data })
+}
+
+export function analyzeSPC(data: any) {
+  return request({ url: `${AI_BASE_URL}/api/v1/analysis/spc/analyze`, method: 'post', data })
+}
+
+export function llmChat(data: any) {
+  return request({ url: `${AI_BASE_URL}/api/v1/llm/chat`, method: 'post', data })
+}
+
+export function optimizeEnergy(data: any) {
+  return request({ url: `${AI_BASE_URL}/api/v1/analysis/energy/optimize`, method: 'post', data })
 }
 
 export function getAlarmDevices() {
   return request({ url: '/api/dashboard/alarms', method: 'get' })
-}
-
-export function getAiHealth() {
-  return request({ url: 'http://localhost:8086/api/v1/health', method: 'get' })
-}
-
-export function getAiModelStatus() {
-  return request({ url: 'http://localhost:8086/api/v1/model/status', method: 'get' })
-}
-
-export function predictQuality(data: any) {
-  return request({ url: 'http://localhost:8086/api/v1/predict/quality', method: 'post', data })
-}
-
-export function predictProduction(data: any) {
-  return request({ url: 'http://localhost:8086/api/v1/predict/production', method: 'post', data })
 }
 
 export function startDevice(deviceId: number) {
@@ -136,14 +126,6 @@ export function getAllAlarms() {
   return request({ url: '/api/alarm', method: 'get' })
 }
 
-export function getAlarmsByStatus(status: string) {
-  return request({ url: `/api/alarm/status/${status}`, method: 'get' })
-}
-
-export function createAlarm(data: any) {
-  return request({ url: '/api/alarm', method: 'post', data })
-}
-
 export function acknowledgeAlarm(alarmId: number, userId: string) {
   return request({ url: `/api/alarm/${alarmId}/ack`, method: 'post', params: { userId } })
 }
@@ -154,8 +136,4 @@ export function resolveAlarm(alarmId: number, userId: string, remarks: string) {
 
 export function deleteAlarm(alarmId: number) {
   return request({ url: `/api/alarm/${alarmId}`, method: 'delete' })
-}
-
-export function getActiveAlarmCount() {
-  return request({ url: '/api/alarm/count/active', method: 'get' })
 }

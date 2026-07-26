@@ -116,6 +116,9 @@ public class RoleController {
     @Operation(summary = "获取角色详情")
     public Result<Role> getById(@PathVariable Long id) {
         Role role = roleMapper.selectById(id);
+        if (role == null) {
+            return Result.fail(404, "角色不存在");
+        }
         return Result.ok(role);
     }
 
@@ -265,6 +268,22 @@ public class RoleController {
         list.add(p5);
         list.add(p6);
         
+        Permission p7 = new Permission();
+        p7.setPermissionName("生产线管理");
+        p7.setPermissionCode("production");
+        p7.setPermissionType("MENU");
+        p7.setStatus(1);
+        permissionMapper.insert(p7);
+        list.add(p7);
+        
+        Permission p8 = new Permission();
+        p8.setPermissionName("工位管理");
+        p8.setPermissionCode("workstation");
+        p8.setPermissionType("MENU");
+        p8.setStatus(1);
+        permissionMapper.insert(p8);
+        list.add(p8);
+        
         return list;
     }
     
@@ -313,6 +332,20 @@ public class RoleController {
         p6.put("permissionType", "MENU");
         result.add(p6);
         
+        java.util.Map<String, Object> p7 = new java.util.HashMap<>();
+        p7.put("id", 7);
+        p7.put("permissionName", "生产线管理");
+        p7.put("permissionCode", "production");
+        p7.put("permissionType", "MENU");
+        result.add(p7);
+        
+        java.util.Map<String, Object> p8 = new java.util.HashMap<>();
+        p8.put("id", 8);
+        p8.put("permissionName", "工位管理");
+        p8.put("permissionCode", "workstation");
+        p8.put("permissionType", "MENU");
+        result.add(p8);
+        
         return result;
     }
 
@@ -344,7 +377,7 @@ public class RoleController {
             }
             return Result.ok();
         } catch (Exception e) {
-            return Result.ok();
+            return Result.fail("分配权限失败: " + e.getMessage());
         }
     }
 }

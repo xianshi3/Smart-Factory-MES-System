@@ -10,7 +10,9 @@
     </parent>
     <artifactId>mes-workorder</artifactId>
     <name>MES WorkOrder</name>
+    
     <description>工单服务 - 工单生命周期管理、报工处理</description>
+
     <dependencies>
         <dependency>
             <groupId>com.mes</groupId>

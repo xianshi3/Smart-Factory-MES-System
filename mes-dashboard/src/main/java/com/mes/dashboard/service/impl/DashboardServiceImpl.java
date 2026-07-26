@@ -102,7 +102,6 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public List<DeviceStatus> getAllDeviceStatus() {
-        // Clear old data first, then return empty list to force creating new devices via simulator
         LambdaQueryWrapper<DeviceStatus> wrapper = new LambdaQueryWrapper<>();
         wrapper.isNotNull(DeviceStatus::getId);
         return deviceStatusMapper.selectList(wrapper);

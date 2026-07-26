@@ -1,6 +1,7 @@
 package com.mes.auth.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mes.common.entity.Menu;
 import com.mes.common.mapper.MenuMapper;
 import com.mes.common.result.Result;
@@ -9,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/auth/menu")
 @RequiredArgsConstructor
-@Tag(name = "菜单管理", description = "菜单查询接口")
+@Tag(name = "菜单管理", description = "菜单管理接口")
 public class MenuController {
 
     private final MenuMapper menuMapper;
@@ -91,5 +91,35 @@ public class MenuController {
         }
         
         return Result.ok(topMenus);
+    }
+
+    /**
+     * 创建菜单
+     */
+    @PostMapping
+    @Operation(summary = "创建菜单")
+    public Result<Void> create(@RequestBody Menu menu) {
+        menuMapper.insert(menu);
+        return Result.ok();
+    }
+
+    /**
+     * 更新菜单
+     */
+    @PutMapping
+    @Operation(summary = "更新菜单")
+    public Result<Void> update(@RequestBody Menu menu) {
+        menuMapper.updateById(menu);
+        return Result.ok();
+    }
+
+    /**
+     * 删除菜单
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除菜单")
+    public Result<Void> delete(@PathVariable Long id) {
+        menuMapper.deleteById(id);
+        return Result.ok();
     }
 }

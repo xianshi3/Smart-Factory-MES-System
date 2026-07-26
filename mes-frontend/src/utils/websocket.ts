@@ -1,6 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 
-const WS_URL = 'ws://localhost:8085/ws/dashboard'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8085/ws/dashboard'
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -17,6 +17,7 @@ class WebSocketService {
       this.ws.onopen = () => {
         console.log('[WebSocket] Connected')
         this.connected.value = true
+        wsConnected.value = true
         this.scheduleReconnect(null)
       }
 
@@ -32,6 +33,7 @@ class WebSocketService {
       this.ws.onclose = () => {
         console.log('[WebSocket] Disconnected')
         this.connected.value = false
+        wsConnected.value = false
         this.scheduleReconnect(5000)
       }
 
@@ -86,14 +88,17 @@ export function useWebSocket(onMessage: (data: any) => void) {
     wsConnected.value = true
   }
 
-  wsService.subscribe(handler)
+  const unsubscribe = wsService.subscribe(handler)
 
   onUnmounted(() => {
-    wsService.subscribe(handler)
+    unsubscribe()
   })
 
   return {
     connect: () => wsService.connect(),
-    disconnect: () => wsService.disconnect()
+    disconnect: () => {
+      wsConnected.value = false
+      wsService.disconnect()
+    }
   }
 }

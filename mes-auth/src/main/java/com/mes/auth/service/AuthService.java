@@ -44,17 +44,11 @@ public class AuthService {
             throw new BizException(ErrorCode.USER_NOT_FOUND);
         }
         
-        // 验证密码 - 直接比较（支持明文和BCrypt）
+        // 验证密码
         String storedPassword = user.getPassword();
         String inputPassword = dto.getPassword();
         boolean matched = false;
-        
-        if (storedPassword != null && storedPassword.startsWith("$2a$")) {
-            matched = passwordEncoder.matches(inputPassword, storedPassword);
-        } else if (storedPassword != null && storedPassword.equals(inputPassword)) {
-            matched = true;
-        }
-        
+
         if (storedPassword != null && storedPassword.startsWith("$2a$")) {
             matched = passwordEncoder.matches(inputPassword, storedPassword);
         } else if (storedPassword != null) {
@@ -65,7 +59,7 @@ public class AuthService {
                 matched = passwordEncoder.matches(inputPassword, storedPassword);
             }
         }
-        
+
         if (!matched) {
             log.warn("密码验证失败 - 输入: {}, 存储: {}", inputPassword, storedPassword);
             throw new BizException(ErrorCode.USER_PASSWORD_ERROR);

@@ -46,8 +46,15 @@ export default defineConfig({
           if (req.headers.accept?.includes('text/html')) return '/'
         }
       },
-      '/api': {
+      '/dashboard': {
         target: 'http://localhost:8085',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
+      },
+      '/api': {
+        target: 'http://localhost:9090',
         changeOrigin: true,
         bypass: (req) => {
           if (req.headers.accept?.includes('text/html')) return '/'
@@ -56,6 +63,14 @@ export default defineConfig({
       '/auth': {
         target: 'http://localhost:8081',
         changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
+      },
+      '/ai': {
+        target: 'http://localhost:8086',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ai/, ''),
         bypass: (req) => {
           if (req.headers.accept?.includes('text/html')) return '/'
         }
