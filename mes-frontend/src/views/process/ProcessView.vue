@@ -242,8 +242,6 @@ onMounted(() => { loadData() })
   padding: 18px;
   cursor: pointer;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .template-card:hover {
