@@ -359,7 +359,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getDeviceStatus, getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
+import { getDeviceStatus } from '@/api/dashboard'
+import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'

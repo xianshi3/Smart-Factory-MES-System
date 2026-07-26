@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import VChart from 'vue-echarts'
-import { getDeviceStatus } from '@/api/services'
+import { getDeviceStatus } from '@/api/dashboard'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { wsService } from '@/utils/websocket'
