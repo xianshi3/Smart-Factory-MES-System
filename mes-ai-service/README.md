@@ -189,7 +189,6 @@ mes-ai-service/
 │   │   ├── llm.py        # 大模型路由
 │   │   └── analysis.py   # 分析路由
 │   └── utils/              # 工具函数
-│       └── kafka_consumer.py
 ├── models/                # 训练模型输出
 ├── config.yaml            # 配置文件
 ├── .env.local            # 本地敏感配置（不提交）
