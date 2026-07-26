@@ -34,7 +34,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="order-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span class="order-no">{{ row.orderNo }}</span>
@@ -356,8 +355,6 @@ onMounted(() => { loadData() })
   padding: 18px;
   cursor: pointer;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .order-card:hover {

@@ -32,7 +32,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="quality-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span class="sn-text">{{ row.sn }}</span>

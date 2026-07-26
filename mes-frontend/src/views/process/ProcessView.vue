@@ -31,7 +31,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="template-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span :class="['status-dot', row.status === 'PUBLISHED' ? 'status-dot--success' : 'status-dot--info']"></span>
