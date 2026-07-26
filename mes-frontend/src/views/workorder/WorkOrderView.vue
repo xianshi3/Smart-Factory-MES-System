@@ -238,7 +238,10 @@ const rules = {
   processTemplateId: [{ required: true, message: '请选择工艺模板', trigger: 'change' }]
 }
 
-const getProgress = (row: any) => Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
+const getProgress = (row: any) => {
+  if (!row.planQuantity) return 0
+  return Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
+}
 const canStart = (row: any) => row.status === 'ISSUED'
 const canDelete = (row: any) => row.status === 'CREATED' || row.status === 'CLOSED'
 const canReport = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'

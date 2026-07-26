@@ -117,7 +117,8 @@ const updateTime = () => {
 const refresh = async () => {
   try {
     const res = await getDeviceStatus()
-    devices.value = res?.data || res || []
+    const raw = res?.data || res
+    devices.value = Array.isArray(raw) ? raw : []
     
     stats.value = [
       { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
