@@ -34,4 +34,12 @@ public class Result<T> implements Serializable {
     public static <T> Result<T> fail(int code, String message) {
         return new Result<>(code, message, null, System.currentTimeMillis());
     }
+
+    public static <T> Result<T> success(T data) {
+        return new Result<>(200, "success", data, System.currentTimeMillis());
+    }
+
+    public static <T> Result<T> error(String message) {
+        return new Result<>(500, message, null, System.currentTimeMillis());
+    }
 }
