@@ -46,6 +46,13 @@ export default defineConfig({
           if (req.headers.accept?.includes('text/html')) return '/'
         }
       },
+      '/dashboard': {
+        target: 'http://localhost:8085',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) return '/'
+        }
+      },
       '/api': {
         target: 'http://localhost:9090',
         changeOrigin: true,

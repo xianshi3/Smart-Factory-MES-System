@@ -2,8 +2,6 @@ server:
   port: 8085
   error:
     include-message: always
-    include-stacktrace: always
-    include-exception: true
 
 spring:
   datasource:

@@ -36,6 +36,26 @@ services:
     networks:
       - mes-network
 
+  mes-auth:
+    build:
+      context: ./mes-auth
+      dockerfile: Dockerfile
+    container_name: mes-auth
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      SPRING_REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+      - nacos
+    networks:
+      - mes-network
+
   mes-gateway:
     build:
       context: ./mes-gateway

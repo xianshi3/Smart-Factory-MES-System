@@ -3,8 +3,6 @@ server:
   port: 8081
   error:
     include-message: always
-    include-stacktrace: always
-    include-exception: true
 
 spring:
   application:
@@ -22,7 +20,8 @@ spring:
       max-wait: 60000
 
   mybatis-plus:
-    mapper-locations: classpath:mapper/*.xml
+    mapper-locations: classpath:mapper/*.xml,classpath*:mapper/**/*.xml
+    type-aliases-package: com.mes.common.entity
     global-config:
       db-config:
         id-type: assign_id
@@ -32,10 +31,6 @@ spring:
     configuration:
       map-underscore-to-camel-case: true
       log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
-  # 扫描common模块的mapper
-  mapper-locations: classpath*:mapper/**/*.xml
-  type-aliases-package: com.mes.common.entity
 
 jwt:
   secret: SmartFactoryMES2024SecretKeyForJWTTokenGeneration!

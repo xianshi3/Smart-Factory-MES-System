@@ -45,6 +45,12 @@ spring:
             - Path=/api/alarm/**
           filters:
             - StripPrefix=1
+        - id: mes-ai
+          uri: http://mes-ai-service:8086
+          predicates:
+            - Path=/api/ai/**
+          filters:
+            - StripPrefix=2
       globalcors:
         cors-configurations:
           '[/**]':

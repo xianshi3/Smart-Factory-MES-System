@@ -48,9 +48,9 @@ spring:
         - id: mes-ai
           uri: http://localhost:8086
           predicates:
-            - Path=/ai/**
+            - Path=/api/ai/**
           filters:
-            - StripPrefix=0
+            - StripPrefix=2
       globalcors:
         cors-configurations:
           '[/**]':

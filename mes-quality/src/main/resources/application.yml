@@ -3,8 +3,6 @@ server:
   port: 8084
   error:
     include-message: always
-    include-stacktrace: always
-    include-exception: true
 
 spring:
   application:

@@ -17,6 +17,7 @@ class WebSocketService {
       this.ws.onopen = () => {
         console.log('[WebSocket] Connected')
         this.connected.value = true
+        wsConnected.value = true
         this.scheduleReconnect(null)
       }
 

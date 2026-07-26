@@ -14,4 +14,5 @@ pytest==8.3.4
 joblib==1.4.2
 skl2onnx==1.17.0
 onnx==1.17.0
+protobuf>=3.20,<5
 zhipuai>=2.1.5

@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-set "ROOT=D:\Engineering-Project\Smart-Factory-MES-System"
+set "ROOT=%~dp0"
 
 :menu
 cls
@@ -45,11 +45,13 @@ echo.
 echo Starting Backend...
 call :build_java
 start "MES-Auth" cmd /k "cd /d "%ROOT%\mes-auth" && mvn spring-boot:run -DskipTests"
+start "MES-Gateway" cmd /k "cd /d "%ROOT%\mes-gateway" && mvn spring-boot:run -DskipTests"
 start "MES-WorkOrder" cmd /k "cd /d "%ROOT%\mes-workorder" && mvn spring-boot:run -DskipTests"
 start "MES-Process" cmd /k "cd /d "%ROOT%\mes-process" && mvn spring-boot:run -DskipTests"
 start "MES-Quality" cmd /k "cd /d "%ROOT%\mes-quality" && mvn spring-boot:run -DskipTests"
 start "MES-Dashboard" cmd /k "cd /d "%ROOT%\mes-dashboard" && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
+call :wait_java 9090 "Gateway"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
@@ -98,11 +100,13 @@ exit /b
 echo Starting Backend...
 call :build_java
 start "MES-Auth" cmd /k "cd /d "%ROOT%\mes-auth" && mvn spring-boot:run -DskipTests"
+start "MES-Gateway" cmd /k "cd /d "%ROOT%\mes-gateway" && mvn spring-boot:run -DskipTests"
 start "MES-WorkOrder" cmd /k "cd /d "%ROOT%\mes-workorder" && mvn spring-boot:run -DskipTests"
 start "MES-Process" cmd /k "cd /d "%ROOT%\mes-process" && mvn spring-boot:run -DskipTests"
 start "MES-Quality" cmd /k "cd /d "%ROOT%\mes-quality" && mvn spring-boot:run -DskipTests"
 start "MES-Dashboard" cmd /k "cd /d "%ROOT%\mes-dashboard" && mvn spring-boot:run -DskipTests"
 call :wait_java 8081 "Auth"
+call :wait_java 9090 "Gateway"
 call :wait_java 8082 "WorkOrder"
 call :wait_java 8083 "Process"
 call :wait_java 8084 "Quality"
@@ -128,9 +132,9 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8086 " ^| findstr "LISTENIN
 )
 echo Starting AI Service...
 if exist "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" (
-    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" -m src.main"
+    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service" && "%ROOT%\mes-ai-service\.venv\Scripts\python.exe" -m src.main"
 ) else (
-    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service\src" && python -m src.main"
+    start "AI-Service" cmd /k "cd /d "%ROOT%\mes-ai-service" && python -m src.main"
 )
 exit /b
 
@@ -209,6 +213,7 @@ exit /b
 :stop_all
 echo Stopping all services...
 taskkill /F /FI "WINDOWTITLE eq MES-Auth*" 2>nul
+taskkill /F /FI "WINDOWTITLE eq MES-Gateway*" 2>nul
 taskkill /F /FI "WINDOWTITLE eq MES-WorkOrder*" 2>nul
 taskkill /F /FI "WINDOWTITLE eq MES-Process*" 2>nul
 taskkill /F /FI "WINDOWTITLE eq MES-Quality*" 2>nul
@@ -289,6 +294,7 @@ netstat -ano | findstr ":8082 " | findstr "LISTENING" >nul && echo [8082] WorkOr
 netstat -ano | findstr ":8083 " | findstr "LISTENING" >nul && echo [8083] Process: RUNNING || echo [8083] Process: STOPPED
 netstat -ano | findstr ":8084 " | findstr "LISTENING" >nul && echo [8084] Quality: RUNNING || echo [8084] Quality: STOPPED
 netstat -ano | findstr ":8085 " | findstr "LISTENING" >nul && echo [8085] Dashboard: RUNNING || echo [8085] Dashboard: STOPPED
+netstat -ano | findstr ":9090 " | findstr "LISTENING" >nul && echo [9090] Gateway: RUNNING || echo [9090] Gateway: STOPPED
 echo.
 echo === AI Service (Python) ===
 netstat -ano | findstr ":8086 " | findstr "LISTENING" >nul && echo [8086] AI Service: RUNNING || echo [8086] AI Service: STOPPED

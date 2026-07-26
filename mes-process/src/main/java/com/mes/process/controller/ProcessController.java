@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Tag(name = "工艺模板管理")
 @RestController
-@RequestMapping("/template")
+@RequestMapping("/process/template")
 @RequiredArgsConstructor
 public class ProcessController {
 

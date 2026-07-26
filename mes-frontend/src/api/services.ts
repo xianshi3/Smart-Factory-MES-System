@@ -96,15 +96,11 @@ export function reverseTrace(workOrderId: number) {
   return request({ url: '/quality/trace/reverse', method: 'get', params: { workOrderId } })
 }
 
-export function getDeviceStatus() {
-  return request({ url: '/api/dashboard/devices', method: 'get' })
-}
-
 export function getAlarmDevices() {
   return request({ url: '/api/dashboard/alarms', method: 'get' })
 }
 
-const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/ai'
+const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/api/ai'
 
 export function getAiHealth() {
   return request({ url: `${AI_BASE_URL}/api/v1/health`, method: 'get' })
