@@ -362,10 +362,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
+const chartTheme = useChartTheme()
 
 const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
@@ -501,13 +503,10 @@ const updateCharts = () => {
     return
   }
   
-  const isDark = themeStore.isDark
-  const textColor = isDark ? '#fff' : '#333'
-  const lineColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-  const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
-  const splitLineColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+  const t = chartTheme.value
+  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
   const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
+  const borderColor = lineColor
 
   // Device utilization - top 8 devices only
   const topDevices = [...deviceList.value].sort((a, b) => {

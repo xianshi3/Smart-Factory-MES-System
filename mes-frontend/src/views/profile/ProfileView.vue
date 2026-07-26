@@ -413,7 +413,7 @@ const handleExportData = () => {
   justify-content: center;
   background: var(--accent);
   border-radius: 50%;
-  color: #fff;
+  color: var(--text-inverse, #fff);
   cursor: pointer;
   font-size: 14px;
 }
