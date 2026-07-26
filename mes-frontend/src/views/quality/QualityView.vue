@@ -181,8 +181,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getQualityPage({ current: pagination.page, size: pagination.size, keyword: searchForm.sn, result: searchForm.result })
-    tableData.value = res.data.records || []
-    pagination.total = res.data.total || 0
+    tableData.value = res?.data?.records || []
+    pagination.total = res?.data?.total || 0
   } catch (error) { console.error('Failed to load:', error) }
   finally { loading.value = false }
 }

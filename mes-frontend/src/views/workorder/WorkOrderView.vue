@@ -250,8 +250,9 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getWorkOrderPage({ current: pagination.page, size: pagination.size, status: searchForm.status, keyword: searchForm.keyword })
-    tableData.value = res.data.records || []
-    pagination.total = res.data.total || 0
+    console.log('[WorkOrder] loadData res:', res)
+    tableData.value = res?.data?.records || []
+    pagination.total = res?.data?.total || 0
   } catch (error) { console.error('Failed to load:', error) }
   finally { loading.value = false }
 }
