@@ -10,6 +10,15 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.30 (2026-07-27)
+
+### 变更
+
+- 移除 `start-all.bat` 和 `clean.bat`，改用 `Makefile`（跨平台兼容）
+- 开始时间：`start-all.bat` → `make all`
+
+---
+
 ## v1.0.29 (2026-07-27)
 
 ### 文档更新

@@ -155,10 +155,8 @@ Smart-Factory-MES-System/
 │   └── package.json
 ├── mes-device-simulator-wpf/      # WPF 设备模拟器
 ├── sql/                          # 数据库脚本
-│   └── init.sql                  # 初始化 SQL
-├── scripts/                      # 工具脚本
+├── Makefile                      # 统一启动/构建命令
 ├── docker-compose.yml             # 基础设施编排
-├── start-all.bat                 # 一键启动脚本
 └── pom.xml                      # Maven 父 POM
 ```
 
@@ -218,44 +216,38 @@ Smart-Factory-MES-System/
 
 ### 启动方式
 
-#### 方式一：一键启动（推荐）
+#### 方式一：一键启动（Makefile，推荐）
 
-```powershell
-# 双击运行或命令行执行
-start-all.bat
+```bash
+# 启动所有服务
+make all
+
+# 或先启动基础设施
+make docker
+
+# 再启动 Java 后端（自动编译）
+make backend
+
+# 最后启动 AI 服务和前端
+make ai
+make frontend
 ```
-
-菜单选项说明：
-
-| 选项 | 功能 |
-|------|------|
-| [1] Start All Services | 启动所有服务 |
-| [2] Start Docker | 仅启动 MySQL/Redis/Kafka/Nacos |
-| [3] Start Backend | 仅启动 Java 后端 |
-| [4] Start AI Service | 仅启动 AI 预测服务 |
-| [5] Start .NET Gateway | 仅启动设备网关 |
-| [6] Start Frontend | 仅启动 Vue 前端 |
-| [7] Start Device Simulator | 启动设备模拟器 |
-| [9] Stop All Services | 停止所有服务 |
 
 #### 方式二：Docker 启动基础设施
 
-```powershell
-# 启动基础设施（MySQL, Redis, Kafka, ZK, Nacos）
-docker-compose up -d
-
-# 查看容器状态
-docker-compose ps
+```bash
+docker compose up -d
+docker compose ps
 ```
 
 #### 方式三：手动启动
 
-```powershell
+```bash
 # 1. 编译后端
 mvn clean package -DskipTests
 
 # 2. 启动基础设施
-docker-compose up -d
+docker compose up -d
 
 # 3. 启动各个 Java 服务
 java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
@@ -267,14 +259,10 @@ java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
 
 # 4. 启动 AI 服务（需先停掉 InfluxDB）
 docker stop mes-influxdb
-cd mes-ai-service
-pip install -r requirements.txt
-python src/main.py
+cd mes-ai-service && pip install -r requirements.txt && python src/main.py
 
 # 5. 启动前端
-cd mes-frontend
-npm install
-npm run dev
+cd mes-frontend && npm install && npm run dev
 ```
 
 ---

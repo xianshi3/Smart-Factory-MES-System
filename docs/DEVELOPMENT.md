@@ -22,11 +22,10 @@ Smart-Factory-MES-System/
 ├── mes-device-simulator-wpf/ # WPF设备模拟器
 ├── mes-frontend/            # Vue 3前端 (3000)
 ├── sql/                      # 数据库脚本
-├── start-all.bat            # 统一启动器
+├── Makefile                    # 统一启动命令
 ├── docker-compose.yml        # 基础设施配置
 ├── docs/                    # 项目文档
 └── README.md                # 项目简介
-```
 
 ### 1.2 技术栈
 
@@ -64,31 +63,26 @@ ZHIPU_API_KEY=your-api-key-here
 
 ### 2.2 启动所有服务
 
-```powershell
-start-all.bat
+```bash
+make all
 ```
-
-选择 [1] Start All Services
 
 ### 2.3 单独启动服务
 
-```powershell
-start-all.bat
-# 选择：
-# [2] Start Docker           - 仅Docker
-# [3] Start Backend          - 仅后端
-# [4] Start AI Service       - 仅AI服务
-# [5] Start .NET Gateway     - 仅设备网关
-# [6] Start Frontend         - 仅前端
-# [7] Start Device Simulator - 设备模拟器
-# [8] Clean                  - 清理缓存
-# [9] Stop All Services      - 停止所有
-# [10] View Status           - 查看状态
+```bash
+make docker       # 启动基础设施
+make backend      # 编译 + 启动 Java 后端
+make ai           # 启动 AI 服务
+make frontend     # 启动前端
+make gateway      # 启动单一 Java 服务
+make status       # 查看运行状态
+make stop         # 停止所有服务
+make clean        # 清理缓存
 ```
 
 ### 2.4 启动前端
 
-```powershell
+```bash
 cd mes-frontend
 npm install
 npm run dev
