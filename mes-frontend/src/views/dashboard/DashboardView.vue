@@ -1,66 +1,73 @@
 <template>
-  <div class="db-page">
-    <!-- Header -->
-    <div class="db-header">
-      <div class="db-greeting">
-        <h1>欢迎回来，<span>{{ userStore.userInfo?.username || '管理员' }}</span></h1>
-        <p>{{ currentDate }} {{ currentTime }}</p>
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <div class="welcome-section">
+        <h1 class="welcome-title">
+          欢迎回来, <span class="username">{{ userStore.userInfo?.username || '管理员' }}</span>
+        </h1>
+        <p class="welcome-subtitle">{{ currentDate }} · {{ currentTime }}</p>
       </div>
-      <div class="db-header-right">
-        <span class="db-uptime">系统运行中</span>
-        <span class="db-dot on"></span>
-        <el-button circle size="small" @click="refresh"><el-icon><Refresh /></el-icon></el-button>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="db-stats">
-      <div v-for="s in stats" :key="s.label" class="db-stat" :class="'db-stat-'+s.theme">
-        <span class="db-stat-icon"><el-icon :size="20"><component :is="s.icon" /></el-icon></span>
-        <div class="db-stat-body">
-          <span class="db-stat-val">{{ s.value }}</span>
-          <span class="db-stat-lbl">{{ s.label }}</span>
-        </div>
+      <div class="header-actions">
+        <el-button circle @click="refresh" class="refresh-btn">
+          <el-icon><Refresh /></el-icon>
+        </el-button>
       </div>
     </div>
 
-    <!-- Charts -->
-    <div class="db-charts">
-      <div class="db-chart-card">
-        <div class="db-chart-head"><el-icon><TrendCharts /></el-icon> 生产趋势</div>
-        <v-chart :option="productionChart" autoresize style="height:260px" />
-      </div>
-      <div class="db-chart-card">
-        <div class="db-chart-head"><el-icon><PieChart /></el-icon> 设备状态分布</div>
-        <v-chart :option="statusChart" autoresize style="height:260px" />
-      </div>
+    <div class="stats-grid">
+      <StatCard
+        v-for="(stat, index) in stats"
+        :key="stat.label"
+        :icon="stat.icon"
+        :label="stat.label"
+        :value="stat.value"
+        :theme="stat.theme"
+        :trend="stat.trend"
+        :delay="index * 0.1"
+      />
     </div>
 
-    <!-- Devices -->
-    <div class="db-devices">
-      <div class="db-devices-head">
-        <span><el-icon><Monitor /></el-icon> 设备状态监控</span>
-        <div class="db-devices-summary">
-          <span class="db-ds-item run"><i></i>{{ onlineCount }} 运行</span>
-          <span class="db-ds-item idle"><i></i>{{ idleCount }} 空闲</span>
-          <span class="db-ds-item alarm"><i></i>{{ alarmCount }} 告警</span>
+    <el-row :gutter="20" class="charts-row">
+      <el-col :span="12">
+        <ChartCard title="生产趋势" icon="TrendCharts" :option="productionChart" :height="'280px'" />
+      </el-col>
+      <el-col :span="12">
+        <ChartCard title="设备状态分布" icon="PieChart" :option="statusChart" :height="'280px'" />
+      </el-col>
+    </el-row>
+
+    <div class="device-section">
+      <div class="section-header">
+        <span class="section-title">
+          <el-icon><Monitor /></el-icon>
+          设备状态监控
+        </span>
+        <div class="device-summary">
+          <span class="summary-item online">
+            <span class="summary-dot"></span>
+            {{ onlineCount }} 运行中
+          </span>
+          <span class="summary-item idle">
+            <span class="summary-dot"></span>
+            {{ idleCount }} 空闲
+          </span>
+          <span class="summary-item alarm">
+            <span class="summary-dot"></span>
+            {{ alarmCount }} 告警
+          </span>
         </div>
       </div>
-      <div class="db-devices-grid">
-        <div v-for="(d, i) in devices.slice(0, 8)" :key="d.id || i" class="db-dc" :class="'db-dc-'+(d.status||'OFFLINE').toLowerCase()">
-          <div class="db-dc-top">
-            <span class="db-dc-name">{{ d.deviceName || d.device_code || '设备'+(i+1) }}</span>
-            <span class="db-dc-tag">{{ statusText(d.status) }}</span>
-          </div>
-          <div class="db-dc-mid">
-            <div><em>{{ d.temperature ?? '--' }}</em><label>°C</label></div>
-            <div><em>{{ d.speed ?? '--' }}</em><label>rpm</label></div>
-            <div><em>{{ d.speed ? Math.round(d.speed*0.02+5) : '--' }}</em><label>kW</label></div>
-          </div>
-          <div class="db-dc-bar">
-            <div :style="{ width: (Math.min((d.speed || 0) / 15, 100)) + '%' }"></div>
-          </div>
-        </div>
+      <div class="device-grid">
+        <DeviceCard
+          v-for="(device, index) in devices.slice(0, 8)"
+          :key="device.id || index"
+          :name="device.deviceName || device.device_code || `设备${index + 1}`"
+          :status="device.status"
+          :utilization="Math.round((device.speed || 0) / 15)"
+          :temperature="device.temperature || 0"
+          :power="Math.round((device.speed || 0) * 0.02 + 5)"
+          :delay="index * 0.05"
+        />
       </div>
     </div>
   </div>
@@ -68,17 +75,21 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import VChart from 'vue-echarts'
 import { getDeviceStatus } from '@/api/dashboard'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
-import { Refresh, Monitor, TrendCharts, PieChart, CircleCheck, VideoPause, Warning } from '@element-plus/icons-vue'
+import StatCard from '@/components/common/StatCard.vue'
 
-const userStore = useUserStore()
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
+import DeviceCard from '@/components/common/DeviceCard.vue'
+import ChartCard from '@/components/common/ChartCard.vue'
+import { Refresh, Monitor, TrendCharts, PieChart } from '@element-plus/icons-vue'
 
+const userStore = useUserStore()
 const currentTime = ref('')
 const currentDate = ref('')
 const devices = ref<any[]>([])
@@ -86,10 +97,10 @@ let timeInterval: number
 let wsUnsubscribe: (() => void) | null = null
 
 const stats = ref([
-  { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' },
-  { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' },
-  { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' },
-  { label: '告警', value: 0, icon: 'Warning', theme: 'warning' },
+  { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
+  { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
+  { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
+  { label: '告警', value: 0, icon: 'Warning', theme: 'warning' as const, trend: 0 }
 ])
 
 const productionChart = ref({})
@@ -99,11 +110,9 @@ const onlineCount = computed(() => devices.value.filter(d => d.status === 'ONLIN
 const idleCount = computed(() => devices.value.filter(d => d.status === 'OFFLINE').length)
 const alarmCount = computed(() => devices.value.filter(d => d.status === 'ALARM').length)
 
-const statusText = (s: string) => ({ ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中' } as any)[s] || '未知'
-
 const updateTime = () => {
   const now = new Date()
-  currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   currentDate.value = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 }
 
@@ -111,54 +120,64 @@ const refresh = async () => {
   try {
     const res = await getDeviceStatus()
     const raw = res?.data || res
-    devices.value = Array.isArray(raw) ? raw : (raw?.value || raw?.records || [])
-    updateStats()
+    devices.value = Array.isArray(raw) ? raw : []
+    
+    stats.value = [
+      { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
+      { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
+      { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
+      { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' as const, trend: 0 }
+    ]
+    
     updateCharts()
-  } catch { /* ignore */ }
-}
-
-const updateStats = () => {
-  stats.value = [
-    { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' },
-    { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' },
-    { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' },
-    { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' },
-  ]
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const updateCharts = () => {
   const t = chartTheme.value
-  const tc = t.isDark ? '#aaa' : '#666'
-  const lc = t.lineColor || '#333'
-  const slc = t.splitLineColor || '#111'
+  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
+  const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
+  const borderColor = lineColor
 
-  const names = devices.value.map(d => d.device_code || d.deviceName || '设备').slice(0, 12)
-  const vals = devices.value.map(d => d.speed || 0).slice(0, 12)
+  const deviceNames = devices.value.map(d => d.device_code || d.deviceName || '设备')
+  const speeds = devices.value.map(d => d.speed || 0)
 
   productionChart.value = {
-    tooltip: { trigger: 'axis' },
-    grid: { left: 10, right: 10, top: 15, bottom: 10, containLabel: true },
-    xAxis: { type: 'category', data: names, axisLabel: { color: tc, fontSize: 10 } },
-    yAxis: { type: 'value', axisLabel: { color: tc, fontSize: 10 }, splitLine: { lineStyle: { color: slc } } },
+    tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: { type: 'category', data: deviceNames, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor } },
+    yAxis: { type: 'value', axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor }, splitLine: { lineStyle: { color: splitLineColor } } },
     series: [{
-      data: vals, type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
-      lineStyle: { color: '#6366f1', width: 2 },
+      data: speeds,
+      type: 'line',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 8,
+      lineStyle: { color: '#6366f1', width: 3 },
       itemStyle: { color: '#6366f1' },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,.3)' }, { offset: 1, color: 'rgba(99,102,241,0)' }] } }
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.4)' }, { offset: 1, color: 'rgba(99,102,241,0)' }] } }
     }]
   }
 
-  const sc: any = { '运行中': 0, '空闲': 0, '告警': 0, '维护中': 0 }
-  devices.value.forEach(d => { const m: any = { ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中' }; sc[m[d.status] || '空闲']++ })
+  const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '告警': 0, '维护中': 0 }
+  const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '告警': '#ef4444', '维护中': '#f59e0b' }
+  devices.value.forEach(d => {
+    const statusMap: Record<string, string> = { ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中' }
+    const statusText = statusMap[d.status] || '空闲'
+    statusCounts[statusText] = (statusCounts[statusText] || 0) + 1
+  })
+
   statusChart.value = {
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
     series: [{
-      type: 'pie', radius: ['50%', '75%'], center: ['50%', '50%'],
-      data: Object.entries(sc).filter(([, v]) => v > 0).map(([k, v]) => ({
-        name: k, value: v,
-        itemStyle: { color: { '运行中': '#34c759', '空闲': '#8e8e93', '告警': '#ff3b30', '维护中': '#ff9500' }[k] }
-      })),
-      label: { color: tc, fontSize: 11 }
+      type: 'pie',
+      radius: ['45%', '70%'],
+      center: ['50%', '50%'],
+      data: Object.entries(statusCounts).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: colors[k] } })),
+      label: { show: true, color: textColor, fontSize: 13 },
+      emphasis: { itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.5)' } }
     }]
   }
 }
@@ -166,82 +185,151 @@ const updateCharts = () => {
 onMounted(() => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
+  
   wsService.connect()
-  wsUnsubscribe = wsService.subscribe((data: any) => {
+  wsUnsubscribe = wsService.subscribe((data) => {
     if (data.devices) {
       devices.value = data.devices
-      updateStats()
+      stats.value = [
+        { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
+        { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
+        { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
+        { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' as const, trend: 0 }
+      ]
       updateCharts()
     }
   })
+  
   refresh()
 })
 
 onUnmounted(() => {
   clearInterval(timeInterval)
-  wsUnsubscribe?.()
+  if (wsUnsubscribe) {
+    wsUnsubscribe()
+  }
   wsService.disconnect()
 })
 
-watch(() => themeStore.isDark, () => { if (devices.value.length) updateCharts() })
+watch(() => themeStore.isDark, () => {
+  if (devices.value.length > 0) {
+    updateCharts()
+  }
+})
 </script>
 
 <style scoped>
-.db-page { color: var(--text-primary); font-size: 13px; }
+.dashboard { padding: 0; }
 
-.db-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.db-greeting h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; color: var(--text-primary); }
-.db-greeting h1 span { color: var(--accent); }
-.db-greeting p { margin: 0; font-size: 13px; color: var(--text-muted); }
-.db-header-right { display: flex; align-items: center; gap: 8px; }
-.db-uptime { font-size: 11px; color: var(--text-muted); }
-.db-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-.db-dot.on { box-shadow: 0 0 6px var(--success); }
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
 
-.db-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-.db-stat { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; }
-.db-stat-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; }
-.db-stat-primary .db-stat-icon { background: var(--accent-light); color: var(--accent); }
-.db-stat-success .db-stat-icon { background: var(--success-light); color: var(--success); }
-.db-stat-info .db-stat-icon { background: var(--info-light); color: var(--info); }
-.db-stat-warning .db-stat-icon { background: var(--warning-light); color: var(--warning); }
-.db-stat-val { display: block; font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.1; }
-.db-stat-lbl { font-size: 12px; color: var(--text-muted); }
+.welcome-section { animation: fadeIn 0.5s ease; }
+.welcome-title {
+  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.username {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.welcome-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+}
 
-.db-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-.db-chart-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 16px 8px; }
-.db-chart-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.refresh-btn {
+  width: 42px;
+  height: 42px;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-light) !important;
+  color: var(--text-secondary) !important;
+  transition: all var(--transition-normal);
+  animation: fadeIn 0.5s ease;
+}
+.refresh-btn:hover { 
+  transform: rotate(180deg);
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
 
-.db-devices { }
-.db-devices-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.db-devices-head span { display: flex; align-items: center; gap: 6px; }
-.db-devices-summary { display: flex; gap: 16px; }
-.db-ds-item { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--text-muted); }
-.db-ds-item i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-.db-ds-item.run i { background: var(--success); }
-.db-ds-item.idle i { background: var(--info); }
-.db-ds-item.alarm i { background: var(--danger); }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
 
-.db-devices-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.db-dc { background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid var(--border-color); border-radius: 8px; padding: 12px 14px; }
-.db-dc-online { border-left-color: var(--success); }
-.db-dc-offline { border-left-color: var(--info); }
-.db-dc-alarm { border-left-color: var(--danger); }
-.db-dc-maintenance { border-left-color: var(--warning); }
-.db-dc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.db-dc-name { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.db-dc-tag { font-size: 10px; padding: 1px 7px; border-radius: 6px; font-weight: 600; }
-.db-dc-online .db-dc-tag { background: var(--success-light); color: var(--success); }
-.db-dc-offline .db-dc-tag { background: var(--info-light); color: var(--info); }
-.db-dc-alarm .db-dc-tag { background: var(--danger-light); color: var(--danger); }
-.db-dc-maintenance .db-dc-tag { background: var(--warning-light); color: var(--warning); }
-.db-dc-mid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; text-align: center; }
-.db-dc-mid div { }
-.db-dc-mid em { display: block; font-size: 16px; font-weight: 700; color: var(--text-primary); font-style: normal; }
-.db-dc-mid label { font-size: 9px; color: var(--text-muted); }
-.db-dc-bar { height: 3px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
-.db-dc-bar div { height: 100%; background: var(--accent); border-radius: 2px; min-width: 2px; }
+.charts-row { margin-bottom: 24px; }
 
-@media (max-width: 1200px) { .db-stats, .db-devices-grid { grid-template-columns: repeat(2, 1fr); } .db-charts { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .db-stats, .db-devices-grid { grid-template-columns: 1fr; } }
+.device-section {
+  margin-top: 8px;
+  animation: fadeIn 0.6s ease 0.2s both;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.device-summary {
+  display: flex;
+  gap: 20px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.summary-item.online .summary-dot { background: var(--success); }
+.summary-item.idle .summary-dot { background: var(--info); }
+.summary-item.alarm .summary-dot { background: var(--danger); }
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+html.light .section-title { color: var(--text-primary); }
+html.light .welcome-title { color: var(--text-primary); }
+html.light .welcome-subtitle { color: var(--text-muted); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .device-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
