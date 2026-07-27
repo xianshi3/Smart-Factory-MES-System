@@ -604,7 +604,7 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-hud-row.warning .dt-hud-dot { background: var(--warning); }
 .dt-hud-none { padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
 
-.dt-hud-charts { bottom: 8px; left: 8px; width: 440px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.dt-hud-charts { bottom: 8px; left: 8px; right: 8px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
 .dt-hud-chart-head { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 .dt-hud-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 8px 6px; }
 .dt-hud-chart-grid em { display: block; font-size: 10px; color: var(--text-muted); text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: .4px; }
