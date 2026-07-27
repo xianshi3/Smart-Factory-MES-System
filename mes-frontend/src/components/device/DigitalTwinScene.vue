@@ -261,7 +261,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
 
 // ─── lighting ───
 function buildLighting(s: THREE.Scene, dark: boolean) {
-  s.add(new THREE.AmbientLight(dark ? 0x444444 : 0xbbbbbb, 0.5))
+  s.add(new THREE.AmbientLight(dark ? 0x555555 : 0xcccccc, 0.6))
   const key = new THREE.DirectionalLight(dark ? 0xffffff : 0xffffff, 1.8)
   key.position.set(14, 20, 10)
   key.castShadow = true
@@ -285,11 +285,11 @@ function buildMachine(device: any): THREE.Group {
   const root = new THREE.Group()
 
   // ── base ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0x707070, 0.4, 0.65)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0x999999, 0.4, 0.65)))
   root.children[root.children.length - 1].position.y = 0.07
 
-  // ── main cabinet (silver-grey industrial) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xcccccc, 0.12, 0.8))
+  // ── main cabinet (light silver-white industrial) ──
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xe0e0e0, 0.12, 0.8))
   body.position.y = 1.04; body.castShadow = true; root.add(body)
 
   // ── top accent band ──
@@ -297,7 +297,7 @@ function buildMachine(device: any): THREE.Group {
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
   // ── rear cabinet ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0x8a8a8a, 0.2, 0.65)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xa8a8a8, 0.2, 0.65)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
 
   // vent slats
@@ -307,11 +307,11 @@ function buildMachine(device: any): THREE.Group {
   }
 
   // ── front door ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x4a4a4a, 0.2, 0.8)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x666666, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
   // door border
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.01), mat(0xa0a0a0, 0.1, 0.9)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.01), mat(0xbbbbbb, 0.1, 0.9)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.85)
 
   // glass window
@@ -350,7 +350,7 @@ function buildMachine(device: any): THREE.Group {
 
   // ── control panel (right side, attached to cabinet) ──
   const pnl = new THREE.Group()
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x4a4a4a, 0.2, 0.75)))
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x5a5a5a, 0.2, 0.75)))
   // screen
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.005), new THREE.MeshBasicMaterial({ color: 0x20d050 })))
   pnl.children[pnl.children.length - 1].position.set(0, 0.18, 0.035)
@@ -359,11 +359,11 @@ function buildMachine(device: any): THREE.Group {
     const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 8), new THREE.MeshStandardMaterial({ color: bc, roughness: 0.2, emissive: bc, emissiveIntensity: 0.3 }))
     btn.position.set(-0.1 + bi * 0.1, -0.1, 0.035); btn.rotation.x = Math.PI / 2; pnl.add(btn)
   })
-  pnl.position.set(1.26, 1.0, 0.5); root.add(pnl)
+  pnl.position.set(1.42, 1.0, 0.5); root.add(pnl)
 
   // ── stack light ──
   const tower = new THREE.Group()
-  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x4a4a4a, 0.3, 0.82)))
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x5a5a5a, 0.3, 0.82)))
   tower.children[0].position.y = 2.02
   ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
     const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
@@ -389,7 +389,7 @@ function buildMachine(device: any): THREE.Group {
   }
 
   // ── chip drawer ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0x767a82, 0.45, 0.7)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0x999999, 0.45, 0.7)))
   root.children[root.children.length - 1].position.set(0, 0.15, 0.75)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.012, 0.04), mat(0xaeb2b8, 0.12, 0.88)))
   root.children[root.children.length - 1].position.set(0, 0.2, 0.93)
@@ -397,7 +397,7 @@ function buildMachine(device: any): THREE.Group {
   // ── feet ──
   const padGeo = new THREE.CylinderGeometry(0.1, 0.13, 0.05, 8)
   ;[[-1.1, 0.025, -0.85], [1.1, 0.025, -0.85], [-1.1, 0.025, 0.85], [1.1, 0.025, 0.85]].forEach(([px, py, pz]) => {
-    root.add(new THREE.Mesh(padGeo, mat(0x5a5a5a, 0.5, 0.7)))
+    root.add(new THREE.Mesh(padGeo, mat(0x7a7a7a, 0.5, 0.7)))
     root.children[root.children.length - 1].position.set(px, py, pz)
   })
 
