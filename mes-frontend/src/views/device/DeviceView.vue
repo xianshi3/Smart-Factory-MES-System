@@ -94,6 +94,10 @@
           设备列表
         </span>
         <div class="section-actions">
+          <el-button-group style="margin-right:12px">
+            <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'"><el-icon><List /></el-icon>列表</el-button>
+            <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'"><el-icon><Monitor /></el-icon>3D</el-button>
+          </el-button-group>
           <el-input
             v-model="searchKeyword"
             placeholder="搜索设备名称..."
@@ -138,7 +142,9 @@
         </div>
       </div>
       
-      <div class="device-grid">
+      <Device3DScene v-if="viewMode === '3d'" :devices="deviceList" @select="handleDeviceSelect" class="scene-wrap" />
+      
+      <div v-if="viewMode === 'list'" class="device-grid">
         <div 
           v-for="(device, index) in filteredDevices" 
           :key="device.id || index"
@@ -363,7 +369,8 @@ import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmCh
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
-import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
+import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, List, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
+import Device3DScene from '@/components/device/Device3DScene.vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -372,6 +379,7 @@ const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
+const viewMode = ref<'list' | '3d'>('list')
 const detailVisible = ref(false)
 const detailData = ref<any>({})
 const predictVisible = ref(false)
@@ -492,6 +500,11 @@ const fetchDeviceData = async () => {
     console.error('[Device] Fetch error:', error)
     ElMessage.error('获取设备数据失败')
   }
+}
+
+const handleDeviceSelect = (device: any) => {
+  detailData.value = device
+  detailVisible.value = true
 }
 
 const updateCharts = () => {
@@ -779,6 +792,8 @@ watch(() => themeStore.isDark, () => {
 
 <style scoped>
 .device-page { padding: 0; }
+
+.scene-wrap { width: 100%; height: 600px; margin-bottom: 20px; border-radius: var(--radius-lg); overflow: hidden; }
 
 
 .stat-item {
