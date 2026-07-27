@@ -288,10 +288,6 @@ function buildMachine(device: any): THREE.Group {
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xaaaaaa, 0.3, 0.9)))
   root.children[root.children.length - 1].position.y = 0.07
 
-  // ── main cabinet (silver metallic) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xcccccc, 0.25, 1.0))
-  body.position.y = 1.04; body.castShadow = true; root.add(body)
-
   // ── top accent band ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x888888, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
