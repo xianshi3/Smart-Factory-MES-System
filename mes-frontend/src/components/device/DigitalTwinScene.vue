@@ -85,7 +85,7 @@ type SceneVars = {
 }
 
 let S: SceneVars
-let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null; conveyor: THREE.Group | null; dataLabel: CSS2DObject | null; pulseRing: THREE.Mesh | null; glowRing: THREE.Mesh | null }[] = []
+let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null; pulseRing: THREE.Mesh | null; glowRing: THREE.Mesh | null }[] = []
 let selectedOutline: THREE.Group | null = null
 let hoverOutline: THREE.Group | null = null
 let runTime = 0
@@ -283,161 +283,133 @@ function buildMachine(device: any): THREE.Group {
   const c = CLR[st] || 0x6366f1
   const g = GLW[st] || 0x0
   const root = new THREE.Group()
-  const cabinetC = 0xd0d0da
-  const panelC = 0x44445a
-  const trimC = 0x8888a2
 
-  // ── base platform ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.12, 1.9), mat(0x50506c, 0.5, 0.55)))
-  root.children[root.children.length - 1].position.y = 0.06
+  // ── base ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0x484862, 0.45, 0.6)))
+  root.children[root.children.length - 1].position.y = 0.07
 
-  // ── main cabinet (enclosure box) ──
-  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.7, 1.6), mat(cabinetC, 0.12, 0.4))
-  cabinet.position.y = 0.97; cabinet.castShadow = true; root.add(cabinet)
+  // ── main cabinet ──
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xd4d4de, 0.1, 0.45))
+  body.position.y = 1.04; body.castShadow = true; root.add(body)
 
-  // ── rear electrical cabinet bulge ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.3, 0.25), mat(0x40405c, 0.25, 0.55)))
-  root.children[root.children.length - 1].position.set(0.05, 0.9, -0.88)
+  // ── top accent band ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x3a3a50, 0.2, 0.7)))
+  root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
-  // vent slots on rear
-  for (let i = 0; i < 6; i++) {
-    root.add(new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.02, 0.015), mat(0x2a2a40, 0.5, 0.3)))
-    root.children[root.children.length - 1].position.set(0.05, 0.45 + i * 0.16, -1.0)
+  // ── rear cabinet ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0x3e3e56, 0.25, 0.6)))
+  root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
+
+  // vent slats
+  for (let i = 0; i < 5; i++) {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.015, 0.015), mat(0x282840, 0.5, 0.4)))
+    root.children[root.children.length - 1].position.set(0.05, 0.5 + i * 0.18, -1.1)
   }
 
-  // ── front sliding door ──
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.015), mat(panelC, 0.25, 0.75, 0x0, 0))
-  door.position.set(0.05, 0.9, 0.81); root.add(door)
+  // ── front door ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x404058, 0.22, 0.75)))
+  root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
-  // door frame border
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.82, 1.42, 0.01), mat(trimC, 0.15, 0.85)))
-  root.children[root.children.length - 1].position.set(0.05, 0.9, 0.805)
+  // door border
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.01), mat(0x8888a6, 0.12, 0.88)))
+  root.children[root.children.length - 1].position.set(0.05, 0.95, 0.85)
 
-  // large glass window
+  // glass window
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.2, 0.9, 0.005),
-    new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, opacity: 0.28, roughness: 0.02, metalness: 0.05, clearcoat: 0.1 })
+    new THREE.BoxGeometry(1.3, 1.0, 0.005),
+    new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, opacity: 0.3, roughness: 0.02, metalness: 0.05 })
   )
-  glass.position.set(0.05, 0.95, 0.82); root.add(glass)
+  glass.position.set(0.05, 1.0, 0.87); root.add(glass)
 
-  // double vertical door handles
-  ;[-0.45, 0.55].forEach(hx => {
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 8), mat(0xccccdd, 0.15, 0.85))
-    h.position.set(hx, 0.88, 0.83); root.add(h)
+  // door handles
+  ;[-0.5, 0.6].forEach(hx => {
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), mat(0xccccdd, 0.12, 0.9))
+    h.position.set(hx, 0.92, 0.88); root.add(h)
   })
 
-  // ── interior (visible through glass) ──
-  // work table
-  const table = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.45), mat(0x5a5a78, 0.25, 0.9))
-  table.position.set(0.05, 0.52, 0.55); root.add(table)
+  // ── interior ──
+  // table
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.06, 0.5), mat(0x585878, 0.22, 0.95)))
+  root.children[root.children.length - 1].position.set(0.05, 0.5, 0.55)
   // vise
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 0.16), mat(0x6a6a88, 0.2, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.58, 0.55)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.07, 0.18), mat(0x686890, 0.18, 0.92)))
+  root.children[root.children.length - 1].position.set(0.05, 0.56, 0.55)
   // workpiece
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.14), mat(0xdd9944, 0.55, 0.25)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.16), mat(0xeeaa55, 0.5, 0.3)))
   root.children[root.children.length - 1].position.set(0.05, 0.68, 0.55)
 
-  // spindle head (animated — inside cabinet)
+  // spindle (animated)
   const spindle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.09, 0.12, 0.28, 12),
-    mat(c, 0.08, 0.95, g, 0.2)
+    new THREE.CylinderGeometry(0.08, 0.11, 0.3, 12),
+    mat(c, 0.06, 0.98, g, 0.25)
   )
-  spindle.position.set(0.05, 0.82, 0.4); spindle.castShadow = true; root.add(spindle)
+  spindle.position.set(0.05, 0.82, 0.38); spindle.castShadow = true; root.add(spindle)
+  // tool
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.12, 8), mat(0x9999cc, 0.12, 0.88)))
+  root.children[root.children.length - 1].position.set(0.05, 0.62, 0.38)
 
-  // tool holder + tool
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.1, 8), mat(0x8888c0, 0.15, 0.85)))
-  root.children[root.children.length - 1].position.set(0.05, 0.65, 0.4)
-
-  // ── control panel (right side, angled) ──
+  // ── control panel (right side) ──
   const pnl = new THREE.Group()
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.65, 0.06), mat(panelC, 0.25, 0.7)))
-  // LCD screen
-  const scr = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.005), new THREE.MeshBasicMaterial({ color: 0x20d050 }))
-  scr.position.set(0, 0.15, 0.035); pnl.add(scr)
-  // buttons
-  ;[0xff3b30, 0xffcc00, 0x34c759].forEach((bc, bi) => {
-    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.01, 8), mat(bc, 0.2, 0.2, bc, 0.25))
-    btn.position.set(-0.1 + bi * 0.1, -0.12, 0.035); btn.rotation.x = Math.PI / 2; pnl.add(btn)
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x3a3a52, 0.22, 0.72)))
+  // screen
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.005), new THREE.MeshBasicMaterial({ color: 0x20d050 })))
+  pnl.children[pnl.children.length - 1].position.set(0, 0.18, 0.035)
+  // button row
+  ;[0xff4444, 0xffcc00, 0x44cc44].forEach((bc, bi) => {
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 8), new THREE.MeshStandardMaterial({ color: bc, roughness: 0.2, emissive: bc, emissiveIntensity: 0.3 }))
+    btn.position.set(-0.1 + bi * 0.1, -0.1, 0.035); btn.rotation.x = Math.PI / 2; pnl.add(btn)
   })
-  // E-stop button
-  const estop = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.015, 8), mat(0xff3b30, 0.15, 0.2, 0xff0000, 0.4))
-  estop.position.set(0.12, -0.12, 0.035); estop.rotation.x = Math.PI / 2; pnl.add(estop)
-  // keyboard area
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.003), mat(0x222238, 0.4, 0.3)))
-  pnl.children[pnl.children.length - 1].position.set(0, -0.22, 0.033)
+  pnl.position.set(1.2, 1.0, 0.5); pnl.rotation.y = -0.2; root.add(pnl)
 
-  pnl.position.set(1.15, 0.95, 0.45); pnl.rotation.y = -0.22; root.add(pnl)
-
-  // ── stack light tower (top) ──
+  // ── stack light ──
   const tower = new THREE.Group()
-  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.14, 8), mat(0x2a2a3c, 0.3, 0.8)))
-  tower.children[tower.children.length - 1].position.y = 1.9
-  // colored segments
-  ;[0xff3b30, 0xffcc00, 0x34c759].forEach((tc, ti) => {
-    const seg = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 0.038, 8),
-      new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.2, roughness: 0.3 })
-    )
-    seg.position.y = 1.82 + ti * 0.048; tower.add(seg)
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x282840, 0.3, 0.8)))
+  tower.children[0].position.y = 2.02
+  ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
+      new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.25, roughness: 0.3 }))
+    seg.position.y = 1.94 + ti * 0.045; tower.add(seg)
   })
-  // status LED (topmost)
   const led = new THREE.Mesh(
-    new THREE.SphereGeometry(0.045, 8, 8),
-    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9 })
+    new THREE.SphereGeometry(0.04, 8, 8),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
   )
-  led.position.y = 1.98; tower.add(led)
+  led.position.y = 2.1; tower.add(led)
+  tower.position.set(-0.6, 0, 0.6); root.add(tower)
 
-  tower.position.set(-0.65, 0, 0.55); root.add(tower)
-
-  // ── tool magazine (left side window) ──
-  const magWin = new THREE.Mesh(
-    new THREE.BoxGeometry(0.01, 0.55, 0.45),
-    new THREE.MeshPhysicalMaterial({ color: 0x8899cc, transparent: true, opacity: 0.32, roughness: 0.05 })
-  )
-  magWin.position.set(-1.15, 0.98, 0); root.add(magWin)
-  // tool carousel dots visible through window
-  for (let ti = 0; ti < 8; ti++) {
-    const a = (ti / 8) * Math.PI * 2
-    const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.025, 6), mat(0xa0a0c8, 0.15, 0.85))
-    dot.position.set(-1.13, 0.98 + Math.sin(a) * 0.22, Math.cos(a) * 0.16); root.add(dot)
+  // ── side window (tool magazine) ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.6, 0.5),
+    new THREE.MeshPhysicalMaterial({ color: 0x8899cc, transparent: true, opacity: 0.3, roughness: 0.05 })))
+  root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)
+  // magazine dots
+  for (let ti = 0; ti < 6; ti++) {
+    const a = (ti / 6) * Math.PI * 2
+    const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 6), mat(0xa0a0c0, 0.1, 0.9))
+    dot.position.set(-1.18, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18); root.add(dot)
   }
 
-  // ── chip drawer (bottom) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.07, 0.32), mat(0x505066, 0.5, 0.6)))
-  root.children[root.children.length - 1].position.set(0, 0.18, 0.7)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.014, 0.04), mat(0xaaaabb, 0.2, 0.8)))
-  root.children[root.children.length - 1].position.set(0, 0.23, 0.86)
+  // ── chip drawer ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0x4a4a62, 0.5, 0.65)))
+  root.children[root.children.length - 1].position.set(0, 0.15, 0.75)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.012, 0.04), mat(0xaaaaC0, 0.15, 0.85)))
+  root.children[root.children.length - 1].position.set(0, 0.2, 0.93)
 
-  // ── conveyor belt (behind) ──
-  const conveyor = new THREE.Group()
-  conveyor.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 0.38), mat(0x44445c, 0.65, 0.35)))
-  conveyor.children[0].position.y = 0.01
-  ;[-1.25, 1.25].forEach(rx => {
-    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.42, 8), mat(0x8888aa, 0.25, 0.75))
-    r.rotation.z = Math.PI / 2; r.position.set(rx, 0.02, 0); conveyor.add(r)
-  })
-  ;[-0.6, -0.15, 0.3, 0.85].forEach((bx, bi) => {
-    const blk = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.09, 0.2), mat(0xcc9944, 0.6, 0.25))
-    blk.position.set(bx, 0.07, 0); blk.userData = { offset: bi * 0.3 }; conveyor.add(blk)
-  })
-  conveyor.position.set(0, 0, -1.25); root.add(conveyor)
-
-  // ── leveling feet ──
-  const padGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.05, 8)
-  ;[[-1.05, 0.025, -0.78], [1.05, 0.025, -0.78], [-1.05, 0.025, 0.78], [1.05, 0.025, 0.78]].forEach(([px, py, pz]) => {
-    root.add(new THREE.Mesh(padGeo, mat(0x404058, 0.5, 0.6)))
+  // ── feet ──
+  const padGeo = new THREE.CylinderGeometry(0.1, 0.13, 0.05, 8)
+  ;[[-1.1, 0.025, -0.85], [1.1, 0.025, -0.85], [-1.1, 0.025, 0.85], [1.1, 0.025, 0.85]].forEach(([px, py, pz]) => {
+    root.add(new THREE.Mesh(padGeo, mat(0x3e3e58, 0.5, 0.65)))
     root.children[root.children.length - 1].position.set(px, py, pz)
   })
 
   // ── data label ──
   const devName = device.name || device.deviceName || device.deviceCode || '设备'
   const dataDiv = labelHtml(
-    `${devName}<br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
+    `<b>${devName}</b><br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
     '#' + c.toString(16).padStart(6, '0')
   )
-  dataDiv.position.set(0, 2.15, 0); root.add(dataDiv)
+  dataDiv.position.set(0, 2.3, 0); root.add(dataDiv)
 
-  root.userData = { device, spindle, led, conveyor }
+  root.userData = { device, spindle, led }
   return root
 }
 
@@ -533,7 +505,7 @@ function refresh(devices: any[]) {
     const led = (root.userData as any).led as THREE.Mesh | undefined
     const conveyor = (root.userData as any).conveyor as THREE.Group | undefined
 
-    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null, conveyor: conveyor ?? null, dataLabel: null, pulseRing: null, glowRing: null })
+    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null, pulseRing: null, glowRing: null })
 
     // pulse ring for fault machines
     const st = ST(d.status)
@@ -629,7 +601,6 @@ function flyToView(key: string) {
 function animate() {
   S.animId = requestAnimationFrame(animate)
   const dt = Math.min(S.clock.getDelta(), 0.1)
-  runTime += dt
   S.controls.update()
 
   deviceNodes.forEach(n => {
@@ -641,16 +612,6 @@ function animate() {
     if (n.spindle) {
       const speed = st === 'ONLINE' ? 8 : st === 'MAINTENANCE' ? 1.5 : 0.2
       n.spindle.rotation.y += dt * speed
-    }
-
-    // conveyor animation
-    if (n.conveyor) {
-      n.conveyor.children.forEach((child, idx) => {
-        if (child.userData && child.userData.offset !== undefined) {
-          const beltSpeed = st === 'ONLINE' ? 0.6 : st === 'MAINTENANCE' ? 0.15 : 0
-          child.position.x = ((child.userData.offset + runTime * beltSpeed) % 2.5) - 1.2
-        }
-      })
     }
 
     // LED pulse
