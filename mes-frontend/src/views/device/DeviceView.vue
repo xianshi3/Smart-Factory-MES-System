@@ -55,7 +55,7 @@
             </div>
             <div class="dt-hud-chart-grid">
               <div><em>设备状态分布</em><v-chart :option="statusOption" autoresize style="height:140px" /></div>
-              <div><em>利用率 TOP10</em><v-chart :option="utilizationOption" autoresize style="height:140px" /></div>
+              <div><em>利用率</em><v-chart :option="utilizationOption" autoresize style="height:140px" /></div>
             </div>
           </div>
         </transition>
@@ -416,8 +416,8 @@ const updateCharts = () => {
   utilizationOption.value = {
     ...chartTheme.value,
     tooltip: { trigger: 'axis' },
-    grid: { left: 10, right: 10, top: 10, bottom: 10, containLabel: true },
-    xAxis: { type: 'category', data: deviceList.value.map(d => d.name).slice(0, 10), axisLabel: { color: tc, fontSize: 10 } },
+    grid: { left: 5, right: 5, top: 5, bottom: 5, containLabel: true },
+    xAxis: { type: 'category', data: deviceList.value.map(d => d.name).slice(0, 6), axisLabel: { color: tc, fontSize: 10 } },
     yAxis: { type: 'value', max: 100, axisLabel: { color: tc, fontSize: 10 } },
     series: [{ type: 'bar', data: deviceList.value.map(d => parseInt(d.utilization) || 0).slice(0, 10), itemStyle: { borderRadius: [4, 4, 0, 0], color: '#6366f1' }, barWidth: 12 }]
   }
@@ -604,7 +604,7 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-hud-row.warning .dt-hud-dot { background: var(--warning); }
 .dt-hud-none { padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
 
-.dt-hud-charts { bottom: 8px; left: 8px; right: 8px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.dt-hud-charts { bottom: 8px; left: 8px; width: 420px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
 .dt-hud-chart-head { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 .dt-hud-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 8px 6px; }
 .dt-hud-chart-grid em { display: block; font-size: 10px; color: var(--text-muted); text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: .4px; }
