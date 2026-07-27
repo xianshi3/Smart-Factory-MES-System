@@ -552,7 +552,7 @@ watch(() => themeStore.isDark, () => {
 })
 </script>
 <style scoped>
-.device-page { max-width: 1440px; margin: 0 auto; }
+.device-page { width: 100%; }
 
 /* Stats Bar */
 .dt-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
