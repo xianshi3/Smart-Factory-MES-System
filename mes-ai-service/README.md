@@ -36,7 +36,7 @@ ZHIPU_API_KEY=your-api-key-here
 ### Docker部署
 ```bash
 docker build -t mes-ai-service .
-docker run -p 8086:8086 mes-ai-service
+docker run -p 8087:8087 mes-ai-service
 ```
 
 ### 本地开发
@@ -86,7 +86,7 @@ python src/main.py
 
 ### 质量预测
 ```bash
-curl -X POST http://localhost:8086/api/v1/predict/quality \
+curl -X POST http://localhost:8087/api/v1/predict/quality \
   -H "Content-Type: application/json" \
   -d '{
     "work_order_id": 12345,
@@ -101,7 +101,7 @@ curl -X POST http://localhost:8086/api/v1/predict/quality \
 
 ### 设备故障预测
 ```bash
-curl -X POST http://localhost:8086/api/v1/predict/device/fault \
+curl -X POST http://localhost:8087/api/v1/predict/device/fault \
   -H "Content-Type: application/json" \
   -d '{
     "device_code": "DEV001",
@@ -116,7 +116,7 @@ curl -X POST http://localhost:8086/api/v1/predict/device/fault \
 
 ### 智能对话
 ```bash
-curl -X POST http://localhost:8086/api/v1/llm/chat \
+curl -X POST http://localhost:8087/api/v1/llm/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "帮我分析今天上午的生产情况",
@@ -126,7 +126,7 @@ curl -X POST http://localhost:8086/api/v1/llm/chat \
 
 ### 生产数据分析
 ```bash
-curl -X POST http://localhost:8086/api/v1/llm/analyze \
+curl -X POST http://localhost:8087/api/v1/llm/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "data_type": "quality",
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8086/api/v1/llm/analyze \
 ```yaml
 server:
   host: "0.0.0.0"
-  port: 8086
+  port: 8087
 
 model:
   quality:

@@ -24,6 +24,7 @@
 ### 核心特性
 
 - **微服务架构**：基于 Spring Cloud 2022 设计 6 大核心服务，实现服务解耦和独立部署
+- **数字孪生 3D 可视化**：基于 Three.js 构建工厂车间三维场景，实时映射设备状态、动效和数据
 - **高并发设备接入**：MQTT 协议采集，Kafka 消息队列实现 10000+ 条/秒数据吞吐
 - **实时数据展示**：WebSocket 毫秒级推送，InfluxDB 时序数据库存储
 - **AI 智能预测**：Python FastAPI 推理服务，集成 LightGBM/XGBoost 模型，支持 ONNX 部署
@@ -89,7 +90,8 @@
 | 前端框架 | Vue 3 + TypeScript + Composition API | Vue 3.5 |
 | 状态管理 | Pinia | 2.3 |
 | UI 组件 | Element Plus | 2.9 |
-| 数据可视化 | ECharts | 5.6 |
+| 3D 渲染 | Three.js | 0.172 |
+| 数据可视化 | ECharts + GoJS | 5.6 |
 | 构建工具 | Vite | 6.0 |
 | 后端框架 | Spring Boot | 3.2.5 |
 | 微服务 | Spring Cloud | 2023.0.0 |
@@ -136,7 +138,7 @@ Smart-Factory-MES-System/
 │       ├── Program.cs
 │       ├── Controllers/           # MQTT/Kafka 控制器
 │       └── Services/             # 设备接入服务
-├── mes-ai-service/               # Python AI 推理服务 (8086)
+├── mes-ai-service/               # Python AI 推理服务 (8087)
 │   ├── src/
 │   │   ├── app.py               # FastAPI 主应用
 │   │   ├── router/              # API 路由
@@ -211,8 +213,7 @@ Smart-Factory-MES-System/
 | .NET SDK | 8.0+ | 设备网关 |
 
 > **架构说明**：Docker 仅运行基础设施（MySQL、Redis、Kafka、Zookeeper、Nacos），
-> Java 后端服务在宿主机上通过 `java -jar` 直接运行。AI 服务端口 8086 与 InfluxDB 冲突
-> （两者都使用 8086），启动 AI 前需执行 `docker stop mes-influxdb`。建议将 AI 服务改为非冲突端口。
+> Java 后端服务在宿主机上通过 `java -jar` 直接运行。
 
 ### 启动方式
 
@@ -278,7 +279,7 @@ cd mes-frontend && npm install && npm run dev
 | 工艺服务 | http://localhost:8083/doc.html | - |
 | 质量服务 | http://localhost:8084/doc.html | - |
 | 看板服务 | http://localhost:8085/doc.html | - |
-| AI 服务 | http://localhost:8086/docs | FastAPI API 文档 |
+| AI 服务 | http://localhost:8087/docs | FastAPI API 文档 |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
 | MySQL | localhost:3306 | root/root |
 | Redis | localhost:6379 | 无密码 |
@@ -349,7 +350,7 @@ GET /alarm/device/{deviceId}
 - 工艺服务：http://localhost:8083/doc.html
 - 质量服务：http://localhost:8084/doc.html
 - 看板服务：http://localhost:8085/doc.html
-- AI 服务：http://localhost:8086/docs
+- AI 服务：http://localhost:8087/docs
 
 ---
 

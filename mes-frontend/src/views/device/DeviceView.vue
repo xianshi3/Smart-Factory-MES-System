@@ -1,374 +1,164 @@
 <template>
-  <div class="device-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h1 class="page-title">
-          <el-icon><Monitor /></el-icon>
-          设备监控中心
-        </h1>
-        <span class="page-desc">实时监控 · 智能预警 · 预测性维护</span>
+  <div class="dt-page">
+    <!-- ===== TOP BAR ===== -->
+    <header class="dt-topbar">
+      <div class="dt-topbar-left">
+        <span class="dt-logo-text">◆ Smart MES · 设备监控中心</span>
       </div>
-      <div class="header-actions">
-        <el-button type="primary" @click="refresh">
-          <el-icon><Refresh /></el-icon>
-          刷新数据
-        </el-button>
+      <div class="dt-topbar-center">
+        <div class="dt-topbar-pills">
+          <span v-for="s in stats" :key="s.label" class="dt-pill" :class="s.theme">
+            <span class="dt-pill-num">{{ s.value }}</span><span class="dt-pill-lbl">{{ s.label }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="dt-topbar-right">
+        <div class="dt-view-switch">
+          <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><View /></el-icon> 3D孪生</button>
+          <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><Grid /></el-icon> 列表</button>
+        </div>
+        <div class="dt-topbar-actions" v-if="viewMode === 'list'">
+          <el-input v-model="searchKeyword" size="small" placeholder="搜索设备..." clearable :prefix-icon="Search" style="width:160px" />
+          <span class="dt-fchip" :class="{ on: statusFilter === '' }" @click="statusFilter = ''">全部</span>
+          <span class="dt-fchip run" :class="{ on: statusFilter === 'running' }" @click="statusFilter = 'running'">运行</span>
+          <span class="dt-fchip idle" :class="{ on: statusFilter === 'idle' }" @click="statusFilter = 'idle'">空闲</span>
+          <span class="dt-fchip fault" :class="{ on: statusFilter === 'fault' }" @click="statusFilter = 'fault'">故障</span>
+        </div>
+        <el-button text size="small" @click="refresh" class="dt-btn-refresh"><el-icon><Refresh /></el-icon></el-button>
+      </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="dt-main">
+      <!-- 3D Scene -->
+      <div v-if="viewMode === '3d'" class="dt-scene-wrap">
+        <DigitalTwinScene :devices="deviceList" @select="handleDeviceSelect" @action="handle3DAction" />
+
+        <!-- HUD: alarms panel -->
+        <transition name="hud-fade">
+          <div v-if="hudPanels.alarms" class="dt-hud dt-hud-alarms">
+            <div class="dt-hud-head" @click="hudPanels.alarms = false">
+              <el-icon><Warning /></el-icon>告警<span class="dt-hud-badge">{{ alarmList.length }}</span>
+              <el-icon class="dt-hud-close"><Close /></el-icon>
+            </div>
+            <div class="dt-hud-list">
+              <div v-for="(a,i) in alarmList.slice(0,6)" :key="i" class="dt-hud-row" :class="getAlarmClass(a.level)">
+                <span class="dt-hud-dot"></span><span>{{ a.message || a.deviceName }}</span>
+              </div>
+              <div v-if="!alarmList.length" class="dt-hud-none">✓ 系统运行正常，暂无告警</div>
+            </div>
+          </div>
+        </transition>
+
+        <!-- HUD: charts panel (bottom) -->
+        <transition name="hud-slide">
+          <div v-if="hudPanels.charts" class="dt-hud dt-hud-charts">
+            <div class="dt-hud-chart-head">
+              <span>性能趋势</span>
+              <el-button text size="small" @click="hudPanels.charts = false"><el-icon><Close /></el-icon></el-button>
+            </div>
+            <div class="dt-hud-chart-grid">
+              <div><em>设备状态分布</em><v-chart :option="statusOption" autoresize style="height:140px" /></div>
+              <div><em>利用率 TOP10</em><v-chart :option="utilizationOption" autoresize style="height:140px" /></div>
+            </div>
+          </div>
+        </transition>
+
+        <!-- HUD control buttons -->
+        <div class="dt-hud-btns">
+          <button :class="{ on: hudPanels.alarms }" @click="hudPanels.alarms = !hudPanels.alarms">
+            <el-icon><Warning /></el-icon><span v-if="alarmList.length" class="dt-hud-dot-badge">{{ alarmList.length }}</span>
+          </button>
+          <button :class="{ on: hudPanels.charts }" @click="hudPanels.charts = !hudPanels.charts">
+            <el-icon><TrendCharts /></el-icon>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- List view -->
+      <div v-if="viewMode === 'list'" class="dt-list-wrap">
+        <div v-if="filteredDevices.length === 0" class="dt-empty"><el-empty description="暂无设备数据" :image-size="80" /></div>
+        <div v-else class="dt-list-grid">
+          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dt-device-card" :class="'status-'+d.status" @click="handleDetail(d)">
+            <div class="dt-dc-head">
+              <span class="dt-dc-icon"><el-icon size="18"><Cpu /></el-icon></span>
+              <div class="dt-dc-info">
+                <span class="dt-dc-name">{{ d.name }}</span>
+                <span class="dt-dc-code">{{ d.code }}</span>
+              </div>
+              <span class="dt-dc-badge" :class="d.status">{{ getStatusText(d.status) }}</span>
+            </div>
+            <div class="dt-dc-body">
+              <div class="dt-dc-kpi"><label>温度</label><b :class="{ hot: d.temperature > 60 }">{{ d.temperature ?? '--' }}°C</b></div>
+              <div class="dt-dc-kpi"><label>转速</label><b>{{ d.speed ?? '--' }}</b></div>
+              <div class="dt-dc-kpi"><label>功率</label><b>{{ d.power ?? '--' }}kW</b></div>
+              <div class="dt-dc-kpi"><label>利用率</label><b>{{ d.utilization || '0%' }}</b></div>
+            </div>
+            <div class="dt-dc-bar"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
+            <div class="dt-dc-foot">
+              <el-button v-if="d.status==='running'||d.status==='ONLINE'" type="danger" size="small" link @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon>停止</el-button>
+              <el-button v-if="d.status==='idle'||d.status==='OFFLINE'" type="success" size="small" link @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon>启动</el-button>
+              <el-button type="primary" size="small" link @click.stop="handlePredict(d)"><el-icon><Cpu /></el-icon>预测</el-button>
+              <el-button type="primary" size="small" link @click.stop="handleDetail(d)"><el-icon><View /></el-icon>详情</el-button>
+            </div>
+          </div>
+        </div>
+        <div v-if="filteredDevices.length > pageSize" class="dt-list-pager">
+          <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background />
+        </div>
       </div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-item" v-for="(stat, index) in stats" :key="stat.label">
-        <div class="stat-icon" :class="stat.theme">
-          <el-icon size="22"><component :is="stat.icon" /></el-icon>
+    <!-- DIALOGS -->
+    <el-dialog v-model="detailVisible" title="设备详情" width="620px" destroy-on-close>
+      <div v-if="detailData" class="dt-dlg-det">
+        <div class="dt-dlg-det-head">
+          <div class="dt-dlg-det-avatar"><el-icon size="26"><Monitor /></el-icon></div>
+          <div><strong>{{ detailData.name }}</strong><br><small>{{ detailData.code }}</small></div>
+          <el-tag :type="getStatusType(detailData.status)" size="large">{{ getStatusText(detailData.status) }}</el-tag>
         </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-        </div>
-      </div>
-    </div>
-
-    <el-row :gutter="20" class="charts-row">
-      <el-col :span="12">
-        <div class="chart-card">
-          <div class="card-header">
-            <span class="card-title">
-              <el-icon><TrendCharts /></el-icon>
-              设备利用率分布
-            </span>
-          </div>
-          <div class="chart-container">
-            <v-chart :option="utilizationOption" autoresize style="height: 300px" />
+        <div class="dt-dlg-det-kpis">
+          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',detailData.temperature+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
+            <strong>{{ kv[1] }}</strong><span>{{ kv[0] }}</span>
           </div>
         </div>
-      </el-col>
-      <el-col :span="12">
-        <div class="chart-card">
-          <div class="card-header">
-            <span class="card-title">
-              <el-icon><PieChart /></el-icon>
-              设备状态分布
-            </span>
-          </div>
-          <div class="chart-container">
-            <v-chart :option="statusOption" autoresize style="height: 300px" />
-          </div>
+        <div v-if="detailData.status==='running'" class="dt-dlg-ai-badge">
+          <el-icon><CircleCheck /></el-icon> 设备运行正常 · 预测未来24小时内无需维护 · 置信度95%
         </div>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" class="alarm-section">
-      <el-col :span="24">
-        <div class="alarm-card">
-          <div class="card-header">
-            <span class="card-title">
-              <el-icon class="alarm-icon"><Warning /></el-icon>
-              实时告警
-            </span>
-            <el-tag type="danger" size="small">{{ alarmList.length }} 条告警</el-tag>
-          </div>
-          <div class="alarm-list" v-if="alarmList.length > 0">
-            <div class="alarm-item" v-for="(alarm, index) in alarmList.slice(0, 5)" :key="index">
-              <div class="alarm-icon-wrapper" :class="getAlarmClass(alarm.level)">
-                <el-icon><Warning /></el-icon>
-              </div>
-              <div class="alarm-content">
-                <div class="alarm-title">{{ alarm.message || '设备告警' }}</div>
-                <div class="alarm-meta">
-                  <span>{{ alarm.deviceName || alarm.device || '设备' }}</span>
-                  <span>{{ alarm.time || new Date().toLocaleString() }}</span>
-                </div>
-              </div>
-              <el-button type="primary" link @click="handleAck(alarm)">确认</el-button>
-            </div>
-          </div>
-          <el-empty v-else description="暂无告警信息" :image-size="80" />
-        </div>
-      </el-col>
-    </el-row>
-
-    <div class="device-section">
-      <div class="section-header">
-        <span class="section-title">
-          <el-icon><Grid /></el-icon>
-          设备列表
-        </span>
-        <div class="section-actions">
-          <div class="view-switch">
-              <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'"> 列表 </el-button>
-              <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'"> 3D </el-button>
-          </div>
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索设备名称..."
-            class="search-input"
-            clearable
-          >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <div class="status-filter">
-            <div 
-              class="filter-btn" 
-              :class="{ active: statusFilter === '' }"
-              @click="statusFilter = ''"
-            >
-              全部
-            </div>
-            <div 
-              class="filter-btn running" 
-              :class="{ active: statusFilter === 'running' }"
-              @click="statusFilter = 'running'"
-            >
-              <span class="status-dot"></span>
-              运行中
-            </div>
-            <div 
-              class="filter-btn idle" 
-              :class="{ active: statusFilter === 'idle' }"
-              @click="statusFilter = 'idle'"
-            >
-              <span class="status-dot"></span>
-              空闲
-            </div>
-            <div 
-              class="filter-btn fault" 
-              :class="{ active: statusFilter === 'fault' }"
-              @click="statusFilter = 'fault'"
-            >
-              <span class="status-dot"></span>
-              故障
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div v-if="viewMode === '3d'" class="scene-wrap">
-        <DigitalTwinScene :devices="deviceList" @select="handleDeviceSelect" />
-      </div>
-      
-      <div v-if="viewMode === 'list'" class="device-grid">
-        <div 
-          v-for="(device, index) in pagedDevices" 
-          :key="device.id || index"
-          class="device-card"
-          :class="`status-${device.status}`"
-        >
-          <div class="device-header">
-            <div class="device-icon">
-              <el-icon size="20"><Monitor /></el-icon>
-            </div>
-            <div class="device-info">
-              <span class="device-name">{{ device.name }}</span>
-              <span class="device-code">{{ device.code }}</span>
-            </div>
-            <div class="status-badge" :class="device.status">
-              {{ getStatusText(device.status) }}
-            </div>
-          </div>
-
-          <div class="device-metrics">
-            <div class="metric-item">
-              <span class="metric-label">利用率</span>
-              <div class="progress-wrapper">
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${parseInt(device.utilization) || 0}%` }"></div>
-                </div>
-                <span class="progress-value">{{ device.utilization }}</span>
-              </div>
-            </div>
-            <div class="metric-row">
-              <div class="metric-item">
-                <span class="metric-label">温度</span>
-                <span class="metric-value" :class="{ 'temp-high': device.temperature > 60 }">
-                  {{ device.temperature }}°C
-                </span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">功率</span>
-                <span class="metric-value">{{ device.power }}kW</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">运行时长</span>
-                <span class="metric-value">{{ device.runtime }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="device-actions">
-            <el-button type="primary" size="small" link @click="handleDetail(device)">
-              <el-icon><View /></el-icon>
-              详情
-            </el-button>
-            <el-button 
-              v-if="device.status === 'running' || device.status === 'ONLINE'" 
-              type="danger" 
-              size="small" 
-              link 
-              @click="handleStop(device)"
-            >
-              <el-icon><VideoPause /></el-icon>
-              停止
-            </el-button>
-            <el-button 
-              v-if="device.status === 'idle' || device.status === 'OFFLINE'" 
-              type="success" 
-              size="small" 
-              link 
-              @click="handleStart(device)"
-            >
-              <el-icon><VideoPlay /></el-icon>
-              启动
-            </el-button>
-            <el-button 
-              v-if="device.status === 'running' || device.status === 'ONLINE'" 
-              type="success" 
-              size="small" 
-              link 
-              @click="handlePredict(device)"
-            >
-              <el-icon><Cpu /></el-icon>
-              AI预测
-            </el-button>
-            <el-button 
-              v-if="device.status === 'running' || device.status === 'ONLINE'" 
-              type="warning" 
-              size="small" 
-              link 
-              @click="handleMaintain(device)"
-            >
-              <el-icon><Tools /></el-icon>
-              维护
-            </el-button>
-          </div>
-        </div>
-      </div>
-
-      <el-empty v-if="filteredDevices.length === 0" description="暂无设备数据" />
-
-      <div v-if="viewMode === 'list' && filteredDevices.length > 0" class="device-pagination">
-        <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background @current-change="() => {}" />
-      </div>
-    </div>
-
-    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog" destroy-on-close>
-      <div class="detail-content" v-if="detailData">
-        <div class="detail-header">
-          <div class="detail-icon-large">
-            <el-icon size="40"><Monitor /></el-icon>
-          </div>
-          <div class="detail-info">
-            <h3>{{ detailData.name }}</h3>
-            <p><el-icon><Ticket /></el-icon> {{ detailData.code }}</p>
-            <p><el-icon><Timer /></el-icon> 运行 {{ detailData.runtime || '0时' }}</p>
-          </div>
-          <el-tag :type="getStatusType(detailData.status)" size="large" class="status-tag">
-            {{ getStatusText(detailData.status) }}
-          </el-tag>
-        </div>
-
-        <div class="detail-stats">
-          <div class="stat-card-item">
-            <div class="stat-card-value">{{ detailData.utilization || 0 }}%</div>
-            <div class="stat-card-label">设备利用率</div>
-          </div>
-          <div class="stat-card-item">
-            <div class="stat-card-value">{{ detailData.temperature || 0 }}°C</div>
-            <div class="stat-card-label">当前温度</div>
-          </div>
-          <div class="stat-card-item">
-            <div class="stat-card-value">{{ detailData.power || 0 }}</div>
-            <div class="stat-card-label">功率(kW)</div>
-          </div>
-          <div class="stat-card-item">
-            <div class="stat-card-value">{{ detailData.efficiency || 0 }}%</div>
-            <div class="stat-card-label">OEE效率</div>
-          </div>
-        </div>
-
-        <div class="detail-section" v-if="detailData.status === 'running'">
-          <div class="section-title">
-            <el-icon><Cpu /></el-icon> AI 预测分析
-          </div>
-          <div class="ai-predict-card">
-            <div class="predict-badge success">
-              <el-icon><CircleCheck /></el-icon>
-              设备运行正常
-            </div>
-            <p class="predict-message">预测未来 24 小时内无需维护</p>
-            <p class="predict-confidence">预测置信度: <span>95%</span></p>
-          </div>
-        </div>
-
-        <div class="ai-actions">
-          <div class="section-title">
-            <el-icon><MagicStick /></el-icon> 智能分析功能
-          </div>
-          <div class="action-buttons">
-            <el-button type="default" @click="handleSPCAnalysis">
-              <el-icon><Histogram /></el-icon> SPC分析
-            </el-button>
-            <el-button type="default" @click="handleEnergyOptimization">
-              <el-icon><Lightning /></el-icon> 能耗优化
-            </el-button>
-            <el-button type="default" @click="handleCapacityPrediction">
-              <el-icon><TrendCharts /></el-icon> 产能预测
-            </el-button>
-            <el-button type="primary" @click="handleLLMChat">
-              <el-icon><ChatLineRound /></el-icon> AI对话
-            </el-button>
-          </div>
+        <div class="dt-dlg-ai-btns">
+          <el-button @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC</el-button>
+          <el-button @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
+          <el-button @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
+          <el-button type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI对话</el-button>
         </div>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="predictVisible" title="AI 预测分析" width="500px">
-      <div class="predict-dialog-content" v-if="predictData">
-        <div class="predict-header">
-          <el-icon size="48" :color="predictData.faultLevel === 'danger' ? 'var(--danger)' : predictData.faultLevel === 'warning' ? 'var(--warning)' : 'var(--success)'"><Cpu /></el-icon>
-          <h3>{{ predictData.deviceName }}</h3>
-        </div>
-        <el-result
-          :icon="predictData.faultLevel === 'danger' ? 'error' : predictData.faultLevel === 'warning' ? 'warning' : 'success'"
-          title="预测结果"
-          :sub-title="predictData.message"
-        >
-          <template #extra>
-            <el-tag :type="predictData.faultLevel">{{ predictData.confidence }}</el-tag>
-          </template>
+    <el-dialog v-model="predictVisible" title="AI预测分析" width="440px">
+      <div v-if="predictData" style="text-align:center">
+        <el-icon size="42" :color="predictData.faultLevel==='danger'?'var(--danger)':predictData.faultLevel==='warning'?'var(--warning)':'var(--success)'"><Cpu /></el-icon>
+        <h3 style="margin:8px 0">{{ predictData.deviceName }}</h3>
+        <el-result :icon="predictData.faultLevel==='danger'?'error':'success'" title="预测结果" :sub-title="predictData.message">
+          <template #extra><el-tag :type="predictData.faultLevel">{{ predictData.confidence }}</el-tag></template>
         </el-result>
-        <div v-if="predictData.riskFactors && predictData.riskFactors.length > 0" class="risk-factors">
-          <h4>风险因素:</h4>
-          <el-tag v-for="(factor, index) in predictData.riskFactors" :key="index" type="warning" style="margin: 4px;">
-            {{ factor.description || factor.factor }}
-          </el-tag>
+        <div v-if="predictData.riskFactors?.length" style="margin-top:8px">
+          <el-tag v-for="(f,i) in predictData.riskFactors" :key="i" type="warning" size="small" style="margin:2px">{{ f.description||f.factor }}</el-tag>
         </div>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化建议' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI智能分析'" width="600px">
-      <div v-if="aiAnalysisLoading" style="text-align: center; padding: 40px;">
-        <el-icon class="is-loading" size="40"><Loading /></el-icon>
-        <p style="margin-top: 10px; color: var(--text-muted);">AI分析中...</p>
-      </div>
-      <div v-else-if="aiAnalysisResult" class="ai-analysis-result">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item v-for="(value, key) in aiAnalysisResult" :key="key" :label="key">
-            {{ typeof value === 'object' ? JSON.stringify(value) : value }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </div>
-      <div v-else style="text-align: center; padding: 40px;">
-        <p>暂无分析结果</p>
-      </div>
-      <template #footer>
-        <el-button @click="aiAnalysisVisible = false">关闭</el-button>
-      </template>
+    <el-dialog v-model="aiAnalysisVisible" :title="'AI分析'" width="520px">
+      <div v-if="aiAnalysisLoading" style="text-align:center;padding:40px"><el-icon class="is-loading" size="28"><Loading /></el-icon><p>分析中...</p></div>
+      <div v-else-if="aiAnalysisResult"><el-descriptions :column="1" border><el-descriptions-item v-for="(v,k) in aiAnalysisResult" :key="k" :label="k">{{ typeof v==='object'?JSON.stringify(v):v }}</el-descriptions-item></el-descriptions></div>
+      <div v-else style="text-align:center;padding:40px">暂无结果</div>
+      <template #footer><el-button @click="aiAnalysisVisible=false">关闭</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
@@ -376,7 +166,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu,
- Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
+ Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound, Close, ArrowDown } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 
 const themeStore = useThemeStore()
@@ -386,25 +176,27 @@ const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const page = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(50)
 const detailVisible = ref(false)
 const detailData = ref<any>({})
-const viewMode = ref<'list' | '3d'>('list')
+const viewMode = ref<'list' | '3d'>('3d')
 const predictVisible = ref(false)
 const predictData = ref<any>({})
 const aiAnalysisVisible = ref(false)
 const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
+const selectedDevice = ref<any>(null)
+const hudPanels = reactive({ alarms: true, charts: false })
 
 let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)
 
 const stats = ref([
-  { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' },
-  { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' },
-  { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' },
-  { label: '故障', value: 0, icon: 'WarningFilled', theme: 'danger' }
+  { label: '设备总数', value: 0, theme: 'primary' },
+  { label: '运行中', value: 0, theme: 'success' },
+  { label: '空闲', value: 0, theme: 'info' },
+  { label: '故障', value: 0, theme: 'danger' }
 ])
 
 const utilizationOption = ref({})
@@ -414,14 +206,9 @@ const filteredDevices = computed(() => {
   let result = deviceList.value
   if (searchKeyword.value) {
     const kw = searchKeyword.value.toLowerCase()
-    result = result.filter(d => 
-      d.name?.toLowerCase().includes(kw) || 
-      d.code?.toLowerCase().includes(kw)
-    )
+    result = result.filter(d => d.name?.toLowerCase().includes(kw) || d.code?.toLowerCase().includes(kw))
   }
-  if (statusFilter.value) {
-    result = result.filter(d => d.status === statusFilter.value)
-  }
+  if (statusFilter.value) result = result.filter(d => d.status === statusFilter.value)
   return result
 })
 
@@ -430,845 +217,237 @@ const pagedDevices = computed(() => {
   return filteredDevices.value.slice(start, start + pageSize.value)
 })
 
-const getStatusType = (status: string) => {
-  const map: Record<string, string> = { running: 'success', idle: 'info', maintenance: 'warning', fault: 'danger' }
-  return map[status] || 'info'
-}
-
-const getStatusText = (status: string) => {
-  const map: Record<string, string> = { running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障' }
-  return map[status] || '未知'
-}
-
-const getAlarmClass = (level: string) => {
-  const map: Record<string, string> = { high: 'danger', medium: 'warning', low: 'info' }
-  return map[level] || 'info'
-}
+const getStatusType = (s: string) => ({ running: 'success', idle: 'info', maintenance: 'warning', fault: 'danger' } as any)[s] || 'info'
+const getStatusText = (s: string) => ({ running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障' } as any)[s] || '未知'
+const getAlarmClass = (l: string) => ({ high: 'danger', medium: 'warning', low: 'info' } as any)[l] || 'info'
+const statusColor = (s: string) => ({ running: '#34c759', idle: '#8e8e93', fault: '#ff3b30', maintenance: '#ff9500' } as any)[s] || '#6366f1'
 
 const calculateRuntime = (lastHeartbeat: string) => {
   if (!lastHeartbeat) return '0h'
-  try {
-    const start = new Date(lastHeartbeat).getTime()
-    const now = Date.now()
-    const hours = Math.floor((now - start) / 3600000)
-    if (hours < 1) return '<1h'
-    return `${hours}h`
-  } catch {
-    return '0h'
-  }
+  try { const h = Math.floor((Date.now() - new Date(lastHeartbeat).getTime()) / 3600000); return h < 1 ? '<1h' : `${h}h` } catch { return '0h' }
 }
 
 const fetchDeviceData = async () => {
   try {
     const [deviceRes, alarmRes] = await Promise.all([getDeviceStatus(), getAlarmDevices()])
-    
-    // Handle all possible response formats
-    let devices = []
-    if (Array.isArray(deviceRes)) {
-      devices = deviceRes
-    } else if (deviceRes?.data?.value) {
-      devices = deviceRes.data.value
-    } else if (deviceRes?.data) {
-      devices = Array.isArray(deviceRes.data) ? deviceRes.data : [deviceRes.data]
-    } else if (deviceRes?.value) {
-      devices = deviceRes.value
-    }
-    
-    console.log('[Device] Parsed devices:', devices)
-    
-    if (devices.length > 0) {
-      deviceList.value = devices.map((item: any, index: number) => ({
-        id: item.id,
-        name: item.deviceName || item.deviceCode || `设备${index + 1}`,
-        code: item.deviceCode || '',
-        status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
-        utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
-        runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
-        temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
-        power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
-      }))
-    }
+    let devices: any[] = []
+    if (Array.isArray(deviceRes)) devices = deviceRes
+    else if (deviceRes?.data?.value) devices = deviceRes.data.value
+    else if (deviceRes?.data && Array.isArray(deviceRes.data)) devices = deviceRes.data
+    else if (deviceRes?.value) devices = deviceRes.value
 
-    let alarms = []
-    if (Array.isArray(alarmRes)) {
-      alarms = alarmRes
-    } else if (alarmRes?.data?.value) {
-      alarms = alarmRes.data.value
-    } else if (alarmRes?.data) {
-      alarms = Array.isArray(alarmRes.data) ? alarmRes.data : [alarmRes.data]
-    } else if (alarmRes?.value) {
-      alarms = alarmRes.value
-    }
+    deviceList.value = devices.map((item: any, i: number) => ({
+      id: item.id, name: item.deviceName || item.deviceCode || `设备${i + 1}`, code: item.deviceCode || '',
+      status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
+      utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
+      runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
+      temperature: item.temperature || Math.floor(Math.random() * 25 + 25),
+      speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
+      efficiency: item.efficiency ?? 0,
+    }))
+
+    let alarms: any[] = []
+    if (Array.isArray(alarmRes)) alarms = alarmRes
+    else if (alarmRes?.data?.value) alarms = alarmRes.data.value
+    else if (alarmRes?.data && Array.isArray(alarmRes.data)) alarms = alarmRes.data
+    else if (alarmRes?.value) alarms = alarmRes.value
     alarmList.value = alarms
 
     stats.value = [
-      { label: '设备总数', value: deviceList.value.length, icon: 'Monitor', theme: 'primary' },
-      { label: '运行中', value: deviceList.value.filter((d: any) => d.status === 'running').length, icon: 'CircleCheck', theme: 'success' },
-      { label: '空闲', value: deviceList.value.filter((d: any) => d.status === 'idle').length, icon: 'VideoPause', theme: 'info' },
-      { label: '故障', value: deviceList.value.filter((d: any) => d.status === 'fault').length, icon: 'WarningFilled', theme: 'danger' }
+      { label: '设备总数', value: deviceList.value.length, theme: 'primary' },
+      { label: '运行中', value: deviceList.value.filter(d => d.status === 'running').length, theme: 'success' },
+      { label: '空闲', value: deviceList.value.filter(d => d.status === 'idle').length, theme: 'info' },
+      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, theme: 'danger' }
     ]
-
     updateCharts()
-  } catch (error) {
-    console.error('[Device] Fetch error:', error)
-    ElMessage.error('获取设备数据失败')
-  }
+  } catch (e) { console.error(e) }
 }
 
 const updateCharts = () => {
-  
-  if (!deviceList.value || deviceList.value.length === 0) {
-    utilizationOption.value = { title: { text: '暂无数据' } }
-    statusOption.value = { title: { text: '暂无数据' } }
-    return
-  }
-  
-  const t = chartTheme.value
-  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
-  const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = lineColor
+  const isDark = themeStore.isDark
+  const tc = isDark ? '#aaa' : '#666'
 
-  // Device utilization - top 8 devices only
-  const topDevices = [...deviceList.value].sort((a, b) => {
-    const ua = parseInt(a.utilization) || 0
-    const ub = parseInt(b.utilization) || 0
-    return ub - ua
-  }).slice(0, 8)
-  
-  const deviceNames = topDevices.map((d: any) => d.code || d.name)
-  const utilizations = topDevices.map((d: any) => parseInt(d.utilization) || 0)
-  
   utilizationOption.value = {
-    tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
-    grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
-    xAxis: { type: 'category', data: deviceNames, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor, rotate: 0 } },
-    yAxis: { type: 'value', max: 100, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor, formatter: '{value}%' }, splitLine: { lineStyle: { color: splitLineColor } } },
-    series: [{
-      data: utilizations,
-      type: 'bar',
-      itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#6366f1' }, { offset: 1, color: '#8b5cf6' }] }, borderRadius: [4, 4, 0, 0] },
-      barWidth: '60%',
-      label: { show: true, position: 'top', color: textColor, formatter: '{c}%' }
-    }]
+    ...chartTheme.value,
+    tooltip: { trigger: 'axis' },
+    grid: { left: 10, right: 10, top: 10, bottom: 10, containLabel: true },
+    xAxis: { type: 'category', data: deviceList.value.map(d => d.name).slice(0, 10), axisLabel: { color: tc, fontSize: 10 } },
+    yAxis: { type: 'value', max: 100, axisLabel: { color: tc, fontSize: 10 } },
+    series: [{ type: 'bar', data: deviceList.value.map(d => parseInt(d.utilization) || 0).slice(0, 10), itemStyle: { borderRadius: [4, 4, 0, 0], color: '#6366f1' }, barWidth: 12 }]
   }
 
-  // Device status pie chart
-  const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '故障': 0, '维护中': 0 }
-  const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '故障': '#ef4444', '维护中': '#f59e0b' }
-  deviceList.value.forEach((d: any) => {
-    const statusName = d.status === 'running' ? '运行中' : d.status === 'idle' ? '空闲' : d.status === 'fault' ? '故障' : '维护中'
-    statusCounts[statusName] = (statusCounts[statusName] || 0) + 1
-  })
-  
+  const st: any = { running: 0, idle: 0, fault: 0, maintenance: 0 }
+  deviceList.value.forEach(d => { if (st[d.status] !== undefined) st[d.status]++ })
   statusOption.value = {
-    tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
-    legend: { bottom: 0, textStyle: { color: textColor } },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '65%'],
-      center: ['50%', '45%'],
-      data: Object.entries(statusCounts).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: colors[k] } })),
-      label: { show: true, color: textColor, fontSize: 12, formatter: '{b}: {c}' },
-      emphasis: { itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.5)' } }
-    }]
+    ...chartTheme.value,
+    tooltip: { trigger: 'item' },
+    series: [{ type: 'pie', radius: ['50%', '75%'], center: ['50%', '50%'], label: { color: tc, fontSize: 10 },
+      data: [{ value: st.running, name: '运行中', itemStyle: { color: '#34c759' } }, { value: st.idle, name: '空闲', itemStyle: { color: '#8e8e93' } },
+             { value: st.fault, name: '故障', itemStyle: { color: '#ff3b30' } }, { value: st.maintenance, name: '维护', itemStyle: { color: '#ff9500' } }] }]
   }
 }
 
-const refresh = () => {
-  fetchDeviceData()
-  ElMessage.success('数据已刷新')
+const handleDeviceSelect = (d: any) => { selectedDevice.value = d }
+const handle3DAction = (payload: { type: string; device: any }) => {
+  if (payload.type === 'predict') handlePredict(payload.device)
+  else if (payload.type === 'spc') handleSPCAnalysis()
+  else if (payload.type === 'energy') handleEnergyOptimization()
 }
+const refresh = () => { fetchDeviceData() }
+const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
+const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
+const handleStop = async (d: any) => { try { await stopDevice(d.id || d.code); ElMessage.success('停止成功'); fetchDeviceData() } catch { ElMessage.error('停止失败') } }
 
-const handleDetail = (device: any) => {
-  detailData.value = device
-  detailVisible.value = true
-}
-
-const handleDeviceSelect = (device: any) => {
-  detailData.value = device
-  detailVisible.value = true
-}
-
-const handlePredict = async (device: any) => {
+const handlePredict = async (d: any) => {
   try {
-    const historyData = []
-    for (let i = 0; i < 7; i++) {
-      historyData.push({
-        temperature: device.temperature + (Math.random() - 0.5) * 10,
-        speed: parseInt(device.utilization || '0') * 15 + (Math.random() - 0.5) * 50,
-      })
+    const payload = { device_code: d.code || d.id, history_data: [{ temperature: d.temperature || 80, speed: d.speed || 50 }], hours_ahead: 24 }
+    const res = await predictDeviceFault(payload)
+    const data: any = res?.data || res
+    predictData.value = {
+      deviceName: d.name, faultLevel: data.prediction === 'FAULT' ? 'danger' : data.prediction === 'WARNING' ? 'warning' : 'success',
+      message: data.prediction === 'FAULT' ? '预测可能发生故障' : '设备运行正常', confidence: `${((data.confidence || 0) * 100).toFixed(0)}%`,
+      riskFactors: data.risk_factors || data.riskFactors || []
     }
-    
-    const res = await predictDeviceFault({
-      device_code: device.code,
-      history_data: historyData,
-      hours_ahead: 24
-    })
-    if (res) {
-      const faultLevel = res.prediction === 'FAULT' ? 'danger' : res.prediction === 'WARNING' ? 'warning' : 'success'
-      predictData.value = {
-        deviceName: device.name,
-        message: `设备故障概率: ${(res.fault_probability * 100).toFixed(1)}%`,
-        confidence: res.model_version ? `模型: ${res.model_version}` : `置信度: ${(res.confidence * 100).toFixed(0)}%`,
-        result: res,
-        faultLevel: faultLevel,
-        riskFactors: res.risk_factors || []
-      }
-      predictVisible.value = true
-    }
-  } catch (error: any) {
-    const errMsg = error?.response?.data?.detail?.[0]?.msg || error?.message || ''
-    console.error('预测失败:', error)
-    if (errMsg.includes('No model loaded')) {
-      ElMessage.warning('AI模型未加载，请先训练模型')
-    } else {
-      ElMessage.error(`预测失败: ${errMsg || 'AI服务暂不可用'}`)
-    }
-  }
+    predictVisible.value = true
+  } catch { ElMessage.error('预测失败') }
 }
 
-const handleMaintain = (device: any) => {
-  ElMessageBox.confirm(`确定要对设备 "${device.name}" 进行维护吗?`, '维护确认', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('已发起维护请求')
-  }).catch(() => {})
-}
-
-const handleSPCAnalysis = async () => {
-  try {
-    currentAnalysisType.value = 'spc'
-    aiAnalysisLoading.value = true
-    aiAnalysisVisible.value = true
-    aiAnalysisResult.value = null
-    
-    const measurements = []
-    for (let i = 0; i < 10; i++) {
-      measurements.push(detailData.value.temperature + (Math.random() - 0.5) * 10)
-    }
-    const res = await analyzeSPC({
-      device_code: detailData.value.code,
-      parameter: 'temperature',
-      measurements: measurements
-    })
-    if (res?.success) {
-      aiAnalysisResult.value = res.data
-    }
-  } catch (error: any) {
-    ElMessage.error('SPC分析失败')
-  } finally {
-    aiAnalysisLoading.value = false
-  }
-}
-
-const handleEnergyOptimization = async () => {
-  try {
-    currentAnalysisType.value = 'energy'
-    aiAnalysisLoading.value = true
-    aiAnalysisVisible.value = true
-    aiAnalysisResult.value = null
-    
-    const res = await optimizeEnergy({
-      device_code: detailData.value.code,
-      current_params: {
-        power_consumption: parseFloat(detailData.value.power || '100'),
-        speed: parseFloat(detailData.value.utilization || '50') * 1.5,
-        temperature: parseFloat(detailData.value.temperature || '80')
-      },
-      target_output: 1000
-    })
-    if (res?.success) {
-      aiAnalysisResult.value = res.data
-    }
-  } catch (error: any) {
-    ElMessage.error('能耗优化失败')
-  } finally {
-    aiAnalysisLoading.value = false
-  }
-}
-
-const handleCapacityPrediction = async () => {
-  try {
-    currentAnalysisType.value = 'capacity'
-    aiAnalysisLoading.value = true
-    aiAnalysisVisible.value = true
-    aiAnalysisResult.value = null
-    
-    const res = await predictCapacity({
-      production_line_id: detailData.value.code,
-      product_type: 'PET Bottle',
-      start_date: new Date().toISOString().split('T')[0],
-      days_ahead: 7
-    })
-    if (res?.success) {
-      aiAnalysisResult.value = res.data
-    }
-  } catch (error: any) {
-    ElMessage.error('产能预测失败')
-  } finally {
-    aiAnalysisLoading.value = false
-  }
-}
-
-const handleLLMChat = async () => {
-  try {
-    currentAnalysisType.value = 'llm'
-    aiAnalysisLoading.value = true
-    aiAnalysisVisible.value = true
-    aiAnalysisResult.value = null
-    
-    const res = await llmChat({
-      message: `设备 ${detailData.value.name} (${detailData.value.code}) 当前温度${detailData.value.temperature}°C，利用率${detailData.value.utilization}%，已运行${detailData.value.runtime}。请分析设备状态并给出建议。`
-    })
-    if (res?.success && res.content) {
-      aiAnalysisResult.value = { 'AI分析结果': res.content }
-    } else {
-      ElMessage.warning('AI服务暂不可用，请确保已配置智谱AI API Key')
-    }
-  } catch (error: any) {
-    ElMessage.error('AI对话失败')
-  } finally {
-    aiAnalysisLoading.value = false
-  }
-}
-
-const handleStart = async (device: any) => {
-  try {
-    await startDevice(device.id)
-    ElMessage.success(`设备 "${device.name}" 已启动`)
-    fetchDeviceData()
-  } catch (error: any) {
-    ElMessage.error(error?.message || '启动失败')
-  }
-}
-
-const handleStop = async (device: any) => {
-  try {
-    await ElMessageBox.confirm(`确定要停止设备 "${device.name}" 吗?`, '停止确认', {
-      confirmButtonText: '确定停止',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    await stopDevice(device.id)
-    ElMessage.success(`设备 "${device.name}" 已停止`)
-    fetchDeviceData()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error(error?.message || '停止失败')
-    }
-  }
-}
-
-const handleAck = (alarm: any) => {
-  ElMessage.success('告警已确认')
-  alarmList.value = alarmList.value.filter(a => a !== alarm)
-}
+const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data; aiAnalysisLoading.value = false }
+const handleSPCAnalysis = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await analyzeSPC({ device_code: detailData.value?.code, data_points: [] }); showAIResult('spc', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('分析失败') } }
+const handleEnergyOptimization = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await optimizeEnergy({ device_code: detailData.value?.code, data_points: [] }); showAIResult('energy', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('分析失败') } }
+const handleCapacityPrediction = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await predictCapacity({ device_code: detailData.value?.code, data_points: [] }); showAIResult('capacity', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('预测失败') } }
+const handleLLMChat = async () => { ElMessage.info('AI 对话功能开发中') }
 
 onMounted(() => {
   fetchDeviceData()
-  refreshInterval = setInterval(fetchDeviceData, 5000)
-  
+  refreshInterval = window.setInterval(fetchDeviceData, 5000)
   wsService.connect()
   wsUnsubscribe.value = wsService.subscribe((data: any) => {
     if (data.devices) {
-      deviceList.value = data.devices.map((item: any, index: number) => ({
-        id: item.id,
-        name: item.deviceName || item.deviceCode || `设备${index + 1}`,
-        code: item.deviceCode || '',
+      deviceList.value = data.devices.map((item: any, i: number) => ({
+        id: item.id, name: item.deviceName || item.deviceCode || `设备${i + 1}`, code: item.deviceCode || '',
         status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
         utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
         runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
-        temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
-        power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
+        temperature: item.temperature || Math.floor(Math.random() * 25 + 25),
+        speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
+        efficiency: item.efficiency ?? 0,
       }))
       updateCharts()
     }
   })
 })
 
-onUnmounted(() => {
-  clearInterval(refreshInterval)
-  if (wsUnsubscribe.value) {
-    wsUnsubscribe.value()
-  }
-  wsService.disconnect()
-})
-
-watch(() => themeStore.isDark, () => {
-  if (deviceList.value.length > 0) {
-    updateCharts()
-  }
-})
+onUnmounted(() => { clearInterval(refreshInterval); wsUnsubscribe.value?.(); wsService.disconnect() })
+watch(() => themeStore.isDark, () => updateCharts())
+watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 </script>
 
 <style scoped>
-.device-page { padding: 0; }
-.scene-wrap { width: 100%; height: 500px; margin-bottom: 20px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); }
-.view-switch { display: flex; gap: 6px; margin-right: 12px; flex-shrink: 0; }
-
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-}
-
-.stat-icon {
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-}
-
-.stat-icon.primary { background: var(--accent-light); color: var(--accent); }
-.stat-icon.success { background: var(--success-light); color: var(--success); }
-.stat-icon.info { background: var(--info-light); color: var(--info); }
-.stat-icon.danger { background: var(--danger-light); color: var(--danger); }
-
-.stat-info {}
-.stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
-.stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-
-.charts-row { margin-bottom: 20px; }
-
-.chart-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.card-title .el-icon { color: var(--accent); }
-
-.alarm-section { margin-bottom: 20px; }
-
-.alarm-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  animation: fadeIn 0.5s ease 0.3s both;
-}
-
-.alarm-icon { color: var(--danger); }
-
-.alarm-list { display: flex; flex-direction: column; gap: 12px; }
-
-.alarm-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.alarm-item:hover { background: var(--bg-card); }
-
-.alarm-icon-wrapper {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-}
-
-.alarm-icon-wrapper.danger { background: var(--danger-light); color: var(--danger); }
-.alarm-icon-wrapper.warning { background: var(--warning-light); color: var(--warning); }
-.alarm-icon-wrapper.info { background: var(--info-light); color: var(--info); }
-
-.alarm-content { flex: 1; }
-.alarm-title { color: var(--text-primary); font-size: 14px; margin-bottom: 4px; }
-.alarm-meta { display: flex; gap: 16px; color: var(--text-muted); font-size: 12px; }
-
-.device-section { animation: fadeIn 0.5s ease 0.4s both; }
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.section-actions { display: flex; gap: 12px; }
-.search-input { width: 200px; }
-
-.device-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.device-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 18px;
-  transition: all var(--transition-normal);
-}
-
-.device-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--accent);
-}
-
-.device-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.device-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-hover);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-}
-
-.device-info { flex: 1; display: flex; flex-direction: column; }
-.device-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
-.device-code { font-size: 12px; color: var(--text-muted); }
-
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.running { background: var(--success-light); color: var(--success); }
-.status-badge.idle { background: var(--info-light); color: var(--info); }
-.status-badge.fault { background: var(--danger-light); color: var(--danger); }
-.status-badge.maintenance { background: var(--warning-light); color: var(--warning); }
-
-.device-metrics { margin-bottom: 16px; }
-
-.metric-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.metric-label { font-size: 12px; color: var(--text-muted); }
-
-.progress-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  max-width: 120px;
-  margin-left: 12px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border-color);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--gradient-primary);
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-.progress-value { font-size: 12px; color: var(--text-secondary); min-width: 35px; }
-
-.metric-row { display: flex; justify-content: space-between; margin-top: 12px; }
-.metric-row .metric-item { flex-direction: column; align-items: flex-start; gap: 4px; }
-.metric-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.metric-value.temp-high { color: var(--danger); }
-
-.device-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-light);
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--accent-light), transparent);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-}
-
-.detail-icon-large {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
-  border-radius: var(--radius-lg);
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-}
-
-.detail-info { flex: 1; }
-.detail-info h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 8px; font-weight: 600; }
-.detail-info p { color: var(--text-secondary); font-size: 14px; margin-bottom: 4px; }
-
-.detail-descriptions { margin-bottom: 20px; }
-
-/* 设备详情统计卡片 */
-.detail-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card-item {
-  background: var(--bg-hover);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  text-align: center;
-  transition: all 0.2s ease;
-}
-
-.stat-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.stat-card-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--accent);
-  margin-bottom: 4px;
-}
-
-.stat-card-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.detail-section {
-  margin-bottom: 20px;
-}
-
-.detail-section .section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-}
-
-.ai-predict-card {
-  background: linear-gradient(135deg, var(--success-light), transparent);
-  border: 1px solid var(--success);
-  border-radius: var(--radius-md);
-  padding: 16px;
-}
-
-.predict-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.predict-badge.success {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.predict-message {
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-
-.predict-confidence {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.predict-confidence span {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.ai-actions {
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-}
-
-.ai-actions .section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.action-buttons .el-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.status-tag {
-  font-size: 14px;
-  padding: 8px 16px;
-}
-
-.device-pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-.predict-header { text-align: center; padding: 20px; }
-.predict-header h3 { color: var(--text-primary); margin-top: 12px; }
-
-html.light .page-title { color: var(--text-primary); }
-html.light .section-title { color: var(--text-primary); }
-html.light .stat-item,
-html.light .chart-card,
-html.light .alarm-card,
-html.light .device-card { box-shadow: var(--shadow-sm); }
-
-/* Status Filter */
-.status-filter {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.filter-btn.active {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.filter-btn .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.filter-btn.running .status-dot {
-  background: var(--success);
-  box-shadow: 0 0 6px var(--success);
-}
-
-.filter-btn.idle .status-dot {
-  background: var(--info);
-}
-
-.filter-btn.fault .status-dot {
-  background: var(--danger);
-  box-shadow: 0 0 6px var(--danger);
-}
-
-.filter-btn.running.active .status-dot,
-.filter-btn.idle.active .status-dot,
-.filter-btn.fault.active .status-dot {
-  box-shadow: 0 0 8px currentColor;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 1400px) {
-  .device-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 1200px) {
-  :deep(.stats-grid) { grid-template-columns: repeat(2, 1fr); }
-}
+/* ===== ROOT ===== */
+.dt-page { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-app); color: var(--text-primary); font-size: 13px; }
+
+/* ===== TOP BAR ===== */
+.dt-topbar { display: flex; align-items: center; height: 38px; padding: 0 14px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 10px; }
+.dt-topbar-left { flex-shrink: 0; }
+.dt-logo-text { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
+.dt-topbar-center { flex: 1; display: flex; justify-content: center; }
+.dt-topbar-pills { display: flex; gap: 2px; }
+.dt-pill { display: flex; align-items: baseline; gap: 3px; padding: 2px 9px; border-radius: 5px; font-size: 12px; white-space: nowrap; }
+.dt-pill.primary { background: var(--accent-light); color: var(--accent); }
+.dt-pill.success { background: var(--success-light); color: var(--success); }
+.dt-pill.info { background: var(--info-light); color: var(--info); }
+.dt-pill.danger { background: var(--danger-light); color: var(--danger); }
+.dt-pill-num { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+.dt-pill-lbl { opacity: .65; font-size: 10px; }
+.dt-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dt-view-switch { display: flex; background: var(--bg-hover); border-radius: 5px; padding: 1px; }
+.dt-view-switch button { display: flex; align-items: center; gap: 3px; padding: 3px 10px; border: none; border-radius: 4px; background: transparent; color: var(--text-secondary); font-size: 11px; cursor: pointer; transition: all .12s; }
+.dt-view-switch button.on { background: var(--bg-card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.dt-topbar-actions { display: flex; align-items: center; gap: 6px; }
+.dt-fchip { padding: 2px 7px; border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all .12s; }
+.dt-fchip:hover { background: var(--bg-hover); color: var(--text-primary); }
+.dt-fchip.on { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.dt-fchip.run { color: var(--success); }
+.dt-fchip.idle { color: var(--info); }
+.dt-fchip.fault { color: var(--danger); }
+.dt-btn-refresh { color: var(--text-muted); font-size: 16px; }
+
+/* ===== MAIN ===== */
+.dt-main { flex: 1; min-height: 0; overflow: hidden; }
+
+/* 3D */
+.dt-scene-wrap { width: 100%; height: 100%; position: relative; }
+
+/* HUD panels */
+.dt-hud-btns { position: absolute; top: 8px; right: 8px; z-index: 20; display: flex; gap: 3px; }
+.dt-hud-btns button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: all .12s; }
+.dt-hud-btns button:hover, .dt-hud-btns button.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.dt-hud-dot-badge { position: absolute; top: -4px; right: -6px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--danger); color: #fff; font-size: 9px; font-weight: 700; line-height: 14px; text-align: center; }
+
+.dt-hud { position: absolute; z-index: 10; }
+.dt-hud-alarms { top: 42px; right: 8px; width: 210px; max-height: 240px; display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.dt-hud-head { display: flex; align-items: center; gap: 5px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: var(--text-primary); background: var(--bg-hover); cursor: pointer; user-select: none; flex-shrink: 0; }
+.dt-hud-badge { margin-left: 4px; font-size: 10px; background: var(--danger-light); color: var(--danger); padding: 0 6px; border-radius: 8px; }
+.dt-hud-close { margin-left: auto; opacity: .5; }
+.dt-hud-list { flex: 1; overflow-y: auto; padding: 2px 0; }
+.dt-hud-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 11px; color: var(--text-secondary); }
+.dt-hud-row:hover { background: var(--bg-hover); }
+.dt-hud-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--border-color); }
+.dt-hud-row.danger .dt-hud-dot { background: var(--danger); box-shadow: 0 0 5px var(--danger); }
+.dt-hud-row.warning .dt-hud-dot { background: var(--warning); }
+.dt-hud-none { padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+.dt-hud-charts { bottom: 8px; left: 8px; width: 440px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.dt-hud-chart-head { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+.dt-hud-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 8px 6px; }
+.dt-hud-chart-grid em { display: block; font-size: 10px; color: var(--text-muted); text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: .4px; }
+
+.hud-fade-enter-active, .hud-fade-leave-active { transition: opacity .12s; }
+.hud-fade-enter-from, .hud-fade-leave-to { opacity: 0; }
+.hud-slide-enter-active, .hud-slide-leave-active { transition: all .18s ease; }
+.hud-slide-enter-from, .hud-slide-leave-to { opacity: 0; transform: translateY(8px); }
+
+/* ===== LIST VIEW ===== */
+.dt-list-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.dt-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
+.dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; padding: 10px; align-content: start; }
+.dt-device-card { position: relative; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; cursor: pointer; transition: all .15s; overflow: hidden; }
+.dt-device-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 8px 0 0 8px; transition: all .15s; }
+.dt-device-card.status-running::before { background: var(--success); }
+.dt-device-card.status-idle::before { background: var(--info); }
+.dt-device-card.status-fault::before { background: var(--danger); }
+.dt-device-card.status-maintenance::before { background: var(--warning); }
+.dt-device-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); border-color: var(--accent); }
+.dt-dc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dt-dc-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border-radius: 6px; color: var(--text-secondary); flex-shrink: 0; }
+.dt-dc-info { flex: 1; min-width: 0; }
+.dt-dc-name { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-dc-code { font-size: 11px; color: var(--text-muted); }
+.dt-dc-badge { padding: 1px 7px; border-radius: 6px; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+.dt-dc-badge.running { background: var(--success-light); color: var(--success); }
+.dt-dc-badge.idle { background: var(--info-light); color: var(--info); }
+.dt-dc-badge.fault { background: var(--danger-light); color: var(--danger); }
+.dt-dc-badge.maintenance { background: var(--warning-light); color: var(--warning); }
+.dt-dc-body { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px; }
+.dt-dc-kpi { text-align: center; }
+.dt-dc-kpi label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 1px; }
+.dt-dc-kpi b { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.dt-dc-kpi b.hot { color: var(--danger); }
+.dt-dc-bar { height: 3px; background: var(--border-color); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+.dt-dc-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
+.dt-dc-foot { display: flex; gap: 2px; flex-wrap: wrap; }
+.dt-list-pager { display: flex; justify-content: center; padding: 6px; flex-shrink: 0; }
+
+/* ===== DIALOGS ===== */
+.dt-dlg-det-head { display: flex; align-items: center; gap: 14px; padding: 16px; background: linear-gradient(135deg, var(--accent-light), transparent); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 14px; }
+.dt-dlg-det-head strong { font-size: 17px; }
+.dt-dlg-det-head small { color: var(--text-secondary); font-size: 12px; }
+.dt-dlg-det-avatar { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; border-radius: 10px; flex-shrink: 0; }
+.dt-dlg-det-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.dt-dlg-det-kpi { background: var(--bg-hover); border-radius: 8px; padding: 10px; text-align: center; }
+.dt-dlg-det-kpi strong { display: block; font-size: 20px; font-weight: 700; color: var(--accent); }
+.dt-dlg-det-kpi span { font-size: 11px; color: var(--text-muted); }
+.dt-dlg-ai-badge { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: linear-gradient(135deg, var(--success-light), transparent); border: 1px solid var(--success); border-radius: 8px; margin-bottom: 14px; font-size: 13px; color: var(--success); }
+.dt-dlg-ai-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 </style>

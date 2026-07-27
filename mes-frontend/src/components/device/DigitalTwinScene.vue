@@ -24,14 +24,31 @@
       <div v-if="selectedDevice" class="twins-device-panel">
         <div class="panel-header">
           <span class="panel-dot" :style="{ background: statusColor(selectedDevice.status) }" />
-          <strong>{{ selectedDevice.deviceName || selectedDevice.name || '设备' }}</strong>
-          <span class="panel-code">{{ selectedDevice.deviceCode || selectedDevice.code }}</span>
+          <div class="panel-title-info">
+            <strong>{{ selectedDevice.name || selectedDevice.deviceName || '设备' }}</strong>
+            <span class="panel-code">{{ selectedDevice.code || selectedDevice.deviceCode }}</span>
+          </div>
+          <span class="panel-status" :class="selectedDevice.status">{{ statusText(selectedDevice.status) }}</span>
         </div>
         <div class="panel-grid">
-          <div><label>温度</label><span>{{ selectedDevice.temperature ?? '--' }}°C</span></div>
-          <div><label>转速</label><span>{{ selectedDevice.speed ?? selectedDevice.utilization ?? '--' }}</span></div>
+          <div>
+            <label>温度</label>
+            <span :class="tempClass(selectedDevice.temperature)">{{ selectedDevice.temperature ?? '--' }}°C</span>
+          </div>
+          <div><label>转速</label><span>{{ selectedDevice.speed ?? '--' }} rpm</span></div>
           <div><label>功率</label><span>{{ selectedDevice.power ?? '--' }} kW</span></div>
+          <div><label>利用率</label><span>{{ selectedDevice.utilization || '0%' }}</span></div>
           <div><label>运行</label><span>{{ selectedDevice.runtime ?? '--' }}</span></div>
+          <div><label>OEE</label><span>{{ selectedDevice.efficiency || '--' }}%</span></div>
+        </div>
+        <div class="panel-bar-wrap">
+          <div class="panel-bar"><div :style="{ width: (parseInt(selectedDevice.utilization) || 0) + '%' }"></div></div>
+          <span class="panel-bar-label">{{ selectedDevice.utilization || '0%' }}</span>
+        </div>
+        <div class="panel-actions">
+          <button @click="emit('action', { type:'predict', device: selectedDevice })" title="AI预测"><Cpu /></button>
+          <button @click="emit('action', { type:'spc', device: selectedDevice })" title="SPC分析"><Histogram /></button>
+          <button @click="emit('action', { type:'energy', device: selectedDevice })" title="能耗优化"><Lightning /></button>
         </div>
       </div>
     </transition>
@@ -45,10 +62,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import { useThemeStore } from '@/stores/theme'
 import { Top, View, Connection } from '@element-plus/icons-vue'
+import { Cpu, Histogram, Lightning } from '@element-plus/icons-vue'
 const themeStore = useThemeStore()
 
 const props = defineProps<{ devices: any[] }>()
-const emit = defineEmits<{ select: [device: any] }>()
+const emit = defineEmits<{ select: [device: any]; action: [payload: { type: string; device: any }] }>()
 const containerRef = ref<HTMLElement>()
 const ready = ref(false)
 const selectedDevice = ref<any>(null)
@@ -97,6 +115,14 @@ const statusCount = computed(() => {
 })
 
 function statusColor(s: string) { const st = ST(s); const h = CLR[st]?.toString(16).padStart(6, '0') || '6366f1'; return '#' + h }
+function statusText(s: string) { const st = ST(s); const m: Record<string,string> = { ONLINE: '运行中', FAULT: '故障', OFFLINE: '离线', MAINTENANCE: '维护中' }; return m[st] || st }
+function tempClass(t: any) {
+  const v = parseFloat(t)
+  if (isNaN(v)) return ''
+  if (v >= 70) return 'temp-danger'
+  if (v >= 55) return 'temp-warn'
+  return 'temp-ok'
+}
 
 const viewPresets = [
   { key: 'perspective', label: '透视图', icon: 'View' },
@@ -403,8 +429,9 @@ function buildMachine(device: any): THREE.Group {
   })
 
   // ── data label ──
+  const devName = device.name || device.deviceName || device.deviceCode || '设备'
   const dataDiv = labelHtml(
-    `${device.deviceName || device.deviceCode || '设备'}<br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
+    `${devName}<br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
     '#' + c.toString(16).padStart(6, '0')
   )
   dataDiv.position.set(0, 2.15, 0); root.add(dataDiv)
@@ -734,17 +761,49 @@ onBeforeUnmount(() => {
 .view-btn:hover { background: rgba(99,102,241,.3); border-color: rgba(99,102,241,.5); }
 .view-btn.on { background: rgba(99,102,241,.5); border-color: #6366f1; }
 .twins-device-panel {
-  position: absolute; bottom: 54px; left: 10px; z-index: 5; background: rgba(0,0,0,.75);
-  backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 10px 14px; min-width: 190px;
-  color: #fff; font-size: 12px;
+  position: absolute; bottom: 54px; right: 10px; z-index: 5;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px); border: 1px solid var(--border-color);
+  border-radius: 10px; padding: 10px 14px; min-width: 210px;
+  color: var(--text-primary); font-size: 12px;
 }
 .panel-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .panel-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.panel-code { font-size: 10px; color: #999; margin-left: auto; }
-.panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
-.panel-grid div { display: flex; justify-content: space-between; }
-.panel-grid label { color: #888; font-size: 10px; }
-.panel-grid span { font-weight: 600; font-family: monospace; }
+.panel-title-info { flex: 1; min-width: 0; }
+.panel-title-info strong { font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-code { font-size: 10px; color: var(--text-muted); }
+.panel-status { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+.panel-status.running { background: var(--success-light); color: var(--success); }
+.panel-status.fault { background: var(--danger-light); color: var(--danger); }
+.panel-status.idle { background: var(--info-light); color: var(--info); }
+.panel-status.maintenance { background: var(--warning-light); color: var(--warning); }
+.panel-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 8px; }
+.panel-grid div { text-align: center; }
+.panel-grid label { color: var(--text-muted); font-size: 9px; display: block; margin-bottom: 1px; }
+.panel-grid span { font-weight: 600; font-family: monospace; color: var(--text-primary); font-size: 12px; }
+.panel-grid span.temp-ok { color: var(--success); }
+.panel-grid span.temp-warn { color: var(--warning); }
+.panel-grid span.temp-danger { color: var(--danger); }
+.panel-bar-wrap { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.panel-bar { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
+.panel-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
+.panel-bar-label { font-size: 10px; color: var(--text-muted); font-family: monospace; min-width: 30px; text-align: right; }
+.panel-actions { display: flex; gap: 4px; padding-top: 6px; border-top: 1px solid var(--border-color); }
+.panel-actions button { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all .12s; }
+.panel-actions button:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 .slide-up-enter-active, .slide-up-leave-active { transition: all .2s ease; }
 .slide-up-enter-from, .slide-up-leave-to { opacity: 0; transform: translateY(10px); }
+
+/* HUD badges */
+.twins-hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 4px; }
+.hud-row { display: flex; gap: 3px; }
+.hud-badge {
+  display: flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600;
+  color: var(--bg-card); backdrop-filter: blur(6px);
+}
+.hud-badge span { font-weight: 400; font-size: 9px; opacity: .85; }
+.hud-badge.running { background: var(--success); color: #fff; }
+.hud-badge.fault { background: var(--danger); color: #fff; }
+.hud-badge.idle { background: var(--info); color: #fff; }
+.hud-badge.maintenance { background: var(--warning); color: #fff; }
 </style>
