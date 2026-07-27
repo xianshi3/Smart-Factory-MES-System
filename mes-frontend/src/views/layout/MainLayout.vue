@@ -22,8 +22,11 @@
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
-          :collapse-transition="false"
+          :collapse-transition="true"
           class="sidebar-menu"
+          :default-openeds="openedMenus"
+          @open="onMenuOpen"
+          @close="onMenuClose"
         >
           <template v-for="group in menuGroups" :key="group.title">
             <el-sub-menu v-if="!isCollapse" :index="group.title">
@@ -146,6 +149,7 @@ const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
+const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据', '系统管理'])
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
 
@@ -218,7 +222,20 @@ watch(() => route.path, (p) => {
   }, 50)
 }, { immediate: true })
 
-const toggleCollapse = () => { isCollapse.value = !isCollapse.value }
+const toggleCollapse = () => {
+  isCollapse.value = !isCollapse.value
+  if (!isCollapse.value && openedMenus.value.length === 0) {
+    openedMenus.value = ['生产监控', '生产管理', '基础数据', '系统管理']
+  }
+}
+
+const onMenuOpen = (idx: string) => {
+  if (!openedMenus.value.includes(idx)) openedMenus.value.push(idx)
+}
+
+const onMenuClose = (idx: string) => {
+  openedMenus.value = openedMenus.value.filter(i => i !== idx)
+}
 
 onMounted(async () => {
   await userStore.getUserInfo()
