@@ -22,9 +22,9 @@
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
-          collapse-transition
+          :collapse-transition="false"
           class="sidebar-menu"
-          :default-openeds="isCollapse ? [] : openedMenus"
+          :default-openeds="openedMenus"
           @open="onMenuOpen"
           @close="onMenuClose"
         >
@@ -224,9 +224,6 @@ watch(() => route.path, (p) => {
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
-  if (!isCollapse.value && openedMenus.value.length === 0) {
-    openedMenus.value = ['生产监控', '生产管理', '基础数据', '系统管理']
-  }
 }
 
 const onMenuOpen = (idx: string) => {
@@ -258,6 +255,7 @@ const handleCommand = (cmd: string) => {
 
 /* ===== SIDEBAR ===== */
 .sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.2s ease; overflow: hidden; z-index: 10; }
+.el-menu--collapse { width: 56px !important; }
 
 .sidebar-header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); position: relative; }
 .brand-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 6px; color: #fff; flex-shrink: 0; }
