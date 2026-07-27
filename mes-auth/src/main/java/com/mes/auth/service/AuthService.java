@@ -188,4 +188,42 @@ public class AuthService {
         userMapper.updateById(user);
         log.info("用户 {} 修改密码成功", user.getUsername());
     }
+
+    public Map<String, Object> getSettings(String token) {
+        Long userId = jwtUtils.getUserId(token.replace("Bearer ", ""));
+        User user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorCode.USER_NOT_FOUND);
+        Map<String, Object> settings = new HashMap<>();
+        if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                settings = mapper.readValue(user.getAvatar(), HashMap.class);
+            } catch (Exception e) {
+                log.warn("读取设置失败: {}", e.getMessage());
+            }
+        }
+        settings.putIfAbsent("compactMode", false);
+        settings.putIfAbsent("animation", true);
+        settings.putIfAbsent("autoRefresh", 30);
+        settings.putIfAbsent("wsPush", true);
+        settings.putIfAbsent("deviceAlarmNotify", true);
+        settings.putIfAbsent("orderNotify", true);
+        settings.putIfAbsent("qualityNotify", true);
+        return settings;
+    }
+
+    @Transactional
+    public void saveSettings(String token, Map<String, Object> settings) {
+        Long userId = jwtUtils.getUserId(token.replace("Bearer ", ""));
+        User user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorCode.USER_NOT_FOUND);
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            user.setAvatar(mapper.writeValueAsString(settings));
+            userMapper.updateById(user);
+            log.info("用户 {} 保存设置成功", user.getUsername());
+        } catch (Exception e) {
+            throw new BizException("保存设置失败: " + e.getMessage());
+        }
+    }
 }

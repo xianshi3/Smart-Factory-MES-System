@@ -32,7 +32,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="quality-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span class="sn-text">{{ row.sn }}</span>
@@ -182,8 +181,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getQualityPage({ current: pagination.page, size: pagination.size, keyword: searchForm.sn, result: searchForm.result })
-    tableData.value = res.data.records || []
-    pagination.total = res.data.total || 0
+    tableData.value = res?.data?.records || []
+    pagination.total = res?.data?.total || 0
   } catch (error) { console.error('Failed to load:', error) }
   finally { loading.value = false }
 }
@@ -240,7 +239,7 @@ onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.page-wrapper { padding: 24px; background: var(--bg-app); min-height: 100% }
+.page-wrapper { background: var(--bg-app); min-height: 100% }
 
 .create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
 

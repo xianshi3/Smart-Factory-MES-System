@@ -83,6 +83,10 @@ obj/
 
 # ==================== AI Models (binary) ====================
 *.onnx
+
+# ==================== Legacy ====================
+scripts/
+mqtt-broker.js
 *.exe
 *.pdb
 *.runtimeconfig.json

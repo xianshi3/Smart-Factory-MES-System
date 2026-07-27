@@ -10,6 +10,51 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.32 (2026-07-27)
+
+### 新增功能
+
+#### BOM + 物料管理
+
+- **数据库**: 新增 5 张表 (material/bom/bom_item/inventory/inventory_transaction)
+- **后端**: 5 个 Mapper + BomService + BomServiceImpl + 3 个 Controller (Material/Bom/Inventory)
+  - 物料 CRUD + 搜索过滤
+  - BOM CRUD + 嵌套明细管理 + 物料存在性校验 + 循环引用检测
+  - 库存查询 + 库存调整 + 交易记录追溯
+- **前端**: MaterialView.vue 物料列表/新建/编辑/删除
+- **路由**: /material, /bom 加入路由和菜单
+
+### 前端优化
+
+- 移除所有视图的 animationDelay（消除页面卡顿）
+- 删除 3 个死组件 (PageHeader/DataTable/SearchBar)
+- CSS 去重 269 行，创建 useChartTheme composable
+- 统一 8 个视图内边距，修复 16 处硬编码颜色
+- 物料管理列表：极简企业风格、自适应列宽、库存预警、unitLabel 中英文映射
+
+---
+
+## v1.0.31 (2026-07-27)
+
+### 修复
+
+- **前端卡片不可见**: 3 个视图的 `.template-card`/`.order-card`/`.stat-item`/`.device-card` 使用 `animation: fadeInUp` 但未定义 `@keyframes fadeInUp`，`animation-fill-mode: forwards` 导致永久 `opacity: 0`
+- **页面卡顿**: 移除所有视图的 `animationDelay` 内联样式（每张卡片依次动画导致卡顿）
+- **Vite 代理 404**: `/process` 代理的 `rewrite` 错误剥离 `/process` 前缀导致 404
+- **Element Plus 暗色主题**: 导入 `dark/css-vars.css` 使 ElTable/ElDialog 等组件支持主题切换
+- **数据加载报错被吞**: `res.data.records` 加 `?.` 可选链防止 TypeError 被 `catch` 吞掉
+
+### 优化
+
+- 删除 3 个死组件 (PageHeader/DataTable/SearchBar)
+- CSS 去重 269 行（7 个视图删除重复 page-header；stats-grid 合并到 global；status-tag 统一使用 CSS 变量）
+- 创建 `useChartTheme` composable，3 个视图复用图表颜色
+- 统一 8 个视图内边距为 MainLayout.el-main 的 24px
+- 修复硬编码颜色 16 处，改用 CSS 变量
+- 表状态标签改用 `var(--success-light)` 等变量替代硬编码 `rgba()`
+
+---
+
 ## v1.0.30 (2026-07-27)
 
 ### 变更

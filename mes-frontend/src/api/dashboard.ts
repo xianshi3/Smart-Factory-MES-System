@@ -12,8 +12,8 @@ export function createDevice(data: any) {
   return request({ url: '/dashboard/device', method: 'post', data })
 }
 
-export function deleteDevice(deviceId: number) {
-  return request({ url: `/dashboard/device/${deviceId}`, method: 'delete' })
+export function deleteDevice(deviceCode: string) {
+  return request({ url: `/dashboard/device/${deviceCode}`, method: 'delete' })
 }
 
 export function deleteAllDevices() {

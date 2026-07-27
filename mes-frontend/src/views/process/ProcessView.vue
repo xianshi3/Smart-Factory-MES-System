@@ -31,7 +31,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="template-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span :class="['status-dot', row.status === 'PUBLISHED' ? 'status-dot--success' : 'status-dot--info']"></span>
@@ -53,6 +52,7 @@
           </span>
           <div class="card-actions" @click.stop>
             <el-button type="warning" size="small" link @click="handleEdit(row)" v-if="row.status === 'DRAFT'">编辑</el-button>
+            <el-button type="success" size="small" link @click="handleParamCheck(row)">参数校验</el-button>
             <el-button type="success" size="small" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
             <el-button type="danger" size="small" link @click="handleDelete(row)" v-if="row.status === 'DRAFT'">删除</el-button>
           </div>
@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate, deleteTemplate } from '@/api/services'
+import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate, deleteTemplate, checkParameters } from '@/api/services'
 import { Setting, Plus, Search, Box } from '@element-plus/icons-vue'
 
 const loading = ref(false)
@@ -157,9 +157,10 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getTemplatePage({ current: pagination.page, size: pagination.size, status: searchForm.status, keyword: searchForm.keyword })
-    tableData.value = res.data.records || []
-    pagination.total = res.data.total || 0
-  } catch (error) { console.error('Failed to load:', error) }
+    console.log('[Process] loadData res:', res)
+    tableData.value = res?.data?.records || []
+    pagination.total = res?.data?.total || 0
+  } catch (error) { console.error('Failed to load:', error, res) }
   finally { loading.value = false }
 }
 
@@ -201,6 +202,20 @@ const handlePublish = async (row: any) => {
   catch (e: any) { ElMessage.error(e?.message || '发布失败') }
 }
 
+const handleParamCheck = async (row: any) => {
+  try {
+    const res = await checkParameters({ templateId: row.id, parameters: row })
+    const result = res?.data || res
+    if (result?.passed) {
+      ElMessage.success('参数校验通过')
+    } else {
+      ElMessage.warning(result?.message || '参数存在异常，请检查')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '参数校验请求失败')
+  }
+}
+
 const handleDelete = (row: any) => {
   ElMessageBox.confirm(`确定删除模板 "${row.templateName}" 吗？`, '删除确认', { type: 'warning' })
     .then(async () => {
@@ -213,7 +228,7 @@ onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.page-wrapper { padding: 24px; background: var(--bg-app); min-height: 100% }
+.page-wrapper { background: var(--bg-app); min-height: 100% }
 
 .create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
 
@@ -227,8 +242,6 @@ onMounted(() => { loadData() })
   padding: 18px;
   cursor: pointer;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .template-card:hover {

@@ -15,6 +15,20 @@ except ImportError:
     logger.warning("zhipuai SDK 未安装，大模型功能不可用")
 
 
+def _load_api_key() -> Optional[str]:
+    key = os.environ.get("ZHIPU_API_KEY")
+    if key:
+        return key
+    env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env.local")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("ZHIPU_API_KEY="):
+                    return line.split("=", 1)[1].strip().strip("\"'")
+    return None
+
+
 class LLmService:
     """大语言模型服务，支持智谱AI"""
 
@@ -32,27 +46,21 @@ class LLmService:
     FREE_MODELS = ["glm-4-flash", "glm-3-flash"]
 
     def __init__(self, config: dict):
-        """初始化大模型服务
-        
-        Args:
-            config: 配置字典
-        """
         self.config = config
         self.client = None
         self.model_name = "glm-4-flash"
         self._init_client()
 
     def _init_client(self):
-        """初始化智谱AI客户端"""
         if not ZHIPU_SDK_AVAILABLE:
             logger.warning("智谱AI SDK未安装")
             return
-            
-        api_key = os.environ.get("ZHIPU_API_KEY") or self.config.get("llm", {}).get("api_key")
+
+        api_key = _load_api_key()
         if not api_key:
             logger.warning("未配置智谱AI API Key")
             return
-        
+
         try:
             self.client = ZhipuAI(api_key=api_key)
             self.model_name = self.config.get("llm", {}).get("model", "glm-4-flash")

@@ -57,7 +57,7 @@ export function publishTemplate(id: number) {
 }
 
 export function checkParameters(data: any) {
-  return request({ url: '/process/parameter/check', method: 'post', data })
+  return request({ url: '/process/template/parameter/check', method: 'post', data })
 }
 
 export function deleteTemplate(id: number) {

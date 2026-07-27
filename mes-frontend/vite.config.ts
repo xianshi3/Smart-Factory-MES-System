@@ -23,18 +23,9 @@ export default defineConfig({
           if (req.headers.accept?.includes('text/html')) return '/'
         }
       },
-      '/process/template': {
+      '/process': {
         target: 'http://localhost:8083',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/process/, ''),
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/process/parameter': {
-        target: 'http://localhost:8083',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/process/, ''),
         bypass: (req) => {
           if (req.headers.accept?.includes('text/html')) return '/'
         }
