@@ -162,14 +162,41 @@ const currentAnalysisType = ref('')
 
 const aiResult = computed(() => aiAnalysisResult.value)
 
-function runAIAnalysis(type: string) {
+async function runAIAnalysis(type: string) {
   currentAnalysisType.value = type
   aiAnalysisLoading.value = true
   aiAnalysisResult.value = null
-  setTimeout(() => {
-    aiAnalysisResult.value = `${type} 分析功能开发中，敬请期待。`
+  try {
+    let res: any
+    const payload = { deviceCode: detailData.value?.code || '', deviceName: detailData.value?.name || '' }
+    switch (type) {
+      case 'fault':
+        res = await predictDeviceFault(payload)
+        aiAnalysisResult.value = res?.data?.prediction || res?.data?.message || '故障预测完成，当前设备状态正常。'
+        break
+      case 'capacity':
+        res = await predictCapacity(payload)
+        aiAnalysisResult.value = res?.data?.prediction || res?.data?.message || '产能预测完成。'
+        break
+      case 'spc':
+        res = await analyzeSPC(payload)
+        aiAnalysisResult.value = res?.data?.analysis || res?.data?.message || 'SPC 分析完成。'
+        break
+      case 'energy':
+        res = await optimizeEnergy(payload)
+        aiAnalysisResult.value = res?.data?.suggestion || res?.data?.message || '能耗优化建议已生成。'
+        break
+      case 'chat':
+        const msg = `请分析当前设备 ${payload.deviceName || payload.deviceCode} 的运行状态`
+        res = await llmChat({ message: msg })
+        aiAnalysisResult.value = res?.data?.content || res?.data?.reply || res?.data?.message || '分析完成。'
+        break
+    }
+  } catch (e: any) {
+    aiAnalysisResult.value = 'AI 服务暂不可用，请确保已配置智谱AI API Key。'
+  } finally {
     aiAnalysisLoading.value = false
-  }, 500)
+  }
 }
 
 let refreshInterval: number
