@@ -261,7 +261,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
 
 // ─── lighting ───
 function buildLighting(s: THREE.Scene, dark: boolean) {
-  s.add(new THREE.AmbientLight(dark ? 0x707070 : 0xd0d0d0, 0.65))
+  s.add(new THREE.AmbientLight(dark ? 0x888888 : 0xdcdcdc, 0.7))
   const key = new THREE.DirectionalLight(dark ? 0xffffff : 0xffffff, 1.8)
   key.position.set(14, 20, 10)
   key.castShadow = true
@@ -289,11 +289,11 @@ function buildMachine(device: any): THREE.Group {
   root.children[root.children.length - 1].position.y = 0.07
 
   // ── main cabinet (white industrial) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xf0f0f0, 0.12, 0.8))
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xf5f5f5, 0.1, 0.85))
   body.position.y = 1.04; body.castShadow = true; root.add(body)
 
   // ── top accent band ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x5a5a5a, 0.2, 0.75)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x6a6a6a, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
   // ── rear cabinet ──
@@ -307,7 +307,7 @@ function buildMachine(device: any): THREE.Group {
   }
 
   // ── front door (darker contrast panel) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x808080, 0.2, 0.8)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x888888, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
   // door border
@@ -317,7 +317,7 @@ function buildMachine(device: any): THREE.Group {
   // glass window
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(1.3, 1.0, 0.005),
-    new THREE.MeshPhysicalMaterial({ color: 0x8899aa, transparent: true, opacity: 0.25, roughness: 0.02, metalness: 0.05 })
+    new THREE.MeshPhysicalMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.45, roughness: 0.01, metalness: 0.05 })
   )
   glass.position.set(0.05, 1.0, 0.87); root.add(glass)
 
@@ -350,7 +350,7 @@ function buildMachine(device: any): THREE.Group {
 
   // ── control panel (right side, attached to cabinet) ──
   const pnl = new THREE.Group()
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x707070, 0.2, 0.75)))
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x787878, 0.2, 0.75)))
   // screen
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.005), new THREE.MeshBasicMaterial({ color: 0x20d050 })))
   pnl.children[pnl.children.length - 1].position.set(0, 0.18, 0.035)
@@ -363,7 +363,7 @@ function buildMachine(device: any): THREE.Group {
 
   // ── stack light ──
   const tower = new THREE.Group()
-  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x707070, 0.3, 0.82)))
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x787878, 0.3, 0.82)))
   tower.children[0].position.y = 2.02
   ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
     const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
@@ -379,7 +379,7 @@ function buildMachine(device: any): THREE.Group {
 
   // ── side window (tool magazine) ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.6, 0.5),
-    new THREE.MeshPhysicalMaterial({ color: 0x777777, transparent: true, opacity: 0.3, roughness: 0.05 })))
+    new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.35, roughness: 0.05 })))
   root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)
   // magazine dots
   for (let ti = 0; ti < 6; ti++) {
@@ -601,6 +601,7 @@ function flyToView(key: string) {
 function animate() {
   S.animId = requestAnimationFrame(animate)
   const dt = Math.min(S.clock.getDelta(), 0.1)
+  runTime += dt
   S.controls.update()
 
   deviceNodes.forEach(n => {
@@ -656,7 +657,7 @@ watch(() => themeStore.isDark, (dark) => {
   clearFactory()
   buildFactory(lastDeviceCount || 5, dark)
   S.scene.traverse(c => {
-    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0x707070 : 0xd0d0d0)
+    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0x888888 : 0xdcdcdc)
     if (c instanceof THREE.HemisphereLight) c.color.setHex(dark ? 0x888888 : 0xaaaaaa)
   })
 })
