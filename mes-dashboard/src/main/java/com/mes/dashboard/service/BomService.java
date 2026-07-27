@@ -19,7 +19,7 @@ public interface BomService {
 
     Material getMaterial(Long id);
 
-    List<Material> listMaterials(String keyword, String status);
+    com.mes.common.result.PageResult<Material> listMaterials(String keyword, String materialType, String status, int page, int size);
 
     // BOM
     Bom createBom(Bom bom);

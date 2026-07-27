@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.mes.common.result.PageResult;
 
 @RestController
 @RequestMapping("/dashboard/material")
@@ -28,9 +28,12 @@ public class MaterialController {
 
     @GetMapping("/list")
     @Operation(summary = "获取物料列表")
-    public Result<List<Material>> list(@RequestParam(required = false) String keyword,
-                                       @RequestParam(required = false) String status) {
-        return Result.ok(bomService.listMaterials(keyword, status));
+    public Result<PageResult<Material>> list(@RequestParam(required = false) String keyword,
+                                         @RequestParam(required = false) String materialType,
+                                         @RequestParam(required = false) String status,
+                                         @RequestParam(defaultValue = "1") int page,
+                                         @RequestParam(defaultValue = "20") int size) {
+        return Result.ok(bomService.listMaterials(keyword, materialType, status, page, size));
     }
 
     @GetMapping("/{id}")

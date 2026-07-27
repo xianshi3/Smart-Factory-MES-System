@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mes.common.result.PageResult;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -67,19 +69,24 @@ public class BomServiceImpl implements BomService {
     }
 
     @Override
-    public List<Material> listMaterials(String keyword, String status) {
+    public PageResult<Material> listMaterials(String keyword, String materialType, String status, int page, int size) {
+        Page<Material> p = new Page<>(page, size);
         LambdaQueryWrapper<Material> query = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(keyword)) {
             query.and(w -> w.like(Material::getMaterialCode, keyword)
                     .or()
                     .like(Material::getMaterialName, keyword));
         }
+        if (StringUtils.isNotBlank(materialType)) {
+            query.eq(Material::getMaterialType, materialType);
+        }
         if (StringUtils.isNotBlank(status)) {
             query.eq(Material::getStatus, status);
         }
         query.eq(Material::getDeleted, 0);
         query.orderByDesc(Material::getCreateTime);
-        return materialMapper.selectList(query);
+        Page<Material> result = materialMapper.selectPage(p, query);
+        return PageResult.of(result);
     }
 
     // ==================== BOM ====================
