@@ -1,5 +1,6 @@
 """质量预测模型模块"""
 import os
+import pickle
 import numpy as np
 import lightgbm as lgb
 import onnxruntime as ort
@@ -20,23 +21,31 @@ class QualityPredictor:
     ]
 
     def __init__(self, onnx_path: Optional[str] = None):
-        """初始化预测器
-        
-        Args:
-            onnx_path: ONNX 模型文件路径，如果提供则加载 ONNX 模型
-        """
         self.model = None
         self.onnx_session = None
         self.onnx_path = onnx_path
         self._is_onnx = False
-        if onnx_path and os.path.exists(onnx_path):
+        self._try_load(onnx_path)
+
+    def _try_load(self, path: Optional[str]):
+        if not path or not os.path.exists(path):
+            return
+        try:
+            self._load_onnx(path)
+            return
+        except Exception:
+            pass
+        # Try pickle fallback
+        pkl_path = path.replace(".onnx", ".pkl")
+        if os.path.exists(pkl_path):
             try:
-                self._load_onnx(onnx_path)
+                with open(pkl_path, "rb") as f:
+                    self.model = pickle.load(f)
+                return
             except Exception:
                 pass
 
     def _load_onnx(self, path: str):
-        """加载 ONNX 模型"""
         self.onnx_session = ort.InferenceSession(path)
         self._is_onnx = True
 

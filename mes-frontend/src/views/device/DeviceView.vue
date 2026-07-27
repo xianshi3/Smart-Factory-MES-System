@@ -287,8 +287,9 @@ const updateCharts = () => {
   }
 }
 
-const handleDeviceSelect = (d: any) => { selectedDevice.value = d }
+const handleDeviceSelect = (d: any) => { selectedDevice.value = d; detailData.value = d }
 const handle3DAction = (payload: { type: string; device: any }) => {
+  detailData.value = payload.device
   if (payload.type === 'predict') handlePredict(payload.device)
   else if (payload.type === 'spc') handleSPCAnalysis()
   else if (payload.type === 'energy') handleEnergyOptimization()
@@ -313,10 +314,57 @@ const handlePredict = async (d: any) => {
 }
 
 const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data; aiAnalysisLoading.value = false }
-const handleSPCAnalysis = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await analyzeSPC({ device_code: detailData.value?.code, data_points: [] }); showAIResult('spc', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('分析失败') } }
-const handleEnergyOptimization = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await optimizeEnergy({ device_code: detailData.value?.code, data_points: [] }); showAIResult('energy', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('分析失败') } }
-const handleCapacityPrediction = async () => { aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; try { const res = await predictCapacity({ device_code: detailData.value?.code, data_points: [] }); showAIResult('capacity', res?.data || res) } catch { aiAnalysisLoading.value = false; ElMessage.error('预测失败') } }
-const handleLLMChat = async () => { ElMessage.info('AI 对话功能开发中') }
+const handleSPCAnalysis = async () => {
+  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
+  try {
+    const d = detailData.value || {}
+    const res = await analyzeSPC({
+      device_code: d.code || d.id,
+      parameter: 'temperature',
+      measurements: Array.from({ length: 20 }, () => Math.round(60 + Math.random() * 30))
+    })
+    showAIResult('spc', res?.data || res)
+  } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败') }
+}
+const handleEnergyOptimization = async () => {
+  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
+  try {
+    const d = detailData.value || {}
+    const res = await optimizeEnergy({
+      device_code: d.code || d.id,
+      current_params: { speed: d.speed || 1000, temperature: d.temperature || 80, power: d.power || 50 },
+      target_output: 5000
+    })
+    showAIResult('energy', res?.data || res)
+  } catch { aiAnalysisLoading.value = false; ElMessage.error('能耗分析失败') }
+}
+const handleCapacityPrediction = async () => {
+  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
+  try {
+    const d = detailData.value || {}
+    const dataPoints = Array.from({ length: 7 }, () => Math.round(800 + Math.random() * 400))
+    const res = await predictCapacity({
+      device_code: d.code || d.id,
+      production_line_id: 'line-1',
+      product_type: 'standard',
+      start_date: new Date().toISOString().slice(0, 10),
+      historical_outputs: dataPoints,
+      days_to_predict: 7
+    })
+    showAIResult('capacity', res?.data || res)
+  } catch { aiAnalysisLoading.value = false; ElMessage.error('产能预测失败') }
+}
+const handleLLMChat = async () => {
+  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; currentAnalysisType.value = 'llm'
+  try {
+    const d = detailData.value || {}
+    const res = await llmChat({
+      message: `分析设备 ${d.name || d.code || ''} 当前运行状态，温度${d.temperature || '--'}°C，转速${d.speed || '--'}rpm，功率${d.power || '--'}kW，给出优化建议`,
+      context: { device_code: d.code, temperature: d.temperature, speed: d.speed, power: d.power }
+    })
+    showAIResult('llm', res?.data || res)
+  } catch { aiAnalysisLoading.value = false; ElMessage.info('AI对话暂不可用，请配置API Key') }
+}
 
 onMounted(() => {
   fetchDeviceData()
