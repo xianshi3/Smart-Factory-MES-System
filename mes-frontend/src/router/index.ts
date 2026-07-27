@@ -117,7 +117,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'bom',
         name: 'Bom',
-        component: () => import('@/views/bom/BomView.vue')
+        component: () => import('@/views/bom/MaterialView.vue')
       }
     ]
   }
