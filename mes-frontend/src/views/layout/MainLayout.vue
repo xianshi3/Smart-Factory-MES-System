@@ -12,13 +12,12 @@
             <span class="brand-ver">v1.0</span>
           </div>
         </transition>
-        <button class="collapse-btn-fixed" @click="toggleCollapse" :title="isCollapse ? '展开菜单' : '收起菜单'">
-          <el-icon><ArrowLeft v-if="!isCollapse" /><ArrowRight v-else /></el-icon>
+        <button class="collapse-btn" @click="toggleCollapse">
+          <el-icon><DArrowLeft v-if="!isCollapse" /><DArrowRight v-else /></el-icon>
         </button>
       </div>
 
       <div class="menu-scroll">
-        <!-- 关键修复：添加 key 强制重新渲染 -->
         <el-menu
           :key="isCollapse ? 'collapsed' : 'expanded'"
           ref="menuRef"
@@ -38,9 +37,8 @@
                 <span>{{ group.title }}</span>
               </template>
               <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-                <el-icon><component :is="item.icon" /></el-icon>
+                <span class="menu-item-dot"></span>
                 <span>{{ item.title }}</span>
-                <span class="item-badge" v-if="item.badge">{{ item.badge }}</span>
               </el-menu-item>
             </el-sub-menu>
             <template v-else>
@@ -51,7 +49,6 @@
           </template>
         </el-menu>
       </div>
-
     </el-aside>
 
     <!-- ===== 主区域 ===== -->
@@ -137,7 +134,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { usePermissionStore } from '@/stores/permission'
-import { Close, Cpu, User, Sunny, Moon, ArrowDown, ArrowRight, ArrowLeft, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { Close, Cpu, User, Sunny, Moon, ArrowDown, ArrowRight, Setting, SwitchButton, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -286,126 +283,73 @@ const handleCommand = (cmd: string) => {
   display: flex; 
   align-items: center; 
   gap: 10px; 
-  padding: 0 14px; 
+  padding: 0 12px; 
   flex-shrink: 0; 
   border-bottom: 1px solid var(--border-color); 
-  position: relative; 
-  overflow: hidden;
 }
 .brand-icon { 
-  width: 28px; 
-  height: 28px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  background: var(--accent); 
-  border-radius: 6px; 
-  color: #fff; 
-  flex-shrink: 0; 
+  width: 28px; height: 28px; 
+  display: flex; align-items: center; justify-content: center; 
+  background: var(--accent); border-radius: 7px; color: #fff; flex-shrink: 0; 
 }
-.brand-text { 
-  display: flex; 
-  flex-direction: column; 
-  line-height: 1.2; 
-  overflow: hidden; 
-  white-space: nowrap;
-}
-.brand-name { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; overflow: hidden; white-space: nowrap; }
+.brand-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .brand-ver { font-size: 10px; color: var(--text-muted); }
-
-.collapse-btn-fixed { 
-  position: absolute; 
-  right: -14px; 
-  top: 50%; 
-  transform: translateY(-50%); 
-  width: 20px; 
-  height: 20px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  background: var(--bg-card); 
-  border: 1px solid var(--border-color); 
-  border-radius: 50%; 
-  color: var(--text-muted); 
-  cursor: pointer; 
-  z-index: 11; 
-  font-size: 10px; 
-  transition: all 0.2s; 
+.collapse-btn { 
+  margin-left: auto;
+  width: 22px; height: 22px; 
+  display: flex; align-items: center; justify-content: center; 
+  background: transparent; border: 1px solid var(--border-color); border-radius: 5px; 
+  color: var(--text-muted); cursor: pointer; font-size: 10px; transition: all .15s; flex-shrink: 0;
 }
-.collapse-btn-fixed:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.collapse-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
-.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 2px 0; }
-
-/* 菜单容器过渡动画 */
-.sidebar-menu { 
-  background: transparent; 
-  border: none; 
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 菜单项过渡 */
-:deep(.el-menu-item), :deep(.el-sub-menu__title) {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0; }
+.sidebar-menu { background: transparent; border: none; }
 
 :deep(.el-sub-menu__title) { 
-  height: 38px; 
-  line-height: 38px; 
-  color: var(--text-secondary) !important; 
-  margin: 0 6px; 
-  border-radius: 6px; 
-  font-size: 14px; 
-  padding-left: 10px !important; 
+  height: 36px; line-height: 36px; 
+  color: var(--text-secondary) !important; margin: 1px 6px; 
+  border-radius: 6px; font-size: 13px; padding-left: 12px !important; 
 }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
-:deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
+:deep(.el-sub-menu.is-opened > .el-sub-menu__title) { color: var(--accent) !important; font-weight: 600; }
+
 :deep(.el-sub-menu .el-menu) { background: transparent !important; }
 :deep(.el-sub-menu .el-menu-item) { 
-  height: 34px; 
-  line-height: 34px; 
-  color: var(--text-secondary) !important; 
-  margin: 0 6px 0 14px; 
-  border-radius: 6px; 
-  font-size: 14px; 
-  padding-left: 14px !important; 
+  height: 32px; line-height: 32px; 
+  color: var(--text-secondary) !important; margin: 1px 6px 1px 20px; 
+  border-radius: 6px; font-size: 13px; padding-left: 10px !important; 
+  position: relative;
 }
 :deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
-:deep(.el-sub-menu .el-menu-item.is-active) { background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 500; }
+:deep(.el-sub-menu .el-menu-item.is-active) { 
+  background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 600; 
+}
+.menu-item-dot { 
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%; 
+  background: var(--border-color); margin-right: 6px; flex-shrink: 0; 
+}
+:deep(.el-sub-menu .el-menu-item.is-active .menu-item-dot) { background: var(--accent); }
 
-/* 折叠时隐藏子菜单 */
-.el-menu--collapse .el-sub-menu { display: none; }
-
+/* Top-level items (collapsed mode) */
 .el-menu-item { 
-  height: 36px; 
-  line-height: 36px; 
-  color: var(--text-secondary); 
-  margin: 0 6px; 
-  border-radius: 6px; 
-  padding-left: 10px !important; 
-  font-size: 14px; 
+  height: 36px; line-height: 36px; color: var(--text-secondary); 
+  margin: 1px 6px; border-radius: 6px; padding-left: 12px !important; font-size: 13px; 
 }
 .el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-.el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+.el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
 .el-menu-item.is-active .el-icon { color: var(--accent); }
 
-/* 折叠状态下的菜单项样式 */
 .el-menu--collapse .el-menu-item { 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 0 !important; 
-  margin: 2px auto; 
-  width: 42px; 
-  height: 42px; 
-  border-radius: 10px; 
+  display: flex; align-items: center; justify-content: center; 
+  padding: 0 !important; margin: 2px auto; width: 40px; height: 40px; border-radius: 8px; 
 }
-.el-menu--collapse .el-menu-item .el-icon { margin: 0; font-size: 20px; }
+.el-menu--collapse .el-menu-item .el-icon { margin: 0; font-size: 19px; }
 .el-menu--collapse .el-menu-item span { display: none; }
 
-.item-badge { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
-
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.15s ease; }
-.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateX(-6px); }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; }
 
 /* ===== MAIN ===== */
 .main-area { display: flex; flex-direction: column; overflow: hidden; }
