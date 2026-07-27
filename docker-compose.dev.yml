@@ -104,7 +104,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: docker
       NACOS_SERVER_ADDR: nacos:8848
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
       SPRING_REDIS_HOST: redis

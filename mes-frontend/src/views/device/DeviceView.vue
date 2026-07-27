@@ -245,7 +245,7 @@
 
       <el-empty v-if="filteredDevices.length === 0" description="暂无设备数据" />
 
-      <div v-if="filteredDevices.length > 0" class="device-pagination">
+      <div v-if="viewMode === 'list' && filteredDevices.length > 0" class="device-pagination">
         <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background @current-change="() => {}" />
       </div>
     </div>

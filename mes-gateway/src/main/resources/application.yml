@@ -49,7 +49,7 @@ spring:
           filters:
             - StripPrefix=1
         - id: mes-ai
-          uri: ${MES_AI_URI:http://localhost:8086}
+          uri: ${MES_AI_URI:http://localhost:8087}
           predicates:
             - Path=/api/ai/**
           filters:

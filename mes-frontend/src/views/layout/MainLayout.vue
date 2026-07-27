@@ -23,6 +23,7 @@
           :key="isCollapse ? 'collapsed' : 'expanded'"
           ref="menuRef"
           :default-active="activeMenu"
+          :default-openeds="openedMenus"
           router
           :collapse="isCollapse"
           :collapse-transition="false"

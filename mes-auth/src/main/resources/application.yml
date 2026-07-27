@@ -40,7 +40,7 @@ spring:
       map-underscore-to-camel-case: true
 
 jwt:
-  secret: ${JWT_SECRET:SmartFactoryMES2024SecretKeyForJWTTokenGeneration!}
+  secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
