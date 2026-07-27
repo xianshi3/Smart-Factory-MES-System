@@ -1,43 +1,58 @@
 <template>
   <el-container class="layout-root">
     <!-- ===== 左侧菜单 ===== -->
-    <el-aside :width="isCollapse ? '56px' : '200px'" class="sidebar">
-      <div class="sidebar-header" @click="toggleCollapse">
+    <el-aside :width="isCollapse ? '56px' : '210px'" class="sidebar">
+      <div class="sidebar-header">
         <div class="brand-icon">
-          <el-icon :size="20"><Cpu /></el-icon>
+          <el-icon :size="18"><Cpu /></el-icon>
         </div>
         <transition name="fade-slide">
           <div v-show="!isCollapse" class="brand-text">
             <span class="brand-name">Smart MES</span>
+            <span class="brand-ver">v1.0</span>
           </div>
         </transition>
+        <button class="collapse-trigger" @click="toggleCollapse" :title="isCollapse ? '展开' : '收起'">
+          <el-icon><ArrowLeft v-if="!isCollapse" /><ArrowRight v-else /></el-icon>
+        </button>
       </div>
 
-      <el-menu
-        :default-active="activeMenu"
-        router
-        :collapse="isCollapse"
-        :collapse-transition="true"
-        class="sidebar-menu"
-      >
-        <template v-for="group in menuGroups" :key="group.title">
-          <el-sub-menu v-if="!isCollapse" :index="group.title">
-            <template #title>
-              <el-icon><component :is="group.icon" /></el-icon>
-              <span>{{ group.title }}</span>
+      <div class="menu-scroll">
+        <el-menu
+          :default-active="activeMenu"
+          router
+          :collapse="isCollapse"
+          :collapse-transition="true"
+          class="sidebar-menu"
+        >
+          <template v-for="group in menuGroups" :key="group.title">
+            <el-sub-menu v-if="!isCollapse" :index="group.title">
+              <template #title>
+                <el-icon><component :is="group.icon" /></el-icon>
+                <span>{{ group.title }}</span>
+              </template>
+              <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+                <el-icon><component :is="item.icon" /></el-icon>
+                <span>{{ item.title }}</span>
+                <span class="item-badge" v-if="item.badge">{{ item.badge }}</span>
+              </el-menu-item>
+            </el-sub-menu>
+            <template v-else>
+              <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+                <el-icon><component :is="item.icon" /></el-icon>
+              </el-menu-item>
             </template>
-            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.title }}</span>
-            </el-menu-item>
-          </el-sub-menu>
-          <template v-else>
-            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-              <el-icon><component :is="item.icon" /></el-icon>
-            </el-menu-item>
           </template>
-        </template>
-      </el-menu>
+        </el-menu>
+      </div>
+
+      <div v-show="!isCollapse" class="sidebar-footer">
+        <div class="collapse-btn-simple" @click="toggleCollapse">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>收起菜单</span>
+        </div>
+      </div>
+    </el-aside>
     </el-aside>
 
     <!-- ===== 主区域 ===== -->
@@ -135,7 +150,7 @@ const isCollapse = ref(false)
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
 
-interface MI { path: string; title: string; icon: string }
+interface MI { path: string; title: string; icon: string; badge?: string }
 interface MG { title: string; icon: string; items: MI[] }
 
 const menuGroups = computed<MG[]>(() => [
@@ -223,37 +238,49 @@ const handleCommand = (cmd: string) => {
 </script>
 
 <style scoped>
-/* ===== 布局 ===== */
 .layout-root { width: 100%; height: 100vh; background: var(--bg-app); }
 
-/* ===== 侧边栏 ===== */
-.sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.25s ease; overflow: hidden; z-index: 10; }
-.sidebar-header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 16px; cursor: pointer; flex-shrink: 0; border-bottom: 1px solid var(--border-color); }
-.brand-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 8px; color: #fff; flex-shrink: 0; }
-.brand-text { overflow: hidden; }
-.brand-name { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: 1px; }
+/* ===== SIDEBAR ===== */
+.sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.25s cubic-bezier(0.4,0,0.2,1); overflow: hidden; z-index: 10; }
 
-.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.15s ease; }
-.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateX(-8px); }
+.sidebar-header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); position: relative; }
+.brand-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 7px; color: #fff; flex-shrink: 0; }
+.brand-text { display: flex; flex-direction: column; gap: 0; line-height: 1; overflow: hidden; }
+.brand-name { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
+.brand-ver { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.collapse-trigger { position: absolute; right: 6px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border: none; border-radius: 6px; color: var(--text-muted); cursor: pointer; font-size: 12px; opacity: 0; transition: opacity 0.2s; }
+.sidebar-header:hover .collapse-trigger { opacity: 1; }
+.collapse-trigger:hover { background: var(--accent-light); color: var(--accent); }
 
-.sidebar-menu { flex: 1; background: transparent; border: none; padding: 4px 0; overflow-y: auto; }
+.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0; }
+
+.sidebar-menu { background: transparent; border: none; }
 .sidebar-menu:not(.el-menu--collapse) { width: 100%; }
-:deep(.el-sub-menu__title) { height: 38px; line-height: 38px; color: var(--text-secondary) !important; margin: 0 8px; border-radius: 6px; font-size: 13px; }
+:deep(.el-sub-menu__title) { height: 38px; line-height: 38px; color: var(--text-secondary) !important; margin: 1px 8px; border-radius: 6px; font-size: 13px; padding-left: 12px !important; }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
+:deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
 :deep(.el-sub-menu .el-menu) { background: transparent !important; }
-:deep(.el-sub-menu .el-menu-item) { height: 34px; line-height: 34px; color: var(--text-secondary) !important; margin: 1px 8px 1px 16px; border-radius: 6px; font-size: 13px; }
+:deep(.el-sub-menu .el-menu-item) { height: 34px; line-height: 34px; color: var(--text-secondary) !important; margin: 1px 8px 1px 16px; border-radius: 6px; font-size: 13px; padding-left: 16px !important; }
 :deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu .el-menu-item.is-active) { background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 500; }
 .el-menu--collapse .el-sub-menu { display: none; }
-.el-menu-item { height: 38px; line-height: 38px; color: var(--text-secondary); margin: 2px 8px; border-radius: 6px; }
+
+.el-menu-item { height: 38px; line-height: 38px; color: var(--text-secondary); margin: 1px 8px; border-radius: 6px; padding-left: 12px !important; }
 .el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-.el-menu-item.is-active { background: linear-gradient(90deg, var(--accent-light), transparent); color: var(--accent); font-weight: 500; }
+.el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
 .el-menu-item.is-active .el-icon { color: var(--accent); }
 
-/* ===== 主区域 ===== */
-.main-area { display: flex; flex-direction: column; overflow: hidden; }
+.item-badge { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
 
-/* ===== 顶栏 ===== */
+.sidebar-footer { flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 4px 8px; }
+.collapse-btn-simple { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px; color: var(--text-muted); font-size: 12px; cursor: pointer; }
+.collapse-btn-simple:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.15s ease; }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateX(-6px); }
+
+/* ===== MAIN ===== */
+.main-area { display: flex; flex-direction: column; overflow: hidden; }
 .topbar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--bg-header); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .topbar-left { display: flex; align-items: center; gap: 6px; }
 .breadcrumb-parent { font-size: 13px; color: var(--text-muted); }
@@ -267,24 +294,21 @@ const handleCommand = (cmd: string) => {
 .user-avatar-small { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--accent-light); border-radius: 50%; color: var(--accent); }
 .user-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 
-/* ===== 标签栏 ===== */
 .tabbar { display: flex; align-items: center; height: 32px; padding: 0 8px; background: var(--bg-app); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .tab-scroll { flex: 1; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; }
 .tab-scroll::-webkit-scrollbar { display: none; }
-.tab-item { display: flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 12px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; white-space: nowrap; transition: all 0.12s; user-select: none; border: 1px solid transparent; }
+.tab-item { display: flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 12px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; white-space: nowrap; user-select: none; border: 1px solid transparent; }
 .tab-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .tab-item.active { background: var(--bg-card); color: var(--accent); font-weight: 500; border-color: var(--border-color); }
-.tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.tab-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-color); flex-shrink: 0; }
 .tab-dot.on { background: var(--accent); }
-.tab-close { display: flex; align-items: center; font-size: 10px; opacity: 0; border-radius: 3px; padding: 1px; margin-left: 2px; }
-.tab-item:hover .tab-close { opacity: 0.5; }
+.tab-close { display: flex; align-items: center; font-size: 10px; opacity: 0; border-radius: 3px; padding: 1px; }
+.tab-item:hover .tab-close { opacity: 0.4; }
 .tab-item .tab-close:hover { opacity: 1; background: var(--danger-light); color: var(--danger); }
 .tab-dropdown { flex-shrink: 0; padding-left: 6px; margin-left: 4px; border-left: 1px solid var(--border-light); }
 
-/* ===== 内容区 ===== */
 .content-area { background: var(--bg-app); padding: 20px; overflow-y: auto; }
-
-.page-fade-enter-active, .page-fade-leave-active { transition: opacity 0.12s ease; }
+.page-fade-enter-active, .page-fade-leave-active { transition: opacity 0.1s ease; }
 .page-fade-enter-from, .page-fade-leave-to { opacity: 0; }
 </style>
 
