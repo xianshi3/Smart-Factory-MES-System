@@ -3,8 +3,7 @@
     <!-- ===== TOP BAR ===== -->
     <header class="dt-topbar">
       <div class="dt-topbar-left">
-        <span class="dt-logo-icon">◆</span>
-        <span class="dt-logo-text">MES<small>· 设备监控中心</small></span>
+        <span class="dt-logo">设备监控</span>
       </div>
       <div class="dt-topbar-stats" v-if="viewMode === 'list'">
         <span v-for="s in stats" :key="s.label" class="dt-stats-badge" :class="s.theme">
@@ -544,14 +543,12 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 
 <style scoped>
 /* ===== ROOT ===== */
-.dt-page { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-app); color: var(--text-primary); font-size: 13px; }
+.dt-page { display: flex; flex-direction: column; height: 100%; margin: -20px; overflow: hidden; background: var(--bg-app); color: var(--text-primary); font-size: 13px; }
 
 /* ===== TOP BAR ===== */
-.dt-topbar { display: flex; align-items: center; height: 48px; padding: 0 16px; background: linear-gradient(180deg, var(--bg-sidebar), var(--bg-app)); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
-.dt-topbar-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dt-logo-icon { font-size: 20px; color: var(--accent); }
-.dt-logo-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; }
-.dt-logo-text small { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 2px; }
+.dt-topbar { display: flex; align-items: center; height: 40px; padding: 0 16px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
+.dt-topbar-left { flex-shrink: 0; }
+.dt-logo { font-size: 14px; font-weight: 700; color: var(--accent); }
 .dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 2px; }
 .dt-stats-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; background: var(--bg-hover); color: var(--text-secondary); }
 .dt-stats-badge.primary .dt-badge-num { color: var(--accent); }
