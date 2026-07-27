@@ -1,114 +1,125 @@
 ﻿<template>
   <div class="device-page">
-    <div class="dt-stats">
+    <!-- Top Stats Bar -->
+    <div class="dt-bar">
       <div class="dt-stat" v-for="s in stats" :key="s.label">
         <div class="dt-stat-icon" :class="s.theme"><el-icon><component :is="s.icon" /></el-icon></div>
-        <div class="dt-stat-body">
-          <span class="dt-stat-val">{{ s.value }}</span>
-          <span class="dt-stat-lbl">{{ s.label }}</span>
-        </div>
+        <div class="dt-stat-body"><span class="dt-stat-val">{{ s.value }}</span><span class="dt-stat-lbl">{{ s.label }}</span></div>
       </div>
-      <div class="dt-stat-actions">
+      <div class="dt-bar-actions">
         <el-button-group>
           <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'">列表</el-button>
           <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'">3D</el-button>
         </el-button-group>
-        <el-button size="small" @click="refresh"><el-icon><Refresh /></el-icon></el-button>
+        <el-tooltip content="刷新" placement="bottom"><el-button size="small" @click="refresh"><el-icon><Refresh /></el-icon></el-button></el-tooltip>
       </div>
     </div>
+
+    <!-- 3D Scene -->
     <div class="dt-scene" v-if="viewMode === '3d'">
       <DigitalTwinScene :devices="deviceList" @select="handleDeviceSelect" />
     </div>
-    <div v-if="viewMode === 'list'" class="dt-grid-header">
-      <div class="section-actions">
-        <el-input v-model="searchKeyword" placeholder="搜索设备..." clearable class="search-input" @clear="refresh"><template #prefix><el-icon><Search /></el-icon></template></el-input>
-        <div class="status-filter">
-          <div class="filter-btn" :class="{ active: statusFilter === '' }" @click="statusFilter = ''">全部</div>
-          <div class="filter-btn running" :class="{ active: statusFilter === 'running' }" @click="statusFilter = 'running'"><span class="dot"></span>运行</div>
-          <div class="filter-btn idle" :class="{ active: statusFilter === 'idle' }" @click="statusFilter = 'idle'"><span class="dot"></span>空闲</div>
-          <div class="filter-btn fault" :class="{ active: statusFilter === 'fault' }" @click="statusFilter = 'fault'"><span class="dot"></span>故障</div>
+
+    <!-- Toolbar -->
+    <div v-if="viewMode === 'list'" class="dt-toolbar">
+      <div class="dt-toolbar-left">
+        <el-input v-model="searchKeyword" placeholder="搜索设备名称或编码..." clearable class="dt-search" @clear="refresh">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <div class="dt-filter">
+          <div class="dt-filter-item" :class="{ on: statusFilter === '' }" @click="statusFilter = ''">全部</div>
+          <div class="dt-filter-item" :class="{ on: statusFilter === 'running' }" @click="statusFilter = 'running'"><span class="d dot-green"></span>运行</div>
+          <div class="dt-filter-item" :class="{ on: statusFilter === 'idle' }" @click="statusFilter = 'idle'"><span class="d dot-blue"></span>空闲</div>
+          <div class="dt-filter-item" :class="{ on: statusFilter === 'fault' }" @click="statusFilter = 'fault'"><span class="d dot-red"></span>故障</div>
         </div>
       </div>
+      <span class="dt-total">{{ filteredDevices.length }} 台设备</span>
     </div>
+
+    <!-- Device Grid -->
     <div v-if="viewMode === 'list'" class="dt-grid">
-      <div v-for="(d, i) in filteredDevices" :key="d.id || i" class="dt-card" :class="'s-' + d.status" @click="handleDetail(d)">
+      <div v-for="d in filteredDevices" :key="d.id" class="dt-card" :class="d.status" @click="handleDetail(d)">
         <div class="dt-card-top">
-          <div class="dt-card-icon" :class="d.status"><el-icon size="18"><Monitor /></el-icon></div>
-          <div class="dt-card-meta">
-            <span class="dt-card-name">{{ d.name }}</span>
-            <span class="dt-card-code">{{ d.code }}</span>
+          <div class="dt-card-icon" :class="d.status"><el-icon><Monitor /></el-icon></div>
+          <div class="dt-card-info">
+            <div class="dt-card-name">{{ d.name }}</div>
+            <div class="dt-card-code">{{ d.code }}</div>
           </div>
-          <div class="dt-card-badge" :class="d.status">{{ getStatusText(d.status) }}</div>
+          <div class="dt-card-tag" :class="d.status">{{ getStatusText(d.status) }}</div>
         </div>
         <div class="dt-card-body">
-          <div class="dt-metric">
-            <span class="dt-m-lbl">利用率</span>
-            <div class="dt-progress"><div class="dt-progress-fill" :style="{ width: (parseInt(d.utilization)||0) + '%' }"></div></div>
-            <span class="dt-m-val">{{ d.utilization }}</span>
+          <div class="dt-m">
+            <span class="dt-m-l">利用率</span>
+            <div class="dt-m-bar"><div class="dt-m-fill" :style="{ width: (parseInt(d.utilization)||0) + '%' }"></div></div>
+            <span class="dt-m-v">{{ d.utilization }}</span>
           </div>
-          <div class="dt-metric-row">
-            <span><span class="dt-m-lbl">温度</span> <span :class="{'t-hot': d.temperature > 60}">{{ d.temperature }}C</span></span>
-            <span><span class="dt-m-lbl">功率</span> {{ d.power }}kW</span>
-            <span><span class="dt-m-lbl">运行</span> {{ d.runtime }}</span>
+          <div class="dt-m-row">
+            <span><span class="dt-m-l">温度</span> <span :class="d.temperature > 60 ? 't-red' : ''">{{ d.temperature }}°C</span></span>
+            <span><span class="dt-m-l">功率</span> {{ d.power }}kW</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <div v-if="viewMode === 'list' && filteredDevices.length > 12" class="dt-page">
+      <el-pagination small :total="filteredDevices.length" :page-size="12" layout="prev, pager, next" background />
+    </div>
+
+    <!-- Bottom: Charts + Alarms -->
     <div class="dt-bottom">
-      <div class="dt-chart">
-        <div class="dt-chart-hdr"><el-icon><TrendCharts /></el-icon> 设备利用率</div>
-        <v-chart :option="utilizationOption" autoresize style="height:220px" />
+      <div class="dt-chart-box">
+        <div class="dt-box-hdr"><el-icon><TrendCharts /></el-icon> 利用率分布</div>
+        <v-chart :option="utilizationOption" autoresize style="height:200px" />
       </div>
-      <div class="dt-chart">
-        <div class="dt-chart-hdr"><el-icon><PieChart /></el-icon> 状态分布</div>
-        <v-chart :option="statusOption" autoresize style="height:220px" />
+      <div class="dt-chart-box">
+        <div class="dt-box-hdr"><el-icon><PieChart /></el-icon> 状态分布</div>
+        <v-chart :option="statusOption" autoresize style="height:200px" />
       </div>
-      <div class="dt-alarm">
-        <div class="dt-alarm-hdr"><el-icon><Warning /></el-icon> 实时告警 <el-tag type="danger" size="small">{{ alarmList.length }}</el-tag></div>
-        <div class="dt-alarm-list" v-if="alarmList.length">
-          <div class="dt-alarm-item" v-for="a in alarmList.slice(0,4)" :key="a.id">
-            <div class="dt-alarm-dot" :class="getAlarmClass(a.level)"></div>
-            <div class="dt-alarm-body">
-              <span>{{ a.message || "告警" }}</span>
-              <span class="dt-alarm-time">{{ a.deviceName || "" }} {{ a.time ? new Date(a.time).toLocaleTimeString() : "" }}</span>
-            </div>
+      <div class="dt-alarm-box">
+        <div class="dt-box-hdr"><el-icon><Warning /></el-icon> 告警 <el-tag type="danger" size="small">{{ alarmList.length }}</el-tag></div>
+        <div v-if="alarmList.length" class="dt-alist">
+          <div v-for="a in alarmList.slice(0,4)" :key="a.id" class="dt-aitem">
+            <span class="dt-adot" :class="getAlarmClass(a.level)"></span>
+            <div class="dt-abody"><span>{{ a.message || '告警' }}</span><span class="dt-atime">{{ a.deviceName || '' }} {{ a.time ? new Date(a.time).toLocaleTimeString() : '' }}</span></div>
             <el-button text type="primary" size="small" @click.stop="handleAck(a)">确认</el-button>
           </div>
         </div>
-        <el-empty v-else description="无告警" :image-size="40" />
+        <el-empty v-else description="无告警" :image-size="36" />
       </div>
     </div>
-    <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog" destroy-on-close>
-      <div v-if="detailData" class="detail-body">
-        <div class="detail-hdr">
-          <div class="detail-icon" :class="detailData.status"><el-icon size="24"><Monitor /></el-icon></div>
-          <div><div class="detail-name">{{ detailData.name }}</div><div class="detail-code">{{ detailData.code }}</div></div>
+
+    <!-- Detail Dialog -->
+    <el-dialog v-model="detailVisible" title="设备详情" width="640px" destroy-on-close>
+      <div v-if="detailData" class="dt-detail">
+        <div class="dt-dhdr">
+          <div class="dt-dicon" :class="detailData.status"><el-icon size="22"><Monitor /></el-icon></div>
+          <div><div class="dt-dname">{{ detailData.name }}</div><div class="dt-dcode">{{ detailData.code }}</div></div>
         </div>
         <el-descriptions :column="3" border size="small">
           <el-descriptions-item label="状态"><el-tag :type="detailData.status === 'running' ? 'success' : detailData.status === 'fault' ? 'danger' : 'info'" size="small">{{ getStatusText(detailData.status) }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="利用率">{{ detailData.utilization }}</el-descriptions-item>
-          <el-descriptions-item label="温度">{{ detailData.temperature }}C</el-descriptions-item>
+          <el-descriptions-item label="温度">{{ detailData.temperature }}°C</el-descriptions-item>
           <el-descriptions-item label="功率">{{ detailData.power }}kW</el-descriptions-item>
-          <el-descriptions-item label="运行时长">{{ detailData.runtime }}</el-descriptions-item>
+          <el-descriptions-item label="运行">{{ detailData.runtime }}</el-descriptions-item>
         </el-descriptions>
-        <div class="detail-actions">
+        <div class="dt-dactions">
           <el-button :type="detailData.status === 'running' ? 'warning' : 'success'" size="small" @click="toggleDevice(detailData)">{{ detailData.status === 'running' ? '停止' : '启动' }}</el-button>
           <el-button size="small" @click="openPredictDialog(detailData)">AI 分析</el-button>
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="aiAnalysisVisible" title="AI 智能分析" width="600px" class="ai-dialog">
-      <div class="ai-actions">
-        <el-button size="default" @click="runAIAnalysis('fault')"><el-icon><Cpu /></el-icon>故障预测</el-button>
-        <el-button size="default" @click="runAIAnalysis('capacity')"><el-icon><Lightning /></el-icon>产能预测</el-button>
-        <el-button size="default" @click="runAIAnalysis('spc')"><el-icon><TrendCharts /></el-icon>SPC 分析</el-button>
-        <el-button size="default" @click="runAIAnalysis('energy')"><el-icon><Histogram /></el-icon>能耗优化</el-button>
-        <el-button size="default" @click="runAIAnalysis('chat')"><el-icon><ChatLineRound /></el-icon>智能对话</el-button>
+
+    <!-- AI Dialog -->
+    <el-dialog v-model="aiAnalysisVisible" title="AI 智能分析" width="540px">
+      <div class="dt-ai-actions">
+        <el-button @click="runAIAnalysis('fault')"><el-icon><Cpu /></el-icon>故障预测</el-button>
+        <el-button @click="runAIAnalysis('capacity')"><el-icon><Lightning /></el-icon>产能预测</el-button>
+        <el-button @click="runAIAnalysis('spc')"><el-icon><TrendCharts /></el-icon>SPC 分析</el-button>
+        <el-button @click="runAIAnalysis('energy')"><el-icon><Histogram /></el-icon>能耗优化</el-button>
+        <el-button @click="runAIAnalysis('chat')"><el-icon><ChatLineRound /></el-icon>智能对话</el-button>
       </div>
-      <div v-if="aiResult" class="ai-result">
-        <h4>分析结果</h4>
-        <p>{{ aiResult }}</p>
-      </div>
+      <div v-if="aiResult" class="dt-ai-result"><h4>结果</h4><p>{{ aiResult }}</p></div>
     </el-dialog>
   </div>
 </template>
@@ -542,77 +553,99 @@ watch(() => themeStore.isDark, () => {
 </script>
 <style scoped>
 .device-page { max-width: 1440px; margin: 0 auto; }
-.dt-stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.dt-stat { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 160px; }
-.dt-stat-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+
+/* Stats Bar */
+.dt-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.dt-stat { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 130px; }
+.dt-stat-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 18px; }
 .dt-stat-icon.primary { background: var(--accent-light); color: var(--accent); }
 .dt-stat-icon.success { background: var(--success-light); color: var(--success); }
 .dt-stat-icon.info { background: var(--info-light); color: var(--info); }
 .dt-stat-icon.danger { background: var(--danger-light); color: var(--danger); }
 .dt-stat-body { display: flex; flex-direction: column; }
-.dt-stat-val { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.dt-stat-val { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
 .dt-stat-lbl { font-size: 12px; color: var(--text-muted); }
-.dt-stat-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dt-scene { width: 100%; height: 520px; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); }
-.dt-grid-header { margin-bottom: 12px; }
-.section-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.search-input { width: 200px; }
-.status-filter { display: flex; gap: 6px; }
-.filter-btn { display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: var(--bg-hover); border-radius: 16px; font-size: 12px; color: var(--text-secondary); cursor: pointer; border: 1px solid transparent; }
-.filter-btn:hover { border-color: var(--border-color); }
-.filter-btn.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
-.filter-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
-.filter-btn.running .dot { background: var(--success); }
-.filter-btn.idle .dot { background: var(--info); }
-.filter-btn.fault .dot { background: var(--danger); }
-.dt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.dt-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; }
-.dt-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
-.dt-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.dt-card-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--bg-hover); }
+.dt-bar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* 3D Scene */
+.dt-scene { width: 100%; height: 500px; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); }
+
+/* Toolbar */
+.dt-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dt-toolbar-left { display: flex; align-items: center; gap: 12px; }
+.dt-search { width: 220px; }
+.dt-filter { display: flex; gap: 4px; background: var(--bg-hover); border-radius: 8px; padding: 3px; }
+.dt-filter-item { display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+.dt-filter-item:hover { background: var(--bg-card); }
+.dt-filter-item.on { background: var(--bg-card); color: var(--text-primary); font-weight: 500; }
+.dt-filter-item .d { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: var(--success); }
+.dot-blue { background: var(--info); }
+.dot-red { background: var(--danger); }
+.dt-total { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+/* Device Grid */
+.dt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.dt-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s; }
+.dt-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.05); transform: translateY(-1px); }
+.dt-card.running { border-left: 3px solid var(--success); }
+.dt-card.idle { border-left: 3px solid var(--info); }
+.dt-card.fault { border-left: 3px solid var(--danger); }
+.dt-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dt-card-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 16px; flex-shrink: 0; }
 .dt-card-icon.running { background: var(--success-light); color: var(--success); }
 .dt-card-icon.idle { background: var(--info-light); color: var(--info); }
 .dt-card-icon.fault { background: var(--danger-light); color: var(--danger); }
-.dt-card-meta { flex: 1; display: flex; flex-direction: column; }
-.dt-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.dt-card-code { font-size: 11px; color: var(--text-muted); font-family: monospace; }
-.dt-card-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-.dt-card-badge.running { background: var(--success-light); color: var(--success); }
-.dt-card-badge.idle { background: var(--info-light); color: var(--info); }
-.dt-card-badge.fault { background: var(--danger-light); color: var(--danger); }
-.dt-card-body .dt-metric { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.dt-m-lbl { font-size: 12px; color: var(--text-muted); min-width: 40px; }
-.dt-progress { flex: 1; height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; }
-.dt-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
-.dt-m-val { font-size: 12px; font-weight: 600; color: var(--text-secondary); min-width: 35px; text-align: right; }
-.dt-metric-row { display: flex; gap: 16px; font-size: 12px; color: var(--text-primary); }
-.dt-metric-row .t-hot { color: var(--danger); font-weight: 600; }
+.dt-card-info { flex: 1; min-width: 0; }
+.dt-card-name { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-card-code { font-size: 11px; color: var(--text-muted); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-card-tag { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 8px; flex-shrink: 0; }
+.dt-card-tag.running { background: var(--success-light); color: var(--success); }
+.dt-card-tag.idle { background: var(--info-light); color: var(--info); }
+.dt-card-tag.fault { background: var(--danger-light); color: var(--danger); }
+.dt-card-body .dt-m { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.dt-m-l { font-size: 11px; color: var(--text-muted); min-width: 35px; flex-shrink: 0; }
+.dt-m-bar { flex: 1; height: 5px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; }
+.dt-m-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--success)); border-radius: 3px; transition: width 0.4s; }
+.dt-m-v { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 32px; text-align: right; }
+.dt-m-row { display: flex; gap: 12px; font-size: 12px; color: var(--text-primary); }
+.dt-m-row .t-red { color: var(--danger); font-weight: 600; }
+
+/* Pagination */
+.dt-page { display: flex; justify-content: center; margin-bottom: 16px; }
+
+/* Bottom */
 .dt-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.dt-chart, .dt-alarm { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px; }
-.dt-chart-hdr, .dt-alarm-hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-.dt-chart-hdr .el-icon { color: var(--accent); }
-.dt-alarm-hdr .el-icon { color: var(--danger); }
-.dt-alarm-list { display: flex; flex-direction: column; gap: 6px; }
-.dt-alarm-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--bg-hover); font-size: 12px; }
-.dt-alarm-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.dt-alarm-dot.danger { background: var(--danger); }
-.dt-alarm-dot.warning { background: var(--warning); }
-.dt-alarm-dot.info { background: var(--info); }
-.dt-alarm-body { flex: 1; display: flex; flex-direction: column; }
-.dt-alarm-time { font-size: 11px; color: var(--text-muted); }
-.detail-body { display: flex; flex-direction: column; gap: 16px; }
-.detail-hdr { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-.detail-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
-.detail-icon.running { background: var(--success-light); color: var(--success); }
-.detail-icon.idle { background: var(--info-light); color: var(--info); }
-.detail-icon.fault { background: var(--danger-light); color: var(--danger); }
-.detail-name { font-size: 18px; font-weight: 600; color: var(--text-primary); }
-.detail-code { font-size: 13px; color: var(--text-muted); }
-.detail-actions { display: flex; gap: 8px; margin-top: 8px; }
-.ai-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.ai-result { background: var(--bg-hover); border-radius: 8px; padding: 14px; }
-.ai-result h4 { margin: 0 0 8px; color: var(--text-primary); }
-.ai-result p { margin: 0; color: var(--text-secondary); font-size: 14px; white-space: pre-wrap; }
-@media (max-width: 1200px) { .dt-bottom { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .dt-stats { flex-direction: column; } .dt-grid { grid-template-columns: 1fr; } }
+.dt-chart-box, .dt-alarm-box { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; }
+.dt-box-hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+.dt-box-hdr .el-icon { color: var(--accent); }
+.dt-alarm-box .dt-box-hdr .el-icon { color: var(--danger); }
+.dt-alist { display: flex; flex-direction: column; gap: 4px; }
+.dt-aitem { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; background: var(--bg-hover); font-size: 12px; }
+.dt-adot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.dt-adot.danger { background: var(--danger); }
+.dt-adot.warning { background: var(--warning); }
+.dt-adot.info { background: var(--info); }
+.dt-abody { flex: 1; display: flex; flex-direction: column; }
+.dt-atime { font-size: 11px; color: var(--text-muted); }
+
+/* Detail Dialog */
+.dt-detail { display: flex; flex-direction: column; gap: 14px; }
+.dt-dhdr { display: flex; align-items: center; gap: 12px; }
+.dt-dicon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.dt-dicon.running { background: var(--success-light); color: var(--success); }
+.dt-dicon.idle { background: var(--info-light); color: var(--info); }
+.dt-dicon.fault { background: var(--danger-light); color: var(--danger); }
+.dt-dname { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.dt-dcode { font-size: 12px; color: var(--text-muted); }
+.dt-dactions { display: flex; gap: 8px; }
+
+/* AI Dialog */
+.dt-ai-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.dt-ai-result { background: var(--bg-hover); border-radius: 8px; padding: 12px; }
+.dt-ai-result h4 { margin: 0 0 6px; font-size: 14px; color: var(--text-primary); }
+.dt-ai-result p { margin: 0; color: var(--text-secondary); font-size: 13px; white-space: pre-wrap; }
+
+@media (max-width: 1024px) { .dt-bottom { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .dt-bar { flex-direction: column; } .dt-grid { grid-template-columns: 1fr; } }
 </style>
