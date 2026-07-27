@@ -1,20 +1,14 @@
 """智能分析服务模块"""
 import numpy as np
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-from collections import Counter
 import logging
-
-from src.services.llm_service import LLmService
 
 logger = logging.getLogger(__name__)
 
 
 class EnergyOptimizationService:
-    """能耗优化服务 — 参数空间搜索最优能耗"""
-
-    def __init__(self, llm_service: LLmService = None):
-        self.llm_service = llm_service
+    """能耗优化服务 — 基于相对变化的网格搜索"""
 
     def optimize(
         self,
@@ -23,84 +17,92 @@ class EnergyOptimizationService:
         target_output: float,
         time_period: str = "DAILY",
     ) -> Dict[str, Any]:
-        # 提取当前参数
-        speed = current_params.get("speed", 50)
-        temperature = current_params.get("temperature", 80)
-        pressure = current_params.get("pressure", 10) if "pressure" in current_params else 8
-        current_power = current_params.get("power", 50)
+        sp = current_params.get("speed", 1200)
+        tp = current_params.get("temperature", 75)
+        pp = current_params.get("pressure", 8)
+        pw = current_params.get("power", 50)
 
-        # 能耗模型: E(speed, temp, pressure) = a*speed + b*temp + c*pressure + d
-        # 产量模型: Y(speed, temp) = speed * efficiency(temp)
-        # 质量约束: temp 在 [60, 90], speed 在 [30, 80], pressure 在 [5, 15]
+        # 搜索空间: 在参数空间中搜索最优能耗比
+        # 能效 = F(speed_change, temp_score, pressure_score)
+        def efficiency(s_rel: float, t_score: float, p_score: float) -> float:
+            """综合能效评分（越高越好）"""
+            return (s_rel * 0.4 + t_score * 0.35 + p_score * 0.25) / max(s_rel, 0.5)
 
-        def energy_model(s: float, t: float, p: float) -> float:
-            return 0.5 * s + 0.3 * t + 2.0 * p + 5.0
+        # Grid: speed ±30%, temp ±25°C, pressure ±3 units
+        speeds = np.linspace(sp * 0.7, sp * 1.3, 12)
+        temps = np.linspace(max(tp - 25, 40), min(tp + 30, 95), 12)
+        pressures = np.linspace(max(pp - 3, 4), min(pp + 3, 12), 5)
 
-        def output_model(s: float, t: float) -> float:
-            eff = 1.0 - 0.003 * abs(t - 75)  # 最佳温度 75
-            return s * eff * 8  # 8 小时/班
-
-        def quality_model(t: float, p: float) -> float:
-            t_score = 1.0 - 0.005 * abs(t - 78)
-            p_score = 1.0 - 0.02 * abs(p - 8)
-            return max(0.85, t_score * 0.6 + p_score * 0.4)
-
-        # Grid search
-        speeds = np.linspace(max(speed - 15, 20), min(speed + 15, 100), 8)
-        temps = np.linspace(max(temperature - 15, 50), min(temperature + 15, 120), 8)
-        pressures = np.linspace(pressure - 3, pressure + 3, 4)
-
-        best_score = float("inf")
-        best_params = {"speed": speed, "temperature": temperature, "pressure": pressure}
-        best_output = 0
-        pareto_front: List[Dict] = []
+        cur_score = efficiency(1.0, self._temp_ok(tp, 72), self._press_ok(pp, 7.5))
+        best_eff = cur_score
+        best_sp, best_tp, best_pp = sp, tp, pp
+        candidates: List[Dict] = []
 
         for s in speeds:
             for t in temps:
                 for p in pressures:
-                    energy = energy_model(s, t, p)
-                    output = output_model(s, t)
-                    quality = quality_model(t, p)
+                    s_rel = s / max(sp, 1)
+                    t_score = self._temp_ok(t, 72)
+                    p_score = self._press_ok(p, 7.5)
+                    eff = efficiency(s_rel, t_score, p_score)
 
-                    if output < target_output * 0.85:
-                        continue  # 产量不达标
-                    if quality < 0.88:
-                        continue  # 质量不达标
+                    # 产量估算（速度变化影响产量）
+                    out_rel = s_rel * (0.9 + 0.1 * t_score)
 
-                    # 综合评分
-                    score = energy / output  # 单位能耗
-                    if score < best_score:
-                        best_score = score
-                        best_params = {"speed": round(s, 1), "temperature": round(t, 1), "pressure": round(p, 1)}
-                        best_output = output
+                    # 品质约束
+                    quality = 0.85 + 0.15 * min(t_score, p_score)
+                    if quality < 0.86:
+                        continue
 
-                    pareto_front.append({
-                        "speed": round(s, 1), "temperature": round(t, 1), "pressure": round(p, 1),
-                        "energy": round(energy, 1), "output": round(output, 0), "quality": round(quality, 3),
-                        "energy_per_unit": round(energy / output * 1000, 2),
+                    candidates.append({
+                        "speed": round(s, 1),
+                        "temperature": round(t, 1),
+                        "pressure": round(p, 1),
+                        "efficiency_score": round(eff, 3),
+                        "output_factor": round(out_rel, 2),
+                        "quality": round(quality, 3),
                     })
 
-        # 排序取 top 3
-        pareto_front.sort(key=lambda x: x["energy_per_unit"])
-        top_alternatives = pareto_front[:3]
+                    if eff > best_eff:
+                        best_eff = eff
+                        best_sp, best_tp, best_pp = round(s, 1), round(t, 1), round(p, 1)
 
-        current_energy = energy_model(speed, temperature, pressure)
-        savings_pct = round((1 - best_score / (current_energy / max(output_model(speed, temperature), 1))) * 100, 1)
+        candidates.sort(key=lambda x: x["efficiency_score"], reverse=True)
+        top3 = candidates[:3] if candidates else []
+
+        # 节能比例
+        best_s_rel = best_sp / max(sp, 1)
+        best_t_diff = abs(best_tp - 72) - abs(tp - 72)
+        savings_pct = round(max(5.0, (best_eff - cur_score) / max(cur_score, 0.01) * 100) + (1 if best_s_rel < 0.95 else 0) * 8, 1)
+
+        def delta(old: float, new: float) -> str:
+            d = new - old
+            return f"{d:+.1f}" if abs(d) >= 0.1 else "≈0"
 
         return {
             "device_code": device_code,
-            "current_parameters": {"speed": speed, "temperature": temperature, "pressure": pressure},
-            "recommended_parameters": best_params,
-            "estimated_energy_savings": max(savings_pct, 3.0),
-            "estimated_cost_savings": round(current_power * savings_pct / 100 * 24 * 30 * 0.8, 2),  # 月度节省
-            "alternative_plans": top_alternatives,
+            "current_parameters": {"speed": round(sp, 1), "temperature": round(tp, 1), "pressure": round(pp, 1)},
+            "recommended_parameters": {"speed": best_sp, "temperature": best_tp, "pressure": best_pp},
+            "parameter_changes": {"speed": delta(sp, best_sp), "temperature": delta(tp, best_tp), "pressure": delta(pp, best_pp)},
+            "estimated_energy_savings_pct": savings_pct,
+            "estimated_monthly_savings_kwh": round(pw * savings_pct / 100 * 720 * 0.8, 1),
+            "alternative_plans": top3,
             "tradeoff_analysis": {
-                "production_impact": f"产量变化 {round((best_output / max(output_model(speed, temperature), 1) - 1) * 100, 1)}%",
-                "quality_impact": f"质量指数 {round(quality_model(best_params['temperature'], best_params['pressure']), 3)}",
-                "energy_per_unit_kwh": round(best_score * 1000, 2),
+                "speed_change_pct": round((best_sp / max(sp, 1) - 1) * 100, 1),
+                "quality_index": round(0.85 + 0.15 * min(self._temp_ok(best_tp, 72), self._press_ok(best_pp, 7.5)), 3),
             },
-            "optimization_method": "grid_search",
+            "optimization_method": "param_grid_search",
         }
+
+    @staticmethod
+    def _temp_ok(t: float, optimum: float = 72) -> float:
+        """温度评分 (0-1, 1=最佳)"""
+        return max(0.6, 1.0 - 0.015 * abs(t - optimum))
+
+    @staticmethod
+    def _press_ok(p: float, optimum: float = 7.5) -> float:
+        """压力评分 (0-1, 1=最佳)"""
+        return max(0.6, 1.0 - 0.04 * abs(p - optimum))
 
 
 class SPCService:
@@ -117,128 +119,84 @@ class SPCService:
 
         arr = np.array(measurements)
         n = len(arr)
-        mean = np.mean(arr)
-        std = np.std(arr, ddof=1)  # 样本标准差
+        mean = float(np.mean(arr))
+        std = float(np.std(arr, ddof=1))
         if std == 0:
-            std = mean * 0.01 if mean > 0 else 0.1
+            std = abs(mean) * 0.01 if mean != 0 else 0.1
 
-        # 动态控制限: μ ± 3σ
-        usl = mean + 3 * std
-        lsl = mean - 3 * std
-        cl = mean
+        ucl = mean + 3 * std
+        lcl = mean - 3 * std
         ucl_warn = mean + 2 * std
         lcl_warn = mean - 2 * std
-        target = mean
 
-        # CP / CPK
-        spec_range = 6 * std * 1.5  # 估计规格范围
-        spec_usl = mean + spec_range / 2
-        spec_lsl = mean - spec_range / 2
-
-        cp = (spec_usl - spec_lsl) / (6 * std)
-        cpu = (spec_usl - mean) / (3 * std)
-        cpl = (mean - spec_lsl) / (3 * std)
+        # CP / CPK (estimated spec: 6 sigma process window)
+        spec_half = 3 * std * 1.5
+        spec_usl = mean + spec_half
+        spec_lsl = mean - spec_half
+        cp = (spec_usl - spec_lsl) / (6 * std) if std > 0 else 0
+        cpu = (spec_usl - mean) / (3 * std) if std > 0 else 0
+        cpl = (mean - spec_lsl) / (3 * std) if std > 0 else 0
         cpk = min(cpu, cpl)
 
-        # 违规检测
         violations = []
-        for i, val in enumerate(measurements):
-            if val > usl:
-                violations.append({"index": i, "value": round(val, 2), "type": "USL", "message": f"超出上控制限{round(usl,1)}"})
-            elif val < lsl:
-                violations.append({"index": i, "value": round(val, 2), "type": "LSL", "message": f"低于下控制限{round(lsl,1)}"})
+        for i, v in enumerate(measurements):
+            if v > ucl:
+                violations.append({"index": i, "value": round(v, 1), "type": "UCL"})
+            elif v < lcl:
+                violations.append({"index": i, "value": round(v, 1), "type": "LCL"})
 
-        # Western Electric 规则检测
-        rules_violated = []
-        # Rule 1: 任意点超出 3σ
-        out_of_limits = sum(1 for v in measurements if v > usl or v < lsl)
-        if out_of_limits > 0:
-            rules_violated.append(f"规则1: {out_of_limits}个点超出3σ控制限")
+        rules = []
+        out_count = sum(1 for v in measurements if v > ucl or v < lcl)
+        if out_count:
+            rules.append(f"规则1: {out_count}点超出控制限")
 
-        # Rule 2: 连续7点在中心线同一侧
-        above_cl = sum(1 for v in measurements[-7:] if v > cl)
-        below_cl = sum(1 for v in measurements[-7:] if v < cl)
-        if above_cl >= 7:
-            rules_violated.append("规则2: 连续7点高于中心线（向上偏移）")
-        if below_cl >= 7:
-            rules_violated.append("规则2: 连续7点低于中心线（向下偏移）")
+        above = sum(1 for v in measurements[-7:] if v > mean)
+        if above >= 7:
+            rules.append("规则2: 连续≥7点高于中心线")
+        if n - above >= 7:
+            below = sum(1 for v in measurements[-7:] if v < mean)
+            if below >= 7:
+                rules.append("规则2: 连续≥7点低于中心线")
 
-        # Rule 3: 连续7点上升或下降（趋势）
         if n >= 7:
             diffs = np.diff(arr[-7:])
             if all(d > 0 for d in diffs):
-                rules_violated.append("规则3: 连续7点上升趋势")
+                rules.append("规则3: 连续7点上升趋势")
             elif all(d < 0 for d in diffs):
-                rules_violated.append("规则3: 连续7点下降趋势")
+                rules.append("规则3: 连续7点下降趋势")
 
-        # 制程能力评级
-        if cpk >= 1.33:
-            capability = "EXCELLENT"
-            capability_desc = "制程能力优异 (CPK≥1.33)"
-        elif cpk >= 1.0:
-            capability = "GOOD"
-            capability_desc = "制程能力良好 (1.0≤CPK<1.33)"
-        elif cpk >= 0.67:
-            capability = "FAIR"
-            capability_desc = "制程能力一般 (0.67≤CPK<1.0)"
-        else:
-            capability = "POOR"
-            capability_desc = "制程能力不足 (CPK<0.67)"
+        capability = "EXCELLENT" if cpk >= 1.33 else "GOOD" if cpk >= 1.0 else "FAIR" if cpk >= 0.67 else "POOR"
+        stability = round(max(0, min(1, 1.0 - (std / (abs(mean) + 0.01)))), 3)
 
-        # 稳定性指标
-        stability_index = 1.0 - (std / (abs(mean) + 0.001))
-        stability_index = max(0, min(1, stability_index))
+        bins = min(6, max(4, n // 4))
+        hist, edges = np.histogram(arr, bins=bins)
+        histogram = [{"range": f"{round(edges[i], 1)}-{round(edges[i+1], 1)}", "count": int(hist[i])} for i in range(bins)]
 
-        # 控制限表
-        control_limits_data = [
-            {"name": "UCL (上控制限)", "value": round(usl, 2)},
-            {"name": "UWL (上警告限)", "value": round(ucl_warn, 2)},
-            {"name": "CL (中心线)", "value": round(cl, 2)},
-            {"name": "LWL (下警告限)", "value": round(lcl_warn, 2)},
-            {"name": "LCL (下控制限)", "value": round(lsl, 2)},
-        ]
+        recs = []
+        if cpk < 1.0:
+            recs.append("制程能力不足，建议减少变异或调整参数")
+        if rules:
+            recs.append("检测到异常模式，排查设备和工艺")
+        if not recs:
+            recs.append("制程稳定，保持当前参数")
 
         return {
             "device_code": device_code,
             "parameter": parameter,
             "sample_size": n,
-            "mean": round(mean, 2),
-            "std": round(std, 2),
-            "min": round(arr.min(), 2),
-            "max": round(arr.max(), 2),
-            "cp": round(cp, 2),
-            "cpk": round(cpk, 2),
-            "process_capability": capability,
-            "capability_description": capability_desc,
-            "stability_index": round(stability_index, 3),
-            "control_limits": control_limits_data,
+            "statistics": {"mean": round(mean, 1), "std": round(std, 1), "min": round(float(arr.min()), 1), "max": round(float(arr.max()), 1)},
+            "capability": {"cp": round(cp, 2), "cpk": round(cpk, 2), "level": capability},
+            "stability": stability,
+            "control_limits": [{"name": "UCL", "value": round(ucl, 1)}, {"name": "UWL", "value": round(ucl_warn, 1)}, {"name": "CL", "value": round(mean, 1)}, {"name": "LWL", "value": round(lcl_warn, 1)}, {"name": "LCL", "value": round(lcl, 1)}],
             "violations": violations,
-            "rules_violated": rules_violated,
-            "histogram": self._bins(arr, 10),
-            "recommendations": self._recommend(capability, rules_violated),
+            "rules_violated": rules,
+            "histogram": histogram,
+            "recommendations": recs,
         }
-
-    def _bins(self, arr: np.ndarray, num_bins: int) -> List[Dict]:
-        hist, edges = np.histogram(arr, bins=num_bins)
-        return [{"range": f"{round(edges[i],1)}-{round(edges[i+1],1)}", "count": int(hist[i])} for i in range(len(hist))]
-
-    def _recommend(self, capability: str, rules: List[str]) -> List[str]:
-        recs = []
-        if capability in ("POOR", "FAIR"):
-            recs.append("建议进行制程改善，减少变异")
-            recs.append("检查设备校准状态")
-        if len(rules) > 0:
-            recs.append("检测到异常模式，建议排查设备和工艺参数")
-        if not recs:
-            recs.append("制程稳定，保持当前参数设置")
-        return recs
 
 
 class CapacityPredictionService:
-    """产能预测服务 — 线性回归趋势 + 周期因子"""
-
-    def __init__(self, llm_service: LLmService = None):
-        self.llm_service = llm_service
+    """产能预测 — 时序趋势+周期"""
 
     def predict(
         self,
@@ -248,273 +206,145 @@ class CapacityPredictionService:
         days_ahead: int = 7,
         historical_outputs: Optional[List[float]] = None,
     ) -> Dict[str, Any]:
-        # 历史数据 → 趋势 + 周期
-        if historical_outputs and len(historical_outputs) >= 7:
+        if historical_outputs and len(historical_outputs) >= 3:
             hist = np.array(historical_outputs)
-            base = np.mean(hist)
-            trend = self._linear_trend(hist)
-            # 计算星期因子
-            weekday_factors = self._weekday_factors(hist)
+            base = float(np.mean(hist))
+            slope = float(np.polyfit(np.arange(len(hist)), hist, 1)[0])
         else:
-            base = 1000.0
-            trend = 5.0
-            weekday_factors = {i: 1.0 for i in range(7)}
+            base, slope = 1000.0, 5.0
 
-        predictions = []
+        weekday_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
         today = datetime.now()
+        predictions = []
         for i in range(days_ahead):
-            date = today + timedelta(days=i)
-            weekday = date.weekday()
-            factor = weekday_factors.get(weekday, 1.0)
-            # 产能 = 基准 × 趋势 × 星期因子 + 进度衰减
-            pred = (base + trend * (i + 1)) * factor
-            pred = max(0, pred)
-
-            # 置信区间: ±15% baseline
-            ci_lower = round(pred * 0.85, 0)
-            ci_upper = round(pred * 1.15, 0)
-
+            dt = today + timedelta(days=i)
+            wd = dt.weekday()
+            # 周末生产效率约85%
+            day_factor = 0.85 if wd >= 5 else 1.0
+            pred = max(0, (base + slope * (i + 1)) * day_factor)
             predictions.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "day_of_week": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][weekday],
+                "date": dt.strftime("%Y-%m-%d"),
+                "day": weekday_names[wd],
                 "predicted_output": round(pred, 0),
-                "confidence_lower": ci_lower,
-                "confidence_upper": ci_upper,
-                "utilization_rate": round(min(pred / max(base, 1) * 100, 100), 1),
+                "confidence_lower": round(pred * 0.85, 0),
+                "confidence_upper": round(pred * 1.15, 0),
             })
 
         total = sum(p["predicted_output"] for p in predictions)
-        confidence = min(0.95, 0.7 + 0.02 * len(historical_outputs or []))
-
         return {
             "production_line_id": production_line_id,
             "product_type": product_type,
-            "start_date": start_date,
-            "days_ahead": days_ahead,
             "predictions": predictions,
-            "total_predicted": round(total, 0),
-            "average_daily": round(total / days_ahead, 0),
-            "confidence": round(confidence, 2),
-            "trend": "上升" if trend > 0 else "下降" if trend < 0 else "稳定",
-            "trend_slope": round(trend, 2),
-            "factors": {
-                "weekly_pattern": {["一","二","三","四","五","六","日"][k]: round(v, 2) for k, v in weekday_factors.items()},
-                "prediction_method": "linear_regression_with_seasonality",
+            "summary": {
+                "total": round(total, 0),
+                "daily_avg": round(total / days_ahead, 0),
+                "trend": "上升" if slope > 0 else "下降" if slope < 0 else "稳定",
+                "confidence": round(min(0.95, 0.7 + 0.02 * len(historical_outputs or [])), 2),
             },
         }
 
-    def _linear_trend(self, hist: np.ndarray) -> float:
-        """简单线性回归趋势"""
-        n = len(hist)
-        x = np.arange(n)
-        slope = (n * np.dot(x, hist) - x.sum() * hist.sum()) / max(n * (x ** 2).sum() - x.sum() ** 2, 1)
-        return float(slope)
-
-    def _weekday_factors(self, hist: np.ndarray) -> Dict[int, float]:
-        """计算星期因子"""
-        factors = {i: [] for i in range(7)}
-        for i, v in enumerate(hist):
-            wd = i % 7
-            factors[wd].append(v)
-        avg = np.mean(hist)
-        result = {}
-        for wd, vals in factors.items():
-            if vals:
-                result[wd] = round(np.mean(vals) / max(avg, 1), 2)
-            else:
-                result[wd] = 1.0
-        return result
-
 
 class RootCauseAnalysisService:
-    """根因分析服务 — 相关性诊断"""
-
-    def __init__(self, llm_service: LLmService = None):
-        self.llm_service = llm_service
+    """根因分析 — Z-Score异常检测"""
 
     def analyze(
-        self,
-        quality_record_id: int,
-        include_similar_cases: bool = True,
+        self, quality_record_id: int, include_similar_cases: bool = True,
         parameters: Optional[Dict[str, List[float]]] = None,
     ) -> Dict[str, Any]:
-        # 接收多个参数的历史数据，计算与异常的相关性
         causes = []
-
-        if parameters and len(parameters) > 0:
-            # 假设最后一个值为异常指标
-            for param_name, values in parameters.items():
-                if len(values) < 3:
+        if parameters:
+            for name, vals in parameters.items():
+                if len(vals) < 3:
                     continue
-                arr = np.array(values)
-                mean = np.mean(arr)
-                std = np.std(arr)
-                last = values[-1]
-
-                # Z-score: 最后值偏离均值多少个标准差
-                z_score = abs(last - mean) / max(std, 0.01)
-                if z_score > 1.5:
-                    impact = min(0.95, z_score / 6)
-                    if last > mean + 2 * std:
-                        direction = "偏高"
-                    elif last < mean - 2 * std:
-                        direction = "偏低"
-                    else:
-                        direction = "异常波动"
-
+                arr = np.array(vals)
+                mu, sigma = float(np.mean(arr)), float(np.std(arr))
+                if sigma < 0.01 * abs(mu + 0.01):
+                    continue
+                last = vals[-1]
+                z = abs(last - mu) / sigma
+                if z > 1.5:
+                    direction = "偏高" if last > mu else "偏低"
                     causes.append({
-                        "cause": f"{param_name}{direction}",
-                        "impact": round(impact, 2),
-                        "z_score": round(z_score, 1),
-                        "current_value": round(last, 2),
-                        "mean": round(mean, 2),
-                        "std": round(std, 2),
-                        "probability": round(min(0.95, z_score / 5), 2),
-                        "recommendation": self._get_recommendation(param_name, direction),
+                        "cause": f"{name}{direction}",
+                        "impact": round(min(0.9, z / 6), 2),
+                        "z_score": round(z, 1),
+                        "current": round(last, 1),
+                        "baseline": round(mu, 1),
+                        "probability": round(min(0.9, z / 5), 2),
+                        "recommendation": self._r(name, direction),
                     })
 
-        # 如果没有参数输入，用典型数据模拟
         if not causes:
-            causes = [
-                {"cause": "温度偏高", "impact": 0.35, "probability": 0.82, "recommendation": "检查温控系统及PID参数"},
-                {"cause": "速度波动", "impact": 0.28, "probability": 0.65, "recommendation": "检查电机驱动器稳定性"},
-                {"cause": "材料密度偏差", "impact": 0.22, "probability": 0.48, "recommendation": "更换或抽检原材料批次"},
-                {"cause": "压力下降", "impact": 0.12, "probability": 0.31, "recommendation": "检查气路系统密封性"},
-                {"cause": "设备振动加剧", "impact": 0.08, "probability": 0.25, "recommendation": "检查轴承和传动部件"},
-            ]
+            causes = [{"cause": c, "impact": i, "probability": p, "recommendation": r} for c, i, p, r in [
+                ("温度偏离", 0.35, 0.82, "检查温控系统PID参数"),
+                ("速度波动", 0.28, 0.65, "检查电机驱动器稳定性"),
+                ("材料偏差", 0.22, 0.48, "抽检原材料批次"),
+                ("压力异常", 0.12, 0.31, "检查气路密封"),
+                ("振动加剧", 0.08, 0.25, "检查轴承和传动"),
+            ]]
 
         causes.sort(key=lambda x: x["impact"], reverse=True)
-        primary = causes[:3]
-        secondary = causes[3:]
-
-        similar_cases = []
-        if include_similar_cases:
-            for i, c in enumerate(primary):
-                similar_cases.append({
-                    "case_id": f"QC-{2024000 + quality_record_id - i * 11}",
-                    "similarity": round(0.88 - i * 0.12, 2),
-                    "root_cause": c["cause"],
-                    "resolution": c["recommendation"],
-                })
+        primary, secondary = causes[:3], causes[3:]
+        similar = [{"case_id": f"QC-{2024000+quality_record_id-i*11}", "similarity": round(0.88-i*0.12, 2), "root_cause": c["cause"]} for i, c in enumerate(primary)] if include_similar_cases else []
 
         return {
             "quality_record_id": quality_record_id,
             "primary_causes": primary,
             "secondary_causes": secondary,
-            "similar_cases": similar_cases,
-            "recommended_actions": [
-                f"1. {primary[0]['recommendation']}" if primary else "",
-                f"2. {primary[1]['recommendation']}" if len(primary) > 1 else "",
-                f"3. 加强过程监控与SPC分析" if parameters else "3. 建立参数趋势跟踪机制",
-                "4. 安排预防性维护检查",
-            ],
-            "analysis_method": "z_score_correlation" if parameters else "knowledge_base",
+            "similar_cases": similar,
+            "actions": [f"{i+1}. {c['recommendation']}" for i, c in enumerate(primary)] + ["加强过程监控"],
+            "method": "z_score_analysis" if parameters else "knowledge_base",
         }
 
-    def _get_recommendation(self, param: str, direction: str) -> str:
-        recs = {
-            "temperature": "检查加热/冷却系统及温控PID参数",
-            "speed": "检查电机驱动器和传动系统",
-            "pressure": "检查气路密封性和压缩机",
-            "vibration": "检查轴承、平衡性和安装固定",
-            "density": "检查原材料规格和供应商批次",
-            "current": "检查电气系统和电机负载",
-            "power": "检查供电稳定性和设备负载",
-        }
-        base = recs.get(param, f"检查{param}相关系统")
-        return f"{base}（{direction}异常）"
+    def _r(self, p: str, d: str) -> str:
+        m = {"temperature": "检查加热/冷却及PID参数", "speed": "检查电机驱动和传动系统", "pressure": "检查气路密封和压缩机",
+             "vibration": "检查轴承平衡和固定", "density": "检查原材料规格批次", "power": "检查供电和负载"}
+        return m.get(p, f"检查{p}相关系统") + f"({d})"
 
 
 class DeliveryPredictionService:
-    """交期预测服务 — 基于历史交付数据分析"""
+    """交期预测 — 历史数据驱动"""
 
-    def predict(
-        self,
-        order_ids: List[int],
-        historical_lead_times: Optional[List[float]] = None,
-    ) -> Dict[str, Any]:
-        # 使用历史交期数据估算完成日期
-        if historical_lead_times and len(historical_lead_times) >= 5:
+    def predict(self, order_ids: List[int], historical_lead_times: Optional[List[float]] = None) -> Dict[str, Any]:
+        if historical_lead_times and len(historical_lead_times) >= 3:
             hist = np.array(historical_lead_times)
-            mean_lt = np.mean(hist)
-            std_lt = np.std(hist)
+            mean_lt = float(np.mean(hist))
+            std_lt = float(np.std(hist))
         else:
-            mean_lt = 7.0
-            std_lt = 2.0
+            mean_lt, std_lt = 7.0, 2.0
 
-        order_predictions = []
         today = datetime.now()
-
-        for i, order_id in enumerate(order_ids):
-            # 每个订单的交期 = 平均交期 + 随机偏移（使用 order_id 做种子）
-            np.random.seed(order_id % 10000)
-            lt = mean_lt + np.random.normal(0, std_lt * 0.5)
-            lt = max(1, lt)
-
-            completion = today + timedelta(days=int(lt))
-            # 风险判断
-            if lt > mean_lt + std_lt:
-                prediction = "DELAYED"
-                risk_level = "HIGH"
-                delay_days = max(1, int(lt - mean_lt))
-            elif lt > mean_lt:
-                prediction = "AT_RISK"
-                risk_level = "MEDIUM"
-                delay_days = 0
-            else:
-                prediction = "ON_TIME"
-                risk_level = "LOW"
-                delay_days = 0
-
-            order_predictions.append({
+        orders = []
+        for order_id in order_ids:
+            # 确定性偏移（基于order_id mod，不使用random seed）
+            offset = ((order_id * 127 + 31) % 1000) / 1000 - 0.5  # [-0.5, 0.5]
+            lt = max(1, mean_lt + offset * std_lt)
+            comp = today + timedelta(days=int(lt))
+            delay = max(0, int(lt - mean_lt - std_lt * 0.5))
+            risk = "HIGH" if delay > 0 else "MEDIUM" if lt > mean_lt else "LOW"
+            orders.append({
                 "order_id": order_id,
-                "predicted_completion": completion.strftime("%Y-%m-%d"),
-                "estimated_lead_time_days": round(lt, 1),
-                "prediction": prediction,
-                "expected_delay_days": delay_days,
-                "risk_level": risk_level,
-                "on_time_probability": round(1.0 - (lt - mean_lt) / max(lt * 2, 1), 2),
+                "completion_date": comp.strftime("%Y-%m-%d"),
+                "lead_time_days": round(lt, 1),
+                "delay_risk": risk,
+                "delay_days": delay,
             })
 
-        delayed_count = sum(1 for o in order_predictions if o["prediction"] == "DELAYED")
-        at_risk_count = sum(1 for o in order_predictions if o["prediction"] == "AT_RISK")
-
-        if delayed_count > len(order_ids) / 3:
-            overall_risk = "HIGH"
-        elif at_risk_count > len(order_ids) / 2:
-            overall_risk = "MEDIUM"
-        else:
-            overall_risk = "LOW"
-
-        recommendations = []
-        if overall_risk == "HIGH":
-            recommendations = ["立即增加加班产能", "调整工单优先级", "提前通知客户"]
-        elif overall_risk == "MEDIUM":
-            recommendations = ["监控关键路径工单", "预备备选产能方案"]
-        elif delayed_count > 0:
-            recommendations = ["关注延期货单进度"]
+        delayed = sum(1 for o in orders if o["delay_risk"] == "HIGH")
+        at_risk = sum(1 for o in orders if o["delay_risk"] == "MEDIUM")
+        overall = "HIGH" if delayed > len(orders) / 3 else "MEDIUM" if at_risk > len(orders) / 2 else "LOW"
 
         return {
-            "order_predictions": order_predictions,
+            "orders": orders,
             "summary": {
-                "total_orders": len(order_ids),
-                "on_time": len(order_ids) - delayed_count - at_risk_count,
-                "at_risk": at_risk_count,
-                "delayed": delayed_count,
-                "overall_risk_level": overall_risk,
-                "average_lead_time": round(mean_lt, 1),
+                "total": len(order_ids), "on_time": len(order_ids) - delayed - at_risk,
+                "at_risk": at_risk, "delayed": delayed, "overall_risk": overall,
             },
-            "recommended_actions": recommendations,
-            "prediction_basis": f"基于{len(historical_lead_times or [])}条历史数据" if historical_lead_times else "基于默认参数",
+            "avg_lead_time": round(mean_lt, 1),
+            "recommendations": (["增加加班产能", "调整工单优先级"] if overall == "HIGH" else ["监控关键路径"] if overall == "MEDIUM" else []),
         }
 
 
-def create_analysis_services(llm_service: LLmService = None):
-    """创建所有分析服务"""
-    return {
-        "energy": EnergyOptimizationService(llm_service),
-        "spc": SPCService(),
-        "capacity": CapacityPredictionService(llm_service),
-        "root_cause": RootCauseAnalysisService(llm_service),
-        "delivery": DeliveryPredictionService(),
-    }
+def create_analysis_services(llm_service=None):
+    return {"energy": EnergyOptimizationService(), "spc": SPCService(), "capacity": CapacityPredictionService(),
+            "root_cause": RootCauseAnalysisService(), "delivery": DeliveryPredictionService()}
