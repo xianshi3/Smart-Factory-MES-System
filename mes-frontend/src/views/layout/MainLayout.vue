@@ -22,9 +22,8 @@
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
-          :collapse-transition="true"
+          :collapse-transition="false"
           class="sidebar-menu"
-          unique-opened
         >
           <template v-for="group in menuGroups" :key="group.title">
             <el-sub-menu v-if="!isCollapse" :index="group.title">
@@ -257,16 +256,16 @@ const handleCommand = (cmd: string) => {
 
 .sidebar-menu { background: transparent; border: none; }
 .sidebar-menu:not(.el-menu--collapse) { width: 100%; }
-:deep(.el-sub-menu__title) { height: 36px; line-height: 36px; color: var(--text-secondary) !important; margin: 0 6px; border-radius: 6px; font-size: 13px; padding-left: 10px !important; }
+:deep(.el-sub-menu__title) { height: 36px; line-height: 36px; color: var(--text-secondary) !important; margin: 0 6px; border-radius: 6px; font-size: 14px; padding-left: 10px !important; }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
 :deep(.el-sub-menu .el-menu) { background: transparent !important; }
-:deep(.el-sub-menu .el-menu-item) { height: 32px; line-height: 32px; color: var(--text-secondary) !important; margin: 0 6px 0 14px; border-radius: 6px; font-size: 13px; padding-left: 14px !important; }
+:deep(.el-sub-menu .el-menu-item) { height: 32px; line-height: 32px; color: var(--text-secondary) !important; margin: 0 6px 0 14px; border-radius: 6px; font-size: 14px; padding-left: 14px !important; }
 :deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu .el-menu-item.is-active) { background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 500; }
 .el-menu--collapse .el-sub-menu { display: none; }
 
-.el-menu-item { height: 36px; line-height: 36px; color: var(--text-secondary); margin: 0 6px; border-radius: 6px; padding-left: 10px !important; font-size: 13px; }
+.el-menu-item { height: 36px; line-height: 36px; color: var(--text-secondary); margin: 0 6px; border-radius: 6px; padding-left: 10px !important; font-size: 14px; }
 .el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
 .el-menu-item.is-active .el-icon { color: var(--accent); }
