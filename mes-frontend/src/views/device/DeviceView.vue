@@ -148,7 +148,7 @@
       
       <div v-if="viewMode === 'list'" class="device-grid">
         <div 
-          v-for="(device, index) in filteredDevices" 
+          v-for="(device, index) in pagedDevices" 
           :key="device.id || index"
           class="device-card"
           :class="`status-${device.status}`"
@@ -244,6 +244,10 @@
       </div>
 
       <el-empty v-if="filteredDevices.length === 0" description="暂无设备数据" />
+
+      <div v-if="filteredDevices.length > 0" class="device-pagination">
+        <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background @current-change="() => {}" />
+      </div>
     </div>
 
     <el-dialog v-model="detailVisible" title="设备详情" width="700px" class="device-dialog" destroy-on-close>
@@ -381,6 +385,8 @@ const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
+const page = ref(1)
+const pageSize = ref(12)
 const detailVisible = ref(false)
 const detailData = ref<any>({})
 const viewMode = ref<'list' | '3d'>('list')
@@ -417,6 +423,11 @@ const filteredDevices = computed(() => {
     result = result.filter(d => d.status === statusFilter.value)
   }
   return result
+})
+
+const pagedDevices = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredDevices.value.slice(start, start + pageSize.value)
 })
 
 const getStatusType = (status: string) => {
@@ -1166,6 +1177,12 @@ watch(() => themeStore.isDark, () => {
 .status-tag {
   font-size: 14px;
   padding: 8px 16px;
+}
+
+.device-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .predict-header { text-align: center; padding: 20px; }
