@@ -261,7 +261,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
 
 // ─── lighting ───
 function buildLighting(s: THREE.Scene, dark: boolean) {
-  s.add(new THREE.AmbientLight(dark ? 0x999999 : 0xe8e8e8, 0.75))
+  s.add(new THREE.AmbientLight(dark ? 0xaaaaaa : 0xeeeeee, 0.8))
   const key = new THREE.DirectionalLight(dark ? 0xffffff : 0xffffff, 1.8)
   key.position.set(14, 20, 10)
   key.castShadow = true
@@ -285,7 +285,7 @@ function buildMachine(device: any): THREE.Group {
   const root = new THREE.Group()
 
   // ── base ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xaaaaaa, 0.3, 0.9)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xbbbbbb, 0.3, 0.7)))
   root.children[root.children.length - 1].position.y = 0.07
 
   // ── top accent band ──
@@ -293,7 +293,8 @@ function buildMachine(device: any): THREE.Group {
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
   // ── rear cabinet ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xb0b0b0, 0.2, 0.85)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xbfbfbf, 0.2, 0.7)))
+  root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
   root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
 
   // vent slats
@@ -302,29 +303,24 @@ function buildMachine(device: any): THREE.Group {
     root.children[root.children.length - 1].position.set(0.05, 0.5 + i * 0.18, -1.1)
   }
 
-  // ── front door (transparent glass door) ──
-  // Door frame
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xdddddd, 0.12, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
-
-  // door handles
+  // ── handlebars ──
   ;[-0.5, 0.6].forEach(hx => {
     const h = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), mat(0xd0d0d0, 0.1, 0.92))
     h.position.set(hx, 0.92, 0.88); root.add(h)
   })
 
-  // ── main cabinet body (recessed, front open) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.35), mat(0xcccccc, 0.25, 1.0))
+  // ── main cabinet body (bright silver, metalness lowered) ──
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.35), mat(0xe0e0e0, 0.35, 0.6))
   body.position.set(0, 1.04, -0.15); body.castShadow = true; root.add(body)
 
-  // ── front door frame + glass ──
+  // ── front door frame ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xdddddd, 0.12, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
   // Glass door
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(1.8, 1.4, 0.01),
-    new THREE.MeshPhysicalMaterial({ color: 0x88aacc, transparent: true, opacity: 0.35, roughness: 0, metalness: 0.05, depthWrite: false })
+    new THREE.MeshPhysicalMaterial({ color: 0x88aacc, transparent: true, opacity: 0.4, roughness: 0, metalness: 0.05, depthWrite: false })
   )
   glass.position.set(0.05, 0.95, 0.86); glass.renderOrder = 999; root.add(glass)
 
@@ -620,17 +616,16 @@ function animate() {
       mat.emissiveIntensity = st2 === 'FAULT' ? 1.0 : st2 === 'ONLINE' ? 0.7 : 0.3
     }
 
-    // pulse ring for fault
+    // pulse ring for fault (static)
     if (n.pulseRing) {
       const ringMat = n.pulseRing.material as THREE.MeshBasicMaterial
-      ringMat.opacity = 0.3 + Math.sin(runTime * 4) * 0.3
-      n.pulseRing.scale.setScalar(1 + Math.sin(runTime * 3) * 0.08)
+      ringMat.opacity = 0.4
     }
 
-    // glow ring
+    // glow ring (static)
     if (n.glowRing && !n.pulseRing) {
       const gMat = n.glowRing.material as THREE.MeshBasicMaterial
-      if (st === 'ONLINE') gMat.opacity = 0.2 + Math.sin(runTime * 1.5) * 0.1
+      if (st === 'ONLINE') gMat.opacity = 0.25
     }
   })
 
@@ -655,7 +650,7 @@ watch(() => themeStore.isDark, (dark) => {
   clearFactory()
   buildFactory(lastDeviceCount || 5, dark)
   S.scene.traverse(c => {
-    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0x999999 : 0xe8e8e8)
+    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0xaaaaaa : 0xeeeeee)
     if (c instanceof THREE.HemisphereLight) c.color.setHex(dark ? 0x888888 : 0xaaaaaa)
   })
 })
