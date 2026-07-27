@@ -1181,7 +1181,7 @@ watch(() => themeStore.isDark, () => {
 
 .device-pagination {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 16px;
 }
 
