@@ -76,7 +76,7 @@
       <div v-if="viewMode === 'list'" class="dt-list-wrap">
         <div v-if="filteredDevices.length === 0" class="dt-empty"><el-empty description="暂无设备数据" :image-size="80" /></div>
         <div v-else class="dt-list-grid">
-           <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" :class="'dc-'+d.status" @click="handleDetail(d)">
+           <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" @click="handleDetail(d)">
             <div class="dc-card-row1">
               <span class="dc-card-name">{{ d.name }}</span>
               <span class="dc-card-code">{{ d.code }}</span>
@@ -559,9 +559,9 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-view-switch button { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border: none; border-radius: 5px; background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all .12s; }
 .dt-view-switch button.on { background: var(--bg-card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 .dt-topbar-actions { display: flex; align-items: center; gap: 4px; }
-.dt-fchip { padding: 3px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all .12s; }
+.dt-fchip { padding: 3px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all .12s; }
 .dt-fchip:hover { background: var(--bg-hover); color: var(--text-primary); }
-.dt-fchip.on { background: var(--accent); color: #fff; font-weight: 600; }
+.dt-fchip.on { background: var(--accent-light); color: var(--accent); font-weight: 600; }
 .dt-btn-refresh { color: var(--text-muted); font-size: 18px; }
 
 /* ===== MAIN ===== */
@@ -604,29 +604,30 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 .dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; padding: 14px; align-content: start; }
 
-.dc-card { background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid var(--border-color); border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: all .18s; }
-.dc-card:hover { border-color: var(--accent); border-left-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-.dc-card.dc-running { border-left-color: var(--success); }
-.dc-card.dc-idle { border-left-color: var(--info); }
-.dc-card.dc-fault { border-left-color: var(--danger); }
-.dc-card.dc-maintenance { border-left-color: var(--warning); }
+.dc-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all .18s; position: relative; }
+.dc-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
 
-.dc-card-row1 { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-.dc-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-card-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.dc-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 .dc-card-code { font-size: 11px; color: var(--text-muted); margin-right: auto; }
-.dc-card-badge { font-size: 10px; padding: 1px 7px; border-radius: 6px; font-weight: 600; flex-shrink: 0; }
+.dc-card-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.dc-card-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
 .dc-card-badge.running { background: var(--success-light); color: var(--success); }
+.dc-card-badge.running::before { background: var(--success); }
 .dc-card-badge.idle { background: var(--info-light); color: var(--info); }
+.dc-card-badge.idle::before { background: var(--info); }
 .dc-card-badge.fault { background: var(--danger-light); color: var(--danger); }
+.dc-card-badge.fault::before { background: var(--danger); }
 .dc-card-badge.maintenance { background: var(--warning-light); color: var(--warning); }
+.dc-card-badge.maintenance::before { background: var(--warning); }
 
-.dc-card-row2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px; }
-.dc-card-num { text-align: center; font-size: 17px; font-weight: 700; color: var(--text-primary); }
-.dc-card-num em { display: block; font-size: 9px; font-weight: 500; color: var(--text-muted); font-style: normal; margin-top: 1px; }
+.dc-card-row2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+.dc-card-num { text-align: center; font-size: 17px; font-weight: 700; color: var(--text-primary); padding: 4px 0; }
+.dc-card-num em { display: block; font-size: 9px; font-weight: 500; color: var(--text-muted); font-style: normal; margin-top: 2px; }
 .dc-card-num.warn { color: var(--warning); }
 .dc-card-num.hot { color: var(--danger); }
 
-.dc-card-bar { height: 3px; background: var(--border-color); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+.dc-card-bar { height: 4px; background: var(--border-color); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
 .dc-card-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
 
 .dc-card-foot { display: flex; gap: 2px; justify-content: flex-end; }
