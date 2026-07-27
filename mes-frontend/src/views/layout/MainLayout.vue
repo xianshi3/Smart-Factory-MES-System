@@ -262,8 +262,8 @@ const handleCommand = (cmd: string) => {
 .sidebar-header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); position: relative; }
 .brand-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 6px; color: #fff; flex-shrink: 0; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; overflow: hidden; }
-.brand-name { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
-.brand-ver { font-size: 9px; color: var(--text-muted); }
+.brand-name { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
+.brand-ver { font-size: 10px; color: var(--text-muted); }
 
 .collapse-btn-fixed { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 50%; color: var(--text-muted); cursor: pointer; z-index: 11; font-size: 10px; transition: all 0.2s; }
 .collapse-btn-fixed:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
@@ -273,11 +273,11 @@ const handleCommand = (cmd: string) => {
 
 .sidebar-menu { background: transparent; border: none; }
 .sidebar-menu:not(.el-menu--collapse) { width: 100%; }
-:deep(.el-sub-menu__title) { height: 36px; line-height: 36px; color: var(--text-secondary) !important; margin: 0 6px; border-radius: 6px; font-size: 14px; padding-left: 10px !important; }
+:deep(.el-sub-menu__title) { height: 38px; line-height: 38px; color: var(--text-secondary) !important; margin: 0 6px; border-radius: 6px; font-size: 14px; padding-left: 10px !important; }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
 :deep(.el-sub-menu .el-menu) { background: transparent !important; }
-:deep(.el-sub-menu .el-menu-item) { height: 32px; line-height: 32px; color: var(--text-secondary) !important; margin: 0 6px 0 14px; border-radius: 6px; font-size: 14px; padding-left: 14px !important; }
+:deep(.el-sub-menu .el-menu-item) { height: 34px; line-height: 34px; color: var(--text-secondary) !important; margin: 0 6px 0 14px; border-radius: 6px; font-size: 14px; padding-left: 14px !important; }
 :deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu .el-menu-item.is-active) { background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 500; }
 .el-menu--collapse .el-sub-menu { display: none; }
@@ -298,11 +298,11 @@ const handleCommand = (cmd: string) => {
 
 /* ===== MAIN ===== */
 .main-area { display: flex; flex-direction: column; overflow: hidden; }
-.topbar { height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--bg-header); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-.topbar-left { display: flex; align-items: center; gap: 6px; }
-.breadcrumb-parent { font-size: 12px; color: var(--text-muted); }
-.breadcrumb-sep { font-size: 10px; color: var(--text-muted); }
-.breadcrumb-current { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+.topbar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--bg-header); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 8px; }
+.breadcrumb-parent { font-size: 14px; color: var(--text-muted); }
+.breadcrumb-sep { font-size: 12px; color: var(--text-muted); }
+.breadcrumb-current { font-size: 15px; color: var(--text-primary); font-weight: 600; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 15px; }
 .topbar-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
@@ -314,7 +314,7 @@ const handleCommand = (cmd: string) => {
 .tabbar { display: flex; align-items: center; height: 30px; padding: 0 8px; background: var(--bg-app); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .tab-scroll { flex: 1; display: flex; align-items: center; gap: 1px; overflow-x: auto; scrollbar-width: none; }
 .tab-scroll::-webkit-scrollbar { display: none; }
-.tab-item { display: flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; white-space: nowrap; user-select: none; }
+.tab-item { display: flex; align-items: center; gap: 5px; padding: 3px 10px; font-size: 13px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; white-space: nowrap; user-select: none; }
 .tab-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .tab-item.active { background: var(--bg-card); color: var(--accent); font-weight: 500; box-shadow: 0 0 0 1px var(--border-color); }
 .tab-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-color); flex-shrink: 0; }
