@@ -254,7 +254,7 @@
             <span>AI 智能建议</span>
           </div>
         </div>
-        <div v-if="aiAnalysisResult.response" class="dt-ai-advice-body">{{ aiAnalysisResult.response }}</div>
+        <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body">{{ aiAnalysisResult.content || aiAnalysisResult.response }}</div>
         <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
           <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
         </div>
@@ -489,10 +489,16 @@ const handleLLMChat = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true; currentAnalysisType.value = 'llm'
   try {
     const d = detailData.value || {}
-    const res = await llmChat({
-      message: `分析设备 ${d.name || d.code || ''} 当前运行状态，温度${d.temperature || '--'}°C，转速${d.speed || '--'}rpm，功率${d.power || '--'}kW，给出优化建议`,
-      context: { device_code: d.code, temperature: d.temperature, speed: d.speed, power: d.power }
-    })
+    const msg = [
+      `请分析设备运行状态并给出优化建议：`,
+      `- 设备名称: ${d.name || d.code || '未知设备'}`,
+      `- 运行状态: ${getStatusText(d.status || 'unknown')}`,
+      `- 温度: ${typeof d.temperature === 'number' ? d.temperature + '°C' : '--'}`,
+      `- 转速: ${typeof d.speed === 'number' ? d.speed + ' rpm' : '--'}`,
+      `- 功率: ${typeof d.power === 'number' ? d.power + ' kW' : '--'}`,
+      `- 利用率: ${d.utilization || '0%'}`,
+    ].join('\n')
+    const res = await llmChat({ message: msg, context: { device_code: d.code, status: d.status, temperature: d.temperature, speed: d.speed, power: d.power } })
     showAIResult('llm', res?.data || res)
   } catch { aiAnalysisLoading.value = false; ElMessage.info('AI建议暂不可用，请配置API Key') }
 }
@@ -682,7 +688,8 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-ai-advice-header strong { display: block; font-size: 15px; color: var(--text-primary); }
 .dt-ai-advice-header span { font-size: 11px; color: var(--text-muted); }
 .dt-ai-advice-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; border-radius: 10px; }
-.dt-ai-advice-body { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.7; font-size: 13px; color: var(--text-primary); }
+.dt-ai-advice-body { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.8; font-size: 13px; color: var(--text-primary); white-space: pre-wrap; }
+.dt-ai-advice-body :deep(strong), .dt-ai-advice-body :deep(b) { font-weight: 700; color: var(--text-primary); }
 .dt-ai-advice-item { margin-bottom: 12px; }
 .dt-ai-advice-item strong { display: block; font-size: 12px; color: var(--accent); margin-bottom: 4px; text-transform: capitalize; }
 .dt-ai-advice-item p { margin: 0; font-size: 13px; color: var(--text-secondary); }
