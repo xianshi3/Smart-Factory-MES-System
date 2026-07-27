@@ -56,16 +56,16 @@ function buildMachine(device: any): THREE.Group {
   const hex = '#' + c.toString(16).padStart(6, '0')
 
   const root = new THREE.Group()
-  const metal = 0x4a4a5a
-  const dark = 0x333342
-  const light = 0x5a5a6a
+  const metal = 0x8a8a9a
+  const dark = 0x6a6a7a
+  const light = 0xaaaabb
 
   // Base
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 1.6), mat(dark, 0.6, 0.5)))
   root.children[0].position.y = 0.04
 
   // Body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), mat(metal, 0.35, 0.65))
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), mat(metal, 0.25, 0.7))
   body.position.y = 0.63; body.castShadow = true; root.add(body)
 
   // Front trim
@@ -247,8 +247,8 @@ watch(() => themeStore.isDark, (val) => {
     root.traverse(c => {
       if (c instanceof THREE.Mesh && c.material instanceof THREE.MeshStandardMaterial) {
         const clr = c.material.color.getHex()
-        if (clr === 0x4a4a5a || clr === 0x333342 || clr === 0x5a5a6a || clr === 0x323248 || clr === 0x222238 || clr === 0x1e1e32) {
-          c.material.color.setHex(val ? Math.max(clr - 0x060606, 0x222230) : clr)
+        if (clr === 0x8a8a9a || clr === 0x6a6a7a || clr === 0xaaaabb || clr === 0x323248 || clr === 0x222238 || clr === 0x1e1e32) {
+          c.material.color.setHex(val ? Math.max(clr - 0x181818, 0x3a3a4a) : clr)
         }
       }
     })
