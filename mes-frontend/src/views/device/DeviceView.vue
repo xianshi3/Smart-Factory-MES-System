@@ -38,7 +38,7 @@
 
     <!-- Device Grid -->
     <div v-if="viewMode === 'list'" class="dt-grid">
-      <div v-for="d in filteredDevices" :key="d.id" class="dt-card" :class="d.status" @click="handleDetail(d)">
+      <div v-for="d in pagedDevices" :key="d.id" class="dt-card" :class="d.status" @click="handleDetail(d)">
         <div class="dt-card-top">
           <div class="dt-card-icon" :class="d.status"><el-icon><Monitor /></el-icon></div>
           <div class="dt-card-info">
@@ -61,31 +61,38 @@
       </div>
     </div>
 
+    <!-- Empty state -->
+    <div v-if="viewMode === 'list' && filteredDevices.length === 0 && deviceList.length > 0" class="dt-empty">
+      没有匹配的设备
+    </div>
+
     <!-- Pagination -->
-    <div v-if="viewMode === 'list' && filteredDevices.length > 12" class="dt-page">
-      <el-pagination small :total="filteredDevices.length" :page-size="12" layout="prev, pager, next" background />
+    <div v-if="viewMode === 'list'" class="dt-page">
+      <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background />
     </div>
 
     <!-- Bottom: Charts + Alarms -->
-    <div class="dt-bottom">
-      <div class="dt-chart-box">
-        <div class="dt-box-hdr"><el-icon><TrendCharts /></el-icon> 利用率分布</div>
-        <v-chart :option="utilizationOption" autoresize style="height:200px" />
-      </div>
-      <div class="dt-chart-box">
-        <div class="dt-box-hdr"><el-icon><PieChart /></el-icon> 状态分布</div>
-        <v-chart :option="statusOption" autoresize style="height:200px" />
-      </div>
-      <div class="dt-alarm-box">
-        <div class="dt-box-hdr"><el-icon><Warning /></el-icon> 告警 <el-tag type="danger" size="small">{{ alarmList.length }}</el-tag></div>
-        <div v-if="alarmList.length" class="dt-alist">
-          <div v-for="a in alarmList.slice(0,4)" :key="a.id" class="dt-aitem">
-            <span class="dt-adot" :class="getAlarmClass(a.level)"></span>
-            <div class="dt-abody"><span>{{ a.message || '告警' }}</span><span class="dt-atime">{{ a.deviceName || '' }} {{ a.time ? new Date(a.time).toLocaleTimeString() : '' }}</span></div>
-            <el-button text type="primary" size="small" @click.stop="handleAck(a)">确认</el-button>
-          </div>
+    <div class="dt-bottom-area">
+      <div class="dt-bottom">
+        <div class="dt-chart-box">
+          <div class="dt-box-hdr"><el-icon><TrendCharts /></el-icon> 利用率分布</div>
+          <v-chart :option="utilizationOption" autoresize style="height:200px" />
         </div>
-        <el-empty v-else description="无告警" :image-size="36" />
+        <div class="dt-chart-box">
+          <div class="dt-box-hdr"><el-icon><PieChart /></el-icon> 状态分布</div>
+          <v-chart :option="statusOption" autoresize style="height:200px" />
+        </div>
+        <div class="dt-alarm-box">
+          <div class="dt-box-hdr"><el-icon><Warning /></el-icon> 告警 <el-tag type="danger" size="small">{{ alarmList.length }}</el-tag></div>
+          <div v-if="alarmList.length" class="dt-alist">
+            <div v-for="a in alarmList.slice(0,4)" :key="a.id" class="dt-aitem">
+              <span class="dt-adot" :class="getAlarmClass(a.level)"></span>
+              <div class="dt-abody"><span>{{ a.message || '告警' }}</span><span class="dt-atime">{{ a.deviceName || '' }} {{ a.time ? new Date(a.time).toLocaleTimeString() : '' }}</span></div>
+              <el-button text type="primary" size="small" @click.stop="handleAck(a)">确认</el-button>
+            </div>
+          </div>
+          <el-empty v-else description="无告警" :image-size="36" />
+        </div>
       </div>
     </div>
 
@@ -142,6 +149,8 @@ const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const viewMode = ref<'list' | '3d'>('list')
+const page = ref(1)
+const pageSize = ref(12)
 const detailVisible = ref(false)
 const detailData = ref<any>({})
 const predictVisible = ref(false)
@@ -150,6 +159,18 @@ const aiAnalysisVisible = ref(false)
 const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
+
+const aiResult = computed(() => aiAnalysisResult.value)
+
+function runAIAnalysis(type: string) {
+  currentAnalysisType.value = type
+  aiAnalysisLoading.value = true
+  aiAnalysisResult.value = null
+  setTimeout(() => {
+    aiAnalysisResult.value = `${type} 分析功能开发中，敬请期待。`
+    aiAnalysisLoading.value = false
+  }, 500)
+}
 
 let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)
@@ -177,6 +198,11 @@ const filteredDevices = computed(() => {
     result = result.filter(d => d.status === statusFilter.value)
   }
   return result
+})
+
+const pagedDevices = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredDevices.value.slice(start, start + pageSize.value)
 })
 
 const getStatusType = (status: string) => {
@@ -585,7 +611,7 @@ watch(() => themeStore.isDark, () => {
 .dt-total { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 
 /* Device Grid */
-.dt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.dt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .dt-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s; }
 .dt-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.05); transform: translateY(-1px); }
 .dt-card.running { border-left: 3px solid var(--success); }
@@ -611,10 +637,14 @@ watch(() => themeStore.isDark, () => {
 .dt-m-row { display: flex; gap: 12px; font-size: 12px; color: var(--text-primary); }
 .dt-m-row .t-red { color: var(--danger); font-weight: 600; }
 
-/* Pagination */
-.dt-page { display: flex; justify-content: center; margin-bottom: 16px; }
+/* Empty state */
+.dt-empty { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 14px; }
 
-/* Bottom */
+/* Pagination */
+.dt-page { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+
+/* Bottom - always at bottom */
+.dt-bottom-area { margin-top: auto; }
 .dt-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .dt-chart-box, .dt-alarm-box { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; }
 .dt-box-hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
