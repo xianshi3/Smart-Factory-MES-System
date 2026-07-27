@@ -130,7 +130,7 @@
           <el-button @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC</el-button>
           <el-button @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
           <el-button @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
-          <el-button type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI对话</el-button>
+          <el-button type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
         </div>
       </div>
     </el-dialog>
@@ -148,7 +148,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : currentAnalysisType === 'llm' ? 'AI助手' : 'AI分析'" width="600px" destroy-on-close>
+    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI建议'" width="600px" destroy-on-close>
       <div v-if="aiAnalysisLoading" class="dt-loading"><el-icon class="is-loading" size="32"><Loading /></el-icon><p>AI分析中...</p></div>
 
       <!-- SPC Result -->
@@ -245,12 +245,38 @@
         </div>
       </div>
 
-      <!-- LLM / Generic Result -->
-      <div v-else-if="aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-llm" v-if="currentAnalysisType === 'llm' && aiAnalysisResult.response">
-          {{ aiAnalysisResult.response }}
+      <!-- AI建议 Result -->
+      <div v-else-if="currentAnalysisType === 'llm' && aiAnalysisResult" class="dt-ai-advice">
+        <div class="dt-ai-advice-header">
+          <span class="dt-ai-advice-icon"><el-icon><Cpu /></el-icon></span>
+          <div>
+            <strong>{{ detailData?.name || '设备' }}</strong>
+            <span>AI 智能建议</span>
+          </div>
         </div>
+        <div v-if="aiAnalysisResult.response" class="dt-ai-advice-body">{{ aiAnalysisResult.response }}</div>
         <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
+          <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
+        </div>
+        <div v-else class="dt-ai-advice-body">
+          <div v-for="(v, k) in aiAnalysisResult" :key="k" class="dt-ai-advice-item">
+            <strong>{{ k }}</strong>
+            <p>{{ typeof v === 'string' ? v : JSON.stringify(v) }}</p>
+          </div>
+        </div>
+        <div class="dt-ai-advice-status">
+          <span class="dt-ai-status-row">
+            <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || 'running') }}</el-tag>
+            <span>温度 {{ detailData?.temperature ?? '--' }}°C</span>
+            <span>转速 {{ detailData?.speed ?? '--' }} rpm</span>
+            <span>功率 {{ detailData?.power ?? '--' }} kW</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Generic / Other Result -->
+      <div v-else-if="aiAnalysisResult" class="dt-ai-result">
+        <div v-if="aiAnalysisResult.success === false" class="dt-ai-warn">
           <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || '服务暂不可用' }}
         </div>
         <div v-else class="dt-ai-raw">{{ JSON.stringify(aiAnalysisResult, null, 2) }}</div>
@@ -468,7 +494,7 @@ const handleLLMChat = async () => {
       context: { device_code: d.code, temperature: d.temperature, speed: d.speed, power: d.power }
     })
     showAIResult('llm', res?.data || res)
-  } catch { aiAnalysisLoading.value = false; ElMessage.info('AI对话暂不可用，请配置API Key') }
+  } catch { aiAnalysisLoading.value = false; ElMessage.info('AI建议暂不可用，请配置API Key') }
 }
 
 onMounted(() => {
@@ -649,4 +675,17 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-ai-table-row .muted { color: var(--text-muted); font-size: 10px; }
 .dt-ai-llm { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.6; white-space: pre-wrap; }
 .dt-ai-raw { padding: 12px; background: var(--bg-hover); border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: var(--text-secondary); max-height: 400px; overflow-y: auto; }
+
+/* AI 建议 */
+.dt-ai-advice { }
+.dt-ai-advice-header { display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, var(--accent-light), transparent); border: 1px solid var(--accent-light); border-radius: 10px; margin-bottom: 14px; }
+.dt-ai-advice-header strong { display: block; font-size: 15px; color: var(--text-primary); }
+.dt-ai-advice-header span { font-size: 11px; color: var(--text-muted); }
+.dt-ai-advice-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; border-radius: 10px; }
+.dt-ai-advice-body { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.7; font-size: 13px; color: var(--text-primary); }
+.dt-ai-advice-item { margin-bottom: 12px; }
+.dt-ai-advice-item strong { display: block; font-size: 12px; color: var(--accent); margin-bottom: 4px; text-transform: capitalize; }
+.dt-ai-advice-item p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.dt-ai-advice-status { margin-top: 12px; }
+.dt-ai-status-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
 </style>
