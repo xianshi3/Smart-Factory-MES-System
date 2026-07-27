@@ -307,13 +307,6 @@ function buildMachine(device: any): THREE.Group {
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xdddddd, 0.12, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
-  // Glass door (fills the frame, semi-transparent)
-  const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.8, 1.4, 0.01),
-    new THREE.MeshPhysicalMaterial({ color: 0x88aacc, transparent: true, opacity: 0.4, roughness: 0, metalness: 0.05, depthWrite: false })
-  )
-  glass.position.set(0.05, 0.95, 0.86); glass.renderOrder = 999; root.add(glass)
-
   // door handles
   ;[-0.5, 0.6].forEach(hx => {
     const h = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), mat(0xd0d0d0, 0.1, 0.92))
