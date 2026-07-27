@@ -3,7 +3,7 @@
     <!-- ===== TOP BAR ===== -->
     <header class="dt-topbar">
       <div class="dt-topbar-left">
-        <span class="dt-logo">设备监控</span>
+        <span class="dt-logo"><el-icon><Monitor /></el-icon> 设备监控</span>
       </div>
       <div class="dt-topbar-stats" v-if="viewMode === 'list'">
         <span v-for="s in stats" :key="s.label" class="dt-stats-badge" :class="s.theme">
@@ -76,27 +76,43 @@
       <div v-if="viewMode === 'list'" class="dt-list-wrap">
         <div v-if="filteredDevices.length === 0" class="dt-empty"><el-empty description="暂无设备数据" :image-size="80" /></div>
         <div v-else class="dt-list-grid">
-          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dt-device-card" :class="'status-'+d.status" @click="handleDetail(d)">
-            <div class="dt-dc-head">
-              <span class="dt-dc-icon"><el-icon size="18"><Cpu /></el-icon></span>
-              <div class="dt-dc-info">
-                <span class="dt-dc-name">{{ d.name }}</span>
-                <span class="dt-dc-code">{{ d.code }}</span>
+          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dt-device-card" :class="'dc-'+d.status" @click="handleDetail(d)">
+            <div class="dc-top-bar"></div>
+            <div class="dc-head">
+              <div class="dc-head-left">
+                <span class="dc-avatar" :class="d.status"><el-icon size="20"><Cpu /></el-icon></span>
+                <div>
+                  <span class="dc-name">{{ d.name }}</span>
+                  <span class="dc-code">{{ d.code }}</span>
+                </div>
               </div>
-              <span class="dt-dc-badge" :class="d.status">{{ getStatusText(d.status) }}</span>
+              <span class="dc-badge" :class="d.status">{{ getStatusText(d.status) }}</span>
             </div>
-            <div class="dt-dc-body">
-              <div class="dt-dc-kpi"><label>温度</label><b :class="{ hot: d.temperature > 60 }">{{ d.temperature ?? '--' }}°C</b></div>
-              <div class="dt-dc-kpi"><label>转速</label><b>{{ d.speed ?? '--' }}</b></div>
-              <div class="dt-dc-kpi"><label>功率</label><b>{{ d.power ?? '--' }}kW</b></div>
-              <div class="dt-dc-kpi"><label>利用率</label><b>{{ d.utilization || '0%' }}</b></div>
+            <div class="dc-metrics">
+              <div class="dc-metric" :class="{ hot: d.temperature > 55, danger: d.temperature > 70 }">
+                <span class="dc-metric-val">{{ d.temperature ?? '--' }}<small>°C</small></span>
+                <span class="dc-metric-lbl">温度</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-metric-val">{{ d.speed || 0 }}<small>rpm</small></span>
+                <span class="dc-metric-lbl">转速</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-metric-val">{{ d.power ?? '--' }}<small>kW</small></span>
+                <span class="dc-metric-lbl">功率</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-metric-val">{{ d.utilization || '0%' }}</span>
+                <span class="dc-metric-lbl">利用率</span>
+              </div>
             </div>
-            <div class="dt-dc-bar"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
-            <div class="dt-dc-foot">
-              <el-button v-if="d.status==='running'||d.status==='ONLINE'" type="danger" size="small" link @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon></el-button>
-              <el-button v-if="d.status==='idle'||d.status==='OFFLINE'" type="success" size="small" link @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon></el-button>
-              <el-button type="primary" size="small" link @click.stop="handleCardPredict(d)"><el-icon><Cpu /></el-icon></el-button>
-              <el-button type="primary" size="small" link @click.stop="handleDetail(d)"><el-icon><Search /></el-icon></el-button>
+            <div class="dc-progress">
+              <div class="dc-progress-fill" :class="d.status" :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div>
+            </div>
+            <div class="dc-actions">
+              <el-button v-if="d.status==='running'||d.status==='ONLINE'" type="danger" size="small" round @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon> 停止</el-button>
+              <el-button v-if="d.status==='idle'||d.status==='OFFLINE'" type="success" size="small" round @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon> 启动</el-button>
+              <el-button type="primary" size="small" round plain @click.stop="handleCardPredict(d)"><el-icon><Cpu /></el-icon> 预测</el-button>
             </div>
           </div>
         </div>
@@ -548,7 +564,7 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 /* ===== TOP BAR ===== */
 .dt-topbar { display: flex; align-items: center; height: 40px; padding: 0 16px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
 .dt-topbar-left { flex-shrink: 0; }
-.dt-logo { font-size: 14px; font-weight: 700; color: var(--accent); }
+.dt-logo { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--accent); }
 .dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 2px; }
 .dt-stats-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; background: var(--bg-hover); color: var(--text-secondary); }
 .dt-stats-badge.primary .dt-badge-num { color: var(--accent); }
@@ -605,32 +621,46 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 /* ===== LIST VIEW ===== */
 .dt-list-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .dt-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
-.dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; padding: 10px; align-content: start; }
-.dt-device-card { position: relative; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; cursor: pointer; transition: all .15s; overflow: hidden; }
-.dt-device-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 8px 0 0 8px; transition: all .15s; }
-.dt-device-card.status-running::before { background: var(--success); }
-.dt-device-card.status-idle::before { background: var(--info); }
-.dt-device-card.status-fault::before { background: var(--danger); }
-.dt-device-card.status-maintenance::before { background: var(--warning); }
-.dt-device-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); border-color: var(--accent); }
-.dt-dc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.dt-dc-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border-radius: 6px; color: var(--text-secondary); flex-shrink: 0; }
-.dt-dc-info { flex: 1; min-width: 0; }
-.dt-dc-name { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dt-dc-code { font-size: 11px; color: var(--text-muted); }
-.dt-dc-badge { padding: 1px 7px; border-radius: 6px; font-size: 10px; font-weight: 600; flex-shrink: 0; }
-.dt-dc-badge.running { background: var(--success-light); color: var(--success); }
-.dt-dc-badge.idle { background: var(--info-light); color: var(--info); }
-.dt-dc-badge.fault { background: var(--danger-light); color: var(--danger); }
-.dt-dc-badge.maintenance { background: var(--warning-light); color: var(--warning); }
-.dt-dc-body { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px; }
-.dt-dc-kpi { text-align: center; }
-.dt-dc-kpi label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 1px; }
-.dt-dc-kpi b { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.dt-dc-kpi b.hot { color: var(--danger); }
-.dt-dc-bar { height: 3px; background: var(--border-color); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
-.dt-dc-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
-.dt-dc-foot { display: flex; gap: 2px; flex-wrap: wrap; }
+.dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 14px; align-content: start; }
+
+.dt-device-card { position: relative; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 0; cursor: pointer; transition: all .2s; overflow: hidden; }
+.dt-device-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,.1); border-color: var(--accent); }
+.dc-top-bar { height: 3px; }
+.dc-top-bar { background: var(--border-color); }
+.dt-device-card.dc-running .dc-top-bar { background: var(--success); }
+.dt-device-card.dc-idle .dc-top-bar { background: var(--info); }
+.dt-device-card.dc-fault .dc-top-bar { background: var(--danger); }
+.dt-device-card.dc-maintenance .dc-top-bar { background: var(--warning); }
+
+.dc-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 10px; }
+.dc-head-left { display: flex; align-items: center; gap: 10px; }
+.dc-avatar { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; }
+.dc-avatar.running { background: var(--success-light); color: var(--success); }
+.dc-avatar.idle { background: var(--info-light); color: var(--info); }
+.dc-avatar.fault { background: var(--danger-light); color: var(--danger); }
+.dc-avatar.maintenance { background: var(--warning-light); color: var(--warning); }
+.dc-name { display: block; font-size: 15px; font-weight: 700; color: var(--text-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-code { font-size: 11px; color: var(--text-muted); }
+.dc-badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.dc-badge.running { background: var(--success-light); color: var(--success); }
+.dc-badge.idle { background: var(--info-light); color: var(--info); }
+.dc-badge.fault { background: var(--danger-light); color: var(--danger); }
+.dc-badge.maintenance { background: var(--warning-light); color: var(--warning); }
+
+.dc-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 0 14px; margin-bottom: 12px; }
+.dc-metric { text-align: center; padding: 8px 2px; border-radius: 8px; }
+.dc-metric-val { display: block; font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.dc-metric-val small { font-size: 10px; font-weight: 500; color: var(--text-muted); }
+.dc-metric.hot .dc-metric-val { color: var(--warning); }
+.dc-metric.danger .dc-metric-val { color: var(--danger); }
+.dc-metric-lbl { font-size: 10px; color: var(--text-muted); }
+
+.dc-progress { height: 5px; background: var(--border-color); margin: 0 14px 12px; border-radius: 3px; overflow: hidden; }
+.dc-progress-fill { height: 100%; border-radius: 3px; transition: width .6s; min-width: 4px; background: var(--accent); }
+.dc-progress-fill.running { background: linear-gradient(90deg, var(--success), #4ade80); }
+.dc-progress-fill.fault { background: linear-gradient(90deg, var(--danger), #f87171); }
+
+.dc-actions { display: flex; gap: 6px; padding: 0 14px 14px; }
 .dt-list-pager { display: flex; justify-content: center; padding: 6px; flex-shrink: 0; }
 
 /* ===== DIALOGS ===== */
