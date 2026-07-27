@@ -96,7 +96,7 @@ html.light {
 /* Reset & Base */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, select, textarea, table, td, th {
+body {
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -106,6 +106,7 @@ html, body {
   width: 100%; height: 100%;
   background-color: var(--bg-app);
   color: var(--text-primary);
+  font-family: inherit;
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
