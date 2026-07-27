@@ -6,7 +6,7 @@
           <el-icon><Monitor /></el-icon>
           设备监控中心
         </h1>
-        <p class="page-subtitle">实时监控 · 智能预警 · 预测性维护</p>
+        <span class="page-desc">实时监控 · 智能预警 · 预测性维护</span>
       </div>
       <div class="header-actions">
         <el-button type="primary" @click="refresh">
@@ -16,8 +16,8 @@
       </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat-item" v-for="(stat, index) in stats" :key="stat.label" :style="{ animationDelay: `${index * 0.1}s` }">
+    <div class="stats-grid">
+      <div class="stat-item" v-for="(stat, index) in stats" :key="stat.label">
         <div class="stat-icon" :class="stat.theme">
           <el-icon size="22"><component :is="stat.icon" /></el-icon>
         </div>
@@ -144,7 +144,6 @@
           :key="device.id || index"
           class="device-card"
           :class="`status-${device.status}`"
-          :style="{ animationDelay: `${index * 0.05}s` }"
         >
           <div class="device-header">
             <div class="device-icon">
@@ -362,10 +361,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
+const chartTheme = useChartTheme()
 
 const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
@@ -501,13 +502,10 @@ const updateCharts = () => {
     return
   }
   
-  const isDark = themeStore.isDark
-  const textColor = isDark ? '#fff' : '#333'
-  const lineColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-  const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
-  const splitLineColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+  const t = chartTheme.value
+  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
   const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
+  const borderColor = lineColor
 
   // Device utilization - top 8 devices only
   const topDevices = [...deviceList.value].sort((a, b) => {
@@ -759,7 +757,6 @@ onMounted(() => {
         temperature: item.temperature || Math.floor(Math.random() * 30 + 25),
         power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0
       }))
-      updateStats()
       updateCharts()
     }
   })
@@ -783,33 +780,6 @@ watch(() => themeStore.isDark, () => {
 <style scoped>
 .device-page { padding: 0; }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.page-title .el-icon { color: var(--accent); }
-.page-subtitle { color: var(--text-muted); font-size: 14px; }
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
 
 .stat-item {
   display: flex;
@@ -819,8 +789,6 @@ watch(() => themeStore.isDark, () => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px;
-  animation: fadeInUp 0.5s ease forwards;
-  opacity: 0;
 }
 
 .stat-icon {
@@ -944,8 +912,6 @@ watch(() => themeStore.isDark, () => {
   border-radius: var(--radius-lg);
   padding: 18px;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .device-card:hover {
@@ -1269,6 +1235,6 @@ html.light .device-card { box-shadow: var(--shadow-sm); }
 }
 
 @media (max-width: 1200px) {
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  :deep(.stats-grid) { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

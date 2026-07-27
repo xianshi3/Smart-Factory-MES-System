@@ -318,10 +318,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useThemeStore } from '@/stores/theme'
 import { Setting, Monitor, Document, Cpu, CircleCheck, Bell, DataAnalysis, InfoFilled, Moon, Sunny } from '@element-plus/icons-vue'
+import request from '@/api'
 
 const themeStore = useThemeStore()
 
@@ -335,8 +336,11 @@ const isDark = computed({
 })
 
 const handleThemeChange = () => {
+  saveSettings()
   ElMessage.success('主题切换成功')
 }
+
+const loading = ref(false)
 
 const settings = reactive({
   compactMode: false,
@@ -360,11 +364,35 @@ const settings = reactive({
   dataRetention: 90,
   logLevel: 'INFO'
 })
+
+const loadSettings = async () => {
+  loading.value = true
+  try {
+    const res = await request({ url: '/auth/settings', method: 'get' })
+    Object.assign(settings, res?.data || {})
+  } catch (e) {
+    // ignore, use defaults
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveSettings = async () => {
+  try {
+    await request({ url: '/auth/settings', method: 'put', data: settings })
+    ElMessage.success('设置已保存')
+  } catch (e) {
+    ElMessage.error('保存设置失败')
+  }
+}
+
+onMounted(() => {
+  loadSettings()
+})
 </script>
 
 <style scoped>
 .settings-container {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }

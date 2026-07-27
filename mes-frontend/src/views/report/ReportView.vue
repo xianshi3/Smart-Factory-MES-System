@@ -2,11 +2,11 @@
   <div class="report-container">
     <div class="page-header">
       <div class="header-left">
-        <div class="header-title">
+        <div class="page-title">
           <el-icon size="24"><DataAnalysis /></el-icon>
           <h1>生产报表</h1>
         </div>
-        <p class="header-subtitle">产量统计 · 良品率分析 · OEE监控</p>
+        <p class="page-desc">产量统计 · 良品率分析 · OEE监控</p>
       </div>
       <div class="header-actions">
         <el-button type="primary" @click="handleExport">
@@ -129,9 +129,11 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { DataAnalysis, Download, Refresh, TrendCharts, List, Coin, CircleCheck, Warning, Odometer, Search } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
+const chartTheme = useChartTheme()
 const loading = ref(false)
 const tableData = ref<any[]>([])
 const searchForm = reactive({ dateRange: [] as string[] })
@@ -194,12 +196,10 @@ const loadData = async () => {
 }
 
 const updateChart = () => {
-  const isDark = themeStore.isDark
-  const textColor = isDark ? '#fff' : '#333'
-  const lineColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-  const splitLineColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+  const t = chartTheme.value
+  const { isDark, textColor, lineColor, splitLineColor } = t
   const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
+  const borderColor = lineColor
 
   outputChart.value = {
     tooltip: { 
@@ -253,7 +253,20 @@ const handleReset = () => {
 }
 
 const handleExport = () => {
-  ElMessage.success('报表导出功能开发中')
+  if (!tableData.value || tableData.value.length === 0) {
+    ElMessage.warning('无数据可导出')
+    return
+  }
+  const headers = Object.keys(tableData.value[0] || {})
+  const csv = [headers.join(','), ...tableData.value.map(r => headers.map(h => `"${String(r[h] || '')}"`).join(','))].join('\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `生产报表_${new Date().toISOString().slice(0,10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('报表已导出为 CSV')
 }
 
 onMounted(() => { loadData() })
@@ -261,45 +274,10 @@ onMounted(() => { loadData() })
 
 <style scoped>
 .report-container {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.header-left {}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-}
-
-.header-title h1 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.header-title .el-icon { color: var(--accent); }
-
-.header-subtitle {
-  color: var(--text-muted);
-  font-size: 13px;
-  margin-top: 4px;
-  margin-left: 36px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
 
 .filter-bar {
   display: flex;
@@ -331,7 +309,6 @@ onMounted(() => { loadData() })
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
-  animation: fadeInUp 0.5s ease both;
 }
 
 .stat-icon {

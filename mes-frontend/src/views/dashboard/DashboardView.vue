@@ -79,15 +79,17 @@ import VChart from 'vue-echarts'
 import { getDeviceStatus } from '@/api/dashboard'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import StatCard from '@/components/common/StatCard.vue'
+
+const themeStore = useThemeStore()
+const chartTheme = useChartTheme()
 import DeviceCard from '@/components/common/DeviceCard.vue'
 import ChartCard from '@/components/common/ChartCard.vue'
 import { Refresh, Monitor, TrendCharts, PieChart } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
-const themeStore = useThemeStore()
-
 const currentTime = ref('')
 const currentDate = ref('')
 const devices = ref<any[]>([])
@@ -134,13 +136,10 @@ const refresh = async () => {
 }
 
 const updateCharts = () => {
-  const isDark = themeStore.isDark
-  const textColor = isDark ? '#fff' : '#333'
-  const lineColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-  const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
-  const splitLineColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+  const t = chartTheme.value
+  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
   const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#ddd'
+  const borderColor = lineColor
 
   const deviceNames = devices.value.map(d => d.device_code || d.deviceName || '设备')
   const speeds = devices.value.map(d => d.speed || 0)

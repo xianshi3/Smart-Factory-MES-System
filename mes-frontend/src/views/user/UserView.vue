@@ -241,23 +241,10 @@ onMounted(() => {
 
 <style scoped>
 .page-wrapper {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.header-left { display: flex; align-items: center; gap: 16px; }
-.page-title { display: flex; align-items: center; gap: 10px; }
-.page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); }
-.page-title .el-icon { font-size: 24px; color: var(--accent); }
-.page-desc { font-size: 13px; color: var(--text-muted); }
 
 .user-list {
   display: grid;

@@ -34,7 +34,6 @@
         v-for="(row, index) in tableData" 
         :key="row.id" 
         class="order-card"
-        :style="{ animationDelay: `${index * 0.05}s` }"
       >
         <div class="card-header">
           <span class="order-no">{{ row.orderNo }}</span>
@@ -251,8 +250,9 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getWorkOrderPage({ current: pagination.page, size: pagination.size, status: searchForm.status, keyword: searchForm.keyword })
-    tableData.value = res.data.records || []
-    pagination.total = res.data.total || 0
+    console.log('[WorkOrder] loadData res:', res)
+    tableData.value = res?.data?.records || []
+    pagination.total = res?.data?.total || 0
   } catch (error) { console.error('Failed to load:', error) }
   finally { loading.value = false }
 }
@@ -340,7 +340,6 @@ onMounted(() => { loadData() })
 
 <style scoped>
 .page-wrapper {
-  padding: 24px;
   background: var(--bg-app);
   min-height: 100%;
 }
@@ -357,8 +356,6 @@ onMounted(() => { loadData() })
   padding: 18px;
   cursor: pointer;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .order-card:hover {

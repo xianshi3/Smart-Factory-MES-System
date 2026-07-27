@@ -161,29 +161,4 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-wrapper {
-  padding: 20px;
-}
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.header-left {
-  display: flex;
-  flex-direction: column;
-}
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 600;
-}
-.page-desc {
-  color: #999;
-  font-size: 14px;
-  margin-top: 4px;
-}
 </style>
