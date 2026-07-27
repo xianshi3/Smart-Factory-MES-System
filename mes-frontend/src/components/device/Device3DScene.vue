@@ -24,21 +24,14 @@ let raycaster = new THREE.Raycaster()
 let mouse = new THREE.Vector2()
 
 function createFactoryFloor(bgColor: number, gridColor: number) {
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 30),
-    new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      roughness: 0.8,
-      metalness: 0.2,
-      transparent: true,
-      opacity: 0.9
-    })
-  )
+  const floorMat = new THREE.MeshStandardMaterial({ color: bgColor, roughness: 0.8, metalness: 0.2, transparent: true, opacity: 0.9 })
+  floorMat.color.setHex(bgColor)
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), floorMat)
   floor.rotation.x = -Math.PI / 2
   floor.receiveShadow = true
   scene.add(floor)
 
-  const grid = new THREE.GridHelper(40, 20, 0x2a2a4e, 0x1a1a3e)
+  const grid = new THREE.GridHelper(40, 20, gridColor, gridColor)
   grid.position.y = 0.02
   scene.add(grid)
 
@@ -46,12 +39,7 @@ function createFactoryFloor(bgColor: number, gridColor: number) {
     for (let j = -12; j <= 12; j += 6) {
       const marker = new THREE.Mesh(
         new THREE.PlaneGeometry(5.2, 5.2),
-        new THREE.MeshBasicMaterial({
-          color: 0x0d0d1a,
-          transparent: true,
-          opacity: 0.5,
-          side: THREE.DoubleSide
-        })
+        new THREE.MeshBasicMaterial({ color: bgColor, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
       )
       marker.rotation.x = -Math.PI / 2
       marker.position.set(i, 0.01, j)
@@ -228,6 +216,19 @@ watch(() => themeStore.isDark, () => {
   if (!scene) return
   scene.background = new THREE.Color(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5)
   scene.fog = new THREE.Fog(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5, 30, 50)
+  const bg = themeStore.isDark ? 0x1a1a2e : 0xe0e0e8
+  const gd = themeStore.isDark ? 0x2a2a4e : 0xc0c0d0
+  scene.traverse((c) => {
+    if (c instanceof THREE.Mesh && c.material instanceof THREE.MeshStandardMaterial) {
+      if (c.material.color.getHex() === 0x1a1a2e || c.material.color.getHex() === 0xe0e0e8) c.material.color.setHex(bg)
+    }
+    if (c instanceof THREE.GridHelper) {
+      scene.remove(c)
+      const ng = new THREE.GridHelper(40, 20, gd, gd)
+      ng.position.y = 0.02
+      scene.add(ng)
+    }
+  })
 })
 
 onMounted(() => {
