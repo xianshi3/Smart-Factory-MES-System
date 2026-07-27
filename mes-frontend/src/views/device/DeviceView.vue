@@ -127,6 +127,7 @@
           <el-icon><CircleCheck /></el-icon> 设备运行正常 · 预测未来24小时内无需维护 · 置信度95%
         </div>
         <div class="dt-dlg-ai-btns">
+          <el-button type="warning" @click="handlePredict(detailData)"><el-icon><Cpu /></el-icon> 故障预测</el-button>
           <el-button @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC</el-button>
           <el-button @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
           <el-button @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
