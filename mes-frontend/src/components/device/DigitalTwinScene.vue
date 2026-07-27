@@ -56,16 +56,16 @@ function buildMachine(device: any): THREE.Group {
   const hex = '#' + c.toString(16).padStart(6, '0')
 
   const root = new THREE.Group()
-  const metal = 0x3a3a4c
-  const dark = 0x2a2a3a
-  const light = 0x4a4a5c
+  const metal = 0x4a4a5a
+  const dark = 0x333342
+  const light = 0x5a5a6a
 
   // Base
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 1.6), mat(dark, 0.6, 0.5)))
   root.children[0].position.y = 0.04
 
   // Body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), mat(metal, 0.4, 0.6))
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), mat(metal, 0.35, 0.65))
   body.position.y = 0.63; body.castShadow = true; root.add(body)
 
   // Front trim
@@ -102,7 +102,7 @@ function buildMachine(device: any): THREE.Group {
   root.children[root.children.length - 1].position.set(0.55, 0.52, 0.555)
 
   // Spindle head
-  const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.25, 12), mat(c, 0.2, 0.7, g, 0.05))
+  const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.25, 12), mat(c, 0.15, 0.8, g, 0.05))
   sp.position.set(0.35, 1.3, 0); sp.castShadow = true; root.add(sp)
 
   // Shaft
@@ -247,8 +247,8 @@ watch(() => themeStore.isDark, (val) => {
     root.traverse(c => {
       if (c instanceof THREE.Mesh && c.material instanceof THREE.MeshStandardMaterial) {
         const clr = c.material.color.getHex()
-        if (clr === 0x3a3a4c || clr === 0x2a2a3a || clr === 0x4a4a5c || clr === 0x323248 || clr === 0x222238 || clr === 0x1e1e32) {
-          c.material.color.setHex(val ? Math.max(clr - 0x080808, 0x111122) : clr)
+        if (clr === 0x4a4a5a || clr === 0x333342 || clr === 0x5a5a6a || clr === 0x323248 || clr === 0x222238 || clr === 0x1e1e32) {
+          c.material.color.setHex(val ? Math.max(clr - 0x060606, 0x222230) : clr)
         }
       }
     })
