@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout-root">
     <!-- ===== 左侧菜单 ===== -->
-    <el-aside :width="isCollapse ? '56px' : '210px'" class="sidebar">
+    <el-aside class="sidebar" :class="{ collapsed: isCollapse }">
       <div class="sidebar-header">
         <div class="brand-icon">
           <el-icon :size="18"><Cpu /></el-icon>
@@ -256,8 +256,9 @@ const handleCommand = (cmd: string) => {
 .layout-root { width: 100%; height: 100vh; background: var(--bg-app); }
 
 /* ===== SIDEBAR ===== */
-.sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.2s ease; overflow: hidden; z-index: 10; }
-.el-menu--collapse { width: 56px !important; }
+.sidebar { width: 210px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.25s cubic-bezier(0.4,0,0.2,1); overflow: hidden; z-index: 10; flex-shrink: 0; }
+.sidebar.collapsed { width: 56px; }
+.el-menu--collapse { width: 100% !important; }
 
 .sidebar-header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); position: relative; }
 .brand-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 6px; color: #fff; flex-shrink: 0; }
