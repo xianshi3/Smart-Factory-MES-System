@@ -261,7 +261,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
 
 // ─── lighting ───
 function buildLighting(s: THREE.Scene, dark: boolean) {
-  s.add(new THREE.AmbientLight(dark ? 0xaaaaaa : 0xeeeeee, 0.8))
+  s.add(new THREE.AmbientLight(dark ? 0xbbbbbb : 0xf0f0f0, 0.85))
   const key = new THREE.DirectionalLight(dark ? 0xffffff : 0xffffff, 1.8)
   key.position.set(14, 20, 10)
   key.castShadow = true
@@ -309,38 +309,44 @@ function buildMachine(device: any): THREE.Group {
     h.position.set(hx, 0.92, 0.88); root.add(h)
   })
 
-  // ── main cabinet body (bright silver, metalness lowered) ──
+  // ── main cabinet body ──
   const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.35), mat(0xe0e0e0, 0.35, 0.6))
   body.position.set(0, 1.04, -0.15); body.castShadow = true; root.add(body)
 
-  // ── front door frame ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xaaaaaa, 0.12, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
+  // ── Door frame (top/bottom bars) ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 1.68, 0.86)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 0.22, 0.86)
+  // left/right bars
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(-0.87, 0.95, 0.86)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(0.97, 0.95, 0.86)
 
   // Glass door
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.8, 1.4, 0.01),
-    new THREE.MeshPhysicalMaterial({ color: 0x88aacc, transparent: true, opacity: 0.4, roughness: 0, metalness: 0.05, depthWrite: false })
+    new THREE.BoxGeometry(1.76, 1.36, 0.01),
+    new THREE.MeshPhysicalMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.5, roughness: 0.05, metalness: 0.05, depthWrite: false })
   )
   glass.position.set(0.05, 0.95, 0.86); glass.renderOrder = 999; root.add(glass)
 
-  // ── interior (positioned in the front opening, visible through glass) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.06, 0.5), mat(0xa0a0a0, 0.2, 0.97)))
-  root.children[root.children.length - 1].position.set(0.05, 0.5, 0.6)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.07, 0.18), mat(0xaaaaaa, 0.15, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.56, 0.6)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.16), mat(0xeeaa55, 0.5, 0.3)))
-  root.children[root.children.length - 1].position.set(0.05, 0.68, 0.6)
+  // ── interior (visible through glass) ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.45), mat(0xb0b0b0, 0.2, 0.95)))
+  root.children[root.children.length - 1].position.set(0.05, 0.48, 0.65)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 0.16), mat(0xbbbbbb, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 0.54, 0.65)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.14), mat(0xeeaa55, 0.5, 0.3)))
+  root.children[root.children.length - 1].position.set(0.05, 0.65, 0.65)
 
   // spindle (animated)
   const spindle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.11, 0.3, 12),
+    new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
     mat(c, 0.06, 0.98, g, 0.25)
   )
-  spindle.position.set(0.05, 0.82, 0.4); spindle.castShadow = true; root.add(spindle)
-  // tool
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.12, 8), mat(0xb8b8b8, 0.1, 0.92)))
-  root.children[root.children.length - 1].position.set(0.05, 0.62, 0.4)
+  spindle.position.set(0.05, 0.8, 0.5); spindle.castShadow = true; root.add(spindle)
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.1, 8), mat(0xbbbbbb, 0.1, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 0.6, 0.5)
 
   // ── control panel (right side, attached to cabinet) ──
   const pnl = new THREE.Group()
@@ -617,7 +623,7 @@ watch(() => themeStore.isDark, (dark) => {
   clearFactory()
   buildFactory(lastDeviceCount || 5, dark)
   S.scene.traverse(c => {
-    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0xaaaaaa : 0xeeeeee)
+    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0xbbbbbb : 0xf0f0f0)
     if (c instanceof THREE.HemisphereLight) c.color.setHex(dark ? 0x888888 : 0xaaaaaa)
   })
 })
