@@ -49,12 +49,6 @@
         </el-menu>
       </div>
 
-      <div v-show="!isCollapse" class="sidebar-footer">
-        <div class="collapse-btn-simple" @click="toggleCollapse">
-          <el-icon><ArrowLeft /></el-icon>
-          <span>收起菜单</span>
-        </div>
-      </div>
     </el-aside>
 
     <!-- ===== 主区域 ===== -->
@@ -298,10 +292,6 @@ const handleCommand = (cmd: string) => {
 .el-menu--collapse .el-menu-item span { display: none; }
 
 .item-badge { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
-
-.sidebar-footer { flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 4px 6px; }
-.collapse-btn-simple { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; color: var(--text-muted); font-size: 12px; cursor: pointer; }
-.collapse-btn-simple:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.15s ease; }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateX(-6px); }
