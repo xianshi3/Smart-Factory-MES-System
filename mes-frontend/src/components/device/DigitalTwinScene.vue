@@ -24,101 +24,99 @@ let deviceRoots: THREE.Group[] = []
 let raycaster = new THREE.Raycaster()
 let mouse = new THREE.Vector2()
 
-const CLR: Record<string, number> = { ONLINE: 0x22c55e, FAULT: 0xef4444, OFFLINE: 0x6b7280, MAINTENANCE: 0xf59e0b }
-const GLW: Record<string, number> = { ONLINE: 0x166534, FAULT: 0x7f1d1d, OFFLINE: 0x0, MAINTENANCE: 0x78350f }
-const STXT: Record<string, string> = { ONLINE: '运行中', FAULT: '故障', OFFLINE: '离线', MAINTENANCE: '维护中' }
+const ST = (s: string) => (s || 'ONLINE').toUpperCase()
+const CLR: Record<string, number> = { ONLINE: 0x34c759, FAULT: 0xff3b30, OFFLINE: 0x8e8e93, MAINTENANCE: 0xff9500 }
+const GLW: Record<string, number> = { ONLINE: 0x1a7a3a, FAULT: 0x7a1a1a, OFFLINE: 0x0, MAINTENANCE: 0x7a3a00 }
+const TXT: Record<string, string> = { ONLINE: '正常', FAULT: '故障', OFFLINE: '离线', MAINTENANCE: '维护' }
 
-function mat(c: number, r = 0.3, m = 0.7, e = 0, ei = 0) {
+function mat(c: number, r = 0.3, m = 0.4, e = 0, ei = 0) {
   return new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m, emissive: e, emissiveIntensity: ei })
 }
 
 function label(text: string, border: string): CSS2DObject {
   const d = document.createElement('div')
   d.textContent = text
-  d.style.cssText = `color:${border};font-size:12px;font-weight:600;font-family:-apple-system,sans-serif;
-text-shadow:0 1px 4px rgba(0,0,0,.8);background:rgba(0,0,0,.65);padding:2px 8px;border-radius:4px;
-border:1px solid ${border};white-space:nowrap;pointer-events:none`
+  d.style.cssText = `color:#fff;font-size:11px;font-weight:500;font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+padding:3px 10px;border-radius:6px;border:1px solid ${border};white-space:nowrap;pointer-events:none;
+box-shadow:0 2px 8px rgba(0,0,0,.3)`
   return new CSS2DObject(d)
 }
 
-function build(device: any): THREE.Group {
-  const st = (device.status || 'ONLINE').toUpperCase()
+function buildMachine(device: any): THREE.Group {
+  const st = ST(device.status)
   const c = CLR[st] || 0x6366f1
-  const g = GLW[st] || 0x312e81
+  const g = GLW[st] || 0x0
   const hex = '#' + c.toString(16).padStart(6, '0')
 
   const root = new THREE.Group()
-  const dark = 0x161630
-  const bodyC = 0x2a2a48
+  const metal = 0x3a3a4c
+  const dark = 0x2a2a3a
+  const light = 0x4a4a5c
 
   // Base
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 2.0), mat(dark, 0.6, 0.3)))
-  root.children[0].position.y = 0.05
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 1.6), mat(dark, 0.6, 0.5)))
+  root.children[0].position.y = 0.04
 
-  // Main chassis
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 1.6), mat(bodyC, 0.3, 0.75))
-  body.position.y = 0.75; body.castShadow = true; root.add(body)
+  // Body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), mat(metal, 0.4, 0.6))
+  body.position.y = 0.63; body.castShadow = true; root.add(body)
 
-  // Door cutout (darker panel on front)
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.02), mat(0x1a1a35, 0.5, 0.5))
-  door.position.set(0, 0.7, 0.81); root.add(door)
+  // Front trim
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.02, 0.01), mat(light)))
+  root.children[root.children.length - 1].position.set(0, 0.85, 0.61)
 
-  // Window on door
-  const win = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.01), new THREE.MeshPhysicalMaterial({
-    color: 0x88ccff, transparent: true, opacity: 0.3, roughness: 0, metalness: 0, envMapIntensity: 0
-  }))
-  win.position.set(0, 0.7, 0.82); root.add(win)
+  // Door panel
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.01), mat(0x323248)))
+  root.children[root.children.length - 1].position.set(0, 0.58, 0.61)
+
+  // Window
+  const win = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.01),
+    new THREE.MeshPhysicalMaterial({ color: 0xaaccff, transparent: true, opacity: 0.25, roughness: 0, metalness: 0, clearcoat: 0.1 }))
+  win.position.set(0, 0.6, 0.615); root.add(win)
 
   // Handle
-  const hdl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.04), mat(0x8888aa, 0.2, 0.9))
-  hdl.position.set(0.55, 0.7, 0.83); root.add(hdl)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.015, 0.025), mat(0x666688, 0.2, 0.8)))
+  root.children[root.children.length - 1].position.set(0.4, 0.6, 0.62)
 
-  // Control panel right side
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.5), mat(0x222245, 0.3, 0.6))
-  panel.position.set(0.75, 0.7, 0.5); root.add(panel)
+  // Control panel
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.01), mat(0x1e1e32)))
+  root.children[root.children.length - 1].position.set(0.55, 0.58, 0.55)
 
   // Screen
-  const scr = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.01), new THREE.MeshBasicMaterial({ color: 0x00ff88 }))
-  scr.position.set(0.75, 0.8, 0.52); root.add(scr)
+  const scr = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.005), new THREE.MeshBasicMaterial({ color: 0x30d158 }))
+  scr.position.set(0.55, 0.65, 0.555); root.add(scr)
 
-  // Buttons on panel
-  for (let i = 0; i < 3; i++) {
-    const btn = new THREE.Mesh(new THREE.CircleGeometry(0.03, 6), mat(i === 0 ? 0xef4444 : 0x444466))
-    btn.position.set(0.68 + i * 0.07, 0.65, 0.52); root.add(btn)
-  }
+  // Red button
+  root.add(new THREE.Mesh(new THREE.CircleGeometry(0.025, 8), mat(0xff3b30)))
+  root.children[root.children.length - 1].position.set(0.47, 0.52, 0.555)
+
+  // Green button
+  root.add(new THREE.Mesh(new THREE.CircleGeometry(0.025, 8), mat(0x34c759)))
+  root.children[root.children.length - 1].position.set(0.55, 0.52, 0.555)
 
   // Spindle head
-  const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.35, 16), mat(c, 0.15, 0.9, g, 0.08))
-  sh.position.set(0.5, 1.55, 0); sh.castShadow = true; root.add(sh)
+  const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.25, 12), mat(c, 0.2, 0.7, g, 0.05))
+  sp.position.set(0.35, 1.3, 0); sp.castShadow = true; root.add(sp)
 
-  // Spindle shaft
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6), mat(0x8888aa, 0.2, 0.9))
-  shaft.position.set(0.5, 1.15, 0); root.add(shaft)
-
-  // Tool
-  root.add(new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 4), mat(0xccccdd)))
-  root.children[root.children.length - 1].position.set(0.5, 0.88, 0)
+  // Shaft
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), mat(0x8888aa, 0.2, 0.8)))
+  root.children[root.children.length - 1].position.set(0.35, 1.0, 0)
 
   // Column
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.0, 0.25), mat(dark, 0.5, 0.5)))
-  root.children[root.children.length - 1].position.set(-0.75, 0.55, 0)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.85, 0.18), mat(0x222238)))
+  root.children[root.children.length - 1].position.set(-0.55, 0.48, 0)
 
-  // Ventilation slots on side
-  for (let i = 0; i < 4; i++) {
-    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.15), mat(dark))
-    slot.position.set(1.01, 0.35 + i * 0.12, 0); root.add(slot)
-  }
+  // LED
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9 }))
+  led.position.set(0.45, 1.45, 0.35); root.add(led)
 
-  // Status LED
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9 }))
-  led.position.set(0.6, 1.65, 0.55); root.add(led)
-
-  // Name label
+  // Label
   const lblObj = label(
-    (device.deviceName || device.deviceCode || '设备') + ' ' + STXT[st] || '',
+    (device.deviceName || device.deviceCode || '设备') + ' · ' + (TXT[st] || ''),
     hex
   )
-  lblObj.position.set(0, 2.2, 0)
+  lblObj.position.set(0, 1.9, 0)
   root.add(lblObj)
 
   root.userData = { device }
@@ -129,12 +127,12 @@ function init() {
   if (!containerRef.value) return
   const d = themeStore.isDark
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(d ? 0x080818 : 0xe8eaed)
+  scene.background = new THREE.Color(d ? 0x1c1c1e : 0xf2f2f7)
 
   const w = containerRef.value.clientWidth
   const h = containerRef.value.clientHeight
-  camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100)
-  camera.position.set(16, 10, 16)
+  camera = new THREE.PerspectiveCamera(30, w / h, 0.1, 100)
+  camera.position.set(18, 12, 18)
 
   webgl = new THREE.WebGLRenderer({ antialias: true })
   webgl.setSize(w, h)
@@ -142,7 +140,7 @@ function init() {
   webgl.shadowMap.enabled = true
   webgl.shadowMap.type = THREE.PCFSoftShadowMap
   webgl.toneMapping = THREE.ACESFilmicToneMapping
-  webgl.toneMappingExposure = 0.9
+  webgl.toneMappingExposure = 1.0
   webgl.outputColorSpace = THREE.SRGBColorSpace
   containerRef.value.appendChild(webgl.domElement)
 
@@ -152,43 +150,38 @@ function init() {
   containerRef.value.appendChild(lbl.domElement)
 
   controls = new OrbitControls(camera, webgl.domElement)
-  controls.enableDamping = true; controls.dampingFactor = 0.06
-  controls.minDistance = 6; controls.maxDistance = 35
+  controls.enableDamping = true; controls.dampingFactor = 0.05
+  controls.minDistance = 8; controls.maxDistance = 40
   controls.maxPolarAngle = Math.PI / 2.1
-  controls.target.set(0, 0.6, 0); controls.update()
+  controls.target.set(0, 0.5, 0); controls.update()
 
-  const bg = d ? 0x0e0e1a : 0xd0d2d8
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 22), mat(bg, 0.9, 0.1))
+  const bg = d ? 0x1c1c1e : 0xf2f2f7
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(32, 24), mat(bg, 0.9, 0))
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
-  const grid = new THREE.GridHelper(28, 14, d ? 0x1a1a3a : 0xb0b0c0, d ? 0x11112a : 0xa0a0b0)
+  const grid = new THREE.GridHelper(30, 15, d ? 0x38383a : 0xc7c7cc, d ? 0x2c2c2e : 0xd1d1d6)
   grid.position.y = 0.01; scene.add(grid)
 
-  scene.add(new THREE.AmbientLight(d ? 0x222244 : 0x8888aa, 0.6))
-  const main = new THREE.DirectionalLight(0xffeedd, 1.8)
-  main.position.set(10, 15, 8); main.castShadow = true; main.shadow.mapSize.set(1024, 1024); scene.add(main)
-  const fill = new THREE.DirectionalLight(d ? 0x4444ff : 0x8888dd, 0.3)
-  fill.position.set(-8, 6, -10); scene.add(fill)
+  scene.add(new THREE.AmbientLight(d ? 0x3a3a3c : 0xccccdd, 0.5))
+  const main = new THREE.DirectionalLight(themeStore.isDark ? 0xffeedd : 0xffffff, 1.5)
+  main.position.set(12, 18, 10); main.castShadow = true; main.shadow.mapSize.set(2048, 2048); scene.add(main)
+  const rim = new THREE.DirectionalLight(0x8888ff, 0.4)
+  rim.position.set(-8, 6, -10); scene.add(rim)
+  scene.add(new THREE.HemisphereLight(d ? 0x4444aa : 0xaaaaff, d ? 0x222244 : 0x8888aa, 0.3))
 
   animate()
 }
 
 function refresh(devices: any[]) {
-  // Clean old labels first (CSS2DObject DOM needs manual removal)
   deviceRoots.forEach(g => {
-    g.traverse(c => {
-      if (c instanceof CSS2DObject && c.element?.parentNode) {
-        c.element.parentNode.removeChild(c.element)
-      }
-    })
+    g.traverse(c => { if (c instanceof CSS2DObject && c.element?.parentNode) c.element.parentNode.removeChild(c.element) })
     scene.remove(g)
   })
   deviceRoots = []
-
   const cols = 5; const sx = 4.5; const sz = 4
   const ox = -((Math.min(devices.length, cols) - 1) * sx) / 2
   const oz = -((Math.ceil(devices.length / cols) - 1) * sz) / 2
   devices.forEach((d, i) => {
-    const g = build(d)
+    const g = buildMachine(d)
     g.position.set(ox + (i % cols) * sx, 0, oz + Math.floor(i / cols) * sz)
     scene.add(g); deviceRoots.push(g)
   })
@@ -218,15 +211,14 @@ function animate() {
 
 function onResize() {
   if (!containerRef.value || !camera || !webgl) return
-  const w = containerRef.value.clientWidth
-  const h = containerRef.value.clientHeight
+  const w = containerRef.value.clientWidth; const h = containerRef.value.clientHeight
   camera.aspect = w / h; camera.updateProjectionMatrix()
   webgl.setSize(w, h); lbl.setSize(w, h)
 }
 
 watch(() => props.devices, v => { if (v?.length) refresh(v) })
 watch(() => themeStore.isDark, () => {
-  if (scene) scene.background = new THREE.Color(themeStore.isDark ? 0x080818 : 0xe8eaed)
+  if (scene) scene.background = new THREE.Color(themeStore.isDark ? 0x1c1c1e : 0xf2f2f7)
 })
 
 onMounted(() => { init(); if (props.devices?.length) refresh(props.devices); window.addEventListener('resize', onResize) })
@@ -235,12 +227,10 @@ onBeforeUnmount(() => {
   deviceRoots.forEach(g => {
     g.traverse(c => { if (c instanceof CSS2DObject && c.element?.parentNode) c.element.parentNode.removeChild(c.element) })
   })
-  webgl?.dispose()
-  lbl?.domElement?.remove()
-  window.removeEventListener('resize', onResize)
+  webgl?.dispose(); lbl?.domElement?.remove(); window.removeEventListener('resize', onResize)
 })
 </script>
 
 <style scoped>
-.scene-container { position: relative; width: 100%; height: 100%; min-height: 500px; border-radius: var(--radius-lg); overflow: hidden; }
+.scene-container { position: relative; width: 100%; height: 100%; min-height: 500px; border-radius: 12px; overflow: hidden; }
 </style>
