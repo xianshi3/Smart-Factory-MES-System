@@ -468,12 +468,12 @@ const handleEnergyOptimization = async () => {
   try {
     const d = detailData.value || {}
     const res = await optimizeEnergy({
-      device_code: d.code || d.id,
-      current_params: { speed: d.speed || 1000, temperature: d.temperature || 80, power: d.power || 50 },
+      device_code: d.code || d.id || 'DEV0001',
+      current_params: { speed: Number(d.speed) || 1200, temperature: Number(d.temperature) || 75, power: Number(d.power) || 50 },
       target_output: 5000
     })
-    showAIResult('energy', res?.data || res)
-  } catch { aiAnalysisLoading.value = false; ElMessage.error('能耗分析失败') }
+    showAIResult('energy', res)
+  } catch (e: any) { aiAnalysisLoading.value = false; console.error('能耗分析失败:', e); ElMessage.error('能耗分析失败，请确认AI服务已启动') }
 }
 const handleCapacityPrediction = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
