@@ -26,7 +26,11 @@ let gridHelper: THREE.GridHelper | null = null
 let raycaster = new THREE.Raycaster()
 let mouse = new THREE.Vector2()
 
-const ST = (s: string) => (s || 'ONLINE').toUpperCase()
+const ST = (s: string) => {
+  const up = (s || 'ONLINE').toUpperCase()
+  const map: Record<string, string> = { RUNNING: 'ONLINE', IDLE: 'OFFLINE', FAULT: 'FAULT', MAINTENANCE: 'MAINTENANCE', ALARM: 'FAULT' }
+  return map[up] || up
+}
 const CLR: Record<string, number> = { ONLINE: 0x34c759, FAULT: 0xff3b30, OFFLINE: 0x8e8e93, MAINTENANCE: 0xff9500 }
 const GLW: Record<string, number> = { ONLINE: 0x1a7a3a, FAULT: 0x7a1a1a, OFFLINE: 0x0, MAINTENANCE: 0x7a3a00 }
 const TXT: Record<string, string> = { ONLINE: '正常', FAULT: '故障', OFFLINE: '离线', MAINTENANCE: '维护' }
