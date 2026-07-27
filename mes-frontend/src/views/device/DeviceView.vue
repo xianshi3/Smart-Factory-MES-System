@@ -76,25 +76,33 @@
       <div v-if="viewMode === 'list'" class="dt-list-wrap">
         <div v-if="filteredDevices.length === 0" class="dt-empty"><el-empty description="暂无设备数据" :image-size="80" /></div>
         <div v-else class="dt-list-grid">
-           <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" @click="handleDetail(d)">
-            <div class="dc-card-row1">
-              <span class="dc-card-name">{{ d.name }}</span>
-              <span class="dc-card-code">{{ d.code }}</span>
-              <span class="dc-card-badge" :class="d.status">{{ getStatusText(d.status) }}</span>
+          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" @click="handleDetail(d)">
+            <div class="dc-card-top">
+              <div class="dc-card-info">
+                <span class="dc-card-name">{{ d.name }}</span>
+                <span class="dc-card-code">{{ d.code }}</span>
+              </div>
+              <span class="dc-card-tag" :class="d.status">{{ getStatusText(d.status) }}</span>
             </div>
-            <div class="dc-card-row2">
-              <div class="dc-card-num" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ d.temperature ?? '--' }}<em>°C</em></div>
-              <div class="dc-card-num">{{ d.speed || 0 }}<em>rpm</em></div>
-              <div class="dc-card-num">{{ d.power ?? '--' }}<em>kW</em></div>
-              <div class="dc-card-num">{{ d.utilization || '0%' }}</div>
+            <div class="dc-card-metrics">
+              <div class="dc-metric">
+                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ d.temperature ?? '--' }}</span>
+                <span class="dc-m-unit">°C</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-m-val">{{ d.speed || 0 }}</span>
+                <span class="dc-m-unit">rpm</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-m-val">{{ d.power ?? '--' }}</span>
+                <span class="dc-m-unit">kW</span>
+              </div>
+              <div class="dc-metric">
+                <span class="dc-m-val">{{ d.utilization || '0%' }}</span>
+                <span class="dc-m-unit">利用率</span>
+              </div>
             </div>
-            <div class="dc-card-bar"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
-            <div class="dc-card-foot">
-              <el-button v-if="d.status==='running'" size="small" type="danger" plain @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon></el-button>
-              <el-button v-if="d.status==='idle'" size="small" type="success" plain @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon></el-button>
-              <el-button size="small" plain @click.stop="handleCardPredict(d)"><el-icon><Cpu /></el-icon></el-button>
-              <el-button size="small" plain @click.stop="handleDetail(d)"><el-icon><ArrowRight /></el-icon></el-button>
-            </div>
+            <div class="dc-card-util"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
           </div>
         </div>
         <div v-if="filteredDevices.length > pageSize" class="dt-list-pager">
@@ -322,7 +330,7 @@ const stats = ref([
   { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' },
   { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' },
   { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' },
-  { label: '故障', value: 0, icon: 'Warning', theme: 'danger' },
+  { label: '故障', value: 0, icon: 'Warning', theme: 'warning' },
 ])
 const filterChips = [
   { key: '', label: '全部' },
@@ -389,7 +397,7 @@ const fetchDeviceData = async () => {
       { label: '设备总数', value: deviceList.value.length, icon: 'Monitor', theme: 'primary' },
       { label: '运行中', value: deviceList.value.filter(d => d.status === 'running').length, icon: 'CircleCheck', theme: 'success' },
       { label: '空闲', value: deviceList.value.filter(d => d.status === 'idle').length, icon: 'VideoPause', theme: 'info' },
-      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, icon: 'Warning', theme: 'danger' },
+      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, icon: 'Warning', theme: 'warning' },
     ]
     updateCharts()
   } catch (e) { console.error(e) }
@@ -546,13 +554,14 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-topbar { display: flex; align-items: center; height: 40px; padding: 0 16px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
 .dt-topbar-left { flex-shrink: 0; }
 .dt-logo { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--accent); }
-.dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 2px; }
-.dt-stats-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; background: var(--bg-hover); color: var(--text-secondary); }
+.dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 14px; }
+.dt-stats-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.dt-badge-num { font-size: 18px; font-weight: 700; }
 .dt-stats-badge.primary .dt-badge-num { color: var(--accent); }
 .dt-stats-badge.success .dt-badge-num { color: var(--success); }
 .dt-stats-badge.info .dt-badge-num { color: var(--info); }
-.dt-stats-badge.danger .dt-badge-num { color: var(--danger); }
-.dt-badge-num { font-weight: 800; font-size: 13px; margin-right: 3px; }
+.dt-stats-badge.warning .dt-badge-num { color: var(--warning); }
+.dt-stats-badge.danger .dt-badge-num { color: var(--warning); }
 .dt-topbar-spacer { flex: 1; }
 .dt-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dt-view-switch { display: flex; background: var(--bg-hover); border-radius: 6px; padding: 2px; }
@@ -602,35 +611,29 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 /* ===== LIST VIEW ===== */
 .dt-list-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .dt-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
-.dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; padding: 14px; align-content: start; }
+.dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 14px; align-content: start; }
 
-.dc-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all .18s; position: relative; }
-.dc-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.dc-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 16px 12px; cursor: pointer; transition: all .15s; }
+.dc-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(0,0,0,.04); }
+.dc-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.dc-card-info { flex: 1; min-width: 0; }
+.dc-card-name { display: block; font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-card-code { font-size: 11px; color: var(--text-muted); }
+.dc-card-tag { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; flex-shrink: 0; }
+.dc-card-tag.running { background: var(--success-light); color: var(--success); }
+.dc-card-tag.idle { background: var(--info-light); color: var(--info); }
+.dc-card-tag.fault { background: var(--danger-light); color: var(--danger); }
+.dc-card-tag.maintenance { background: var(--warning-light); color: var(--warning); }
 
-.dc-card-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.dc-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.dc-card-code { font-size: 11px; color: var(--text-muted); margin-right: auto; }
-.dc-card-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
-.dc-card-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
-.dc-card-badge.running { background: var(--success-light); color: var(--success); }
-.dc-card-badge.running::before { background: var(--success); }
-.dc-card-badge.idle { background: var(--info-light); color: var(--info); }
-.dc-card-badge.idle::before { background: var(--info); }
-.dc-card-badge.fault { background: var(--danger-light); color: var(--danger); }
-.dc-card-badge.fault::before { background: var(--danger); }
-.dc-card-badge.maintenance { background: var(--warning-light); color: var(--warning); }
-.dc-card-badge.maintenance::before { background: var(--warning); }
+.dc-card-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 12px; }
+.dc-metric { text-align: center; }
+.dc-m-val { display: block; font-size: 18px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.dc-m-val.warn { color: var(--warning); }
+.dc-m-val.hot { color: var(--danger); }
+.dc-m-unit { display: block; font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
-.dc-card-row2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
-.dc-card-num { text-align: center; font-size: 17px; font-weight: 700; color: var(--text-primary); padding: 4px 0; }
-.dc-card-num em { display: block; font-size: 9px; font-weight: 500; color: var(--text-muted); font-style: normal; margin-top: 2px; }
-.dc-card-num.warn { color: var(--warning); }
-.dc-card-num.hot { color: var(--danger); }
-
-.dc-card-bar { height: 4px; background: var(--border-color); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
-.dc-card-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
-
-.dc-card-foot { display: flex; gap: 2px; justify-content: flex-end; }
+.dc-card-util { height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
+.dc-card-util div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
 .dt-list-pager { display: flex; justify-content: center; padding: 6px; flex-shrink: 0; }
 
 /* ===== DIALOGS ===== */
