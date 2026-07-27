@@ -21,6 +21,8 @@ let lbl: CSS2DRenderer
 let controls: OrbitControls
 let animId: number
 let deviceRoots: THREE.Group[] = []
+let floorMesh: THREE.Mesh | null = null
+let gridHelper: THREE.GridHelper | null = null
 let raycaster = new THREE.Raycaster()
 let mouse = new THREE.Vector2()
 
@@ -158,8 +160,10 @@ function init() {
   const bg = d ? 0x1c1c1e : 0xf2f2f7
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(32, 24), mat(bg, 0.9, 0))
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
+  floorMesh = floor
   const grid = new THREE.GridHelper(30, 15, d ? 0x38383a : 0xc7c7cc, d ? 0x2c2c2e : 0xd1d1d6)
   grid.position.y = 0.01; scene.add(grid)
+  gridHelper = grid
 
   scene.add(new THREE.AmbientLight(d ? 0x3a3a3c : 0xccccdd, 0.5))
   const main = new THREE.DirectionalLight(themeStore.isDark ? 0xffeedd : 0xffffff, 1.5)
@@ -217,8 +221,18 @@ function onResize() {
 }
 
 watch(() => props.devices, v => { if (v?.length) refresh(v) })
-watch(() => themeStore.isDark, () => {
-  if (scene) scene.background = new THREE.Color(themeStore.isDark ? 0x1c1c1e : 0xf2f2f7)
+watch(() => themeStore.isDark, (val) => {
+  if (!scene) return
+  scene.background = new THREE.Color(val ? 0x1c1c1e : 0xf2f2f7)
+  if (floorMesh) {
+    (floorMesh.material as THREE.MeshStandardMaterial).color.setHex(val ? 0x1c1c1e : 0xf2f2f7)
+  }
+  if (gridHelper) {
+    scene.remove(gridHelper)
+    const ng = new THREE.GridHelper(30, 15, val ? 0x38383a : 0xc7c7cc, val ? 0x2c2c2e : 0xd1d1d6)
+    ng.position.y = 0.01; scene.add(ng)
+    gridHelper = ng
+  }
 })
 
 onMounted(() => { init(); if (props.devices?.length) refresh(props.devices); window.addEventListener('resize', onResize) })
