@@ -446,7 +446,7 @@ const handlePredict = async (d: any) => {
   } catch { ElMessage.error('预测失败') }
 }
 
-const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data; aiAnalysisLoading.value = false }
+const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
 function aiAdviceHtml(result: any): string {
   const text = result?.content || result?.response || ''
   return mdToHtml(text)
