@@ -142,7 +142,7 @@
         </div>
       </div>
       
-      <Device3DScene v-if="viewMode === '3d'" :devices="deviceList" @select="handleDeviceSelect" class="scene-wrap" />
+      <DigitalTwinScene v-if="viewMode === '3d'" :devices="deviceList" @select="handleDeviceSelect" class="scene-wrap" />
       
       <div v-if="viewMode === 'list'" class="device-grid">
         <div 
@@ -370,7 +370,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, List, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
-import Device3DScene from '@/components/device/Device3DScene.vue'
+import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
