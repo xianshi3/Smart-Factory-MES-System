@@ -240,6 +240,11 @@ onMounted(async () => {
   await userStore.getUserInfo()
   const r = userStore.userInfo?.role ? [userStore.userInfo.role] : ['ADMIN']
   permissionStore.loadMenus(r)
+  nextTick(() => {
+    openedMenus.value.forEach(title => {
+      menuRef.value?.open(title)
+    })
+  })
 })
 
 const handleCommand = (cmd: string) => {
