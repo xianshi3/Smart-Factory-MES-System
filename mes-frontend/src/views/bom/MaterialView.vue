@@ -26,13 +26,13 @@
         <el-table-column type="index" label="#" width="40" align="center" />
         <el-table-column prop="materialCode" label="编码" width="105"><template #default="{ row }"><span class="cell-code">{{ row.materialCode }}</span></template></el-table-column>
         <el-table-column prop="materialName" label="物料名称" min-width="160" />
-        <el-table-column label="类型" width="100" align="center"><template #default="{ row }"><el-tag :type="typeMap[row.materialType] || 'info'" size="small" effect="plain">{{ typeLabel(row.materialType) }}</el-tag></template></el-table-column>
+        <el-table-column label="类型" width="120" align="center"><template #default="{ row }"><el-tag :type="typeMap[row.materialType] || 'info'" size="small" effect="plain">{{ typeLabel(row.materialType) }}</el-tag></template></el-table-column>
         <el-table-column prop="unit" label="单位" width="70" align="center"><template #default="{ row }">{{ unitLabel(row.unit) }}</template></el-table-column>
         <el-table-column prop="spec" label="规格" min-width="140"><template #default="{ row }">{{ row.spec || '-' }}</template></el-table-column>
         <el-table-column prop="defaultPrice" label="单价" width="110" align="right"><template #default="{ row }">{{ row.defaultPrice ? '¥' + Number(row.defaultPrice).toFixed(2) : '-' }}</template></el-table-column>
         <el-table-column label="库存" width="110" align="center"><template #default="{ row }"><span :class="{'text-danger': (row.inventory?.quantity || 0) <= (row.minStock || 0)}">{{ row.inventory?.quantity || 0 }}{{ unitLabel(row.unit) }}</span></template></el-table-column>
-        <el-table-column prop="status" label="状态" width="90" align="center"><template #default="{ row }"><el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small" effect="plain">{{ row.status === 'ACTIVE' ? '启用' : '停用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column prop="status" label="状态" width="120" align="center"><template #default="{ row }"><el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small" effect="plain">{{ row.status === 'ACTIVE' ? '启用' : '停用' }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button text type="primary" size="small" @click="handleInventory(row)">库存</el-button>
