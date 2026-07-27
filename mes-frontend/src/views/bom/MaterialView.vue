@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="page-container">
+  <div>
     <div class="page-header">
       <div class="header-left">
         <div class="page-title">
@@ -58,10 +58,10 @@
         </el-table-column>
         <el-table-column label="库存" width="130" align="center">
           <template #default="{ row }">
-            <span :class="['stock-text', { 'stock-low': (row.currentStock || 0) <= (row.minStock || 0) }]">
-              {{ row.currentStock || 0 }} {{ row.unit || '' }}
+            <span :class="['stock-text', { 'stock-low': (row.inventory?.quantity || 0) <= (row.minStock || 0) }]">
+              {{ row.inventory?.quantity || 0 }} {{ unitLabel(row.unit) }}
             </span>
-            <el-tag v-if="(row.currentStock || 0) <= (row.minStock || 0)" type="danger" size="small" effect="dark" class="low-tag">偏低</el-tag>
+            <el-tag v-if="(row.inventory?.quantity || 0) <= (row.minStock || 0)" type="danger" size="small" effect="dark" class="low-tag">偏低</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="80" align="center">
@@ -186,6 +186,11 @@ function typeLabel(v: string) {
   return m[v] || v
 }
 
+function unitLabel(v: string) {
+  const m: Record<string, string> = { pcs: '个', sheet: '张', kg: 'kg', m: 'm', pail: '桶' }
+  return m[v] || v || ''
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -226,28 +231,17 @@ onMounted(() => loadData())
 </script>
 
 <style scoped>
-.page-container { height: 100%; display: flex; flex-direction: column; }
-
 .filter-bar { display: flex; gap: 12px; margin-bottom: 16px; padding: 14px 18px; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border-light); align-items: center; flex-wrap: wrap; }
 .filter-bar .el-input { width: 220px; }
 
-.table-card { flex: 1; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-color); overflow: hidden; }
+.table-card { background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-color); overflow: hidden; }
 .table-card :deep(.el-table) { --el-table-bg-color: transparent; --el-table-tr-bg-color: transparent; --el-table-header-bg-color: rgba(0,0,0,0.02); --el-table-row-hover-bg-color: var(--bg-hover); }
 .table-card :deep(.el-table th) { font-weight: 600; color: var(--text-secondary); font-size: 13px; }
 .table-card :deep(.el-table td) { color: var(--text-primary); font-size: 13px; }
-.table-card :deep(.el-table__body tr.el-table__row) { transition: background 0.2s; }
-.table-card :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) { background: rgba(0,0,0,0.02); }
 
 .code-text { font-family: 'SF Mono', 'Consolas', monospace; font-weight: 500; color: var(--accent); }
-.name-text { font-weight: 500; }
 .spec-text { color: var(--text-secondary); }
-.price-text { font-weight: 600; font-family: 'SF Mono', 'Consolas', monospace; }
-
-.stock-text { font-weight: 500; }
-.stock-text.stock-low { color: var(--danger); }
 .low-tag { margin-left: 4px; }
 
 .pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
-
-.form-dialog :deep(.el-dialog__body) { padding: 20px 24px; }
 </style>
