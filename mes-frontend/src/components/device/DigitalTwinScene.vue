@@ -290,17 +290,17 @@ function buildMachine(device: any): THREE.Group {
 
   // ── top accent band ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x888888, 0.2, 0.75)))
-  root.children[root.children.length - 1].position.set(0, 1.96, 0)
+  root.children[root.children.length - 1].position.set(0, 1.94, 0)
 
   // ── rear cabinet ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xbfbfbf, 0.2, 0.7)))
-  root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
+  root.children[root.children.length - 1].position.set(0.05, 0.95, cabZ - cabD / 2 - 0.15)
   root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
 
   // vent slats
   for (let i = 0; i < 5; i++) {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.015, 0.015), mat(0x747474, 0.5, 0.5)))
-    root.children[root.children.length - 1].position.set(0.05, 0.5 + i * 0.18, -1.1)
+    root.children[root.children.length - 1].position.set(0.05, 0.5 + i * 0.18, cabZ - cabD / 2 - 0.3)
   }
 
   // ── handlebars ──
@@ -309,44 +309,61 @@ function buildMachine(device: any): THREE.Group {
     h.position.set(hx, 0.92, 0.88); root.add(h)
   })
 
-  // ── main cabinet body ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.35), mat(0xe0e0e0, 0.35, 0.6))
-  body.position.set(0, 1.04, -0.15); body.castShadow = true; root.add(body)
+  // ── cabinet: built from panels (front face OPEN for glass door) ──
+  const cabW = 2.4, cabH = 1.72, cabD = 1.3
+  const cabX = 0, cabY = 1.06, cabZ = 0.2
+  const cabMat = mat(0xe0e0e0, 0.35, 0.6)
+  const wallT = 0.08
 
-  // ── Door frame (top/bottom bars) ──
+  // left wall
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(wallT, cabH, cabD), cabMat))
+  root.children[root.children.length - 1].position.set(cabX - cabW / 2 + wallT / 2, cabY, cabZ)
+  // right wall
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(wallT, cabH, cabD), cabMat))
+  root.children[root.children.length - 1].position.set(cabX + cabW / 2 - wallT / 2, cabY, cabZ)
+  // back wall
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(cabW - wallT * 2, cabH, wallT), cabMat))
+  root.children[root.children.length - 1].position.set(cabX, cabY, cabZ - cabD / 2 + wallT / 2)
+  // top
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(cabW, wallT, cabD), cabMat))
+  root.children[root.children.length - 1].position.set(cabX, cabY + cabH / 2 - wallT / 2, cabZ)
+  // bottom
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(cabW, wallT, cabD), cabMat))
+  root.children[root.children.length - 1].position.set(cabX, cabY - cabH / 2 + wallT / 2, cabZ)
+
+  // ── Door frame ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 1.68, 0.86)
+  root.children[root.children.length - 1].position.set(0.05, 1.66, 0.86)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.22, 0.86)
-  // left/right bars
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 0.24, 0.86)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.4, 0.015), mat(0x999999, 0.15, 0.9)))
   root.children[root.children.length - 1].position.set(-0.87, 0.95, 0.86)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.4, 0.015), mat(0x999999, 0.15, 0.9)))
   root.children[root.children.length - 1].position.set(0.97, 0.95, 0.86)
 
   // Glass door
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.76, 1.36, 0.01),
+    new THREE.BoxGeometry(1.76, 1.32, 0.01),
     new THREE.MeshPhysicalMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.5, roughness: 0.05, metalness: 0.05, depthWrite: false })
   )
   glass.position.set(0.05, 0.95, 0.86); glass.renderOrder = 999; root.add(glass)
 
   // ── interior (visible through glass) ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.45), mat(0xb0b0b0, 0.2, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.48, 0.65)
+  root.children[root.children.length - 1].position.set(0.05, 0.48, 0.72)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 0.16), mat(0xbbbbbb, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.54, 0.65)
+  root.children[root.children.length - 1].position.set(0.05, 0.54, 0.72)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.14), mat(0xeeaa55, 0.5, 0.3)))
-  root.children[root.children.length - 1].position.set(0.05, 0.65, 0.65)
+  root.children[root.children.length - 1].position.set(0.05, 0.65, 0.72)
 
   // spindle (animated)
   const spindle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
     mat(c, 0.06, 0.98, g, 0.25)
   )
-  spindle.position.set(0.05, 0.8, 0.5); spindle.castShadow = true; root.add(spindle)
+  spindle.position.set(0.05, 0.8, 0.6); spindle.castShadow = true; root.add(spindle)
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.1, 8), mat(0xbbbbbb, 0.1, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.6, 0.5)
+  root.children[root.children.length - 1].position.set(0.05, 0.6, 0.6)
 
   // ── control panel (right side, attached to cabinet) ──
   const pnl = new THREE.Group()
@@ -407,7 +424,7 @@ function buildMachine(device: any): THREE.Group {
     `<b>${devName}</b><br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
     '#' + c.toString(16).padStart(6, '0')
   )
-  dataDiv.position.set(0, 2.3, 0); root.add(dataDiv)
+  dataDiv.position.set(0, cabY + cabH / 2 + 0.15, 0); root.add(dataDiv)
 
   root.userData = { device, spindle, led }
   return root
