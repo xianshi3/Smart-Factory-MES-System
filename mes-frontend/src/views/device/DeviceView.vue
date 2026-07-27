@@ -6,7 +6,7 @@
         <span class="dt-logo-icon">◆</span>
         <span class="dt-logo-text">MES<small>· 设备监控中心</small></span>
       </div>
-      <div class="dt-topbar-stats">
+      <div class="dt-topbar-stats" v-if="viewMode === 'list'">
         <div v-for="s in stats" :key="s.label" class="dt-stat-card" :class="s.theme">
           <span class="dt-stat-icon"><el-icon size="16"><component :is="s.icon" /></el-icon></span>
           <div class="dt-stat-body">
