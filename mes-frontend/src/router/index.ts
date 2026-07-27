@@ -23,7 +23,9 @@ const pathMenuCodeMap: Record<string, string> = {
   '/menu': 'menu',
   '/permission': 'permission',
   '/production-line': 'production',
-  '/workstation': 'workstation'
+  '/workstation': 'workstation',
+  '/material': 'material',
+  '/bom': 'bom'
 }
 
 const routes: RouteRecordRaw[] = [
@@ -106,6 +108,16 @@ const routes: RouteRecordRaw[] = [
         path: 'workstation',
         name: 'Workstation',
         component: () => import('@/views/workstation/WorkstationView.vue')
+      },
+      {
+        path: 'material',
+        name: 'Material',
+        component: () => import('@/views/bom/MaterialView.vue')
+      },
+      {
+        path: 'bom',
+        name: 'Bom',
+        component: () => import('@/views/bom/BomView.vue')
       }
     ]
   }
