@@ -224,6 +224,12 @@ watch(() => props.devices, (val) => {
   if (val?.length) updateDevices(val)
 })
 
+watch(() => themeStore.isDark, () => {
+  if (!scene) return
+  scene.background = new THREE.Color(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5)
+  scene.fog = new THREE.Fog(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5, 30, 50)
+})
+
 onMounted(() => {
   buildScene()
   if (props.devices?.length) updateDevices(props.devices)
