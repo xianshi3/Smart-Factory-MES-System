@@ -1,12 +1,13 @@
 <template>
-  <div ref="containerRef" class="scene-container" @click="onClick" :style="{ '--bg': isDark ? '#0a0a0f' : '#f0f2f5', '--floor': isDark ? '#1a1a2e' : '#e0e0e8', '--grid': isDark ? '#2a2a4e' : '#c0c0d0' }"></div>
+  <div ref="containerRef" class="scene-container" @click="onClick"></div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { useThemeStore } from '@/stores/theme'
+const themeStore = useThemeStore()
 
 const props = defineProps<{ devices: any[] }>()
 const emit = defineEmits<{ select: [device: any] }>()
@@ -112,8 +113,8 @@ function buildScene() {
   if (!containerRef.value) return
 
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(isDark.value ? 0x0a0a0f : 0xf0f2f5)
-  scene.fog = new THREE.Fog(isDark.value ? 0x0a0a0f : 0xf0f2f5, 30, 50)
+  scene.background = new THREE.Color(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5)
+  scene.fog = new THREE.Fog(themeStore.isDark ? 0x0a0a0f : 0xf0f2f5, 30, 50)
 
   camera = new THREE.PerspectiveCamera(45, containerRef.value.clientWidth / containerRef.value.clientHeight, 0.1, 100)
   camera.position.set(12, 10, 12)
@@ -136,7 +137,7 @@ function buildScene() {
   controls.maxPolarAngle = Math.PI / 2.2
   controls.target.set(0, 1, 0)
 
-  createFactoryFloor(isDark.value ? 0x1a1a2e : 0xe0e0e8, isDark.value ? 0x2a2a4e : 0xc0c0d0)
+  createFactoryFloor(themeStore.isDark ? 0x1a1a2e : 0xe0e0e8, themeStore.isDark ? 0x2a2a4e : 0xc0c0d0)
 
   // Lights
   const ambient = new THREE.AmbientLight(0x222244, 0.5)
@@ -221,7 +222,7 @@ function onClick(event: MouseEvent) {
 
 watch(() => props.devices, (val) => {
   if (val?.length) updateDevices(val)
-}, { deep: true })
+})
 
 onMounted(() => {
   buildScene()
@@ -237,5 +238,5 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.scene-container { width: 100%; height: 100%; min-height: 500px; border-radius: var(--radius-lg); overflow: hidden; background: #0a0a0f; }
+.scene-container { width: 100%; height: 100%; min-height: 480px; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); }
 </style>
