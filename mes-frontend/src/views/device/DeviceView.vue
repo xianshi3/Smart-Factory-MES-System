@@ -97,10 +97,10 @@
             </div>
             <div class="dt-dc-bar"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
             <div class="dt-dc-foot">
-              <el-button v-if="d.status==='running'||d.status==='ONLINE'" type="danger" size="small" link @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon>停止</el-button>
-              <el-button v-if="d.status==='idle'||d.status==='OFFLINE'" type="success" size="small" link @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon>启动</el-button>
-              <el-button type="primary" size="small" link @click.stop="handlePredict(d)"><el-icon><Cpu /></el-icon>预测</el-button>
-              <el-button type="primary" size="small" link @click.stop="handleDetail(d)"><el-icon><View /></el-icon>详情</el-button>
+              <el-button v-if="d.status==='running'||d.status==='ONLINE'" type="danger" size="small" link @click.stop="handleStop(d)"><el-icon><VideoPause /></el-icon></el-button>
+              <el-button v-if="d.status==='idle'||d.status==='OFFLINE'" type="success" size="small" link @click.stop="handleStart(d)"><el-icon><VideoPlay /></el-icon></el-button>
+              <el-button type="primary" size="small" link @click.stop="handleCardPredict(d)"><el-icon><Cpu /></el-icon></el-button>
+              <el-button type="primary" size="small" link @click.stop="handleDetail(d)"><el-icon><Search /></el-icon></el-button>
             </div>
           </div>
         </div>
@@ -438,18 +438,22 @@ const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = t
 const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
 const handleStop = async (d: any) => { try { await stopDevice(d.id || d.code); ElMessage.success('停止成功'); fetchDeviceData() } catch { ElMessage.error('停止失败') } }
 
+const handleCardPredict = (d: any) => { detailData.value = d; handlePredict(d) }
 const handlePredict = async (d: any) => {
   try {
-    const payload = { device_code: d.code || d.id, history_data: [{ temperature: d.temperature || 80, speed: d.speed || 50 }], hours_ahead: 24 }
+    const payload = { device_code: d.code || d.id, history_data: [{ temperature: Number(d.temperature) || 80, speed: Number(d.speed) || 50 }], hours_ahead: 24 }
     const res = await predictDeviceFault(payload)
-    const data: any = res?.data || res
+    const raw = res?.data || res
+    const inner = raw?.data || raw
     predictData.value = {
-      deviceName: d.name, faultLevel: data.prediction === 'FAULT' ? 'danger' : data.prediction === 'WARNING' ? 'warning' : 'success',
-      message: data.prediction === 'FAULT' ? '预测可能发生故障' : '设备运行正常', confidence: `${((data.confidence || 0) * 100).toFixed(0)}%`,
-      riskFactors: data.risk_factors || data.riskFactors || []
+      deviceName: d.name || d.deviceName,
+      faultLevel: inner.prediction === 'FAULT' ? 'danger' : inner.prediction === 'WARNING' ? 'warning' : 'success',
+      message: inner.prediction === 'FAULT' ? '预测可能发生故障，建议安排检修' : inner.prediction === 'WARNING' ? '存在潜在风险，建议加强监控' : '设备运行状态良好，无需维护',
+      confidence: `${((inner.confidence || 0.85) * 100).toFixed(0)}%`,
+      riskFactors: inner.risk_factors || inner.riskFactors || []
     }
     predictVisible.value = true
-  } catch { ElMessage.error('预测失败') }
+  } catch { ElMessage.error('预测失败，请确认AI服务已启动') }
 }
 
 const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
