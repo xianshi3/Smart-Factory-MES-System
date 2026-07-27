@@ -425,6 +425,7 @@ const handle3DAction = (payload: { type: string; device: any }) => {
   if (payload.type === 'predict') handlePredict(payload.device)
   else if (payload.type === 'spc') handleSPCAnalysis()
   else if (payload.type === 'energy') handleEnergyOptimization()
+  else if (payload.type === 'llm') handleLLMChat()
 }
 const refresh = () => { fetchDeviceData() }
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }

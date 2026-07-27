@@ -49,6 +49,7 @@
           <button @click="emit('action', { type:'predict', device: selectedDevice })" title="AI预测"><Cpu /></button>
           <button @click="emit('action', { type:'spc', device: selectedDevice })" title="SPC分析"><Histogram /></button>
           <button @click="emit('action', { type:'energy', device: selectedDevice })" title="能耗优化"><Lightning /></button>
+          <button @click="emit('action', { type:'llm', device: selectedDevice })" title="AI建议"><ChatLineRound /></button>
         </div>
       </div>
     </transition>
@@ -62,7 +63,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import { useThemeStore } from '@/stores/theme'
 import { Top, View, Connection } from '@element-plus/icons-vue'
-import { Cpu, Histogram, Lightning } from '@element-plus/icons-vue'
+import { Cpu, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 const themeStore = useThemeStore()
 
 const props = defineProps<{ devices: any[] }>()
@@ -789,7 +790,7 @@ onBeforeUnmount(() => {
 .panel-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
 .panel-bar-label { font-size: 10px; color: var(--text-muted); font-family: monospace; min-width: 30px; text-align: right; }
 .panel-actions { display: flex; gap: 4px; padding-top: 6px; border-top: 1px solid var(--border-color); }
-.panel-actions button { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all .12s; }
+.panel-actions button { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 11px; transition: all .12s; }
 .panel-actions button:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 .slide-up-enter-active, .slide-up-leave-active { transition: all .2s ease; }
 .slide-up-enter-from, .slide-up-leave-to { opacity: 0; transform: translateY(10px); }
