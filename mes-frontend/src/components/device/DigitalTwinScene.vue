@@ -237,6 +237,22 @@ watch(() => themeStore.isDark, (val) => {
     ng.position.y = 0.01; scene.add(ng)
     gridHelper = ng
   }
+  // Update ambient/hemi light
+  scene.children.forEach(c => {
+    if (c instanceof THREE.AmbientLight) c.color.setHex(val ? 0x3a3a3c : 0xccccdd)
+    if (c instanceof THREE.HemisphereLight) c.color.setHex(val ? 0x4444aa : 0xaaaaff)
+  })
+  // Tweak device body brightness for dark mode
+  deviceRoots.forEach(root => {
+    root.traverse(c => {
+      if (c instanceof THREE.Mesh && c.material instanceof THREE.MeshStandardMaterial) {
+        const clr = c.material.color.getHex()
+        if (clr === 0x3a3a4c || clr === 0x2a2a3a || clr === 0x4a4a5c || clr === 0x323248 || clr === 0x222238 || clr === 0x1e1e32) {
+          c.material.color.setHex(val ? Math.max(clr - 0x080808, 0x111122) : clr)
+        }
+      }
+    })
+  })
 })
 
 onMounted(() => { init(); if (props.devices?.length) refresh(props.devices); window.addEventListener('resize', onResize) })
