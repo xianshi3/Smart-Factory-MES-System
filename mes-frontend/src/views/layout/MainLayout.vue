@@ -19,17 +19,17 @@
 
       <div class="menu-scroll">
         <el-menu
+          ref="menuRef"
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
           :collapse-transition="false"
           class="sidebar-menu"
-          :default-openeds="openedMenus"
           @open="onMenuOpen"
           @close="onMenuClose"
         >
           <template v-for="group in menuGroups" :key="group.title">
-            <el-sub-menu v-if="!isCollapse" :index="group.title">
+            <el-sub-menu v-if="!isCollapse" :index="group.title" :key="group.title + (openedMenus.includes(group.title) ? '-open' : '-close')">
               <template #title>
                 <el-icon><component :is="group.icon" /></el-icon>
                 <span>{{ group.title }}</span>
@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -149,6 +149,7 @@ const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
+const menuRef = ref()
 const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据', '系统管理'])
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
@@ -224,6 +225,21 @@ watch(() => route.path, (p) => {
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
+  if (!isCollapse.value) {
+    nextTick(() => {
+      openedMenus.value.forEach((title) => {
+        menuRef.value?.open(title)
+      })
+    })
+  }
+}
+
+const onMenuOpen = (idx: string) => {
+  if (!openedMenus.value.includes(idx)) openedMenus.value.push(idx)
+}
+
+const onMenuClose = (idx: string) => {
+  openedMenus.value = openedMenus.value.filter(i => i !== idx)
 }
 
 const onMenuOpen = (idx: string) => {
