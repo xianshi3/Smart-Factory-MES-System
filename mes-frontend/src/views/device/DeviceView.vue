@@ -7,14 +7,11 @@
         <span class="dt-logo-text">MES<small>· 设备监控中心</small></span>
       </div>
       <div class="dt-topbar-stats" v-if="viewMode === 'list'">
-        <div v-for="s in stats" :key="s.label" class="dt-stat-card" :class="s.theme">
-          <span class="dt-stat-icon"><el-icon size="16"><component :is="s.icon" /></el-icon></span>
-          <div class="dt-stat-body">
-            <span class="dt-stat-val">{{ s.value }}</span>
-            <span class="dt-stat-lbl">{{ s.label }}</span>
-          </div>
-        </div>
+        <span v-for="s in stats" :key="s.label" class="dt-stats-badge" :class="s.theme">
+          <span class="dt-badge-num">{{ s.value }}</span>{{ s.label }}
+        </span>
       </div>
+      <div class="dt-topbar-spacer" v-else></div>
       <div class="dt-topbar-right">
         <div class="dt-view-switch">
           <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><Grid /></el-icon> 3D</button>
@@ -555,24 +552,14 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-logo-icon { font-size: 20px; color: var(--accent); }
 .dt-logo-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; }
 .dt-logo-text small { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 2px; }
-.dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 6px; }
-.dt-stat-card { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 8px; min-width: 100px; }
-.dt-stat-card.primary { background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(99,102,241,.04)); border: 1px solid rgba(99,102,241,.15); }
-.dt-stat-card.success { background: linear-gradient(135deg, rgba(52,199,89,.12), rgba(52,199,89,.04)); border: 1px solid rgba(52,199,89,.15); }
-.dt-stat-card.info { background: linear-gradient(135deg, rgba(142,142,147,.12), rgba(142,142,147,.04)); border: 1px solid rgba(142,142,147,.15); }
-.dt-stat-card.danger { background: linear-gradient(135deg, rgba(255,59,48,.12), rgba(255,59,48,.04)); border: 1px solid rgba(255,59,48,.15); }
-.dt-stat-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 7px; flex-shrink: 0; }
-.dt-stat-card.primary .dt-stat-icon { background: var(--accent); color: #fff; }
-.dt-stat-card.success .dt-stat-icon { background: var(--success); color: #fff; }
-.dt-stat-card.info .dt-stat-icon { background: var(--info); color: #fff; }
-.dt-stat-card.danger .dt-stat-icon { background: var(--danger); color: #fff; }
-.dt-stat-body { display: flex; flex-direction: column; }
-.dt-stat-val { font-size: 17px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.dt-stat-card.primary .dt-stat-val { color: var(--accent); }
-.dt-stat-card.success .dt-stat-val { color: var(--success); }
-.dt-stat-card.info .dt-stat-val { color: var(--info); }
-.dt-stat-card.danger .dt-stat-val { color: var(--danger); }
-.dt-stat-lbl { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 2px; }
+.dt-stats-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; background: var(--bg-hover); color: var(--text-secondary); }
+.dt-stats-badge.primary .dt-badge-num { color: var(--accent); }
+.dt-stats-badge.success .dt-badge-num { color: var(--success); }
+.dt-stats-badge.info .dt-badge-num { color: var(--info); }
+.dt-stats-badge.danger .dt-badge-num { color: var(--danger); }
+.dt-badge-num { font-weight: 800; font-size: 13px; margin-right: 3px; }
+.dt-topbar-spacer { flex: 1; }
 .dt-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dt-view-switch { display: flex; background: var(--bg-hover); border-radius: 6px; padding: 2px; }
 .dt-view-switch button { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border: none; border-radius: 5px; background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all .12s; }
