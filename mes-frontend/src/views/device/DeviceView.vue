@@ -317,7 +317,7 @@ const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
 const selectedDevice = ref<any>(null)
-const hudPanels = reactive({ alarms: true, charts: false })
+const hudPanels = reactive({ alarms: true, charts: true })
 
 let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)

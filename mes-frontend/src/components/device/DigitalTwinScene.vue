@@ -678,6 +678,8 @@ function animate() {
   S.lbl.render(S.scene, S.camera)
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 // ─── resize ───
 function onResize() {
   if (!containerRef.value || !S) return
@@ -705,7 +707,10 @@ watch(() => props.devices, v => {
 onMounted(() => {
   init()
   if (props.devices?.length) refresh(props.devices)
-  window.addEventListener('resize', onResize)
+  if (containerRef.value) {
+    resizeObserver = new ResizeObserver(() => onResize())
+    resizeObserver.observe(containerRef.value)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -715,7 +720,7 @@ onBeforeUnmount(() => {
   })
   S?.webgl?.dispose()
   S?.lbl?.domElement?.remove()
-  window.removeEventListener('resize', onResize)
+  resizeObserver?.disconnect()
 })
 </script>
 
@@ -725,9 +730,9 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-height: 520px;
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
-  background: #14141a;
+  background: var(--bg-app);
   cursor: grab;
 }
 .twins-scene:active { cursor: grabbing; }
