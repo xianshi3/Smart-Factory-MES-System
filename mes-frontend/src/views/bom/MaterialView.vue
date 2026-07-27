@@ -16,49 +16,23 @@
     <div class="search-section">
       <el-input v-model="searchForm.keyword" placeholder="搜索物料名称或编码" clearable prefix-icon="Search" @clear="loadData" />
       <el-select v-model="searchForm.materialType" placeholder="物料类型" clearable @change="loadData" style="width:140px">
-        <el-option label="全部" value="" />
-        <el-option label="原材料" value="RAW" />
-        <el-option label="半成品" value="SEMI" />
-        <el-option label="成品" value="FINISHED" />
-        <el-option label="辅助材料" value="SUPPLY" />
+        <el-option label="全部" value="" /><el-option label="原材料" value="RAW" /><el-option label="半成品" value="SEMI" /><el-option label="成品" value="FINISHED" /><el-option label="辅助材料" value="SUPPLY" />
       </el-select>
       <el-button type="primary" @click="loadData">查询</el-button>
     </div>
 
     <div class="table-wrapper">
-      <el-table :data="tableData" v-loading="loading" stripe style="width:100%">
-        <el-table-column type="index" label="#" width="48" align="center" />
-        <el-table-column prop="materialCode" label="编码" width="120">
-          <template #default="{ row }"><span class="cell-code">{{ row.materialCode }}</span></template>
-        </el-table-column>
-        <el-table-column prop="materialName" label="物料名称" min-width="140" />
-        <el-table-column label="类型" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="typeMap[row.materialType] || 'info'" size="small" effect="plain">{{ typeLabel(row.materialType) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit" label="单位" width="60" align="center">
-          <template #default="{ row }">{{ unitLabel(row.unit) }}</template>
-        </el-table-column>
-        <el-table-column prop="spec" label="规格" min-width="130">
-          <template #default="{ row }">{{ row.spec || '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="defaultPrice" label="单价" width="100" align="right">
-          <template #default="{ row }">{{ row.defaultPrice ? '¥' + Number(row.defaultPrice).toFixed(2) : '-' }}</template>
-        </el-table-column>
-        <el-table-column label="库存" width="120" align="center">
-          <template #default="{ row }">
-            <span :class="{'text-danger': (row.inventory?.quantity || 0) <= (row.minStock || 0)}">
-              {{ row.inventory?.quantity || 0 }}{{ unitLabel(row.unit) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="70" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small" effect="plain">{{ row.status === 'ACTIVE' ? '启用' : '停用' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" align="center">
+      <el-table :data="tableData" v-loading="loading" border stripe style="width:100%">
+        <el-table-column type="index" label="#" width="45" align="center" />
+        <el-table-column prop="materialCode" label="编码" width="110"><template #default="{ row }"><span class="cell-code">{{ row.materialCode }}</span></template></el-table-column>
+        <el-table-column prop="materialName" label="物料名称" min-width="140" show-overflow-tooltip />
+        <el-table-column label="类型" width="80" align="center"><template #default="{ row }"><el-tag :type="typeMap[row.materialType] || 'info'" size="small" effect="plain">{{ typeLabel(row.materialType) }}</el-tag></template></el-table-column>
+        <el-table-column prop="unit" label="单位" width="55" align="center"><template #default="{ row }">{{ unitLabel(row.unit) }}</template></el-table-column>
+        <el-table-column prop="spec" label="规格" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.spec || '-' }}</template></el-table-column>
+        <el-table-column prop="defaultPrice" label="单价" width="95" align="right"><template #default="{ row }">{{ row.defaultPrice ? '¥' + Number(row.defaultPrice).toFixed(2) : '-' }}</template></el-table-column>
+        <el-table-column label="库存" width="100" align="center"><template #default="{ row }"><span :class="{'text-danger': (row.inventory?.quantity || 0) <= (row.minStock || 0)}">{{ row.inventory?.quantity || 0 }}{{ unitLabel(row.unit) }}</span></template></el-table-column>
+        <el-table-column prop="status" label="状态" width="65" align="center"><template #default="{ row }"><el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small" effect="plain">{{ row.status === 'ACTIVE' ? '启用' : '停用' }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button text type="primary" size="small" @click="handleInventory(row)">库存</el-button>
@@ -74,40 +48,17 @@
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑物料' : '新建物料'" width="560px" top="8vh">
       <el-form :model="form" label-width="80px">
         <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="物料编码" required><el-input v-model="form.materialCode" placeholder="如 RAW-001" /></el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="物料名称" required><el-input v-model="form.materialName" placeholder="请输入名称" /></el-form-item>
-          </el-col>
+          <el-col :span="12"><el-form-item label="物料编码" required><el-input v-model="form.materialCode" placeholder="如 RAW-001" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="物料名称" required><el-input v-model="form.materialName" placeholder="请输入名称" /></el-form-item></el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="类型" required>
-              <el-select v-model="form.materialType" style="width:100%">
-                <el-option label="原材料" value="RAW" /><el-option label="半成品" value="SEMI" />
-                <el-option label="成品" value="FINISHED" /><el-option label="辅助材料" value="SUPPLY" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="单位" required>
-              <el-select v-model="form.unit" style="width:100%" allow-create filterable>
-                <el-option label="个" value="pcs" /><el-option label="张" value="sheet" />
-                <el-option label="kg" value="kg" /><el-option label="米" value="m" />
-                <el-option label="件" value="件" /><el-option label="桶" value="pail" />
-              </el-select>
-            </el-form-item>
-          </el-col>
+          <el-col :span="12"><el-form-item label="类型" required><el-select v-model="form.materialType" style="width:100%"><el-option label="原材料" value="RAW" /><el-option label="半成品" value="SEMI" /><el-option label="成品" value="FINISHED" /><el-option label="辅助材料" value="SUPPLY" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="单位" required><el-select v-model="form.unit" style="width:100%" allow-create filterable><el-option label="个" value="pcs" /><el-option label="张" value="sheet" /><el-option label="kg" value="kg" /><el-option label="米" value="m" /><el-option label="件" value="件" /><el-option label="桶" value="pail" /></el-select></el-form-item></el-col>
         </el-row>
         <el-form-item label="规格型号"><el-input v-model="form.spec" placeholder="如 1200x800x2mm" /></el-form-item>
         <el-row :gutter="16">
           <el-col :span="12"><el-form-item label="单价"><el-input-number v-model="form.defaultPrice" :precision="2" :min="0" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-select v-model="form.status" style="width:100%"><el-option label="启用" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select>
-            </el-form-item>
-          </el-col>
+          <el-col :span="12"><el-form-item label="状态"><el-select v-model="form.status" style="width:100%"><el-option label="启用" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item></el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12"><el-form-item label="最低库存"><el-input-number v-model="form.minStock" :min="0" style="width:100%" /></el-form-item></el-col>
@@ -170,7 +121,7 @@ async function handleSubmit() {
 }
 
 function handleDelete(row: any) {
-  ElMessageBox.confirm(`确认删除「${row.materialName}」？`, '删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
+  ElMessageBox.confirm('确认删除「' + row.materialName + '」？', '删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
     .then(async () => { try { await request({ url: `/api/dashboard/material/${row.id}`, method: 'delete' }); ElMessage.success('已删除'); loadData() } catch { ElMessage.error('删除失败') } }).catch(() => {})
 }
 
@@ -180,17 +131,14 @@ onMounted(() => loadData())
 </script>
 
 <style scoped>
-.page-view { height: 100%; display: flex; flex-direction: column; gap: 16px; }
+.page-view { display: flex; flex-direction: column; gap: 16px; }
 
-.search-section { display: flex; gap: 12px; align-items: center; }
+.search-section { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .search-section .el-input { width: 240px; }
 
-.table-wrapper { flex: 1; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
-.table-wrapper :deep(.el-table) { --el-table-bg-color: transparent; --el-table-tr-bg-color: transparent; --el-table-header-bg-color: var(--bg-hover); }
+.table-wrapper { border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
 .table-wrapper :deep(.el-table th) { font-weight: 600; color: var(--text-secondary); font-size: 13px; }
-.table-wrapper :deep(.el-table td) { font-size: 13px; }
-
-.cell-code { font-family: 'SF Mono', Consolas, monospace; color: var(--accent); font-weight: 500; }
+.cell-code { font-family: SF Mono, Consolas, monospace; color: var(--accent); font-weight: 500; }
 .text-danger { color: var(--danger); font-weight: 600; }
 
 .pagination-bar { display: flex; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid var(--border-light); }
