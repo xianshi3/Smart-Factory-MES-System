@@ -148,10 +148,115 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="aiAnalysisVisible" :title="'AI分析'" width="520px">
-      <div v-if="aiAnalysisLoading" style="text-align:center;padding:40px"><el-icon class="is-loading" size="28"><Loading /></el-icon><p>分析中...</p></div>
-      <div v-else-if="aiAnalysisResult"><el-descriptions :column="1" border><el-descriptions-item v-for="(v,k) in aiAnalysisResult" :key="k" :label="k">{{ typeof v==='object'?JSON.stringify(v):v }}</el-descriptions-item></el-descriptions></div>
-      <div v-else style="text-align:center;padding:40px">暂无结果</div>
+    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : currentAnalysisType === 'llm' ? 'AI助手' : 'AI分析'" width="600px" destroy-on-close>
+      <div v-if="aiAnalysisLoading" class="dt-loading"><el-icon class="is-loading" size="32"><Loading /></el-icon><p>AI分析中...</p></div>
+
+      <!-- SPC Result -->
+      <div v-else-if="currentAnalysisType === 'spc' && aiAnalysisResult" class="dt-ai-result">
+        <div class="dt-ai-section">
+          <div class="dt-ai-section-title">制程能力</div>
+          <div class="dt-ai-cpk">
+            <div class="dt-ai-cpk-ring" :class="aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
+            <div><span>CPK</span><em>{{ aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability }}</em></div>
+          </div>
+          <div class="dt-ai-stats">
+            <div><label>CP</label><span>{{ (aiAnalysisResult.capability?.cp || aiAnalysisResult.cp)?.toFixed(2) }}</span></div>
+            <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean || aiAnalysisResult.mean }}</span></div>
+            <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std || aiAnalysisResult.std }}</span></div>
+            <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
+          </div>
+        </div>
+        <div class="dt-ai-section" v-if="(aiAnalysisResult.control_limits || []).length">
+          <div class="dt-ai-section-title">控制限</div>
+          <div class="dt-ai-limits">
+            <div v-for="cl in (aiAnalysisResult.control_limits || [])" :key="cl.name">
+              <em :class="cl.name.includes('UCL') ? 'danger' : cl.name.includes('LCL') ? 'danger' : ''">{{ cl.value }}</em>
+              <span>{{ cl.name }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="dt-ai-section" v-if="(aiAnalysisResult.rules_violated || []).length || (aiAnalysisResult.violations || []).length">
+          <div class="dt-ai-section-title">异常检测</div>
+          <div v-if="(aiAnalysisResult.rules_violated || []).length" class="dt-ai-warn">
+            <el-icon><Warning /></el-icon>
+            <span v-for="r in aiAnalysisResult.rules_violated" :key="r">{{ r }}</span>
+          </div>
+          <el-tag v-else type="success" size="small">无异常规则触发</el-tag>
+        </div>
+        <div class="dt-ai-section" v-if="(aiAnalysisResult.recommendations || []).length">
+          <div class="dt-ai-section-title">建议</div>
+          <div class="dt-ai-recs"><div v-for="(r,i) in aiAnalysisResult.recommendations" :key="i">{{ i+1 }}. {{ r }}</div></div>
+        </div>
+      </div>
+
+      <!-- Energy Result -->
+      <div v-else-if="currentAnalysisType === 'energy' && aiAnalysisResult" class="dt-ai-result">
+        <div class="dt-ai-section">
+          <div class="dt-ai-section-title">优化方案</div>
+          <div class="dt-ai-energy-delta">
+            <div>节能<span class="val">{{ aiAnalysisResult.estimated_energy_savings_pct }}%</span></div>
+            <div>月省<span class="val">{{ aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span></div>
+          </div>
+        </div>
+        <div class="dt-ai-section">
+          <div class="dt-ai-section-title">参数调整</div>
+          <div class="dt-ai-params">
+            <div class="dt-ai-param-row" v-for="(chg, key) in aiAnalysisResult.parameter_changes" :key="key">
+              <label>{{ key === 'speed' ? '转速' : key === 'temperature' ? '温度' : '压力' }}</label>
+              <span class="old">{{ aiAnalysisResult.current_parameters?.[key] }}</span>
+              <el-icon><ArrowRight /></el-icon>
+              <span class="new">{{ aiAnalysisResult.recommended_parameters?.[key] }}</span>
+              <span class="chg" :class="chg?.startsWith('+') ? 'up' : chg?.startsWith('-') ? 'down' : ''">{{ chg }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="dt-ai-section" v-if="(aiAnalysisResult.alternative_plans || []).length > 1">
+          <div class="dt-ai-section-title">备选方案</div>
+          <div class="dt-ai-alt">
+            <div v-for="(alt, i) in aiAnalysisResult.alternative_plans?.slice(1, 3)" :key="i" class="dt-ai-alt-row">
+              <span>方案{{ i+1 }}</span>
+              <span>转速 {{ alt.speed }} · 温度 {{ alt.temperature }} · 压力 {{ alt.pressure }}</span>
+              <span>品质 {{ alt.quality }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity Result -->
+      <div v-else-if="currentAnalysisType === 'capacity' && aiAnalysisResult" class="dt-ai-result">
+        <div class="dt-ai-section">
+          <div class="dt-ai-section-title">预测概览</div>
+          <div class="dt-ai-energy-delta">
+            <div>总产量<span class="val">{{ aiAnalysisResult.summary?.total || aiAnalysisResult.total_predicted }}</span></div>
+            <div>日均<span class="val">{{ aiAnalysisResult.summary?.daily_avg || aiAnalysisResult.average_daily }}</span></div>
+            <div>趋势<span class="val">{{ aiAnalysisResult.summary?.trend || '稳定' }}</span></div>
+          </div>
+        </div>
+        <div class="dt-ai-section">
+          <div class="dt-ai-section-title">逐日预测</div>
+          <div class="dt-ai-table">
+            <div class="dt-ai-table-head"><span>日期</span><span>预计产量</span><span>置信区间</span></div>
+            <div v-for="p in (aiAnalysisResult.predictions || [])" :key="p.date" class="dt-ai-table-row">
+              <span>{{ p.date?.slice(5) }} {{ p.day }}</span>
+              <span>{{ p.predicted_output }}</span>
+              <span class="muted">{{ p.confidence_lower }} ~ {{ p.confidence_upper }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LLM / Generic Result -->
+      <div v-else-if="aiAnalysisResult" class="dt-ai-result">
+        <div class="dt-ai-llm" v-if="currentAnalysisType === 'llm' && aiAnalysisResult.response">
+          {{ aiAnalysisResult.response }}
+        </div>
+        <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
+          <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || '服务暂不可用' }}
+        </div>
+        <div v-else class="dt-ai-raw">{{ JSON.stringify(aiAnalysisResult, null, 2) }}</div>
+      </div>
+
+      <div v-else class="dt-loading"><p>暂无结果</p></div>
       <template #footer><el-button @click="aiAnalysisVisible=false">关闭</el-button></template>
     </el-dialog>
   </div>
@@ -166,7 +271,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu,
- Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound, Close, ArrowDown } from '@element-plus/icons-vue'
+ Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 
 const themeStore = useThemeStore()
@@ -498,4 +603,50 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-dlg-det-kpi span { font-size: 11px; color: var(--text-muted); }
 .dt-dlg-ai-badge { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: linear-gradient(135deg, var(--success-light), transparent); border: 1px solid var(--success); border-radius: 8px; margin-bottom: 14px; font-size: 13px; color: var(--success); }
 .dt-dlg-ai-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.dt-loading { text-align: center; padding: 40px; color: var(--text-muted); }
+
+/* AI Analysis Result */
+.dt-ai-result { font-size: 13px; }
+.dt-ai-section { margin-bottom: 16px; }
+.dt-ai-section-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.dt-ai-section-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+.dt-ai-cpk { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.dt-ai-cpk-ring { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #fff; background: var(--success); }
+.dt-ai-cpk-ring.FAIR, .dt-ai-cpk-ring.POOR { background: var(--danger); }
+.dt-ai-cpk span { display: block; font-size: 11px; color: var(--text-muted); }
+.dt-ai-cpk em { display: block; font-size: 15px; font-weight: 700; color: var(--text-primary); font-style: normal; }
+.dt-ai-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dt-ai-stats div { text-align: center; padding: 8px 4px; background: var(--bg-hover); border-radius: 6px; }
+.dt-ai-stats label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.dt-ai-stats span { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.dt-ai-limits { display: flex; gap: 4px; }
+.dt-ai-limits div { flex: 1; text-align: center; padding: 6px 2px; background: var(--bg-hover); border-radius: 6px; }
+.dt-ai-limits em { display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); font-style: normal; }
+.dt-ai-limits em.danger { color: var(--danger); }
+.dt-ai-limits span { font-size: 9px; color: var(--text-muted); }
+.dt-ai-warn { display: flex; align-items: flex-start; gap: 8px; padding: 10px; background: var(--warning-light); border-radius: 6px; color: var(--warning); font-size: 12px; }
+.dt-ai-recs { display: flex; flex-direction: column; gap: 4px; }
+.dt-ai-recs div { padding: 6px 10px; background: var(--bg-hover); border-radius: 6px; font-size: 12px; color: var(--text-secondary); }
+.dt-ai-energy-delta { display: flex; gap: 12px; }
+.dt-ai-energy-delta div { flex: 1; text-align: center; padding: 10px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
+.dt-ai-energy-delta .val { display: block; font-size: 22px; font-weight: 800; color: var(--accent); margin-top: 2px; }
+.dt-ai-params { display: flex; flex-direction: column; gap: 6px; }
+.dt-ai-param-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg-hover); border-radius: 6px; }
+.dt-ai-param-row label { font-size: 12px; color: var(--text-muted); width: 36px; }
+.dt-ai-param-row .old { font-size: 14px; font-weight: 600; color: var(--text-muted); text-decoration: line-through; }
+.dt-ai-param-row .new { font-size: 15px; font-weight: 700; color: var(--accent); }
+.dt-ai-param-row .chg { margin-left: auto; font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+.dt-ai-param-row .chg.down { background: var(--success-light); color: var(--success); }
+.dt-ai-param-row .chg.up { background: var(--warning-light); color: var(--warning); }
+.dt-ai-alt { display: flex; flex-direction: column; gap: 4px; }
+.dt-ai-alt-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-hover); border-radius: 6px; font-size: 11px; color: var(--text-secondary); }
+.dt-ai-alt-row span:first-child { font-weight: 600; min-width: 36px; color: var(--text-primary); }
+.dt-ai-table { font-size: 12px; }
+.dt-ai-table-head { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px 8px; font-weight: 600; color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+.dt-ai-table-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px 8px; border-radius: 4px; }
+.dt-ai-table-row:nth-child(even) { background: var(--bg-hover); }
+.dt-ai-table-row .muted { color: var(--text-muted); font-size: 10px; }
+.dt-ai-llm { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.6; white-space: pre-wrap; }
+.dt-ai-raw { padding: 12px; background: var(--bg-hover); border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: var(--text-secondary); max-height: 400px; overflow-y: auto; }
 </style>
