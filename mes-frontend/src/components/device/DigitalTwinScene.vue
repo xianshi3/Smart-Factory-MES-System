@@ -175,7 +175,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
   lastGridHW = halfW; lastGridHD = halfD
   const floorW = halfW * 2 + 6; const floorD = halfD * 2 + 6
 
-  const bg = dark ? 0x252525 : 0xe8e8ed
+  const bg = dark ? 0x2a2a2a : 0xe8e8ed
   S.scene.background = new THREE.Color(bg)
   S.scene.fog = new THREE.Fog(bg, floorW * 0.8, floorW * 2.2)
 
@@ -184,9 +184,9 @@ function buildFactory(deviceCount: number, dark: boolean) {
   const floorCanvas = document.createElement('canvas')
   floorCanvas.width = 512; floorCanvas.height = Math.round(512 * floorD / floorW)
   const ctx = floorCanvas.getContext('2d')!
-  ctx.fillStyle = dark ? '#252525' : '#d8d8e0'
+  ctx.fillStyle = dark ? '#2a2a2a' : '#d8d8e0'
   ctx.fillRect(0, 0, floorCanvas.width, floorCanvas.height)
-  ctx.strokeStyle = dark ? '#333333' : '#c0c0cc'
+  ctx.strokeStyle = dark ? '#3a3a3a' : '#c0c0cc'
   ctx.lineWidth = 1
   for (let x = 0; x < floorCanvas.width; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, floorCanvas.height); ctx.stroke() }
   for (let y = 0; y < floorCanvas.height; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(floorCanvas.width, y); ctx.stroke() }
@@ -261,7 +261,7 @@ function buildFactory(deviceCount: number, dark: boolean) {
 
 // ─── lighting ───
 function buildLighting(s: THREE.Scene, dark: boolean) {
-  s.add(new THREE.AmbientLight(dark ? 0x888888 : 0xdcdcdc, 0.7))
+  s.add(new THREE.AmbientLight(dark ? 0x999999 : 0xe8e8e8, 0.75))
   const key = new THREE.DirectionalLight(dark ? 0xffffff : 0xffffff, 1.8)
   key.position.set(14, 20, 10)
   key.castShadow = true
@@ -285,19 +285,19 @@ function buildMachine(device: any): THREE.Group {
   const root = new THREE.Group()
 
   // ── base ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xb0b0b0, 0.4, 0.65)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xc0c0c0, 0.4, 0.65)))
   root.children[root.children.length - 1].position.y = 0.07
 
-  // ── main cabinet (white industrial) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xf5f5f5, 0.1, 0.85))
+  // ── main cabinet (bright white) ──
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.7), mat(0xfafafa, 0.08, 0.9))
   body.position.y = 1.04; body.castShadow = true; root.add(body)
 
   // ── top accent band ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x6a6a6a, 0.2, 0.75)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x888888, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
   // ── rear cabinet ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xc0c0c0, 0.2, 0.65)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xd0d0d0, 0.2, 0.65)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
 
   // vent slats
@@ -307,19 +307,19 @@ function buildMachine(device: any): THREE.Group {
   }
 
   // ── front door (darker contrast panel) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x888888, 0.2, 0.8)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.015), mat(0x999999, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
   // door border
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.01), mat(0xcccccc, 0.1, 0.9)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.01), mat(0xdddddd, 0.1, 0.9)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.85)
 
   // glass window
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(1.3, 1.0, 0.005),
-    new THREE.MeshPhysicalMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.45, roughness: 0.01, metalness: 0.05 })
+    new THREE.MeshPhysicalMaterial({ color: 0xaaddff, transparent: true, opacity: 0.5, roughness: 0, metalness: 0.02, depthWrite: false })
   )
-  glass.position.set(0.05, 1.0, 0.87); root.add(glass)
+  glass.position.set(0.05, 1.0, 0.87); glass.renderOrder = 999; root.add(glass)
 
   // door handles
   ;[-0.5, 0.6].forEach(hx => {
@@ -329,10 +329,10 @@ function buildMachine(device: any): THREE.Group {
 
   // ── interior ──
   // table
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.06, 0.5), mat(0x909090, 0.2, 0.95)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.06, 0.5), mat(0xa0a0a0, 0.2, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.5, 0.55)
   // vise
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.07, 0.18), mat(0x9a9a9a, 0.15, 0.93)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.07, 0.18), mat(0xaaaaaa, 0.15, 0.93)))
   root.children[root.children.length - 1].position.set(0.05, 0.56, 0.55)
   // workpiece
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.16), mat(0xeeaa55, 0.5, 0.3)))
@@ -379,7 +379,7 @@ function buildMachine(device: any): THREE.Group {
 
   // ── side window (tool magazine) ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.6, 0.5),
-    new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.35, roughness: 0.05 })))
+    new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.35, roughness: 0.05, depthWrite: false })))
   root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)
   // magazine dots
   for (let ti = 0; ti < 6; ti++) {
@@ -429,7 +429,7 @@ function init() {
   if (!containerRef.value) return
   const dark = themeStore.isDark
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(dark ? 0x252525 : 0xe8e8ed)
+  scene.background = new THREE.Color(dark ? 0x2a2a2a : 0xe8e8ed)
 
   const w = containerRef.value.clientWidth
   const h = containerRef.value.clientHeight
@@ -657,7 +657,7 @@ watch(() => themeStore.isDark, (dark) => {
   clearFactory()
   buildFactory(lastDeviceCount || 5, dark)
   S.scene.traverse(c => {
-    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0x888888 : 0xdcdcdc)
+    if (c instanceof THREE.AmbientLight) c.color.setHex(dark ? 0x999999 : 0xe8e8e8)
     if (c instanceof THREE.HemisphereLight) c.color.setHex(dark ? 0x888888 : 0xaaaaaa)
   })
 })
