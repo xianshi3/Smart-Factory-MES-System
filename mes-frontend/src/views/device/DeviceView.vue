@@ -3,26 +3,26 @@
     <!-- ===== TOP BAR ===== -->
     <header class="dt-topbar">
       <div class="dt-topbar-left">
-        <span class="dt-logo-text">◆ Smart MES · 设备监控中心</span>
+        <span class="dt-logo-icon">◆</span>
+        <span class="dt-logo-text">MES<small>· 设备监控中心</small></span>
       </div>
-      <div class="dt-topbar-center">
-        <div class="dt-topbar-pills">
-          <span v-for="s in stats" :key="s.label" class="dt-pill" :class="s.theme">
-            <span class="dt-pill-num">{{ s.value }}</span><span class="dt-pill-lbl">{{ s.label }}</span>
-          </span>
+      <div class="dt-topbar-stats">
+        <div v-for="s in stats" :key="s.label" class="dt-stat-card" :class="s.theme">
+          <span class="dt-stat-icon"><el-icon size="16"><component :is="s.icon" /></el-icon></span>
+          <div class="dt-stat-body">
+            <span class="dt-stat-val">{{ s.value }}</span>
+            <span class="dt-stat-lbl">{{ s.label }}</span>
+          </div>
         </div>
       </div>
       <div class="dt-topbar-right">
         <div class="dt-view-switch">
-          <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><View /></el-icon> 3D孪生</button>
-          <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><Grid /></el-icon> 列表</button>
+          <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><Grid /></el-icon> 3D</button>
+          <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><View /></el-icon> 列表</button>
         </div>
         <div class="dt-topbar-actions" v-if="viewMode === 'list'">
-          <el-input v-model="searchKeyword" size="small" placeholder="搜索设备..." clearable :prefix-icon="Search" style="width:160px" />
-          <span class="dt-fchip" :class="{ on: statusFilter === '' }" @click="statusFilter = ''">全部</span>
-          <span class="dt-fchip run" :class="{ on: statusFilter === 'running' }" @click="statusFilter = 'running'">运行</span>
-          <span class="dt-fchip idle" :class="{ on: statusFilter === 'idle' }" @click="statusFilter = 'idle'">空闲</span>
-          <span class="dt-fchip fault" :class="{ on: statusFilter === 'fault' }" @click="statusFilter = 'fault'">故障</span>
+          <el-input v-model="searchKeyword" size="small" placeholder="搜索..." clearable :prefix-icon="Search" style="width:150px" />
+          <span v-for="f in filterChips" :key="f.key" class="dt-fchip" :class="{ on: statusFilter === f.key }" @click="statusFilter = f.key">{{ f.label }}</span>
         </div>
         <el-button text size="small" @click="refresh" class="dt-btn-refresh"><el-icon><Refresh /></el-icon></el-button>
       </div>
@@ -325,11 +325,17 @@ let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)
 
 const stats = ref([
-  { label: '设备总数', value: 0, theme: 'primary' },
-  { label: '运行中', value: 0, theme: 'success' },
-  { label: '空闲', value: 0, theme: 'info' },
-  { label: '故障', value: 0, theme: 'danger' }
+  { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' },
+  { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' },
+  { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' },
+  { label: '故障', value: 0, icon: 'Warning', theme: 'danger' },
 ])
+const filterChips = [
+  { key: '', label: '全部' },
+  { key: 'running', label: '运行' },
+  { key: 'idle', label: '空闲' },
+  { key: 'fault', label: '故障' },
+]
 
 const utilizationOption = ref({})
 const statusOption = ref({})
@@ -386,10 +392,10 @@ const fetchDeviceData = async () => {
     alarmList.value = alarms
 
     stats.value = [
-      { label: '设备总数', value: deviceList.value.length, theme: 'primary' },
-      { label: '运行中', value: deviceList.value.filter(d => d.status === 'running').length, theme: 'success' },
-      { label: '空闲', value: deviceList.value.filter(d => d.status === 'idle').length, theme: 'info' },
-      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, theme: 'danger' }
+      { label: '设备总数', value: deviceList.value.length, icon: 'Monitor', theme: 'primary' },
+      { label: '运行中', value: deviceList.value.filter(d => d.status === 'running').length, icon: 'CircleCheck', theme: 'success' },
+      { label: '空闲', value: deviceList.value.filter(d => d.status === 'idle').length, icon: 'VideoPause', theme: 'info' },
+      { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, icon: 'Warning', theme: 'danger' },
     ]
     updateCharts()
   } catch (e) { console.error(e) }
@@ -539,30 +545,38 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-page { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-app); color: var(--text-primary); font-size: 13px; }
 
 /* ===== TOP BAR ===== */
-.dt-topbar { display: flex; align-items: center; height: 38px; padding: 0 14px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 10px; }
-.dt-topbar-left { flex-shrink: 0; }
-.dt-logo-text { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
-.dt-topbar-center { flex: 1; display: flex; justify-content: center; }
-.dt-topbar-pills { display: flex; gap: 2px; }
-.dt-pill { display: flex; align-items: baseline; gap: 3px; padding: 2px 9px; border-radius: 5px; font-size: 12px; white-space: nowrap; }
-.dt-pill.primary { background: var(--accent-light); color: var(--accent); }
-.dt-pill.success { background: var(--success-light); color: var(--success); }
-.dt-pill.info { background: var(--info-light); color: var(--info); }
-.dt-pill.danger { background: var(--danger-light); color: var(--danger); }
-.dt-pill-num { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
-.dt-pill-lbl { opacity: .65; font-size: 10px; }
+.dt-topbar { display: flex; align-items: center; height: 48px; padding: 0 16px; background: linear-gradient(180deg, var(--bg-sidebar), var(--bg-app)); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
+.dt-topbar-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dt-logo-icon { font-size: 20px; color: var(--accent); }
+.dt-logo-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; }
+.dt-logo-text small { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 2px; }
+.dt-topbar-stats { flex: 1; display: flex; justify-content: center; gap: 6px; }
+.dt-stat-card { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 8px; min-width: 100px; }
+.dt-stat-card.primary { background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(99,102,241,.04)); border: 1px solid rgba(99,102,241,.15); }
+.dt-stat-card.success { background: linear-gradient(135deg, rgba(52,199,89,.12), rgba(52,199,89,.04)); border: 1px solid rgba(52,199,89,.15); }
+.dt-stat-card.info { background: linear-gradient(135deg, rgba(142,142,147,.12), rgba(142,142,147,.04)); border: 1px solid rgba(142,142,147,.15); }
+.dt-stat-card.danger { background: linear-gradient(135deg, rgba(255,59,48,.12), rgba(255,59,48,.04)); border: 1px solid rgba(255,59,48,.15); }
+.dt-stat-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 7px; flex-shrink: 0; }
+.dt-stat-card.primary .dt-stat-icon { background: var(--accent); color: #fff; }
+.dt-stat-card.success .dt-stat-icon { background: var(--success); color: #fff; }
+.dt-stat-card.info .dt-stat-icon { background: var(--info); color: #fff; }
+.dt-stat-card.danger .dt-stat-icon { background: var(--danger); color: #fff; }
+.dt-stat-body { display: flex; flex-direction: column; }
+.dt-stat-val { font-size: 17px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dt-stat-card.primary .dt-stat-val { color: var(--accent); }
+.dt-stat-card.success .dt-stat-val { color: var(--success); }
+.dt-stat-card.info .dt-stat-val { color: var(--info); }
+.dt-stat-card.danger .dt-stat-val { color: var(--danger); }
+.dt-stat-lbl { font-size: 10px; color: var(--text-muted); font-weight: 500; }
 .dt-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dt-view-switch { display: flex; background: var(--bg-hover); border-radius: 5px; padding: 1px; }
-.dt-view-switch button { display: flex; align-items: center; gap: 3px; padding: 3px 10px; border: none; border-radius: 4px; background: transparent; color: var(--text-secondary); font-size: 11px; cursor: pointer; transition: all .12s; }
-.dt-view-switch button.on { background: var(--bg-card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.dt-topbar-actions { display: flex; align-items: center; gap: 6px; }
-.dt-fchip { padding: 2px 7px; border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all .12s; }
+.dt-view-switch { display: flex; background: var(--bg-hover); border-radius: 6px; padding: 2px; }
+.dt-view-switch button { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border: none; border-radius: 5px; background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all .12s; }
+.dt-view-switch button.on { background: var(--bg-card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.dt-topbar-actions { display: flex; align-items: center; gap: 4px; }
+.dt-fchip { padding: 3px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all .12s; }
 .dt-fchip:hover { background: var(--bg-hover); color: var(--text-primary); }
-.dt-fchip.on { background: var(--accent-light); color: var(--accent); font-weight: 600; }
-.dt-fchip.run { color: var(--success); }
-.dt-fchip.idle { color: var(--info); }
-.dt-fchip.fault { color: var(--danger); }
-.dt-btn-refresh { color: var(--text-muted); font-size: 16px; }
+.dt-fchip.on { background: var(--accent); color: #fff; font-weight: 600; }
+.dt-btn-refresh { color: var(--text-muted); font-size: 18px; }
 
 /* ===== MAIN ===== */
 .dt-main { flex: 1; min-height: 0; overflow: hidden; }
