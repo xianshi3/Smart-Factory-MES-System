@@ -23,8 +23,9 @@
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
-          :collapse-transition="false"
+          collapse-transition
           class="sidebar-menu"
+          :default-openeds="isCollapse ? [] : openedMenus"
           @open="onMenuOpen"
           @close="onMenuClose"
         >
