@@ -22,7 +22,7 @@ let deviceMeshes: Map<string, THREE.Mesh> = new Map()
 let raycaster = new THREE.Raycaster()
 let mouse = new THREE.Vector2()
 
-function createFactoryFloor() {
+function createFactoryFloor(bgColor: number, gridColor: number) {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(40, 30),
     new THREE.MeshStandardMaterial({
