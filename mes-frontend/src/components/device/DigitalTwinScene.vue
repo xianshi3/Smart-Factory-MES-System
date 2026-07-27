@@ -745,18 +745,19 @@ onBeforeUnmount(() => {
   animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.twins-hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 6px; }
-.hud-row { display: flex; gap: 4px; }
+
+/* HUD badges */
+.twins-hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 4px; }
+.hud-row { display: flex; gap: 3px; }
 .hud-badge {
-  display: flex; align-items: center; gap: 2px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 5px; font-size: 12px; font-weight: 600;
+  color: #fff; backdrop-filter: blur(6px);
 }
-.hud-badge span { font-weight: 400; font-size: 10px; opacity: .8; }
-.hud-badge.running { background: rgba(52,199,89,.5); }
-.hud-badge.fault { background: rgba(255,59,48,.5); }
-.hud-badge.idle { background: rgba(142,142,147,.5); }
-.hud-badge.maintenance { background: rgba(255,149,0,.5); }
-.twins-views {
+.hud-badge span { font-weight: 400; font-size: 11px; opacity: .85; }
+.hud-badge.running { background: var(--success); }
+.hud-badge.fault { background: var(--danger); }
+.hud-badge.idle { background: var(--info); }
+.hud-badge.maintenance { background: var(--warning); }
   position: absolute; bottom: 10px; right: 10px; z-index: 5; display: flex; gap: 4px;
 }
 .view-btn {
@@ -804,12 +805,12 @@ onBeforeUnmount(() => {
 .twins-hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 4px; }
 .hud-row { display: flex; gap: 3px; }
 .hud-badge {
-  display: flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600;
-  color: var(--bg-card); backdrop-filter: blur(6px);
+  display: flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 5px; font-size: 12px; font-weight: 600;
+  color: #fff; backdrop-filter: blur(6px);
 }
-.hud-badge span { font-weight: 400; font-size: 9px; opacity: .85; }
-.hud-badge.running { background: var(--success); color: #fff; }
-.hud-badge.fault { background: var(--danger); color: #fff; }
-.hud-badge.idle { background: var(--info); color: #fff; }
-.hud-badge.maintenance { background: var(--warning); color: #fff; }
+.hud-badge span { font-weight: 400; font-size: 11px; opacity: .85; }
+.hud-badge.running { background: var(--success); }
+.hud-badge.fault { background: var(--danger); }
+.hud-badge.idle { background: var(--info); }
+.hud-badge.maintenance { background: var(--warning); }
 </style>

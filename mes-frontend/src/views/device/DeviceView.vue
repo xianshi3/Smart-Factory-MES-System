@@ -13,8 +13,8 @@
       <div class="dt-topbar-spacer" v-else></div>
       <div class="dt-topbar-right">
         <div class="dt-view-switch">
-          <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><Grid /></el-icon> 3D</button>
-          <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><View /></el-icon> 列表</button>
+          <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><Grid /></el-icon> 数字孪生</button>
+          <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><View /></el-icon> 设备列表</button>
         </div>
         <div class="dt-topbar-actions" v-if="viewMode === 'list'">
           <el-input v-model="searchKeyword" size="small" placeholder="搜索..." clearable :prefix-icon="Search" style="width:150px" />
