@@ -94,6 +94,12 @@
           设备列表
         </span>
         <div class="section-actions">
+          <div class="view-switch">
+            <el-button-group>
+              <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'">列表</el-button>
+              <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'">3D</el-button>
+            </el-button-group>
+          </div>
           <el-input
             v-model="searchKeyword"
             placeholder="搜索设备名称..."
@@ -138,13 +144,6 @@
         </div>
       </div>
       
-      <div class="view-switch">
-        <el-button-group>
-          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'">列表</el-button>
-          <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'">3D</el-button>
-        </el-button-group>
-      </div>
-
       <div v-if="viewMode === '3d'" class="scene-wrap">
         <DigitalTwinScene :devices="deviceList" @select="handleDeviceSelect" />
       </div>
@@ -798,7 +797,7 @@ watch(() => themeStore.isDark, () => {
 <style scoped>
 .device-page { padding: 0; }
 .scene-wrap { width: 100%; height: 500px; margin-bottom: 20px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); }
-.view-switch { margin: 0 0 16px 0; }
+.view-switch { margin-right: 12px; flex-shrink: 0; }
 
 
 .stat-item {
