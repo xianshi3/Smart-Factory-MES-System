@@ -19,13 +19,12 @@
 
       <div class="menu-scroll">
         <el-menu
-          ref="menuRef"
           :default-active="activeMenu"
           router
           :collapse="isCollapse"
           :collapse-transition="true"
           class="sidebar-menu"
-          :default-openeds="isCollapse ? [] : openedMenus"
+          :default-openeds="openedMenus"
           @open="onMenuOpen"
           @close="onMenuClose"
         >
@@ -144,7 +143,6 @@ const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
-const menuRef = ref()
 const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据', '系统管理'])
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
@@ -220,13 +218,6 @@ watch(() => route.path, (p) => {
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
-  if (!isCollapse.value) {
-    nextTick(() => {
-      openedMenus.value.forEach((title) => {
-        menuRef.value?.open(title)
-      })
-    })
-  }
 }
 
 const onMenuOpen = (idx: string) => {
@@ -241,11 +232,6 @@ onMounted(async () => {
   await userStore.getUserInfo()
   const r = userStore.userInfo?.role ? [userStore.userInfo.role] : ['ADMIN']
   permissionStore.loadMenus(r)
-  nextTick(() => {
-    openedMenus.value.forEach(title => {
-      menuRef.value?.open(title)
-    })
-  })
 })
 
 const handleCommand = (cmd: string) => {
