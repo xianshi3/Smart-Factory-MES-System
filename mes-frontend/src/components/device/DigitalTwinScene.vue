@@ -758,6 +758,7 @@ onBeforeUnmount(() => {
 .hud-badge.fault { background: var(--danger); }
 .hud-badge.idle { background: var(--info); }
 .hud-badge.maintenance { background: var(--warning); }
+.twins-views {
   position: absolute; bottom: 10px; right: 10px; z-index: 5; display: flex; gap: 4px;
 }
 .view-btn {
@@ -800,17 +801,4 @@ onBeforeUnmount(() => {
 .panel-actions button:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 .slide-up-enter-active, .slide-up-leave-active { transition: all .2s ease; }
 .slide-up-enter-from, .slide-up-leave-to { opacity: 0; transform: translateY(10px); }
-
-/* HUD badges */
-.twins-hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 4px; }
-.hud-row { display: flex; gap: 3px; }
-.hud-badge {
-  display: flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 5px; font-size: 12px; font-weight: 600;
-  color: #fff; backdrop-filter: blur(6px);
-}
-.hud-badge span { font-weight: 400; font-size: 11px; opacity: .85; }
-.hud-badge.running { background: var(--success); }
-.hud-badge.fault { background: var(--danger); }
-.hud-badge.idle { background: var(--info); }
-.hud-badge.maintenance { background: var(--warning); }
 </style>
