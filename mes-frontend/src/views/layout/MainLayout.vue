@@ -3,17 +3,17 @@
     <!-- ===== 左侧菜单 ===== -->
     <el-aside class="sidebar" :class="{ collapsed: isCollapse }">
       <div class="sidebar-header">
-        <div class="brand-icon">
-          <el-icon :size="18"><Cpu /></el-icon>
+        <div class="brand-logo">
+          <span class="brand-mark">◆</span>
+          <transition name="fade-slide">
+            <div v-show="!isCollapse" class="brand-info">
+              <span class="brand-title">Smart MES</span>
+              <span class="brand-sub">制造执行系统</span>
+            </div>
+          </transition>
         </div>
-        <transition name="fade-slide">
-          <div v-show="!isCollapse" class="brand-text">
-            <span class="brand-name">Smart MES</span>
-            <span class="brand-ver">v1.0</span>
-          </div>
-        </transition>
         <button class="collapse-btn" @click="toggleCollapse">
-          <el-icon><DArrowLeft v-if="!isCollapse" /><DArrowRight v-else /></el-icon>
+          <el-icon :size="12"><DArrowLeft v-if="!isCollapse" /><DArrowRight v-else /></el-icon>
         </button>
       </div>
 
@@ -279,48 +279,49 @@ const handleCommand = (cmd: string) => {
 .sidebar.collapsed { width: 56px; }
 
 .sidebar-header { 
-  height: 48px; 
+  height: 52px; 
   display: flex; 
   align-items: center; 
-  gap: 10px; 
-  padding: 0 12px; 
+  justify-content: space-between;
+  padding: 0 14px; 
   flex-shrink: 0; 
   border-bottom: 1px solid var(--border-color); 
 }
-.brand-icon { 
-  width: 28px; height: 28px; 
-  display: flex; align-items: center; justify-content: center; 
-  background: var(--accent); border-radius: 7px; color: #fff; flex-shrink: 0; 
+.brand-logo { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+.brand-mark { 
+  font-size: 22px; color: var(--accent); flex-shrink: 0; line-height: 1;
+  text-shadow: 0 0 12px rgba(99,102,241,.3);
 }
-.brand-text { display: flex; flex-direction: column; line-height: 1.2; overflow: hidden; white-space: nowrap; }
-.brand-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
-.brand-ver { font-size: 10px; color: var(--text-muted); }
+.brand-info { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }
+.brand-title { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; line-height: 1.1; }
+.brand-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; }
 .collapse-btn { 
-  margin-left: auto;
-  width: 22px; height: 22px; 
+  width: 24px; height: 24px; 
   display: flex; align-items: center; justify-content: center; 
-  background: transparent; border: 1px solid var(--border-color); border-radius: 5px; 
-  color: var(--text-muted); cursor: pointer; font-size: 10px; transition: all .15s; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--border-color); border-radius: 6px; 
+  color: var(--text-muted); cursor: pointer; transition: all .15s; flex-shrink: 0;
 }
 .collapse-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
-.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0; }
+.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 0; }
 .sidebar-menu { background: transparent; border: none; }
 
+/* Group titles */
 :deep(.el-sub-menu__title) { 
-  height: 36px; line-height: 36px; 
-  color: var(--text-secondary) !important; margin: 1px 6px; 
+  height: 38px; line-height: 38px; 
+  color: var(--text-secondary) !important; margin: 1px 8px; 
   border-radius: 6px; font-size: 13px; padding-left: 12px !important; 
 }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu.is-opened > .el-sub-menu__title) { color: var(--accent) !important; font-weight: 600; }
+:deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
 
-:deep(.el-sub-menu .el-menu) { background: transparent !important; }
+/* Sub-items */
+:deep(.el-sub-menu .el-menu) { background: transparent !important; padding: 2px 0; }
 :deep(.el-sub-menu .el-menu-item) { 
-  height: 32px; line-height: 32px; 
-  color: var(--text-secondary) !important; margin: 1px 6px 1px 20px; 
-  border-radius: 6px; font-size: 13px; padding-left: 10px !important; 
-  position: relative;
+  height: 34px; line-height: 34px; 
+  color: var(--text-secondary) !important; margin: 1px 8px 1px 24px; 
+  border-radius: 6px; font-size: 13px; padding-left: 12px !important; 
 }
 :deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu .el-menu-item.is-active) { 
@@ -328,27 +329,27 @@ const handleCommand = (cmd: string) => {
 }
 .menu-item-dot { 
   display: inline-block; width: 5px; height: 5px; border-radius: 50%; 
-  background: var(--border-color); margin-right: 6px; flex-shrink: 0; 
+  background: var(--border-color); margin-right: 8px; flex-shrink: 0; transition: background .15s;
 }
 :deep(.el-sub-menu .el-menu-item.is-active .menu-item-dot) { background: var(--accent); }
 
-/* Top-level items (collapsed mode) */
+/* Top-level items (no sub) */
 .el-menu-item { 
-  height: 36px; line-height: 36px; color: var(--text-secondary); 
-  margin: 1px 6px; border-radius: 6px; padding-left: 12px !important; font-size: 13px; 
+  height: 38px; line-height: 38px; color: var(--text-secondary); 
+  margin: 1px 8px; border-radius: 6px; padding-left: 14px !important; font-size: 13px; 
 }
 .el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
 .el-menu-item.is-active .el-icon { color: var(--accent); }
 
+/* Collapsed mode */
 .el-menu--collapse .el-menu-item { 
   display: flex; align-items: center; justify-content: center; 
-  padding: 0 !important; margin: 2px auto; width: 40px; height: 40px; border-radius: 8px; 
+  padding: 0 !important; margin: 3px auto; width: 38px; height: 38px; border-radius: 8px; 
 }
-.el-menu--collapse .el-menu-item .el-icon { margin: 0; font-size: 19px; }
-.el-menu--collapse .el-menu-item span { display: none; }
+.el-menu--collapse .el-menu-item .el-icon { margin: 0; font-size: 18px; }
 
-.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.15s ease; }
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all .15s ease; }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; }
 
 /* ===== MAIN ===== */
