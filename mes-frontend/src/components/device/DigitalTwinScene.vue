@@ -85,7 +85,7 @@ type SceneVars = {
 }
 
 let S: SceneVars
-let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null; pulseRing: THREE.Mesh | null; glowRing: THREE.Mesh | null }[] = []
+let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null }[] = []
 let selectedOutline: THREE.Group | null = null
 let hoverOutline: THREE.Group | null = null
 let runTime = 0
@@ -314,7 +314,7 @@ function buildMachine(device: any): THREE.Group {
   body.position.set(0, 1.04, -0.15); body.castShadow = true; root.add(body)
 
   // ── front door frame ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xdddddd, 0.12, 0.95)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.92, 1.52, 0.012), mat(0xaaaaaa, 0.12, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.95, 0.86)
 
   // Glass door
@@ -499,28 +499,7 @@ function refresh(devices: any[]) {
     const led = (root.userData as any).led as THREE.Mesh | undefined
     const conveyor = (root.userData as any).conveyor as THREE.Group | undefined
 
-    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null, pulseRing: null, glowRing: null })
-
-    // pulse ring for fault machines
-    const st = ST(d.status)
-    if (st === 'FAULT') {
-      const ringGeo = new THREE.TorusGeometry(1.3, 0.03, 16, 32)
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.6 })
-      const ring = new THREE.Mesh(ringGeo, ringMat)
-      ring.rotation.x = -Math.PI / 2
-      ring.position.y = 0.15
-      root.add(ring)
-      deviceNodes[deviceNodes.length - 1].pulseRing = ring
-    }
-
-    // glow ring
-    const glowGeo = new THREE.TorusGeometry(1.35, 0.02, 8, 32)
-    const glowMat = new THREE.MeshBasicMaterial({ color: CLR[st] || 0x6366f1, transparent: true, opacity: 0.3 })
-    const glow = new THREE.Mesh(glowGeo, glowMat)
-    glow.rotation.x = -Math.PI / 2
-    glow.position.y = 0.12
-    root.add(glow)
-    deviceNodes[deviceNodes.length - 1].glowRing = glow
+    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null })
   })
   runTime = 0
 }
@@ -614,18 +593,6 @@ function animate() {
       const mat = n.led.material as THREE.MeshStandardMaterial
       const st2 = ST(dev.status)
       mat.emissiveIntensity = st2 === 'FAULT' ? 1.0 : st2 === 'ONLINE' ? 0.7 : 0.3
-    }
-
-    // pulse ring for fault (static)
-    if (n.pulseRing) {
-      const ringMat = n.pulseRing.material as THREE.MeshBasicMaterial
-      ringMat.opacity = 0.4
-    }
-
-    // glow ring (static)
-    if (n.glowRing && !n.pulseRing) {
-      const gMat = n.glowRing.material as THREE.MeshBasicMaterial
-      if (st === 'ONLINE') gMat.opacity = 0.25
     }
   })
 
