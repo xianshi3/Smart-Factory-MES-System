@@ -95,10 +95,8 @@
         </span>
         <div class="section-actions">
           <div class="view-switch">
-            <el-button-group>
-              <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'">列表</el-button>
-              <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'">3D</el-button>
-            </el-button-group>
+              <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'"> 列表 </el-button>
+              <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'"> 3D </el-button>
           </div>
           <el-input
             v-model="searchKeyword"
@@ -797,7 +795,7 @@ watch(() => themeStore.isDark, () => {
 <style scoped>
 .device-page { padding: 0; }
 .scene-wrap { width: 100%; height: 500px; margin-bottom: 20px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); }
-.view-switch { margin-right: 12px; flex-shrink: 0; }
+.view-switch { display: flex; gap: 6px; margin-right: 12px; flex-shrink: 0; }
 
 
 .stat-item {
