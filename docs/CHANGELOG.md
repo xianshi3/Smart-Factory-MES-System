@@ -10,6 +10,27 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.31 (2026-07-27)
+
+### 修复
+
+- **前端卡片不可见**: 3 个视图的 `.template-card`/`.order-card`/`.stat-item`/`.device-card` 使用 `animation: fadeInUp` 但未定义 `@keyframes fadeInUp`，`animation-fill-mode: forwards` 导致永久 `opacity: 0`
+- **页面卡顿**: 移除所有视图的 `animationDelay` 内联样式（每张卡片依次动画导致卡顿）
+- **Vite 代理 404**: `/process` 代理的 `rewrite` 错误剥离 `/process` 前缀导致 404
+- **Element Plus 暗色主题**: 导入 `dark/css-vars.css` 使 ElTable/ElDialog 等组件支持主题切换
+- **数据加载报错被吞**: `res.data.records` 加 `?.` 可选链防止 TypeError 被 `catch` 吞掉
+
+### 优化
+
+- 删除 3 个死组件 (PageHeader/DataTable/SearchBar)
+- CSS 去重 269 行（7 个视图删除重复 page-header；stats-grid 合并到 global；status-tag 统一使用 CSS 变量）
+- 创建 `useChartTheme` composable，3 个视图复用图表颜色
+- 统一 8 个视图内边距为 MainLayout.el-main 的 24px
+- 修复硬编码颜色 16 处，改用 CSS 变量
+- 表状态标签改用 `var(--success-light)` 等变量替代硬编码 `rgba()`
+
+---
+
 ## v1.0.30 (2026-07-27)
 
 ### 变更
