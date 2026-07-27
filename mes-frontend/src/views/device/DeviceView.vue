@@ -254,7 +254,7 @@
             <span>AI 智能建议</span>
           </div>
         </div>
-        <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body">{{ aiAnalysisResult.content || aiAnalysisResult.response }}</div>
+        <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
         <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
           <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
         </div>
@@ -299,6 +299,7 @@ import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu,
  Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
+import { mdToHtml } from '@/utils/markdown'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -445,6 +446,10 @@ const handlePredict = async (d: any) => {
 }
 
 const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data; aiAnalysisLoading.value = false }
+function aiAdviceHtml(result: any): string {
+  const text = result?.content || result?.response || ''
+  return mdToHtml(text)
+}
 const handleSPCAnalysis = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
   try {
@@ -688,8 +693,15 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-ai-advice-header strong { display: block; font-size: 15px; color: var(--text-primary); }
 .dt-ai-advice-header span { font-size: 11px; color: var(--text-muted); }
 .dt-ai-advice-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; border-radius: 10px; }
-.dt-ai-advice-body { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.8; font-size: 13px; color: var(--text-primary); white-space: pre-wrap; }
-.dt-ai-advice-body :deep(strong), .dt-ai-advice-body :deep(b) { font-weight: 700; color: var(--text-primary); }
+.dt-ai-advice-body { padding: 14px; background: var(--bg-hover); border-radius: 8px; line-height: 1.8; font-size: 13px; color: var(--text-primary); }
+.dt-ai-advice-body :deep(h2) { font-size: 16px; margin: 12px 0 6px; color: var(--text-primary); }
+.dt-ai-advice-body :deep(h3) { font-size: 14px; margin: 10px 0 4px; color: var(--accent); }
+.dt-ai-advice-body :deep(h4) { font-size: 13px; margin: 8px 0 4px; color: var(--text-primary); }
+.dt-ai-advice-body :deep(p) { margin: 0 0 6px; }
+.dt-ai-advice-body :deep(strong) { font-weight: 700; color: var(--text-primary); }
+.dt-ai-advice-body :deep(li) { margin-left: 16px; margin-bottom: 2px; }
+.dt-ai-advice-body :deep(code) { background: var(--accent-light); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+.dt-ai-advice-body :deep(hr) { border: none; border-top: 1px solid var(--border-color); margin: 10px 0; }
 .dt-ai-advice-item { margin-bottom: 12px; }
 .dt-ai-advice-item strong { display: block; font-size: 12px; color: var(--accent); margin-bottom: 4px; text-transform: capitalize; }
 .dt-ai-advice-item p { margin: 0; font-size: 13px; color: var(--text-secondary); }
