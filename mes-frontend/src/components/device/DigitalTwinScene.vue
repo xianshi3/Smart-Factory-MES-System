@@ -312,7 +312,7 @@ function buildMachine(device: any): THREE.Group {
   // ── cabinet: built from panels (front face OPEN for glass door) ──
   const cabW = 2.4, cabH = 1.72, cabD = 1.3
   const cabX = 0, cabY = 1.06, cabZ = 0.2
-  const cabMat = mat(0xe0e0e0, 0.35, 0.6)
+  const cabMat = mat(0xf0f0f0, 0.3, 0.5)
   const wallT = 0.08
 
   // left wall
