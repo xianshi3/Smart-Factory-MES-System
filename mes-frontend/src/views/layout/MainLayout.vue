@@ -242,14 +242,6 @@ const onMenuClose = (idx: string) => {
   openedMenus.value = openedMenus.value.filter(i => i !== idx)
 }
 
-const onMenuOpen = (idx: string) => {
-  if (!openedMenus.value.includes(idx)) openedMenus.value.push(idx)
-}
-
-const onMenuClose = (idx: string) => {
-  openedMenus.value = openedMenus.value.filter(i => i !== idx)
-}
-
 onMounted(async () => {
   await userStore.getUserInfo()
   const r = userStore.userInfo?.role ? [userStore.userInfo.role] : ['ADMIN']
