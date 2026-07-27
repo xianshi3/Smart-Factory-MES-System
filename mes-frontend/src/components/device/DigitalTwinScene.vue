@@ -283,88 +283,170 @@ function buildMachine(device: any): THREE.Group {
   const c = CLR[st] || 0x6366f1
   const g = GLW[st] || 0x0
   const root = new THREE.Group()
+  const fz = 0.525
 
   // ── base ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0xbbbbbb, 0.3, 0.7)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0x8a8a8a, 0.4, 0.6)))
   root.children[root.children.length - 1].position.y = 0.07
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.025, 1.5), mat(0x505050, 0.7, 0.7)))
+  root.children[root.children.length - 1].position.set(0, 0.015, 0.2)
 
   // ── top accent band ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x888888, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
-  // ── rear cabinet ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 0.3), mat(0xbfbfbf, 0.2, 0.7)))
-  root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
-  root.children[root.children.length - 1].position.set(0.05, 0.95, -0.95)
-
-  // vent slats
-  for (let i = 0; i < 5; i++) {
-    root.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.015, 0.015), mat(0x747474, 0.5, 0.5)))
-    root.children[root.children.length - 1].position.set(0.05, 0.5 + i * 0.18, -1.1)
+  // ── machine column (C-frame backbone) ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 0.25), mat(0xaaaaaa, 0.25, 0.7)))
+  root.children[root.children.length - 1].position.set(0.05, 1.04, -0.95)
+  ;[-0.45, 0, 0.45].forEach(rx => {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.025, 1.4, 0.015), mat(0x888888, 0.1, 0.9)))
+    root.children[root.children.length - 1].position.set(rx, 1.04, -0.825)
+  })
+  // way covers (bellows on column face)
+  for (let wi = 0; wi < 5; wi++) {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.05), mat(0x666666, 0.5, 0.5)))
+    root.children[root.children.length - 1].position.set(0.05, 0.6 + wi * 0.1, -0.8)
   }
+  // electrical cabinet on column right face
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.2), mat(0x777777, 0.3, 0.7)))
+  root.children[root.children.length - 1].position.set(0.9, 0.7, -0.95)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.225, 0.005, 0.205), mat(0x444444, 0.5, 0.5)))
+  root.children[root.children.length - 1].position.set(0.9, 0.7, -0.95)
+  // cooling fan grille on column back
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.01, 12), new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide })))
+  root.children[root.children.length - 1].position.set(0.05, 0.85, -1.08)
+  root.children[root.children.length - 1].rotation.x = Math.PI / 2
 
-  // ── handlebars ──
-  ;[-0.5, 0.6].forEach(hx => {
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), mat(0xd0d0d0, 0.1, 0.92))
-    h.position.set(hx, 0.92, 0.88); root.add(h)
+  // ── main cabinet (hollow, open front) ──
+  const cabMat = mat(0xf0f0f4, 0.35, 0.5)
+  const ct = 0.08
+  ;[[-1.16, 1.04, -0.15, ct, 1.8, 1.35],
+   [1.16, 1.04, -0.15, ct, 1.8, 1.35],
+   [0, 1.90, -0.15, 2.24, ct, 1.35],
+   [0, 0.18, -0.15, 2.24, ct, 1.35],
+   [0, 1.04, -0.785, 2.24, 1.64, ct],
+  ].forEach(([x, y, z, w, h, d]) => {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cabMat)
+    wall.position.set(x, y, z); wall.castShadow = true; root.add(wall)
   })
 
-  // ── main cabinet body (solid, front face at z=0.52) ──
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 1.35), mat(0xe0e0e0, 0.35, 0.6))
-  body.position.set(0, 1.04, -0.15); body.castShadow = true; root.add(body)
+  // ── door frame (4 panels forming complete front face around glass) ──
+  const frameMat = mat(0xf0f0f4, 0.35, 0.5)
+  const ft = 0.02
+  ;[[-0.975, 1.04, fz, 0.29, 1.64, ft],
+   [1.025, 1.04, fz, 0.19, 1.64, ft],
+   [0.05, 1.745, fz, 1.76, 0.23, ft],
+   [0.05, 0.245, fz, 1.76, 0.05, ft],
+  ].forEach(([x, y, z, w, h, d]) => {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat))
+    root.children[root.children.length - 1].position.set(x, y, z)
+  })
 
-  // ── Door frame (top/bottom bars) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 1.68, 0.86)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.04, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.22, 0.86)
-  // left/right bars
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(-0.87, 0.95, 0.86)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.44, 0.015), mat(0x999999, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.97, 0.95, 0.86)
+  // side vents on right panel
+  for (let i = 0; i < 4; i++) {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.15, 0.03), mat(0x2a2a2a, 0.8, 0.3)))
+    root.children[root.children.length - 1].position.set(1.195, 0.7 + i * 0.28, 0.1)
+  }
 
-  // Glass door
-  const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.76, 1.36, 0.01),
-    new THREE.MeshPhysicalMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.5, roughness: 0.05, metalness: 0.05, depthWrite: false })
-  )
-  glass.position.set(0.05, 0.95, 0.86); glass.renderOrder = 999; root.add(glass)
+  // ── glass door ──
+  const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x88ccdd, transparent: true, opacity: 0.25, roughness: 0.02, metalness: 0.02, depthWrite: false, side: THREE.DoubleSide })
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(1.76, 1.36, 0.01), glassMat)
+  glass.position.set(0.05, 0.95, fz); glass.renderOrder = 999; root.add(glass)
+
+  // ── door handle (mounted on glass door area) ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.45, 0.03), mat(0xd0d0d0, 0.05, 0.95)))
+  root.children[root.children.length - 1].position.set(0.88, 0.95, fz + 0.02)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.04), mat(0x999999, 0.1, 0.9)))
+  root.children[root.children.length - 1].position.set(0.88, 1.17, fz + 0.02)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.04), mat(0x999999, 0.1, 0.9)))
+  root.children[root.children.length - 1].position.set(0.88, 0.73, fz + 0.02)
+
+  // ── brand plate on cabinet front ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.005), mat(0x222222, 0.3, 0.6)))
+  root.children[root.children.length - 1].position.set(0.05, 1.83, fz)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.015, 0.006), new THREE.MeshBasicMaterial({ color: 0x4499ff })))
+  root.children[root.children.length - 1].position.set(0.05, 1.83, fz + 0.005)
 
   // ── interior (visible through glass) ──
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.45), mat(0xb0b0b0, 0.2, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.48, 0.65)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 0.16), mat(0xbbbbbb, 0.15, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.54, 0.65)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.14), mat(0xeeaa55, 0.5, 0.3)))
-  root.children[root.children.length - 1].position.set(0.05, 0.65, 0.65)
+  // table base / saddle (reaches from cabinet floor to table bottom)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.35), mat(0x888888, 0.3, 0.7)))
+  root.children[root.children.length - 1].position.set(0.05, 0.345, 0.3)
+  // work table
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.45), mat(0xa0a0a0, 0.3, 0.8)))
+  root.children[root.children.length - 1].position.set(0.05, 0.47, 0.3)
+  // T-slots
+  for (let ti = -1; ti <= 1; ti++) {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.01, 0.45), mat(0x444444, 0.8, 0.3)))
+    root.children[root.children.length - 1].position.set(0.05 + ti * 0.25, 0.5, 0.3)
+  }
+  // vise body (sits on table top at y=0.495)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.2), mat(0x888888, 0.25, 0.75)))
+  root.children[root.children.length - 1].position.set(0.05, 0.525, 0.3)
+  // vise fixed jaw
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x666666, 0.2, 0.8)))
+  root.children[root.children.length - 1].position.set(0.15, 0.575, 0.3)
+  // vise moving jaw
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x777777, 0.2, 0.8)))
+  root.children[root.children.length - 1].position.set(-0.07, 0.575, 0.3)
+  // workpiece (aluminum block, clamped in vise)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), mat(0xc0c8d0, 0.25, 0.85)))
+  root.children[root.children.length - 1].position.set(0.04, 0.635, 0.3)
+  // parked tool on table
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
+  root.children[root.children.length - 1].position.set(-0.2, 0.525, 0.3)
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.04, 6), mat(0x887744, 0.3, 0.8)))
+  root.children[root.children.length - 1].position.set(-0.2, 0.475, 0.3)
 
+  // spindle motor housing
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mat(0xd0d0d0, 0.2, 0.75)))
+  root.children[root.children.length - 1].position.set(0.05, 0.9, 0.15)
   // spindle (animated)
   const spindle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
     mat(c, 0.06, 0.98, g, 0.25)
   )
-  spindle.position.set(0.05, 0.8, 0.5); spindle.castShadow = true; root.add(spindle)
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.1, 8), mat(0xbbbbbb, 0.1, 0.9)))
-  root.children[root.children.length - 1].position.set(0.05, 0.6, 0.5)
+  spindle.position.set(0.05, 0.8, 0.15); spindle.castShadow = true; root.add(spindle)
+  // HSK tool holder taper
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.04, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
+  root.children[root.children.length - 1].position.set(0.05, 0.63, 0.15)
+  // cutting tool (end mill)
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.08, 6), mat(0x887744, 0.3, 0.8)))
+  root.children[root.children.length - 1].position.set(0.05, 0.56, 0.15)
+  // coolant nozzle
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, 0.04, 8), mat(0xcccccc, 0.1, 0.9)))
+  root.children[root.children.length - 1].position.set(0.2, 0.6, 0.25)
+  root.children[root.children.length - 1].rotation.z = Math.PI / 4
 
-  // ── control panel (right side, attached to cabinet) ──
+  // ── control panel ──
   const pnl = new THREE.Group()
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x787878, 0.2, 0.75)))
-  // screen
-  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.005), new THREE.MeshBasicMaterial({ color: 0x20d050 })))
-  pnl.children[pnl.children.length - 1].position.set(0, 0.18, 0.035)
-  // button row
-  ;[0xff4444, 0xffcc00, 0x44cc44].forEach((bc, bi) => {
-    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 8), new THREE.MeshStandardMaterial({ color: bc, roughness: 0.2, emissive: bc, emissiveIntensity: 0.3 }))
-    btn.position.set(-0.1 + bi * 0.1, -0.1, 0.035); btn.rotation.x = Math.PI / 2; pnl.add(btn)
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x666666, 0.2, 0.7)))
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 0.008), mat(0x111111, 0.3, 0.3)))
+  pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.035)
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.005), new THREE.MeshBasicMaterial({ color: 0x226633 })))
+  pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.04)
+  pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.002), new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.15 })))
+  pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.043)
+  const eStop = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.015, 12), new THREE.MeshStandardMaterial({ color: 0xff2222, roughness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.15 }))
+  eStop.position.set(0.12, -0.08, 0.035); eStop.rotation.x = Math.PI / 2; pnl.add(eStop)
+  pnl.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.012, 8), mat(0x888888, 0.2, 0.8)))
+  pnl.children[pnl.children.length - 1].position.set(-0.12, -0.08, 0.035)
+  pnl.children[pnl.children.length - 1].rotation.x = Math.PI / 2
+  const btnColors = [0x44cc44, 0xffcc00, 0xff6644, 0x4488ff, 0x888888, 0x888888]
+  btnColors.forEach((bc, bi) => {
+    const col = bi % 3; const row = Math.floor(bi / 3)
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.008, 8),
+      new THREE.MeshStandardMaterial({ color: bc, roughness: 0.3, emissive: bc, emissiveIntensity: 0.15 }))
+    btn.position.set(-0.08 + col * 0.08, -0.24 + row * 0.06, 0.035)
+    btn.rotation.x = Math.PI / 2; pnl.add(btn)
   })
   pnl.position.set(1.42, 1.0, 0.5); root.add(pnl)
 
   // ── stack light ──
   const tower = new THREE.Group()
-  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x787878, 0.3, 0.82)))
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x666666, 0.3, 0.8)))
   tower.children[0].position.y = 2.02
+  tower.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.08), mat(0x666666, 0.3, 0.7)))
+  tower.children[1].position.set(0, 1.96, 0)
   ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
     const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
       new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.25, roughness: 0.3 }))
@@ -379,25 +461,28 @@ function buildMachine(device: any): THREE.Group {
 
   // ── side window (tool magazine) ──
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.6, 0.5),
-    new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.35, roughness: 0.05, depthWrite: false })))
+    new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.3, roughness: 0.05, depthWrite: false })))
   root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)
-  // magazine dots
   for (let ti = 0; ti < 6; ti++) {
     const a = (ti / 6) * Math.PI * 2
-    const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 6), mat(0xbfbfbf, 0.08, 0.92))
-    dot.position.set(-1.18, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18); root.add(dot)
+    root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.04, 6), mat(0x999999, 0.08, 0.92)))
+    root.children[root.children.length - 1].position.set(-1.18, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)
+    root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 6), mat(0x887744, 0.3, 0.8)))
+    root.children[root.children.length - 1].position.set(-1.17, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)
   }
 
-  // chip drawer
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0xb0b0b0, 0.45, 0.7)))
+  // ── chip drawer ──
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0x909090, 0.45, 0.7)))
   root.children[root.children.length - 1].position.set(0, 0.15, 0.75)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.012, 0.04), mat(0xcccccc, 0.12, 0.88)))
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.005), mat(0xbbbbbb, 0.2, 0.8)))
+  root.children[root.children.length - 1].position.set(0, 0.15, 0.925)
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.015, 0.02), mat(0xd0d0d0, 0.1, 0.9)))
   root.children[root.children.length - 1].position.set(0, 0.2, 0.93)
 
   // ── feet ──
   const padGeo = new THREE.CylinderGeometry(0.1, 0.13, 0.05, 8)
   ;[[-1.1, 0.025, -0.85], [1.1, 0.025, -0.85], [-1.1, 0.025, 0.85], [1.1, 0.025, 0.85]].forEach(([px, py, pz]) => {
-    root.add(new THREE.Mesh(padGeo, mat(0x909090, 0.5, 0.7)))
+    root.add(new THREE.Mesh(padGeo, mat(0x707070, 0.5, 0.6)))
     root.children[root.children.length - 1].position.set(px, py, pz)
   })
 
@@ -416,9 +501,9 @@ function buildMachine(device: any): THREE.Group {
 // ─── selection glow outline ───
 function makeOutline(color: number): THREE.Group {
   const g = new THREE.Group()
-  const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.5 })
-  const geo = new THREE.BoxGeometry(2.6, 2.1, 2.3)
-  const mesh = new THREE.Mesh(geo, mat)
+  const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.55, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.2, 2.2), mat)
+  mesh.position.z = -0.05
   g.add(mesh)
   g.visible = false
   return g
@@ -466,9 +551,9 @@ function init() {
   const clock = new THREE.Clock()
 
   selectedOutline = makeOutline(0xffcc00)
-  selectedOutline.position.set(0, 0.9, 0); scene.add(selectedOutline)
+  selectedOutline.position.set(0, 1.05, 0); scene.add(selectedOutline)
   hoverOutline = makeOutline(0x88aaff)
-  hoverOutline.position.set(0, 0.9, 0); scene.add(hoverOutline)
+  hoverOutline.position.set(0, 1.05, 0); scene.add(hoverOutline)
 
   S = { scene, camera, webgl, lbl, controls, clock, animId: 0, raycaster, mouse }
   animate()
@@ -545,7 +630,7 @@ function onSceneClick(e: MouseEvent) {
     emit('select', dev)
     if (selectedOutline && o instanceof THREE.Group) {
       const wp = new THREE.Vector3(); o.getWorldPosition(wp)
-      selectedOutline.position.copy(wp); selectedOutline.position.y = 1.0; selectedOutline.visible = true
+      selectedOutline.position.copy(wp); selectedOutline.position.y = 1.05; selectedOutline.visible = true
     }
   }
 }
@@ -555,7 +640,7 @@ function onMouseMove(e: MouseEvent) {
   const o = raycastDevice(e.clientX, e.clientY)
   if (o && o instanceof THREE.Group) {
     const wp = new THREE.Vector3(); o.getWorldPosition(wp)
-    hoverOutline.position.copy(wp); hoverOutline.position.y = 1.0; hoverOutline.visible = true
+    hoverOutline.position.copy(wp); hoverOutline.position.y = 1.05; hoverOutline.visible = true
   } else {
     hoverOutline.visible = false
   }
@@ -565,7 +650,7 @@ function onMouseMove(e: MouseEvent) {
 function flyToView(key: string) {
   if (!S) return
   currentView.value = key
-  const targets: Record<string, [number, number, number, number, number, number]> = {
+  const targets: Record<string, number[]> = {
     perspective: [16, 11, 16, 0, 0.5, 0],
     top: [0, 22, 0.5, 0, 0, 0],
     front: [0, 3, 18, 0, 0.8, 0],
