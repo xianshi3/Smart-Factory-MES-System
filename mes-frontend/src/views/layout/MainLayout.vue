@@ -157,7 +157,9 @@ const menuGroups = computed<MenuGroup[]>(() => {
       icon: 'Grid',
       items: [
         { path: '/production-line', title: '生产线', icon: 'Connection' },
-        { path: '/workstation', title: '工位管理', icon: 'Location' }
+        { path: '/workstation', title: '工位管理', icon: 'Location' },
+        { path: '/material', title: '物料管理', icon: 'Box' },
+        { path: '/bom', title: 'BOM管理', icon: 'List' }
       ]
     },
     { 
