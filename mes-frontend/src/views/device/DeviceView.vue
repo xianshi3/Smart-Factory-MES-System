@@ -111,8 +111,8 @@
           <el-descriptions-item label="运行">{{ detailData.runtime }}</el-descriptions-item>
         </el-descriptions>
         <div class="dt-dactions">
-          <el-button :type="detailData.status === 'running' ? 'warning' : 'success'" size="small" @click="toggleDevice(detailData)">{{ detailData.status === 'running' ? '停止' : '启动' }}</el-button>
-          <el-button size="small" @click="openPredictDialog(detailData)">AI 分析</el-button>
+          <el-button :type="detailData.status === 'running' ? 'warning' : 'success'" size="small" @click="detailData.status === 'running' ? handleStop(detailData) : handleStart(detailData)">{{ detailData.status === 'running' ? '停止' : '启动' }}</el-button>
+          <el-button size="small" @click="predictVisible = true; predictData = detailData">AI 分析</el-button>
         </div>
       </div>
     </el-dialog>
@@ -140,6 +140,7 @@ import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, List, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
+import Device3DScene from '@/components/device/Device3DScene.vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
