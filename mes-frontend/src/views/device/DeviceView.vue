@@ -138,7 +138,18 @@
         </div>
       </div>
       
-      <div class="device-grid">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <el-button-group>
+          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" @click="viewMode = 'list'">列表</el-button>
+          <el-button :type="viewMode === '3d' ? 'primary' : 'default'" size="small" @click="viewMode = '3d'">3D</el-button>
+        </el-button-group>
+      </div>
+
+      <div v-if="viewMode === '3d'" class="scene-wrap">
+        <DigitalTwinScene :devices="deviceList" @select="handleDeviceSelect" />
+      </div>
+      
+      <div v-if="viewMode === 'list'" class="device-grid">
         <div 
           v-for="(device, index) in filteredDevices" 
           :key="device.id || index"
@@ -363,17 +374,19 @@ import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmCh
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
-import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu, Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
+import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu,
+ Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
+import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
-
 const deviceList = ref<any[]>([])
 const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const detailVisible = ref(false)
 const detailData = ref<any>({})
+const viewMode = ref<'list' | '3d'>('list')
 const predictVisible = ref(false)
 const predictData = ref<any>({})
 const aiAnalysisVisible = ref(false)
@@ -559,6 +572,11 @@ const refresh = () => {
 }
 
 const handleDetail = (device: any) => {
+  detailData.value = device
+  detailVisible.value = true
+}
+
+const handleDeviceSelect = (device: any) => {
   detailData.value = device
   detailVisible.value = true
 }
@@ -779,6 +797,7 @@ watch(() => themeStore.isDark, () => {
 
 <style scoped>
 .device-page { padding: 0; }
+.scene-wrap { width: 100%; height: 500px; margin-bottom: 20px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); }
 
 
 .stat-item {
