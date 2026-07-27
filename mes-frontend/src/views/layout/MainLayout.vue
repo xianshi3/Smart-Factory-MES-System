@@ -4,7 +4,7 @@
     <el-aside class="sidebar" :class="{ collapsed: isCollapse }">
       <div class="sidebar-header">
         <div class="brand-logo">
-          <span class="brand-mark">◆</span>
+          <span class="brand-mark"><el-icon :size="20"><Cpu /></el-icon></span>
           <transition name="fade-slide">
             <div v-show="!isCollapse" class="brand-info">
               <span class="brand-title">Smart MES</span>
@@ -37,7 +37,7 @@
                 <span>{{ group.title }}</span>
               </template>
               <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-                <span class="menu-item-dot"></span>
+                <el-icon><component :is="item.icon" /></el-icon>
                 <span>{{ item.title }}</span>
               </el-menu-item>
             </el-sub-menu>
@@ -289,8 +289,8 @@ const handleCommand = (cmd: string) => {
 }
 .brand-logo { display: flex; align-items: center; gap: 10px; overflow: hidden; }
 .brand-mark { 
-  font-size: 22px; color: var(--accent); flex-shrink: 0; line-height: 1;
-  text-shadow: 0 0 12px rgba(99,102,241,.3);
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: var(--accent); border-radius: 8px; color: #fff; flex-shrink: 0;
 }
 .brand-info { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }
 .brand-title { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; line-height: 1.1; }
@@ -327,11 +327,6 @@ const handleCommand = (cmd: string) => {
 :deep(.el-sub-menu .el-menu-item.is-active) { 
   background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 600; 
 }
-.menu-item-dot { 
-  display: inline-block; width: 5px; height: 5px; border-radius: 50%; 
-  background: var(--border-color); margin-right: 8px; flex-shrink: 0; transition: background .15s;
-}
-:deep(.el-sub-menu .el-menu-item.is-active .menu-item-dot) { background: var(--accent); }
 
 /* Top-level items (no sub) */
 .el-menu-item { 
