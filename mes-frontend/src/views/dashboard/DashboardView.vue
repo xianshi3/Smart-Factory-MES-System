@@ -8,11 +8,13 @@
         <p class="welcome-subtitle">{{ currentDate }} · {{ currentTime }}</p>
       </div>
       <div class="header-actions">
-        <el-button circle @click="refresh" class="refresh-btn">
+        <el-button circle class="refresh-btn" :loading="loading" @click="refresh">
           <el-icon><Refresh /></el-icon>
         </el-button>
       </div>
     </div>
+
+    <el-alert v-if="error" :title="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
 
     <div class="stats-grid">
       <StatCard
@@ -22,7 +24,6 @@
         :label="stat.label"
         :value="stat.value"
         :theme="stat.theme"
-        :trend="stat.trend"
         :delay="index * 0.1"
       />
     </div>
@@ -61,10 +62,10 @@
         <DeviceCard
           v-for="(device, index) in devices.slice(0, 8)"
           :key="device.id || index"
-          :name="device.deviceName || device.device_code || `设备${index + 1}`"
+          :name="device.deviceName || device.deviceCode || `设备${index + 1}`"
           :status="device.status"
           :utilization="Math.round((device.speed || 0) / 15)"
-          :temperature="device.temperature || 0"
+          :temperature="device.temperature ?? 0"
           :power="Math.round((device.speed || 0) * 0.02 + 5)"
           :delay="index * 0.05"
         />
@@ -75,32 +76,38 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import VChart from 'vue-echarts'
 import { getDeviceStatus } from '@/api/dashboard'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import StatCard from '@/components/common/StatCard.vue'
+import DeviceCard from '@/components/common/DeviceCard.vue'
+import ChartCard from '@/components/common/ChartCard.vue'
+import { Refresh, Monitor } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
-import DeviceCard from '@/components/common/DeviceCard.vue'
-import ChartCard from '@/components/common/ChartCard.vue'
-import { Refresh, Monitor, TrendCharts, PieChart } from '@element-plus/icons-vue'
-
 const userStore = useUserStore()
+
+const loading = ref(false)
+const error = ref('')
 const currentTime = ref('')
 const currentDate = ref('')
 const devices = ref<any[]>([])
-let timeInterval: number
-let wsUnsubscribe: (() => void) | null = null
 
-const stats = ref([
-  { label: '设备总数', value: 0, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
-  { label: '运行中', value: 0, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
-  { label: '空闲', value: 0, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
-  { label: '告警', value: 0, icon: 'Warning', theme: 'warning' as const, trend: 0 }
+interface Stat {
+  label: string
+  value: number
+  icon: string
+  theme: 'primary' | 'success' | 'warning' | 'info'
+}
+
+const stats = computed<Stat[]>(() => [
+  { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' },
+  { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' },
+  { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' },
+  { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' }
 ])
 
 const productionChart = ref({})
@@ -110,111 +117,102 @@ const onlineCount = computed(() => devices.value.filter(d => d.status === 'ONLIN
 const idleCount = computed(() => devices.value.filter(d => d.status === 'OFFLINE').length)
 const alarmCount = computed(() => devices.value.filter(d => d.status === 'ALARM').length)
 
+const statusMap: Record<string, string> = {
+  ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中'
+}
+const chartColors: Record<string, string> = {
+  '运行中': '#10b981', '空闲': '#06b6d4', '告警': '#ef4444', '维护中': '#f59e0b'
+}
+
 const updateTime = () => {
   const now = new Date()
   currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   currentDate.value = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 }
 
-const refresh = async () => {
-  try {
-    const res = await getDeviceStatus()
-    const raw = res?.data || res
-    devices.value = Array.isArray(raw) ? raw : []
-    
-    stats.value = [
-      { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
-      { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
-      { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
-      { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' as const, trend: 0 }
-    ]
-    
-    updateCharts()
-  } catch (e) {
-    console.error(e)
-  }
+const getChartTheme = () => {
+  const t = chartTheme.value
+  const bgColor = t.isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
+  return { ...t, bgColor, borderColor: t.lineColor }
 }
 
 const updateCharts = () => {
-  const t = chartTheme.value
-  const { isDark, textColor, lineColor, labelColor, splitLineColor } = t
-  const bgColor = isDark ? 'rgba(20,20,35,0.9)' : 'rgba(255,255,255,0.9)'
-  const borderColor = lineColor
-
-  const deviceNames = devices.value.map(d => d.device_code || d.deviceName || '设备')
+  const { bgColor, borderColor, textColor, lineColor, labelColor, splitLineColor } = getChartTheme()
+  const names = devices.value.map(d => d.deviceCode || d.deviceName || '设备')
   const speeds = devices.value.map(d => d.speed || 0)
 
   productionChart.value = {
     tooltip: { trigger: 'axis', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-    xAxis: { type: 'category', data: deviceNames, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor } },
+    xAxis: { type: 'category', data: names, axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor } },
     yAxis: { type: 'value', axisLine: { lineStyle: { color: lineColor } }, axisLabel: { color: labelColor }, splitLine: { lineStyle: { color: splitLineColor } } },
     series: [{
-      data: speeds,
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
+      data: speeds, type: 'line', smooth: true, symbol: 'circle', symbolSize: 8,
       lineStyle: { color: '#6366f1', width: 3 },
       itemStyle: { color: '#6366f1' },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.4)' }, { offset: 1, color: 'rgba(99,102,241,0)' }] } }
+      areaStyle: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.4)' }, { offset: 1, color: 'rgba(99,102,241,0)' }] }
     }]
   }
 
-  const statusCounts: Record<string, number> = { '运行中': 0, '空闲': 0, '告警': 0, '维护中': 0 }
-  const colors: Record<string, string> = { '运行中': '#10b981', '空闲': '#06b6d4', '告警': '#ef4444', '维护中': '#f59e0b' }
+  const counts: Record<string, number> = {}
   devices.value.forEach(d => {
-    const statusMap: Record<string, string> = { ONLINE: '运行中', OFFLINE: '空闲', ALARM: '告警', MAINTENANCE: '维护中' }
-    const statusText = statusMap[d.status] || '空闲'
-    statusCounts[statusText] = (statusCounts[statusText] || 0) + 1
+    const name = statusMap[d.status] || '空闲'
+    counts[name] = (counts[name] || 0) + 1
   })
 
   statusChart.value = {
     tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
     series: [{
-      type: 'pie',
-      radius: ['45%', '70%'],
-      center: ['50%', '50%'],
-      data: Object.entries(statusCounts).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: colors[k] } })),
+      type: 'pie', radius: ['45%', '70%'], center: ['50%', '50%'],
+      data: Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: chartColors[k] } })),
       label: { show: true, color: textColor, fontSize: 13 },
       emphasis: { itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.5)' } }
     }]
   }
 }
 
+const refresh = async () => {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await getDeviceStatus()
+    const raw = res?.data || res
+    devices.value = Array.isArray(raw) ? raw : []
+    updateCharts()
+  } catch (e: any) {
+    error.value = e?.message || '无法连接到后端服务'
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+let timeInterval: number
+let wsUnsubscribe: (() => void) | null = null
+
 onMounted(() => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
-  
+
   wsService.connect()
   wsUnsubscribe = wsService.subscribe((data) => {
     if (data.devices) {
       devices.value = data.devices
-      stats.value = [
-        { label: '设备总数', value: devices.value.length, icon: 'Monitor', theme: 'primary' as const, trend: 0 },
-        { label: '运行中', value: onlineCount.value, icon: 'CircleCheck', theme: 'success' as const, trend: 0 },
-        { label: '空闲', value: idleCount.value, icon: 'VideoPause', theme: 'info' as const, trend: 0 },
-        { label: '告警', value: alarmCount.value, icon: 'Warning', theme: 'warning' as const, trend: 0 }
-      ]
       updateCharts()
     }
   })
-  
+
   refresh()
 })
 
 onUnmounted(() => {
   clearInterval(timeInterval)
-  if (wsUnsubscribe) {
-    wsUnsubscribe()
-  }
+  wsUnsubscribe?.()
   wsService.disconnect()
 })
 
 watch(() => themeStore.isDark, () => {
-  if (devices.value.length > 0) {
-    updateCharts()
-  }
+  if (devices.value.length) updateCharts()
 })
 </script>
 
@@ -259,6 +257,8 @@ watch(() => themeStore.isDark, () => {
   border-color: var(--accent) !important;
   color: var(--accent) !important;
 }
+
+:deep(.mb-4) { margin-bottom: 16px; }
 
 .stats-grid {
   display: grid;
@@ -319,17 +319,13 @@ watch(() => themeStore.isDark, () => {
   gap: 16px;
 }
 
-html.light .section-title { color: var(--text-primary); }
-html.light .welcome-title { color: var(--text-primary); }
-html.light .welcome-subtitle { color: var(--text-muted); }
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .device-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 1200px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .device-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

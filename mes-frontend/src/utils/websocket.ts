@@ -6,16 +6,17 @@ class WebSocketService {
   private ws: WebSocket | null = null
   private reconnectTimer: number | null = null
   private messageHandlers: ((data: any) => void)[] = []
+  private intentionalDisconnect = false
   private connected = ref(false)
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN) return
 
     try {
+      this.intentionalDisconnect = false
       this.ws = new WebSocket(WS_URL)
 
       this.ws.onopen = () => {
-        console.log('[WebSocket] Connected')
         this.connected.value = true
         wsConnected.value = true
         this.scheduleReconnect(null)
@@ -31,17 +32,17 @@ class WebSocketService {
       }
 
       this.ws.onclose = () => {
-        console.log('[WebSocket] Disconnected')
         this.connected.value = false
         wsConnected.value = false
-        this.scheduleReconnect(5000)
+        if (!this.intentionalDisconnect) {
+          this.scheduleReconnect(5000)
+        }
       }
 
-      this.ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error)
+      this.ws.onerror = () => {
+        this.scheduleReconnect(5000)
       }
-    } catch (e) {
-      console.error('[WebSocket] Connection failed:', e)
+    } catch {
       this.scheduleReconnect(5000)
     }
   }
@@ -70,6 +71,7 @@ class WebSocketService {
   }
 
   disconnect() {
+    this.intentionalDisconnect = true
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null

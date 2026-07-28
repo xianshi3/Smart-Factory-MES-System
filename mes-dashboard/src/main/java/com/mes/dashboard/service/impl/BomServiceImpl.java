@@ -92,11 +92,35 @@ public class BomServiceImpl implements BomService {
     // ==================== BOM ====================
 
     @Override
+    @Transactional
     public Bom createBom(Bom bom) {
         bom.setDeleted(0);
-        bomMapper.insert(bom);
+        if (StringUtils.isBlank(bom.getBomCode())) {
+            bom.setBomCode(generateBomCode());
+        }
+        try {
+            bomMapper.insert(bom);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            bom.setBomCode(generateBomCode());
+            bomMapper.insert(bom);
+        }
         log.info("BOM created: {}", bom.getBomCode());
         return bom;
+    }
+
+    private String generateBomCode() {
+        String prefix = "BOM-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-";
+        LambdaQueryWrapper<Bom> wrapper = new LambdaQueryWrapper<Bom>()
+            .like(Bom::getBomCode, prefix)
+            .orderByDesc(Bom::getCreateTime)
+            .last("LIMIT 1");
+        Bom last = bomMapper.selectOne(wrapper);
+        int next = 1;
+        if (last != null && last.getBomCode() != null) {
+            String suffix = last.getBomCode().substring(prefix.length());
+            try { next = Integer.parseInt(suffix) + 1; } catch (NumberFormatException ignored) {}
+        }
+        return prefix + String.format("%04d", next);
     }
 
     @Override

@@ -11,7 +11,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-button circle @click="loadAlarms" title="刷新">
+        <el-button circle title="刷新" @click="loadAlarms">
           <el-icon><Refresh /></el-icon>
         </el-button>
       </div>
@@ -127,7 +127,7 @@
     </div>
 
     <div class="alarm-table-panel">
-      <el-table :data="filteredAlarms" style="width: 100%" v-loading="loading">
+      <el-table v-loading="loading" :data="filteredAlarms" style="width: 100%">
         <el-table-column prop="alarmCode" label="告警编码" width="150">
           <template #default="{ row }">
             <div class="alarm-code">{{ row.alarmCode }}</div>
@@ -310,7 +310,7 @@ const submitResolve = async () => {
     ElMessage.success('告警已解决')
     resolveDialogVisible.value = false
     loadAlarms()
-  } catch (e: any) {
+  } catch {
     ElMessage.error('操作失败')
   }
 }
@@ -326,15 +326,6 @@ const handleDelete = async (row: any) => {
       ElMessage.error('删除失败')
     }
   }
-}
-
-const getLevelType = (level: string) => {
-  const map: Record<string, string> = {
-    CRITICAL: 'danger',
-    WARNING: 'warning',
-    INFO: 'info'
-  }
-  return map[level] || 'info'
 }
 
 const getLevelText = (level: string) => {

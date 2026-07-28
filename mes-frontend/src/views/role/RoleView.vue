@@ -38,7 +38,7 @@
           <div class="role-actions">
             <el-button type="primary" size="small" link @click="handleEdit(role)">编辑</el-button>
             <el-button type="primary" size="small" link @click="handlePermission(role)">权限</el-button>
-            <el-button type="danger" size="small" link @click="handleDelete(role)" v-if="role.roleCode !== 'ADMIN'">删除</el-button>
+            <el-button v-if="role.roleCode !== 'ADMIN'" type="danger" size="small" link @click="handleDelete(role)">删除</el-button>
           </div>
         </div>
       </div>
@@ -70,12 +70,12 @@
     <el-dialog v-model="permissionVisible" title="分配权限" width="600px">
       <div class="permission-tree">
         <el-tree
+          ref="treeRef"
           :data="permissions"
           :props="{ label: 'permissionName', children: 'children' }"
           show-checkbox
           node-key="id"
           :default-checked-keys="checkedPermissions"
-          ref="treeRef"
         />
       </div>
       <template #footer>
@@ -125,7 +125,7 @@ const loadPermissions = async () => {
   try {
     const res = await getRolePermissionsTree()
     permissions.value = res.data || res || []
-  } catch (e) {
+  } catch {
     ElMessage.error('加载权限失败')
     permissions.value = []
   }
@@ -165,7 +165,7 @@ const handleSubmit = async () => {
     }
     dialogVisible.value = false
     loadRoles()
-  } catch (e) {
+  } catch {
     ElMessage.error('操作失败')
     dialogVisible.value = false
   }
@@ -176,7 +176,7 @@ const handlePermission = async (role: any) => {
   try {
     const res = await getRolePermissions(role.id)
     checkedPermissions.value = res.data || []
-  } catch (e) {
+  } catch {
     checkedPermissions.value = [11, 21, 22, 31]
   }
   permissionVisible.value = true
@@ -187,7 +187,7 @@ const handlePermissionSubmit = async () => {
   try {
     await assignRolePermissions(currentRoleId.value!, checkedKeys)
     ElMessage.success('权限分配成功')
-  } catch (e) {
+  } catch {
     ElMessage.error('权限分配失败')
   }
   permissionVisible.value = false
@@ -200,7 +200,7 @@ const handleDelete = (role: any) => {
         await deleteRole(role.id)
         ElMessage.success('删除成功')
         loadRoles()
-      } catch (e) {
+      } catch {
         ElMessage.error('删除失败')
       }
     }).catch(() => {})

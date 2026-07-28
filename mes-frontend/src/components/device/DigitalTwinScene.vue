@@ -15,7 +15,7 @@
     </div>
     <!-- 视角切换 -->
     <div class="twins-views">
-      <button v-for="v in viewPresets" :key="v.key" class="view-btn" :class="{ on: currentView === v.key }" @click="flyToView(v.key)" :title="v.label">
+      <button v-for="v in viewPresets" :key="v.key" class="view-btn" :class="{ on: currentView === v.key }" :title="v.label" @click="flyToView(v.key)">
         <el-icon><component :is="v.icon" /></el-icon>
       </button>
     </div>
@@ -46,10 +46,10 @@
           <span class="panel-bar-label">{{ selectedDevice.utilization || '0%' }}</span>
         </div>
         <div class="panel-actions">
-          <button @click="emit('action', { type:'predict', device: selectedDevice })" title="AI预测"><Cpu /></button>
-          <button @click="emit('action', { type:'spc', device: selectedDevice })" title="SPC分析"><Histogram /></button>
-          <button @click="emit('action', { type:'energy', device: selectedDevice })" title="能耗优化"><Lightning /></button>
-          <button @click="emit('action', { type:'llm', device: selectedDevice })" title="AI建议"><ChatLineRound /></button>
+          <button title="AI预测" @click="emit('action', { type:'predict', device: selectedDevice })"><Cpu /></button>
+          <button title="SPC分析" @click="emit('action', { type:'spc', device: selectedDevice })"><Histogram /></button>
+          <button title="能耗优化" @click="emit('action', { type:'energy', device: selectedDevice })"><Lightning /></button>
+          <button title="AI建议" @click="emit('action', { type:'llm', device: selectedDevice })"><ChatLineRound /></button>
         </div>
       </div>
     </transition>
@@ -62,7 +62,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import { useThemeStore } from '@/stores/theme'
-import { Top, View, Connection } from '@element-plus/icons-vue'
+
 import { Cpu, Histogram, Lightning, ChatLineRound } from '@element-plus/icons-vue'
 const themeStore = useThemeStore()
 
@@ -88,7 +88,6 @@ let S: SceneVars
 let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null }[] = []
 let selectedOutline: THREE.Group | null = null
 let hoverOutline: THREE.Group | null = null
-let runTime = 0
 let factoryGroup = new THREE.Group()
 let zoneGroup: THREE.Group | null = null
 let lastGridHW = 0; let lastGridHD = 0
@@ -627,11 +626,8 @@ function refresh(devices: any[]) {
 
     const spindle = (root.userData as any).spindle as THREE.Mesh | undefined
     const led = (root.userData as any).led as THREE.Mesh | undefined
-    const conveyor = (root.userData as any).conveyor as THREE.Group | undefined
-
     deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null })
   })
-  runTime = 0
 }
 
 // ─── click / selection ───
@@ -704,7 +700,6 @@ function flyToView(key: string) {
 function animate() {
   S.animId = requestAnimationFrame(animate)
   const dt = Math.min(S.clock.getDelta(), 0.1)
-  runTime += dt
   S.controls.update()
 
   deviceNodes.forEach(n => {

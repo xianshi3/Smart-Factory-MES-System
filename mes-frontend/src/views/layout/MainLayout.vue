@@ -66,7 +66,7 @@
               <el-icon><Sunny v-if="themeStore.isDark" /><Moon v-else /></el-icon>
             </button>
           </el-tooltip>
-          <el-dropdown @command="handleCommand" trigger="click">
+          <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-card">
               <div class="user-avatar-small"><el-icon :size="14"><User /></el-icon></div>
               <span class="user-name">{{ userStore.userInfo?.username || '管理员' }}</span>
@@ -84,7 +84,7 @@
 
       <!-- 标签栏 -->
       <div v-if="tabs.length" class="tabbar">
-        <div class="tab-scroll" ref="tabScrollRef">
+        <div ref="tabScrollRef" class="tab-scroll">
           <div
             v-for="tab in tabs"
             :key="tab.path"
@@ -227,7 +227,7 @@ const toggleCollapse = () => {
         openedMenus.value.forEach((title) => {
           try {
             menuRef.value?.open(title)
-          } catch (e) {
+          } catch {
             // 忽略错误
           }
         })
@@ -246,8 +246,7 @@ const onMenuClose = (idx: string) => {
 
 onMounted(async () => {
   await userStore.getUserInfo()
-  const r = userStore.userInfo?.role ? [userStore.userInfo.role] : ['ADMIN']
-  permissionStore.loadMenus(r)
+  permissionStore.loadMenus()
 })
 
 const handleCommand = (cmd: string) => {

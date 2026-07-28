@@ -19,7 +19,7 @@ public class Bom extends BaseEntity {
 
     private BigDecimal productQuantity;
 
-    private Integer version;
+    private String version;
 
     private String status;
 

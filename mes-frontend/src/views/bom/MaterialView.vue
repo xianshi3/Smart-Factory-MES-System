@@ -15,14 +15,14 @@
 
     <div class="search-section">
       <el-input v-model="searchForm.keyword" placeholder="搜索物料名称或编码" clearable prefix-icon="Search" @clear="loadData" />
-      <el-select v-model="searchForm.materialType" placeholder="物料类型" clearable @change="loadData" style="width:140px">
+      <el-select v-model="searchForm.materialType" placeholder="物料类型" clearable style="width:140px" @change="loadData">
         <el-option label="全部" value="" /><el-option label="原材料" value="RAW" /><el-option label="半成品" value="SEMI" /><el-option label="成品" value="FINISHED" /><el-option label="辅助材料" value="SUPPLY" />
       </el-select>
       <el-button type="primary" @click="loadData">查询</el-button>
     </div>
 
     <div class="table-wrapper">
-      <el-table :data="tableData" v-loading="loading" border stripe style="width:100%">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
         <el-table-column type="index" label="#" width="40" align="center" />
         <el-table-column prop="materialCode" label="编码" width="105"><template #default="{ row }"><span class="cell-code">{{ row.materialCode }}</span></template></el-table-column>
         <el-table-column prop="materialName" label="物料名称" min-width="160" />
@@ -41,7 +41,7 @@
         </el-table-column>
       </el-table>
       <div class="pagination-bar">
-        <el-pagination small v-model:current-page="pagination.page" v-model:page-size="pagination.size" :total="pagination.total" :page-sizes="[10,20,50]" layout="total, sizes, prev, pager, next" @size-change="loadData" @current-change="loadData" background />
+        <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.size" small :total="pagination.total" :page-sizes="[10,20,50]" layout="total, sizes, prev, pager, next" background @size-change="loadData" @current-change="loadData" />
       </div>
     </div>
 
@@ -68,7 +68,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="saving">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
       </template>
     </el-dialog>
   </div>

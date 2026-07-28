@@ -29,7 +29,7 @@
 
     <div class="card-grid">
       <div 
-        v-for="(row, index) in tableData" 
+        v-for="row in tableData" 
         :key="row.id" 
         class="quality-card"
       >
@@ -68,8 +68,8 @@
           </span>
           <div class="card-actions" @click.stop>
             <el-button type="primary" size="small" link @click="handleDetail(row)">详情</el-button>
-            <el-button type="success" size="small" link @click="handlePass(row)" v-if="row.checkResult === 'PENDING'">合格</el-button>
-            <el-button type="danger" size="small" link @click="handleDelete(row)" v-if="canDelete(row)">删除</el-button>
+            <el-button v-if="row.checkResult === 'PENDING'" type="success" size="small" link @click="handlePass(row)">合格</el-button>
+            <el-button v-if="canDelete(row)" type="danger" size="small" link @click="handleDelete(row)">删除</el-button>
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@
       </el-form>
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCreate" :loading="createLoading">创建</el-button>
+        <el-button type="primary" :loading="createLoading" @click="submitCreate">创建</el-button>
       </template>
     </el-dialog>
 

@@ -28,7 +28,7 @@
 
     <div class="card-grid">
       <div 
-        v-for="(row, index) in tableData" 
+        v-for="row in tableData" 
         :key="row.id" 
         class="template-card"
       >
@@ -51,10 +51,10 @@
             {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
           </span>
           <div class="card-actions" @click.stop>
-            <el-button type="warning" size="small" link @click="handleEdit(row)" v-if="row.status === 'DRAFT'">编辑</el-button>
+            <el-button v-if="row.status === 'DRAFT'" type="warning" size="small" link @click="handleEdit(row)">编辑</el-button>
             <el-button type="success" size="small" link @click="handleParamCheck(row)">参数校验</el-button>
-            <el-button type="success" size="small" link @click="handlePublish(row)" v-if="row.status === 'DRAFT'">发布</el-button>
-            <el-button type="danger" size="small" link @click="handleDelete(row)" v-if="row.status === 'DRAFT'">删除</el-button>
+            <el-button v-if="row.status === 'DRAFT'" type="success" size="small" link @click="handlePublish(row)">发布</el-button>
+            <el-button v-if="row.status === 'DRAFT'" type="danger" size="small" link @click="handleDelete(row)">删除</el-button>
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTemplatePage, getTemplateDetail, createTemplate, updateTemplate, publishTemplate, deleteTemplate, checkParameters } from '@/api/services'
+import { getTemplatePage, createTemplate, updateTemplate, publishTemplate, deleteTemplate, checkParameters } from '@/api/services'
 import { Setting, Plus, Search, Box } from '@element-plus/icons-vue'
 
 const loading = ref(false)
@@ -160,7 +160,7 @@ const loadData = async () => {
     console.log('[Process] loadData res:', res)
     tableData.value = res?.data?.records || []
     pagination.total = res?.data?.total || 0
-  } catch (error) { console.error('Failed to load:', error, res) }
+  } catch (error) { console.error('Failed to load:', error) }
   finally { loading.value = false }
 }
 
@@ -187,14 +187,6 @@ const handleSubmit = async () => {
     dialogVisible.value = false
     loadData()
   } catch (error: any) { ElMessage.error(error?.message || '操作失败') }
-}
-
-const handleDetail = async (row: any) => {
-  try {
-    const res = await getTemplateDetail(row.id)
-    detailData.value = res.data || {}
-    detailVisible.value = true
-  } catch { ElMessage.error('获取详情失败') }
 }
 
 const handlePublish = async (row: any) => {

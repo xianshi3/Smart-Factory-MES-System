@@ -5,22 +5,22 @@
       <div class="dt-topbar-left">
         <span class="dt-logo"><el-icon><Monitor /></el-icon> 设备监控</span>
       </div>
-      <div class="dt-topbar-stats" v-if="viewMode === 'list'">
+      <div v-if="viewMode === 'list'" class="dt-topbar-stats">
         <span v-for="s in stats" :key="s.label" class="dt-stats-badge" :class="s.theme">
           <span class="dt-badge-num">{{ s.value }}</span>{{ s.label }}
         </span>
       </div>
-      <div class="dt-topbar-spacer" v-else></div>
+      <div v-else class="dt-topbar-spacer"></div>
       <div class="dt-topbar-right">
         <div class="dt-view-switch">
           <button :class="{ on: viewMode === '3d' }" @click="viewMode = '3d'"><el-icon size="14"><Grid /></el-icon> 数字孪生</button>
           <button :class="{ on: viewMode === 'list' }" @click="viewMode = 'list'"><el-icon size="14"><View /></el-icon> 设备列表</button>
         </div>
-        <div class="dt-topbar-actions" v-if="viewMode === 'list'">
+        <div v-if="viewMode === 'list'" class="dt-topbar-actions">
           <el-input v-model="searchKeyword" size="small" placeholder="搜索..." clearable :prefix-icon="Search" style="width:150px" />
           <span v-for="f in filterChips" :key="f.key" class="dt-fchip" :class="{ on: statusFilter === f.key }" @click="statusFilter = f.key">{{ f.label }}</span>
         </div>
-        <el-button text size="small" @click="refresh" class="dt-btn-refresh"><el-icon><Refresh /></el-icon></el-button>
+        <el-button text size="small" class="dt-btn-refresh" @click="refresh"><el-icon><Refresh /></el-icon></el-button>
       </div>
     </header>
 
@@ -112,7 +112,7 @@
           </div>
         </div>
         <div v-if="filteredDevices.length > pageSize" class="dt-list-pager">
-          <el-pagination small v-model:current-page="page" :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background />
+          <el-pagination v-model:current-page="page" small :total="filteredDevices.length" :page-size="pageSize" layout="total, prev, pager, next" background />
         </div>
       </div>
     </div>
@@ -174,7 +174,7 @@
             <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
           </div>
         </div>
-        <div class="dt-ai-section" v-if="(aiAnalysisResult.control_limits || []).length">
+        <div v-if="(aiAnalysisResult.control_limits || []).length" class="dt-ai-section">
           <div class="dt-ai-section-title">控制限</div>
           <div class="dt-ai-limits">
             <div v-for="cl in (aiAnalysisResult.control_limits || [])" :key="cl.name">
@@ -183,7 +183,7 @@
             </div>
           </div>
         </div>
-        <div class="dt-ai-section" v-if="(aiAnalysisResult.rules_violated || []).length || (aiAnalysisResult.violations || []).length">
+        <div v-if="(aiAnalysisResult.rules_violated || []).length || (aiAnalysisResult.violations || []).length" class="dt-ai-section">
           <div class="dt-ai-section-title">异常检测</div>
           <div v-if="(aiAnalysisResult.rules_violated || []).length" class="dt-ai-warn">
             <el-icon><Warning /></el-icon>
@@ -191,7 +191,7 @@
           </div>
           <el-tag v-else type="success" size="small">无异常规则触发</el-tag>
         </div>
-        <div class="dt-ai-section" v-if="(aiAnalysisResult.recommendations || []).length">
+        <div v-if="(aiAnalysisResult.recommendations || []).length" class="dt-ai-section">
           <div class="dt-ai-section-title">建议</div>
           <div class="dt-ai-recs"><div v-for="(r,i) in aiAnalysisResult.recommendations" :key="i">{{ i+1 }}. {{ r }}</div></div>
         </div>
@@ -209,7 +209,7 @@
         <div class="dt-ai-section">
           <div class="dt-ai-section-title">参数调整</div>
           <div class="dt-ai-params">
-            <div class="dt-ai-param-row" v-for="(chg, key) in aiAnalysisResult.parameter_changes" :key="key">
+            <div v-for="(chg, key) in aiAnalysisResult.parameter_changes" :key="key" class="dt-ai-param-row">
               <label>{{ key === 'speed' ? '转速' : key === 'temperature' ? '温度' : '压力' }}</label>
               <span class="old">{{ aiAnalysisResult.current_parameters?.[key] }}</span>
               <el-icon><ArrowRight /></el-icon>
@@ -218,7 +218,7 @@
             </div>
           </div>
         </div>
-        <div class="dt-ai-section" v-if="(aiAnalysisResult.alternative_plans || []).length > 1">
+        <div v-if="(aiAnalysisResult.alternative_plans || []).length > 1" class="dt-ai-section">
           <div class="dt-ai-section-title">备选方案</div>
           <div class="dt-ai-alt">
             <div v-for="(alt, i) in aiAnalysisResult.alternative_plans?.slice(1, 3)" :key="i" class="dt-ai-alt-row">
@@ -262,6 +262,7 @@
             <span>AI 智能建议</span>
           </div>
         </div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
         <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
           <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
@@ -298,14 +299,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
-import { Monitor, Refresh, Search, TrendCharts, PieChart, Warning, Grid, View, Cpu,
- Tools, VideoPlay, VideoPause, Loading, Ticket, Timer, CircleCheck, MagicStick, Histogram, Lightning, ChatLineRound, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
+ VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 import { mdToHtml } from '@/utils/markdown'
 
@@ -366,7 +367,6 @@ const pagedDevices = computed(() => {
 const getStatusType = (s: string) => ({ running: 'success', idle: 'info', maintenance: 'warning', fault: 'danger' } as any)[s] || 'info'
 const getStatusText = (s: string) => ({ running: '运行中', idle: '空闲', maintenance: '维护中', fault: '故障' } as any)[s] || '未知'
 const getAlarmClass = (l: string) => ({ high: 'danger', medium: 'warning', low: 'info' } as any)[l] || 'info'
-const statusColor = (s: string) => ({ running: '#34c759', idle: '#8e8e93', fault: '#ff3b30', maintenance: '#ff9500' } as any)[s] || '#6366f1'
 
 const calculateRuntime = (lastHeartbeat: string) => {
   if (!lastHeartbeat) return '0h'
@@ -387,7 +387,7 @@ const fetchDeviceData = async () => {
       status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
       utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
       runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
-      temperature: item.temperature || Math.floor(Math.random() * 25 + 25),
+      temperature: item.temperature ?? null,
       speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
       efficiency: item.efficiency ?? 0,
     }))
@@ -465,18 +465,31 @@ const handlePredict = async (d: any) => {
 }
 
 const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
+function sanitizeHtml(html: string): string {
+  const s = document.createElement('div')
+  s.textContent = html
+  const text = s.innerHTML
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+}
 function aiAdviceHtml(result: any): string {
   const text = result?.content || result?.response || ''
-  return mdToHtml(text)
+  return sanitizeHtml(mdToHtml(text))
 }
 const handleSPCAnalysis = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
   try {
     const d = detailData.value || {}
+    const realTemp = d.temperature
+    const measurements = realTemp != null
+      ? Array.from({ length: 20 }, () => Math.round(realTemp + (Math.random() - 0.5) * 10))
+      : []
     const res = await analyzeSPC({
       device_code: d.code || d.id,
       parameter: 'temperature',
-      measurements: Array.from({ length: 20 }, () => Math.round(60 + Math.random() * 30))
+      measurements
     })
     showAIResult('spc', res?.data || res)
   } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败') }
@@ -487,7 +500,7 @@ const handleEnergyOptimization = async () => {
     const d = detailData.value || {}
     const res = await optimizeEnergy({
       device_code: d.code || d.id || 'DEV0001',
-      current_params: { speed: Number(d.speed) || 1200, temperature: Number(d.temperature) || 75, power: Number(d.power) || 50 },
+      current_params: { speed: Number(d.speed) || 0, temperature: Number(d.temperature) || 0, power: Number(d.power) || 0 },
       target_output: 5000
     })
     showAIResult('energy', res)
@@ -497,7 +510,10 @@ const handleCapacityPrediction = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
   try {
     const d = detailData.value || {}
-    const dataPoints = Array.from({ length: 7 }, () => Math.round(800 + Math.random() * 400))
+    const baseOutput = d.utilization ? parseInt(d.utilization) * 10 + 500 : 0
+    const dataPoints = baseOutput > 0
+      ? Array.from({ length: 7 }, () => Math.round(baseOutput * (0.9 + Math.random() * 0.2)))
+      : []
     const res = await predictCapacity({
       device_code: d.code || d.id,
       production_line_id: 'line-1',
@@ -538,7 +554,7 @@ onMounted(() => {
         status: item.status === 'ONLINE' ? 'running' : item.status === 'OFFLINE' ? 'idle' : item.status === 'ALARM' ? 'fault' : 'maintenance',
         utilization: item.speed && item.speed > 0 ? Math.round(item.speed / 15) + '%' : '0%',
         runtime: item.lastHeartbeat ? calculateRuntime(item.lastHeartbeat) : '0h',
-        temperature: item.temperature || Math.floor(Math.random() * 25 + 25),
+        temperature: item.temperature ?? null,
         speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
         efficiency: item.efficiency ?? 0,
       }))

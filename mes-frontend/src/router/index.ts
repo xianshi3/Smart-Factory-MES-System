@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { usePermissionStore } from '@/stores/permission'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -9,24 +8,6 @@ import 'nprogress/nprogress.css'
  * Router guard before each route navigation
  */
 NProgress.configure({ showSpinner: false })
-
-const pathMenuCodeMap: Record<string, string> = {
-  '/': 'dashboard',
-  '/dashboard': 'dashboard',
-  '/workorder': 'workorder',
-  '/process': 'process',
-  '/quality': 'quality',
-  '/device': 'device',
-  '/report': 'report',
-  '/alarm': 'alarm',
-  '/role': 'role',
-  '/menu': 'menu',
-  '/permission': 'permission',
-  '/production-line': 'production',
-  '/workstation': 'workstation',
-  '/material': 'material',
-  '/bom': 'bom'
-}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -117,7 +98,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'bom',
         name: 'Bom',
-        component: () => import('@/views/bom/MaterialView.vue')
+        component: () => import('@/views/bom/BomView.vue')
       }
     ]
   }

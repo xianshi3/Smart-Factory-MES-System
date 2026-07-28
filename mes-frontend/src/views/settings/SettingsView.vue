@@ -370,7 +370,7 @@ const loadSettings = async () => {
   try {
     const res = await request({ url: '/auth/settings', method: 'get' })
     Object.assign(settings, res?.data || {})
-  } catch (e) {
+  } catch {
     // ignore, use defaults
   } finally {
     loading.value = false
@@ -381,7 +381,7 @@ const saveSettings = async () => {
   try {
     await request({ url: '/auth/settings', method: 'put', data: settings })
     ElMessage.success('设置已保存')
-  } catch (e) {
+  } catch {
     ElMessage.error('保存设置失败')
   }
 }

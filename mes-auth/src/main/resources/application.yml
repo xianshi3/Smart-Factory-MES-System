@@ -33,14 +33,11 @@ spring:
     global-config:
       db-config:
         id-type: assign_id
-        logic-delete-field: deleted
-        logic-delete-value: 1
-        logic-not-delete-value: 0
     configuration:
       map-underscore-to-camel-case: true
 
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:SmartFactoryMES2024SecretKeyForJWTTokenGeneration!}
   expiration: ${JWT_EXPIRATION:86400000}
 
 logging:

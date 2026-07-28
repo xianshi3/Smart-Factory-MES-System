@@ -8,6 +8,7 @@ import com.mes.auth.service.AuthService;
 import com.mes.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -38,37 +39,50 @@ public class AuthController {
 
     @GetMapping("/info")
     @Operation(summary = "获取当前用户信息")
-    public Result<Object> info(@RequestHeader("Authorization") String token) {
+    public Result<Object> info(HttpServletRequest request) {
+        String token = resolveToken(request);
         return Result.ok(authService.getUserInfoFromToken(token));
     }
 
     @PutMapping("/profile")
     @Operation(summary = "更新个人资料")
-    public Result<Void> updateProfile(@RequestHeader("Authorization") String token,
+    public Result<Void> updateProfile(HttpServletRequest request,
                                      @Valid @RequestBody UpdateUserDTO dto) {
+        String token = resolveToken(request);
         authService.updateUserProfile(token, dto);
         return Result.ok();
     }
 
     @PutMapping("/password")
     @Operation(summary = "修改密码")
-    public Result<Void> changePassword(@RequestHeader("Authorization") String token,
+    public Result<Void> changePassword(HttpServletRequest request,
                                        @Valid @RequestBody UpdatePasswordDTO dto) {
+        String token = resolveToken(request);
         authService.changePassword(token, dto);
         return Result.ok();
     }
 
     @GetMapping("/settings")
     @Operation(summary = "获取用户设置")
-    public Result<Map<String, Object>> getSettings(@RequestHeader("Authorization") String token) {
+    public Result<Map<String, Object>> getSettings(HttpServletRequest request) {
+        String token = resolveToken(request);
         return Result.ok(authService.getSettings(token));
     }
 
     @PutMapping("/settings")
     @Operation(summary = "保存用户设置")
-    public Result<Void> saveSettings(@RequestHeader("Authorization") String token,
+    public Result<Void> saveSettings(HttpServletRequest request,
                                      @RequestBody Map<String, Object> settings) {
+        String token = resolveToken(request);
         authService.saveSettings(token, settings);
         return Result.ok();
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || authHeader.isEmpty()) {
+            throw new com.mes.common.exception.BizException(401, "请先登录");
+        }
+        return authHeader;
     }
 }

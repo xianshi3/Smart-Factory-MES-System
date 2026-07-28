@@ -80,10 +80,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Menu } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { getMenuList, createMenu, updateMenu, deleteMenu } from '@/api/system'
 
-interface Menu {
+interface MenuItem {
   id: number
   menuName: string
   menuCode: string
@@ -93,13 +93,13 @@ interface Menu {
   icon: string
   sort: number
   status: number
-  children?: Menu[]
+  children?: MenuItem[]
 }
 
-const menus = ref<Menu[]>([])
+const menus = ref<MenuItem[]>([])
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增菜单')
-const form = ref<Partial<Menu>>({})
+const form = ref<Partial<MenuItem>>({})
 
 const topMenus = computed(() => menus.value.filter(m => !m.parentId || m.parentId === 0))
 
@@ -123,7 +123,7 @@ const handleCreate = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row: Menu) => {
+const handleEdit = (row: MenuItem) => {
   form.value = { ...row }
   dialogTitle.value = '编辑菜单'
   dialogVisible.value = true
@@ -145,7 +145,7 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = async (row: Menu) => {
+const handleDelete = async (row: MenuItem) => {
   try {
     await ElMessageBox.confirm(`确定删除菜单 "${row.menuName}" 吗?`, '提示', { type: 'warning' })
     await deleteMenu(row.id)

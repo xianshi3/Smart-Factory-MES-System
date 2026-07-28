@@ -184,7 +184,7 @@
 
     <!-- 修改密码弹窗 -->
     <el-dialog v-model="showPasswordDialog" title="修改密码" width="450px">
-      <el-form :model="passwordForm" label-width="100px" :rules="passwordRules" ref="passwordFormRef">
+      <el-form ref="passwordFormRef" :model="passwordForm" label-width="100px" :rules="passwordRules">
         <el-form-item label="当前密码" prop="oldPassword">
           <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入当前密码" />
         </el-form-item>
@@ -207,12 +207,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/stores/user'
-import { getUserInfo, updateProfile, changePassword } from '@/api/auth'
-import { User, Camera, Document, Edit, Lock, Iphone, Message, Key, Operation, Monitor, Setting, Download } from '@element-plus/icons-vue'
+import { getUserInfo, changePassword } from '@/api/auth'
+import { Camera, Document, Edit, Lock, Iphone, Message, Key, Operation, Monitor, Setting, Download } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const userStore = useUserStore()
 
 const userInfo = ref<any>({
   username: '',
@@ -275,23 +273,16 @@ onMounted(() => {
   loadUserInfo()
 })
 
+const editForm = ref<any>({})
+const editPasswordForm = ref<any>({})
+const showForm = ref(false)
+const editing = ref(false)
+
 const editBasicInfo = () => {
   editForm.value = { ...userInfo.value }
   editPasswordForm.value = { ...userInfo.value }
   showForm.value = true
   editing.value = true
-}
-
-const saveBasicInfo = async () => {
-  try {
-    await updateProfile(editForm.value)
-    ElMessage.success('保存成功')
-    showForm.value = false
-    editing.value = false
-    loadUserInfo()
-  } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
-  }
 }
 
 const handleChangePassword = async () => {
