@@ -39,6 +39,7 @@ public class QualityServiceImpl implements QualityService {
     @Transactional(rollbackFor = Exception.class)
     public Long createRecord(CreateQualityRecordDTO dto) {
         QualityRecord record = new QualityRecord();
+        record.setDeleted(0);
         record.setWorkOrderId(dto.getWorkOrderId());
         record.setWorkOrderNo(dto.getWorkOrderNo());
         record.setSn(dto.getSn());
@@ -71,12 +72,7 @@ public class QualityServiceImpl implements QualityService {
             throw new RuntimeException("质检记录不存在: " + id);
         }
 
-        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<QualityRecord>()
-                .set("deleted", 1)
-                .set("deleted_time", LocalDateTime.now())
-                .set("deleted_by", userId)
-                .eq("id", id);
-        qualityRecordMapper.update(null, updateWrapper);
+        qualityRecordMapper.deleteById(id);
         log.info("删除成功, id={}", id);
     }
 
@@ -168,7 +164,8 @@ public class QualityServiceImpl implements QualityService {
     @Override
     public PageResult<QualityRecord> queryPage(int current, int size, String checkType, String result, String keyword) {
         LambdaQueryWrapper<QualityRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(checkType != null && !checkType.isEmpty(), QualityRecord::getCheckType, checkType)
+        wrapper.eq(QualityRecord::getDeleted, 0)
+                .eq(checkType != null && !checkType.isEmpty(), QualityRecord::getCheckType, checkType)
                 .eq(result != null && !result.isEmpty(), QualityRecord::getCheckResult, result)
                 .and(keyword != null && !keyword.isEmpty(), w -> w.like(QualityRecord::getSn, keyword)
                         .or().like(QualityRecord::getWorkOrderNo, keyword))

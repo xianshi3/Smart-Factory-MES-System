@@ -58,6 +58,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
         }
 
         ProcessTemplate template = new ProcessTemplate();
+        template.setDeleted(0);
         template.setTemplateName(dto.getTemplateName());
         template.setTemplateCode(dto.getTemplateCode());
         template.setProductModel(dto.getProductModel());
@@ -223,6 +224,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public PageResult<ProcessTemplate> queryPage(int current, int size, String keyword) {
         Page<ProcessTemplate> page = new Page<>(current, size);
         LambdaQueryWrapper<ProcessTemplate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProcessTemplate::getDeleted, 0);
         if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.like(ProcessTemplate::getTemplateName, keyword)
                    .or()

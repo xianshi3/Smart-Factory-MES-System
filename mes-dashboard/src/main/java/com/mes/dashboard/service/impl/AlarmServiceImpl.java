@@ -23,6 +23,7 @@ public class AlarmServiceImpl implements AlarmService {
 
     @Override
     public void createAlarm(AlarmEvent alarm) {
+        alarm.setDeleted(0);
         alarm.setStatus("ACTIVE");
         alarm.setOccurrenceTime(LocalDateTime.now());
         alarmMapper.insert(alarm);
@@ -31,7 +32,9 @@ public class AlarmServiceImpl implements AlarmService {
 
     @Override
     public List<AlarmEvent> getAllAlarms() {
-        return alarmMapper.selectList(null);
+        return alarmMapper.selectList(
+            new LambdaQueryWrapper<AlarmEvent>().eq(AlarmEvent::getDeleted, 0)
+        );
     }
 
     @Override

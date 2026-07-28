@@ -222,6 +222,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public void createDevice(DeviceStatus device) {
+        device.setDeleted(0);
         if (device.getStatus() == null) {
             device.setStatus("OFFLINE");
         }

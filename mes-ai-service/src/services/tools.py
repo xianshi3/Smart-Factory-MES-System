@@ -168,7 +168,7 @@ TOOL_DEFINITIONS = [
 
 async def call_list_devices(headers: Optional[Dict] = None) -> Dict:
     async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/device/list", headers=headers or {})
+        resp = await client.get("/dashboard/devices", headers=headers or {})
         resp.raise_for_status()
         data = resp.json()
         return {"success": True, "devices": data.get("data", [])}
@@ -176,10 +176,15 @@ async def call_list_devices(headers: Optional[Dict] = None) -> Dict:
 
 async def call_get_device_detail(device_code: str, headers: Optional[Dict] = None) -> Dict:
     async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get(f"/dashboard/device/{device_code}", headers=headers or {})
+        resp = await client.get("/dashboard/devices", headers=headers or {})
         resp.raise_for_status()
         data = resp.json()
-        return {"success": True, "device": data.get("data", {})}
+        devices = data.get("data", [])
+        if isinstance(devices, list):
+            for d in devices:
+                if d.get("deviceCode") == device_code or d.get("deviceName") == device_code:
+                    return {"success": True, "device": d}
+        return {"success": False, "error": f"设备 {device_code} 未找到"}
 
 
 async def call_list_work_orders(status: Optional[str] = None, headers: Optional[Dict] = None) -> Dict:
