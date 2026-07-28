@@ -10,6 +10,55 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.34 (2026-07-28)
+
+### 企业标准化改造
+
+#### 后端架构分层标准化
+
+- **新增 Service 层**：为 ProductionLine 和 Workstation 创建独立 Service 接口和实现
+  - `ProductionLineService` / `ProductionLineServiceImpl`
+  - `WorkstationService` / `WorkstationServiceImpl`
+- **消除 Controller 直调 Mapper**：`BaseDataController` 改为注入 Service 而非 Mapper
+- **统一 CRUD 模式**：所有模块遵循 Controller → Service(接口) → ServiceImpl → Mapper 分层
+
+#### 逻辑删除统一修复
+
+- **移除全局 `logic-delete-field`**：4 个模块的 `application.yml` 全部清理
+  - `mes-dashboard` / `mes-auth` / `mes-workorder` / `mes-quality`
+- **统一使用物理删除**：`deleteById()` 执行 `DELETE` 而非 `UPDATE SET deleted=1`
+- **所有 create 方法统一 `setDeleted(0)`**：ProductionLine / Workstation / Material / BOM
+- **所有 list 方法统一过滤 `.eq(Deleted, 0)`**：避免返回已删除数据
+- 修复逻辑删除导致的唯一约束冲突（create → delete → recreate 报 DuplicateKey）
+
+#### DTO 与实体规范化
+
+- `BaseEntity.deletedTime` / `deletedBy` 添加 `@TableField(exist = false)`，消除 MyBatis 映射异常
+- `BomServiceImpl.createBom()` 添加 BOM 编号自动生成兜底（`BOM-YYYYMMDD-XXXX` 格式）
+
+### 3D 数字孪生设备监控
+
+#### 前端工程化
+
+- **3D 场景组件**：新增 `DigitalTwinScene.vue` 基于 Three.js
+  - 立式加工中心 CNC 模型（封闭式机柜、滑门视窗、控制面板、叠灯塔、刀库）
+  - 动态厂房环境（地板/安全标线/立柱/桁架/围墙根据设备数量自适应缩放）
+  - 实时动效：主轴旋转、输送带物料流动、LED 呼吸灯、故障脉冲环
+  - 多点射线点击检测（±6px 容差）提升交互体验
+  - 多视角预设切换（透视图/俯视图/前视图）
+- **企业级控制室布局**：三栏式设计（KPI 胶囊 + 3D 场景 + HUD 面板）
+- **BOM 管理页面**：新增 `BomView.vue` 物料清单页面
+
+#### 架构优化
+
+- **ESLint + Prettier**：新增 `.eslintrc.cjs`、lint/format 脚本
+- **代码分割**：Vite 配置 manualChunks，index chunk 从 1810kB 降至 52kB
+- **WebSocket**：设备数据毫秒级推送，实时映射 3D 场景
+- **JWT 认证**：AuthController 重构为 HttpServletRequest 获取 Token
+- **JwtAuthFilter**：新增认证过滤器
+
+---
+
 ## v1.0.33 (2026-07-27)
 
 ### 新增功能

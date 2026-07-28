@@ -129,7 +129,8 @@ Smart-Factory-MES-System/
 ├── mes-dashboard/                 # 看板服务 (8085)
 │   └── src/main/java/.../
 │       ├── controller/
-│       ├── service/impl/
+│       ├── service/
+│       │   └── impl/              # 业务逻辑实现
 │       ├── mapper/
 │       ├── websocket/             # WebSocket 处理
 │       └── config/                # 配置类
@@ -405,6 +406,15 @@ GET /alarm/device/{deviceId}
 ---
 
 ## 更新日志
+
+### v1.0.34 (2026-07-28)
+
+- 后端企业标准化改造：新增 Service 层（ProductionLineService / WorkstationService）
+- 统一 CRUD 模式：Controller → Service → ServiceImpl → Mapper
+- 统一逻辑删除：移除全局逻辑删除配置，使用物理删除
+- BOM 编号自动生成兜底
+- 前端 3D 数字孪生设备监控场景
+- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
 
 ### v1.0.29 (2026-07-27)
 
