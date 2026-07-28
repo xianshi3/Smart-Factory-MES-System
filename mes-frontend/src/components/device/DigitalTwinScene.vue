@@ -404,18 +404,32 @@ function buildMachine(device: any): THREE.Group {
   // 【Z轴滑枕】— 连接主轴电机座到立柱导轨区（防浮空）
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.6), mat(0x707078, 0.22, 0.72)))
   root.children[root.children.length - 1].position.set(0.05, 0.88, -0.15)
-  // 【主轴电机座】— 安装在滑枕前端
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mat(0xd0d0d0, 0.2, 0.75)))
+  // 【主轴电机】— 圆柱形电主轴马达
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.2, 16), mat(0xbbbbbb, 0.2, 0.7)))
   root.children[root.children.length - 1].position.set(0.05, 0.9, 0.15)
-  // 【主轴】— 高速旋转电主轴 (动画驱动)，上端嵌入电机座
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.18, 16), mat(0xd8d8d8, 0.15, 0.78)))
+  root.children[root.children.length - 1].position.set(0.05, 0.9, 0.15)
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.015, 16), mat(0x666666, 0.3, 0.6)))
+  root.children[root.children.length - 1].position.set(0.05, 1.0, 0.15)
+  // 【主轴】— 高速旋转电主轴 (动画驱动)
   const spindle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
+    new THREE.CylinderGeometry(0.07, 0.1, 0.28, 16),
     mat(c, 0.06, 0.98, g, 0.25)
   )
   spindle.position.set(0.05, 0.8, 0.15); spindle.castShadow = true; root.add(spindle)
-  // 【HSK刀柄】— 锥度连接，上端嵌入主轴
+
+  // 【中轴承座】— 主轴中部
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.035, 16), mat(0x999999, 0.1, 0.85)))
+  root.children[root.children.length - 1].position.set(0.05, 0.735, 0.15)
+  // 【下轴承座】— 主轴下部
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.083, 0.086, 0.022, 16), mat(0x777777, 0.08, 0.9)))
+  root.children[root.children.length - 1].position.set(0.05, 0.69, 0.15)
+  // 【主轴鼻锥】— 下端锥形法兰
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.025, 16), mat(0xaaaaaa, 0.05, 0.93)))
+  root.children[root.children.length - 1].position.set(0.05, 0.655, 0.15)
+  // 【HSK刀柄】— 锥度插入主轴鼻锥
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.04, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
-  root.children[root.children.length - 1].position.set(0.05, 0.63, 0.15)
+  root.children[root.children.length - 1].position.set(0.05, 0.62, 0.15)
   // 【铣刀】— 立铣刀，上端嵌入刀柄
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.08, 6), mat(0x887744, 0.3, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.56, 0.15)
