@@ -68,13 +68,17 @@ export interface ConversationDetail {
   messages: ConversationMessage[]
 }
 
-export async function createConversation(title = '新对话'): Promise<ConversationListItem> {
-  const res = await aiRequest.post('/api/v1/agent/conversations', { title })
+export async function createConversation(userId: string, title = '新对话'): Promise<ConversationListItem> {
+  const res = await aiRequest.post('/api/v1/agent/conversations', { title }, {
+    params: { user_id: userId },
+  })
   return res.data.conversation
 }
 
-export async function listConversations(): Promise<ConversationListItem[]> {
-  const res = await aiRequest.get('/api/v1/agent/conversations')
+export async function listConversations(userId: string): Promise<ConversationListItem[]> {
+  const res = await aiRequest.get('/api/v1/agent/conversations', {
+    params: { user_id: userId },
+  })
   return res.data.conversations
 }
 

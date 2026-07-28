@@ -12,8 +12,12 @@ import {
   addConversationMessage,
   runAgent,
 } from '@/api/agent'
+import { useUserStore } from '@/stores/user'
 
 export const useAiChatStore = defineStore('aiChat', () => {
+  const userStore = useUserStore()
+
+  const userId = computed(() => userStore.userInfo?.username || 'default')
   const conversations = ref<ConversationListItem[]>([])
   const currentId = ref<string | null>(null)
   const messages = ref<MessageItem[]>([])
@@ -40,8 +44,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
   async function loadList() {
     loadingList.value = true
     try {
-      conversations.value = await listConversations()
-    } catch { /* 静默失败 - 后端可能未启动 */ } finally {
+      conversations.value = await listConversations(userId.value)
+    } catch { /* 静默 */ } finally {
       loadingList.value = false
     }
   }
@@ -67,7 +71,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   async function newChat(): Promise<string | null> {
     try {
-      const conv = await createConversation('新对话')
+      const conv = await createConversation(userId.value, '新对话')
       conversations.value.unshift(conv)
       await selectConversation(conv.id)
       return conv.id

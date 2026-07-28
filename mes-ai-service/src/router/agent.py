@@ -146,8 +146,8 @@ async def list_tools():
 # ========== 对话历史 CRUD ==========
 
 @router.post("/conversations", response_model=CreateConversationResponse)
-async def create_conversation(req: CreateConversationRequest):
-    conv = await conversation_store.create_conversation(title=req.title)
+async def create_conversation(req: CreateConversationRequest, user_id: str = "default"):
+    conv = await conversation_store.create_conversation(user_id=user_id, title=req.title)
     return CreateConversationResponse(
         conversation=ConversationListItem(
             id=conv["id"], title=conv["title"],
@@ -157,8 +157,8 @@ async def create_conversation(req: CreateConversationRequest):
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
-async def list_conversations():
-    convs = await conversation_store.list_conversations()
+async def list_conversations(user_id: str = "default"):
+    convs = await conversation_store.list_conversations(user_id=user_id)
     return ConversationListResponse(conversations=[
         ConversationListItem(id=c["id"], title=c["title"], created_at=c["created_at"], updated_at=c["updated_at"])
         for c in convs
