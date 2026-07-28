@@ -3,9 +3,9 @@
     <div class="ai-sidebar">
       <div class="sidebar-hero">
         <div class="hero-glow"></div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" class="hero-icon">
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-        </svg>
+        <div class="hero-icon-box">
+          <el-icon :size="28"><MagicStick /></el-icon>
+        </div>
         <h2 class="hero-title">AI 生产助理</h2>
         <p class="hero-desc">基于大语言模型的智能生产助手，可查询设备状态、诊断异常、创建工单、搜索手册</p>
       </div>
@@ -89,11 +89,19 @@ const capabilities = [
   background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
   pointer-events: none;
 }
-.hero-icon {
-  color: var(--accent, #6366f1);
-  margin-bottom: 12px;
+.hero-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--gradient-primary, linear-gradient(135deg, #6366f1, #8b5cf6));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
   position: relative;
   z-index: 1;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 .hero-title {
   font-size: 18px;

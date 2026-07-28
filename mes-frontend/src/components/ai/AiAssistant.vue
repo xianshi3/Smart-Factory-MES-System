@@ -2,9 +2,9 @@
   <div v-if="visible !== false" class="ai-panel" :class="{ floating }">
     <div class="panel-header">
       <div class="header-brand">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" class="brand-icon">
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-        </svg>
+        <div class="brand-icon-box">
+          <el-icon :size="20"><MagicStick /></el-icon>
+        </div>
         <div class="brand-meta">
           <span class="brand-text">AI 生产助理</span>
           <span class="brand-tag">Agent</span>
@@ -13,14 +13,10 @@
       </div>
       <div class="header-actions">
         <button class="header-btn" @click="clearChat" title="清空对话">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-          </svg>
+          <el-icon :size="15"><Delete /></el-icon>
         </button>
         <button v-if="floating" class="header-btn close-btn" @click="emit('close')" title="关闭">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <el-icon :size="15"><Close /></el-icon>
         </button>
       </div>
     </div>
@@ -29,13 +25,8 @@
       <template v-for="(msg, i) in messages" :key="i">
         <div class="msg" :class="msg.role">
           <div class="msg-avatar">
-            <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <el-icon v-if="msg.role === 'assistant'" :size="16"><MagicStick /></el-icon>
+            <el-icon v-else :size="16"><User /></el-icon>
           </div>
           <div class="msg-bubble">
             <div class="msg-text" v-html="renderMarkdown(msg.content)" />
@@ -48,18 +39,14 @@
                 @click="step.expanded = !step.expanded"
               >
                 <div class="step-header">
-                  <svg :class="{ rotated: step.expanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="step-chevron">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
+                  <el-icon :size="12" class="step-chevron" :class="{ rotated: step.expanded }">
+                    <ArrowRight />
+                  </el-icon>
                   <span class="step-num">{{ j + 1 }}</span>
                   <span class="step-tool">{{ step.tool }}</span>
                   <span :class="['step-status', step.result?.success ? 'ok' : 'fail']">
-                    <svg v-if="step.result?.success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
+                    <el-icon v-if="step.result?.success" :size="14"><CircleCheck /></el-icon>
+                    <el-icon v-else :size="14"><CircleClose /></el-icon>
                   </span>
                 </div>
                 <Transition name="step-expand">
@@ -83,9 +70,7 @@
 
       <div v-if="loading" class="msg assistant">
         <div class="msg-avatar pulsing">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-          </svg>
+          <el-icon :size="16"><MagicStick /></el-icon>
         </div>
         <div class="msg-bubble thinking">
           <div class="thinking-bar">
@@ -323,7 +308,17 @@ defineExpose({ focusInput })
   padding: 18px 24px;
 }
 .header-brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { color: var(--accent, #6366f1); flex-shrink: 0; }
+.brand-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--gradient-primary, linear-gradient(135deg, #6366f1, #8b5cf6));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .brand-meta { display: flex; align-items: center; gap: 6px; }
 .brand-text {
   font-size: 15px;
