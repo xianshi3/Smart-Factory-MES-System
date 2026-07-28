@@ -27,7 +27,7 @@
               <el-icon v-else><User /></el-icon>
             </div>
             <div class="msg-bubble">
-              <div class="msg-content" v-html="renderContent(msg.content)" />
+              <div class="msg-content" v-html="renderMarkdown(msg.content)" />
               <div v-if="msg.steps && msg.steps.length" class="msg-steps">
                 <el-collapse accordion>
                   <el-collapse-item
@@ -92,10 +92,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Close, ChatDotSquare, MagicStick, User } from '@element-plus/icons-vue'
 import { runAgent, type AgentStep } from '@/api/agent'
+import { marked } from 'marked'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
 
 const visible = ref(false)
 const input = ref('')
@@ -177,10 +183,10 @@ function clearChat() {
   ]
 }
 
-function renderContent(text: string): string {
-  return text
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+function renderMarkdown(text: string): string {
+    if (!text) return ''
+    const html = marked.parse(text) as string
+    return html
 }
 
 function formatTime(d: Date): string {
