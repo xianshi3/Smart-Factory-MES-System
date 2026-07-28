@@ -373,40 +373,50 @@ function buildMachine(device: any): THREE.Group {
   // ══════════════════════════════════════════
   // 【设备内部】— 透过玻璃可见
   // ══════════════════════════════════════════
-  // 【鞍座】— Y轴滑台底座
+  // 【鞍座】— Y轴滑台底座，y=0.445顶面
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.35), mat(0x888888, 0.3, 0.7)))
   root.children[root.children.length - 1].position.set(0.05, 0.345, 0.3)
-  // 【工作台】— X轴台面
+  // 【工作台】— 台面 y=0.495顶
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.45), mat(0xa0a0a0, 0.3, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.47, 0.3)
-  // 【T型槽】— 5条固定卡槽
+  // 【T型槽】— 5条嵌入台面
   for (let ti = -2; ti <= 2; ti++) {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.45), mat(0x444444, 0.8, 0.3)))
     root.children[root.children.length - 1].position.set(0.05 + ti * 0.15, 0.498, 0.3)
   }
-  // 【虎钳底座】— 钳体
+  // 【虎钳底座】— 钳体 y=0.555顶
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.2), mat(0x888888, 0.25, 0.75)))
   root.children[root.children.length - 1].position.set(0.05, 0.525, 0.3)
-  // 【虎钳固定钳口】— 后方夹块
+  // 【虎钳丝杠】— 前方水平丝杆
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 8), mat(0xcccccc, 0.08, 0.9)))
+  root.children[root.children.length - 1].position.set(-0.1, 0.50, 0.3)
+  root.children[root.children.length - 1].rotation.z = Math.PI / 2
+  // 【虎钳固定钳口】— 后方夹块 y=0.595顶
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x666666, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(0.15, 0.575, 0.3)
   // 【虎钳活动钳口】— 前方夹块
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x777777, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(-0.07, 0.575, 0.3)
+  // 【工件】— 铝块夹持在钳口中 y=0.595底面
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.1), mat(0xc0c8d0, 0.22, 0.85)))
+  root.children[root.children.length - 1].position.set(0.04, 0.590, 0.3)
 
-  // 【主轴电机座】— 上方方形壳体
+  // 【Z轴滑枕】— 连接主轴电机座到立柱导轨区（防浮空）
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.6), mat(0x707078, 0.22, 0.72)))
+  root.children[root.children.length - 1].position.set(0.05, 0.88, -0.15)
+  // 【主轴电机座】— 安装在滑枕前端
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mat(0xd0d0d0, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0.05, 0.9, 0.15)
-  // 【主轴】— 高速旋转电主轴 (动画驱动)
+  // 【主轴】— 高速旋转电主轴 (动画驱动)，上端嵌入电机座
   const spindle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
     mat(c, 0.06, 0.98, g, 0.25)
   )
   spindle.position.set(0.05, 0.8, 0.15); spindle.castShadow = true; root.add(spindle)
-  // 【HSK刀柄】— 锥度连接
+  // 【HSK刀柄】— 锥度连接，上端嵌入主轴
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.04, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.63, 0.15)
-  // 【铣刀】— 立铣刀
+  // 【铣刀】— 立铣刀，上端嵌入刀柄
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.08, 6), mat(0x887744, 0.3, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.56, 0.15)
 
@@ -444,7 +454,7 @@ function buildMachine(device: any): THREE.Group {
   pnl.position.set(1.42, 1.0, 0.5); root.add(pnl)
   // 【面板支撑臂】— 连接面板到机身
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.55, 8), mat(0x555555, 0.3, 0.7)))
-  root.children[root.children.length - 1].position.set(1.20, 0.83, 0.5)
+  root.children[root.children.length - 1].position.set(1.20, 0.98, 0.5)
 
   // ══════════════════════════════════════════
   // 【塔灯】— 红/黄/绿 三色信号灯
