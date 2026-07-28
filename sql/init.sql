@@ -565,6 +565,35 @@ INSERT INTO `dash_oee_data` (`device_id`, `date_hour`, `available_time`, `run_ti
 (3, '2026-04-04-09', 3600000, 3240000, 360000, 72, 71, 1, 45000, 0.72, 0.90, 0.80, 0.99),
 (3, '2026-04-05-08', 3600000, 2880000, 720000, 64, 63, 1, 45000, 0.64, 0.80, 0.80, 0.98);
 
+-- =====================================================
+-- 8. AI Chat History Tables (ai_chat)
+-- =====================================================
+DROP TABLE IF EXISTS `ai_chat_messages`;
+DROP TABLE IF EXISTS `ai_chat_conversations`;
+
+CREATE TABLE `ai_chat_conversations` (
+    `id` varchar(36) NOT NULL COMMENT '对话ID (UUID)',
+    `user_id` varchar(50) NOT NULL DEFAULT 'default' COMMENT '用户ID',
+    `title` varchar(200) NOT NULL DEFAULT '新对话' COMMENT '对话标题（自动截取首条消息）',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_update_time` (`update_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 对话记录表';
+
+CREATE TABLE `ai_chat_messages` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `conversation_id` varchar(36) NOT NULL COMMENT '所属对话ID',
+    `role` varchar(20) NOT NULL COMMENT '角色: user / assistant',
+    `content` text NOT NULL COMMENT '消息内容 (Markdown)',
+    `steps` json DEFAULT NULL COMMENT 'Agent 执行步骤 (JSON)',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_conversation_id` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 消息记录表';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
