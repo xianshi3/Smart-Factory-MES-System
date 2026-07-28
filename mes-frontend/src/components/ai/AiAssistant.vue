@@ -84,13 +84,14 @@
             v-for="tip in suggestions"
             :key="tip.text"
             class="suggestion-btn"
-            @click="input = tip.text; sendMessage()"
+            @click="pickSuggestion(tip)"
           >
             {{ tip.icon }} {{ tip.text }}
           </button>
         </div>
         <div class="input-row">
           <input
+            ref="inputRef"
             v-model="input"
             class="msg-input"
             :disabled="loading"
@@ -114,14 +115,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { runAgent, type AgentStep } from '@/api/agent'
 import { marked } from 'marked'
 
 marked.setOptions({ breaks: true, gfm: true })
 
-defineProps<{ visible: boolean }>()
-defineEmits<{ close: [] }>()
+const props = defineProps<{ visible: boolean }>()
+const emit = defineEmits<{ close: [] }>()
 
 interface StepEx extends AgentStep {
   expanded?: boolean
@@ -134,9 +135,15 @@ interface Message {
   timestamp: Date
 }
 
+interface Suggestion {
+  icon: string
+  text: string
+}
+
+const inputRef = ref<HTMLInputElement | null>(null)
+const bodyRef = ref<HTMLElement | null>(null)
 const input = ref('')
 const loading = ref(false)
-const bodyRef = ref<HTMLElement | null>(null)
 
 const messages = ref<Message[]>([
   {
@@ -146,12 +153,38 @@ const messages = ref<Message[]>([
   },
 ])
 
-const suggestions = [
+const suggestions: Suggestion[] = [
   { icon: '📊', text: '查看所有设备状态' },
   { icon: '🔍', text: '查看 DEV-001 温度' },
   { icon: '📖', text: '主轴温度过高怎么处理' },
   { icon: '📝', text: '温度超过55°C就创建工单' },
 ]
+
+const mdCache = new Map<string, string>()
+
+function scrollToBottom(smooth = true) {
+  nextTick(() => {
+    const el = bodyRef.value
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' })
+  })
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && props.visible) {
+    emit('close')
+  }
+}
+
+watch(() => props.visible, (v) => {
+  if (v) {
+    scrollToBottom(false)
+    nextTick(() => inputRef.value?.focus())
+  }
+})
+
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
 async function sendMessage() {
   const text = input.value.trim()
@@ -169,20 +202,12 @@ async function sendMessage() {
 
     const res = await runAgent(text, history.slice(-10))
 
-    if (res.success) {
-      messages.value.push({
-        role: 'assistant',
-        content: res.content || '已完成',
-        steps: (res.steps || []).map(s => ({ ...s, expanded: false })),
-        timestamp: new Date(),
-      })
-    } else {
-      messages.value.push({
-        role: 'assistant',
-        content: '执行失败：' + (res.content || '未知错误'),
-        timestamp: new Date(),
-      })
-    }
+    messages.value.push({
+      role: 'assistant',
+      content: res.success ? (res.content || '已完成') : ('执行失败：' + (res.content || '未知错误')),
+      steps: (res.steps || []).map(s => ({ ...s, expanded: false })),
+      timestamp: new Date(),
+    })
   } catch (e: any) {
     messages.value.push({
       role: 'assistant',
@@ -201,21 +226,25 @@ function clearChat() {
     content: '对话已清空，有什么可以帮你的？',
     timestamp: new Date(),
   }]
+  mdCache.clear()
 }
 
 function renderMarkdown(text: string): string {
   if (!text) return ''
-  return marked.parse(text) as string
+  const cached = mdCache.get(text)
+  if (cached) return cached
+  const html = marked.parse(text) as string
+  mdCache.set(text, html)
+  return html
 }
 
 function formatTime(d: Date): string {
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
-function scrollToBottom() {
-  nextTick(() => {
-    if (bodyRef.value) bodyRef.value.scrollTop = bodyRef.value.scrollHeight
-  })
+function pickSuggestion(tip: Suggestion) {
+  input.value = tip.text
+  sendMessage()
 }
 </script>
 
