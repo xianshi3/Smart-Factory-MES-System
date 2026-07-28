@@ -1,120 +1,116 @@
 <template>
-  <div class="ai-assistant">
-    <button class="ai-toggle" :class="{ active: visible }" @click="visible = !visible">
-      <svg v-if="!visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
-        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-      </svg>
-      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-        <path d="M18 6L6 18M6 6l12 12" />
-      </svg>
-    </button>
-
-    <Transition name="panel">
-      <div v-if="visible" class="ai-panel">
-        <div class="panel-header">
-          <div class="header-brand">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="brand-icon">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            <span class="brand-text">AI 生产助理</span>
-            <span class="brand-badge">Agent</span>
-          </div>
+  <Transition name="panel">
+    <div v-if="visible" class="ai-panel">
+      <div class="panel-header">
+        <div class="header-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="brand-icon">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+          <span class="brand-text">AI 生产助理</span>
+          <span class="brand-badge">Agent</span>
+        </div>
+        <div class="header-actions">
           <button class="header-btn" @click="clearChat" title="清空对话">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
           </button>
+          <button class="header-btn close-btn" @click="$emit('close')" title="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
+      </div>
 
-        <div class="panel-body" ref="bodyRef">
-          <div v-for="(msg, i) in messages" :key="i" class="msg" :class="msg.role">
-            <div class="msg-avatar">
-              <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-            <div class="msg-bubble">
-              <div class="msg-text" v-html="renderMarkdown(msg.content)" />
-              <div v-if="msg.steps && msg.steps.length" class="msg-steps">
-                <div class="steps-divider"></div>
-                <div
-                  v-for="(step, j) in msg.steps"
-                  :key="j"
-                  class="step-item"
-                  @click="step.expanded = !step.expanded"
-                >
-                  <div class="step-header">
-                    <svg :class="step.expanded ? 'rotated' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                    <span class="step-num">{{ j + 1 }}</span>
-                    <code class="step-tool">{{ step.tool }}</code>
-                    <span :class="['step-status', step.result?.success ? 'ok' : 'fail']">
-                      {{ step.result?.success ? '✓' : '✗' }}
-                    </span>
-                  </div>
-                  <div v-if="step.expanded" class="step-detail">
-                    <div class="detail-label">参数</div>
-                    <pre>{{ JSON.stringify(step.args, null, 2) }}</pre>
-                    <div class="detail-label">结果</div>
-                    <pre class="result-truncate">{{ JSON.stringify(step.result, null, 2).slice(0, 800) }}</pre>
-                  </div>
+      <div class="panel-body" ref="bodyRef">
+        <div v-for="(msg, i) in messages" :key="i" class="msg" :class="msg.role">
+          <div class="msg-avatar">
+            <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div class="msg-bubble">
+            <div class="msg-text" v-html="renderMarkdown(msg.content)" />
+            <div v-if="msg.steps && msg.steps.length" class="msg-steps">
+              <div class="steps-divider"></div>
+              <div
+                v-for="(step, j) in msg.steps"
+                :key="j"
+                class="step-item"
+                @click="step.expanded = !step.expanded"
+              >
+                <div class="step-header">
+                  <svg :class="step.expanded ? 'rotated' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                  <span class="step-num">{{ j + 1 }}</span>
+                  <code class="step-tool">{{ step.tool }}</code>
+                  <span :class="['step-status', step.result?.success ? 'ok' : 'fail']">
+                    {{ step.result?.success ? '✓' : '✗' }}
+                  </span>
+                </div>
+                <div v-if="step.expanded" class="step-detail">
+                  <div class="detail-label">参数</div>
+                  <pre>{{ JSON.stringify(step.args, null, 2) }}</pre>
+                  <div class="detail-label">结果</div>
+                  <pre class="result-truncate">{{ JSON.stringify(step.result, null, 2).slice(0, 800) }}</pre>
                 </div>
               </div>
-              <div class="msg-time">{{ formatTime(msg.timestamp) }}</div>
             </div>
-          </div>
-
-          <div v-if="loading" class="msg assistant">
-            <div class="msg-avatar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
-            </div>
-            <div class="msg-bubble thinking">
-              <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-            </div>
+            <div class="msg-time">{{ formatTime(msg.timestamp) }}</div>
           </div>
         </div>
 
-        <div class="panel-footer">
-          <div class="suggestions">
-            <button
-              v-for="tip in suggestions"
-              :key="tip.text"
-              class="suggestion-btn"
-              @click="input = tip.text; sendMessage()"
-            >
-              {{ tip.icon }} {{ tip.text }}
-            </button>
+        <div v-if="loading" class="msg assistant">
+          <div class="msg-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
           </div>
-          <div class="input-row">
-            <input
-              v-model="input"
-              class="msg-input"
-              :disabled="loading"
-              placeholder="输入生产指令..."
-              @keydown.enter.exact.prevent="sendMessage"
-            />
-            <button
-              class="send-btn"
-              :disabled="!input.trim() || loading"
-              @click="sendMessage"
-            >
-              <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-              </svg>
-              <span v-else class="spinner"></span>
-            </button>
+          <div class="msg-bubble thinking">
+            <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
           </div>
         </div>
       </div>
-    </Transition>
-  </div>
+
+      <div class="panel-footer">
+        <div class="suggestions">
+          <button
+            v-for="tip in suggestions"
+            :key="tip.text"
+            class="suggestion-btn"
+            @click="input = tip.text; sendMessage()"
+          >
+            {{ tip.icon }} {{ tip.text }}
+          </button>
+        </div>
+        <div class="input-row">
+          <input
+            v-model="input"
+            class="msg-input"
+            :disabled="loading"
+            placeholder="输入生产指令..."
+            @keydown.enter.exact.prevent="sendMessage"
+          />
+          <button
+            class="send-btn"
+            :disabled="!input.trim() || loading"
+            @click="sendMessage"
+          >
+            <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+            <span v-else class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">
@@ -123,6 +119,9 @@ import { runAgent, type AgentStep } from '@/api/agent'
 import { marked } from 'marked'
 
 marked.setOptions({ breaks: true, gfm: true })
+
+defineProps<{ visible: boolean }>()
+defineEmits<{ close: [] }>()
 
 interface StepEx extends AgentStep {
   expanded?: boolean
@@ -135,7 +134,6 @@ interface Message {
   timestamp: Date
 }
 
-const visible = ref(false)
 const input = ref('')
 const loading = ref(false)
 const bodyRef = ref<HTMLElement | null>(null)
@@ -219,51 +217,14 @@ function scrollToBottom() {
     if (bodyRef.value) bodyRef.value.scrollTop = bodyRef.value.scrollHeight
   })
 }
-
-watch(visible, () => { if (visible.value) nextTick(scrollToBottom) })
 </script>
 
 <style scoped>
-/* ===== Container ===== */
-.ai-assistant {
+/* ===== Panel (浮窗模式, 由菜单触发) ===== */
+.ai-panel {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 9999;
-}
-
-/* ===== Toggle Button ===== */
-.ai-toggle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background: var(--gradient-primary, linear-gradient(135deg, #6366f1, #8b5cf6));
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-  transition: all 0.25s ease;
-  position: relative;
-}
-.ai-toggle:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);
-}
-.ai-toggle.active {
-  background: var(--bg-card, #12121a);
-  color: var(--text-primary, #f0f0f5);
-  box-shadow: none;
-  border: 1px solid var(--border-color, #252530);
-}
-
-/* ===== Panel ===== */
-.ai-panel {
-  position: absolute;
-  bottom: 58px;
-  right: -4px;
   width: 420px;
   height: 620px;
   background: var(--bg-card, #12121a);
@@ -273,6 +234,7 @@ watch(visible, () => { if (visible.value) nextTick(scrollToBottom) })
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 9999;
 }
 
 /* ===== Header ===== */
@@ -316,10 +278,12 @@ watch(visible, () => { if (visible.value) nextTick(scrollToBottom) })
   color: var(--text-muted, #505060);
   transition: all 0.15s ease;
 }
+.header-actions { display: flex; align-items: center; gap: 4px; }
 .header-btn:hover {
   background: var(--bg-hover, #1a1a28);
   color: var(--danger, #ef4444);
 }
+.close-btn:hover { color: var(--danger, #ef4444); }
 
 /* ===== Body ===== */
 .panel-body {
