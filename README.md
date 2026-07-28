@@ -1,7 +1,6 @@
 # Smart Factory MES System
 
 <p align="center">
-  <img src="https://img.shields.io/badge/GOAI%20大赛-Boundless%20Agents-8A2BE2?style=for-the-badge" alt="GOAI">
   <img src="https://img.shields.io/badge/Spring%20Cloud-2023.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
   <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?style=for-the-badge&logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Java-17-brightgreen?style=for-the-badge&logo=java" alt="Java 17">
@@ -13,7 +12,6 @@
   <a href="https://github.com/anomalyco/opencode/issues">Issues</a> •
   <a href="#项目展示">Screenshots</a> •
   <a href="#快速开始">Getting Started</a> •
-  <a href="docs/COMPETITION.md">🏆 GOAI 大赛作品说明</a> •
   <a href="docs/DEVELOPMENT.md">Development</a>
 </p>
 
@@ -199,7 +197,7 @@ Smart-Factory-MES-System/
 - 工艺参数推荐
 - 产能预测
 
-### 6. AI Agent 生产助理 🔥
+### 6. AI Agent 生产助理
 - 自然语言→工具调用：直接通过对话查询设备、创建工单、查看库存
 - 多步推理编排：自动拆解复杂任务，按顺序调用多个 API
 - RAG 知识增强：检索设备手册、质检标准辅助决策
@@ -418,14 +416,6 @@ GET /alarm/device/{deviceId}
 ---
 
 ## 更新日志
-
-### v1.0.35 (2026-07-28)
-
-- **AI Agent 生产助理**：基于 GLM-4 function calling 的多步推理 Agent
-- 10 个 MES 工具封装（设备/工单/生产线/工位/BOM/物料/库存）
-- RAG 知识库：设备手册、质检标准文档检索增强
-- 前端 AI 助手聊天面板（浮动按钮+对话气泡+步骤可视化）
-- 完整功能列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
 
 ### v1.0.34 (2026-07-28)
 
