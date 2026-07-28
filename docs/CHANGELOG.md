@@ -10,6 +10,38 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.36 (2026-07-28)
+
+### AI 生产助理 — 对话历史 + MySQL 持久化
+
+#### 对话历史功能
+
+- **MySQL 持久化**: 对话记录从 SQLite 迁移到 MySQL `mes_db`，新增 `ai_chat_conversations` + `ai_chat_messages` 两张 InnoDB 表
+- **用户关联**: 对话按 `user_id` 隔离，通过 Pinia `useUserStore` 获取登录用户名，每个用户只能看到自己的对话
+- **历史管理**: 侧边栏展示对话列表（标题/时间/删除），支持新建、切换、删除对话
+- **自动标题**: 首条用户消息自动截取前 30 字符作为对话标题
+- **逻辑删除**: 对话采用 `deleted=1` 逻辑删除，数据可恢复
+
+#### 前后端联动
+
+| 层 | 改动 |
+|---|---|
+| Python 后端 | `conversation_store.py` 改用 PyMySQL 直连 MySQL；API 端点新增 `user_id` 查询参数 |
+| Vue 前端 | 新增 `stores/aiChat.ts` Pinia store；`AiAssistant.vue` 全面改用 store 管理消息 |
+| 数据库 | 新增 `V7__ai_chat_history.sql` 迁移文件；`init.sql` 同步建表 |
+
+#### 企业级架构
+
+```
+mes-frontend → Pinia AiChatStore → Python mes-ai-service → PyMySQL → MySQL mes_db
+                                              ↕
+                                   mes-ai-service 独立拥有 ai_chat_* 表
+                                   Java 微服务各自拥有业务表
+                                   每服务独享数据，标准微服务模式
+```
+
+---
+
 ## v1.0.35 (2026-07-28)
 
 ### AI Agent 生产助理

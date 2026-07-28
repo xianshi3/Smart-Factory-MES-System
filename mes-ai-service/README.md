@@ -14,6 +14,8 @@
 
 ### 大模型模块
 - **智能对话**: 智谱AI GLM-4 大模型支持
+- **AI Agent**: 智能生产助理 — 自然语言→工具调用→任务闭环
+- **对话历史**: MySQL 持久化存储，多轮对话记录管理
 - **生产分析**: AI智能分析生产数据
 - **根因分析**: AI辅助故障根因分析
 - **能耗优化**: AI推荐节能方案
@@ -75,6 +77,19 @@ python src/main.py
 | POST | `/api/v1/llm/chat` | 智能对话 |
 | POST | `/api/v1/llm/analyze` | 生产数据分析 |
 | POST | `/api/v1/predict/process/recommend` | 工艺参数推荐 |
+
+### Agent API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/agent/run` | Agent 执行（多工具编排） |
+| GET | `/api/v1/agent/tools` | 可用工具列表 |
+| POST | `/api/v1/agent/kb/search` | 知识库搜索 |
+| POST | `/api/v1/agent/conversations` | 新建对话 |
+| GET | `/api/v1/agent/conversations` | 列表（按 user_id 过滤） |
+| GET | `/api/v1/agent/conversations/{id}` | 详情（含消息） |
+| POST | `/api/v1/agent/conversations/{id}/messages` | 保存消息 |
+| DELETE | `/api/v1/agent/conversations/{id}` | 删除对话（逻辑删除） |
 
 ### 健康检查
 
@@ -182,7 +197,11 @@ mes-ai-service/
 │   ├── router/             # 路由
 │   │   ├── prediction.py   # 预测路由
 │   │   ├── llm.py        # 大模型路由
-│   │   └── analysis.py   # 分析路由
+│   │   ├── analysis.py   # 分析路由
+│   │   └── agent.py     # Agent 路由（含对话历史CRUD）
+│   ├── schemas/
+│   │   ├── schemas.py    # 核心数据模型
+│   │   └── conversation.py # 对话历史模型
 ├── models/                # 训练模型输出
 ├── config.yaml            # 配置文件
 ├── .env.local            # 本地敏感配置（不提交）
@@ -201,6 +220,8 @@ mes-ai-service/
 | ONNX Runtime | 1.19 |
 | scikit-learn | 1.5 |
 | 智谱AI SDK | - |
+| PyMySQL | 1.1 |
+| MySQL | 8.0 |
 
 ## 测试
 
@@ -210,4 +231,4 @@ pytest tests/test_prediction.py -v
 
 ---
 
-*最后更新: 2026-05-05*
+*最后更新: 2026-07-28*
