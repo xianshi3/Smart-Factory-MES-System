@@ -23,7 +23,34 @@
 
     <div class="panel-body" ref="bodyRef">
       <template v-for="(msg, i) in messages" :key="i">
-        <div class="msg" :class="msg.role">
+        <div v-if="i === 0 && msg.role === 'assistant'" class="msg assistant welcome-msg">
+          <div class="msg-avatar">
+            <el-icon :size="16"><MagicStick /></el-icon>
+          </div>
+          <div class="welcome-card">
+            <p class="welcome-greet" v-html="renderMarkdown('你好！我是 **AI 生产助理**，可以帮你：')" />
+            <div class="welcome-features">
+              <div class="wf-item">
+                <span class="wf-dot accent"><el-icon :size="12"><Monitor /></el-icon></span>
+                <span>查询设备实时状态</span>
+              </div>
+              <div class="wf-item">
+                <span class="wf-dot cyan"><el-icon :size="12"><Warning /></el-icon></span>
+                <span>诊断设备异常</span>
+              </div>
+              <div class="wf-item">
+                <span class="wf-dot green"><el-icon :size="12"><Document /></el-icon></span>
+                <span>创建维修工单</span>
+              </div>
+              <div class="wf-item">
+                <span class="wf-dot amber"><el-icon :size="12"><Notebook /></el-icon></span>
+                <span>搜索设备手册</span>
+              </div>
+            </div>
+            <p class="welcome-hint">试试下方快捷指令</p>
+          </div>
+        </div>
+        <div v-else class="msg" :class="msg.role">
           <div class="msg-avatar">
             <el-icon v-if="msg.role === 'assistant'" :size="16"><MagicStick /></el-icon>
             <el-icon v-else :size="16"><User /></el-icon>
@@ -123,7 +150,7 @@
 import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { runAgent, type AgentStep } from '@/api/agent'
 import { marked } from 'marked'
-import { MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User, DataAnalysis, Search, Notebook, Document as DocIcon } from '@element-plus/icons-vue'
+import { MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User, DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning } from '@element-plus/icons-vue'
 
 marked.setOptions({ breaks: true, gfm: true })
 
@@ -433,6 +460,29 @@ defineExpose({ focusInput })
   color: var(--text-primary, #f0f0f5);
 }
 
+/* ===== Welcome Card ===== */
+.welcome-msg { max-width: 92%; }
+.welcome-card {
+  background: var(--bg-hover, #1a1a28);
+  border: 1px solid var(--border-light, #1f1f28);
+  border-radius: var(--radius-md, 10px);
+  padding: 18px 20px;
+}
+.welcome-greet { font-size: 14px; color: var(--text-primary, #f0f0f5); margin: 0 0 14px; line-height: 1.5; }
+.welcome-greet :deep(strong) { color: var(--accent, #6366f1); }
+.welcome-features { display: flex; flex-direction: column; gap: 8px; }
+.wf-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary, #a0a0b0); }
+.wf-dot {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+}
+.wf-dot.accent { background: var(--accent, #6366f1); }
+.wf-dot.cyan { background: var(--accent-secondary, #22d3ee); }
+.wf-dot.green { background: var(--success, #10b981); }
+.wf-dot.amber { background: var(--warning, #f59e0b); }
+.welcome-hint { font-size: 12px; color: var(--text-muted, #505060); margin: 14px 0 0; }
+
 /* Markdown */
 .msg-text :deep(p) { margin: 4px 0; }
 .msg-text :deep(p:first-child) { margin-top: 0; }
@@ -465,8 +515,9 @@ defineExpose({ focusInput })
   font-size: 12px;
   color: var(--accent-secondary, #22d3ee);
 }
-.msg-text :deep(ul), .msg-text :deep(ol) { padding-left: 20px; margin: 6px 0; }
+.msg-text :deep(ul), .msg-text :deep(ol) { padding-left: 18px; margin: 6px 0; }
 .msg-text :deep(li) { margin: 3px 0; }
+.msg-text :deep(li::marker) { color: var(--accent, #6366f1); }
 .msg-text :deep(hr) {
   border: none;
   border-top: 1px solid var(--border-color, #252530);
