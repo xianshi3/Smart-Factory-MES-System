@@ -7,6 +7,7 @@ from src.services.feature_engineering import FeatureEngineering
 from src.router.prediction import router as prediction_router
 from src.router.llm import router as llm_router
 from src.router.analysis import router as analysis_router
+from src.router.agent import router as agent_router
 from datetime import datetime
 import yaml
 import os
@@ -50,5 +51,6 @@ def create_app() -> FastAPI:
     app.include_router(prediction_router)
     app.include_router(llm_router)
     app.include_router(analysis_router)
+    app.include_router(agent_router)
 
     return app

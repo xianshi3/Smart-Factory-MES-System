@@ -10,6 +10,46 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.35 (2026-07-28)
+
+### AI Agent 生产助理（GOAI 大赛作品）
+
+#### Agent 架构
+
+基于 GLM-4 function calling 的工业 Agent，支持自然语言→工具调用→任务闭环。
+
+```
+用户输入 → 意图理解 → 工具调用 → 结果处理 → 多步推理 → 最终回复
+                          ↓
+                    MES REST API (设备/工单/库存)
+                          ↓
+                    RAG 知识库 (设备手册/质检标准)
+```
+
+#### 后端 Agent 服务
+
+- **Tool 定义层** (`src/services/tools.py`)：10 个 MES 工具，包括
+  - `list_devices` / `get_device_detail` — 设备状态查询
+  - `list_work_orders` / `create_work_order` — 工单管理
+  - `list_production_lines` / `list_workstations` — 生产线/工位
+  - `list_boms` / `list_materials` / `get_inventory` — BOM/物料/库存
+  - `query_device_docs` — 知识库文档检索
+- **Agent 编排** (`src/services/agent_service.py`)：基于 GLM-4 function calling，支持最多 8 步迭代推理
+- **RAG 知识库** (`src/services/knowledge_base.py`)：轻量级关键词检索，内置 6 篇预设文档（CNC 操作手册、温度异常处理、质检标准、SPC 标准、工单规范、维护计划）
+- **Agent API** (`src/router/agent.py`)：`POST /api/v1/agent/run` + 知识库搜索 + 工具列表查询
+
+#### 前端 AI 助手
+
+- **AiAssistant 组件**：浮动按钮触发，对话气泡展示，支持 Markdown 渲染
+- **执行步骤可视化**：每步工具调用的参数和结果可折叠展开
+- **快捷指令**：设备状态、设备诊断、创建工单、查手册一键发送
+
+#### 大赛作品验证脚本
+
+- `check_agent.py`：一键检查 Python 依赖、API Key、MES 后端服务、Agent 文件完整性
+
+---
+
 ## v1.0.34 (2026-07-28)
 
 ### 企业标准化改造

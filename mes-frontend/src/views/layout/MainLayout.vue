@@ -124,6 +124,8 @@
         </router-view>
       </el-main>
     </el-container>
+    <!-- AI 生产助理 -->
+    <AiAssistant />
   </el-container>
 </template>
 
@@ -134,6 +136,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { usePermissionStore } from '@/stores/permission'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 import { Close, Cpu, User, Sunny, Moon, ArrowDown, ArrowRight, Setting, SwitchButton, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 
 const route = useRoute()
