@@ -14,7 +14,9 @@
         <h4 class="cap-title">能力</h4>
         <div class="cap-list">
           <div v-for="cap in capabilities" :key="cap.label" class="cap-card" @click="assistantRef?.focusInput(cap.prompt)">
-            <span class="cap-icon">{{ cap.icon }}</span>
+            <div class="cap-icon-box">
+              <el-icon :size="16"><component :is="cap.icon" /></el-icon>
+            </div>
             <div class="cap-info">
               <span class="cap-label">{{ cap.label }}</span>
               <span class="cap-desc">{{ cap.desc }}</span>
@@ -38,17 +40,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
-import { MagicStick } from '@element-plus/icons-vue'
+import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting } from '@element-plus/icons-vue'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
 
 const capabilities = [
-  { icon: '📊', label: '设备监控', desc: '查询设备实时状态与数据', prompt: '查看所有设备状态' },
-  { icon: '🔍', label: '异常诊断', desc: '自动检测温度/状态异常', prompt: '查看 DEV-001 温度状态是否正常' },
-  { icon: '📝', label: '工单创建', desc: '一键生成维修工单', prompt: '创建一条 HIGH 优先级的维修工单' },
-  { icon: '📖', label: '手册检索', desc: '搜索设备维护文档', prompt: '主轴温度过高怎么处理' },
-  { icon: '📈', label: '数据分析', desc: '趋势分析与统计报告', prompt: '分析最近设备报警趋势' },
-  { icon: '⚙️', label: '自动规则', desc: '条件触发自动操作', prompt: '如果温度超过55°C就创建工单' },
+  { icon: Monitor, label: '设备监控', desc: '查询设备实时状态与数据', prompt: '查看所有设备状态' },
+  { icon: Warning, label: '异常诊断', desc: '自动检测温度/状态异常', prompt: '查看 DEV-001 温度状态是否正常' },
+  { icon: Document, label: '工单创建', desc: '一键生成维修工单', prompt: '创建一条 HIGH 优先级的维修工单' },
+  { icon: Notebook, label: '手册检索', desc: '搜索设备维护文档', prompt: '主轴温度过高怎么处理' },
+  { icon: TrendCharts, label: '数据分析', desc: '趋势分析与统计报告', prompt: '分析最近设备报警趋势' },
+  { icon: Setting, label: '自动规则', desc: '条件触发自动操作', prompt: '如果温度超过55°C就创建工单' },
 ]
 </script>
 
@@ -143,11 +145,16 @@ const capabilities = [
 .cap-card:hover {
   background: var(--bg-hover, #1a1a28);
 }
-.cap-icon {
-  font-size: 20px;
-  flex-shrink: 0;
+.cap-icon-box {
   width: 32px;
-  text-align: center;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent-light, rgba(99,102,241,0.12));
+  color: var(--accent, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .cap-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cap-label {

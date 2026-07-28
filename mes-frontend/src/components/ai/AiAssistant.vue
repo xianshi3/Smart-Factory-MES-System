@@ -111,7 +111,8 @@
           class="quick-btn"
           @click="pickSuggestion(tip)"
         >
-          {{ tip.icon }} {{ tip.text }}
+          <el-icon :size="12"><component :is="tip.icon" /></el-icon>
+          <span>{{ tip.text }}</span>
         </button>
       </div>
     </div>
@@ -122,7 +123,7 @@
 import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { runAgent, type AgentStep } from '@/api/agent'
 import { marked } from 'marked'
-import { MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User } from '@element-plus/icons-vue'
+import { MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User, DataAnalysis, Search, Notebook, Document as DocIcon } from '@element-plus/icons-vue'
 
 marked.setOptions({ breaks: true, gfm: true })
 
@@ -143,8 +144,10 @@ interface Message {
   timestamp: Date
 }
 
+import type { Component } from 'vue'
+
 interface Suggestion {
-  icon: string
+  icon: Component
   text: string
 }
 
@@ -156,16 +159,16 @@ const loading = ref(false)
 const messages = ref<Message[]>([
   {
     role: 'assistant',
-    content: '你好！我是 **AI 生产助理**，可以帮你：\n\n- 📊 查询设备实时状态\n- 🔍 诊断设备异常\n- 📝 创建维修工单\n- 📖 搜索设备手册\n\n试试下方快捷指令 👇',
+    content: '你好！我是 **AI 生产助理**，可以帮你：\n\n- 查询设备实时状态\n- 诊断设备异常\n- 创建维修工单\n- 搜索设备手册\n\n试试下方快捷指令',
     timestamp: new Date(),
   },
 ])
 
 const suggestions: Suggestion[] = [
-  { icon: '📊', text: '查看所有设备状态' },
-  { icon: '🔍', text: '查看 DEV-001 温度' },
-  { icon: '📖', text: '主轴温度过高怎么处理' },
-  { icon: '📝', text: '温度超过55°C就创建工单' },
+  { icon: DataAnalysis, text: '查看所有设备状态' },
+  { icon: Search, text: '查看 DEV-001 温度' },
+  { icon: Notebook, text: '主轴温度过高怎么处理' },
+  { icon: DocIcon, text: '温度超过55°C就创建工单' },
 ]
 
 const mdCache = new Map<string, string>()
@@ -587,6 +590,9 @@ defineExpose({ focusInput })
   transition: all 0.15s ease;
   white-space: nowrap;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .quick-btn:hover {
   border-color: var(--accent, #6366f1);
