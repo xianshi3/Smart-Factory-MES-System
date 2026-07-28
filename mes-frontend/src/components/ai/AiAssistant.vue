@@ -1,30 +1,33 @@
 <template>
-  <Transition name="panel">
-    <div v-if="visible !== false" class="ai-panel" :class="{ floating }">
-      <div class="panel-header">
-        <div class="header-brand">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="brand-icon">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-          </svg>
+  <div v-if="visible !== false" class="ai-panel" :class="{ floating }">
+    <div class="panel-header">
+      <div class="header-brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" class="brand-icon">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+        </svg>
+        <div class="brand-meta">
           <span class="brand-text">AI 生产助理</span>
-          <span class="brand-badge">Agent</span>
+          <span class="brand-tag">Agent</span>
         </div>
-        <div class="header-actions">
-          <button class="header-btn" @click="clearChat" title="清空对话">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-            </svg>
-          </button>
-          <button class="header-btn close-btn" @click="$emit('close')" title="关闭">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <span v-if="!floating" class="brand-model">基于大语言模型</span>
       </div>
+      <div class="header-actions">
+        <button class="header-btn" @click="clearChat" title="清空对话">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+          </svg>
+        </button>
+        <button v-if="floating" class="header-btn close-btn" @click="emit('close')" title="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
 
-      <div class="panel-body" ref="bodyRef">
-        <div v-for="(msg, i) in messages" :key="i" class="msg" :class="msg.role">
+    <div class="panel-body" ref="bodyRef">
+      <template v-for="(msg, i) in messages" :key="i">
+        <div class="msg" :class="msg.role">
           <div class="msg-avatar">
             <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
@@ -37,7 +40,7 @@
           <div class="msg-bubble">
             <div class="msg-text" v-html="renderMarkdown(msg.content)" />
             <div v-if="msg.steps && msg.steps.length" class="msg-steps">
-              <div class="steps-divider"></div>
+              <div class="steps-label">Agent 执行步骤</div>
               <div
                 v-for="(step, j) in msg.steps"
                 :key="j"
@@ -45,73 +48,89 @@
                 @click="step.expanded = !step.expanded"
               >
                 <div class="step-header">
-                  <svg :class="step.expanded ? 'rotated' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                  <svg :class="{ rotated: step.expanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="step-chevron">
                     <path d="M9 18l6-6-6-6" />
                   </svg>
                   <span class="step-num">{{ j + 1 }}</span>
-                  <code class="step-tool">{{ step.tool }}</code>
+                  <span class="step-tool">{{ step.tool }}</span>
                   <span :class="['step-status', step.result?.success ? 'ok' : 'fail']">
-                    {{ step.result?.success ? '✓' : '✗' }}
+                    <svg v-if="step.result?.success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
                   </span>
                 </div>
-                <div v-if="step.expanded" class="step-detail">
-                  <div class="detail-label">参数</div>
-                  <pre>{{ JSON.stringify(step.args, null, 2) }}</pre>
-                  <div class="detail-label">结果</div>
-                  <pre class="result-truncate">{{ JSON.stringify(step.result, null, 2).slice(0, 800) }}</pre>
-                </div>
+                <Transition name="step-expand">
+                  <div v-if="step.expanded" class="step-detail">
+                    <div class="detail-row">
+                      <span class="detail-label">参数</span>
+                      <pre>{{ formatJson(step.args) }}</pre>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">结果</span>
+                      <pre>{{ formatJson(step.result, 800) }}</pre>
+                    </div>
+                  </div>
+                </Transition>
               </div>
             </div>
             <div class="msg-time">{{ formatTime(msg.timestamp) }}</div>
           </div>
         </div>
+      </template>
 
-        <div v-if="loading" class="msg assistant">
-          <div class="msg-avatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-          </div>
-          <div class="msg-bubble thinking">
-            <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-          </div>
+      <div v-if="loading" class="msg assistant">
+        <div class="msg-avatar pulsing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
         </div>
-      </div>
-
-      <div class="panel-footer">
-        <div class="suggestions">
-          <button
-            v-for="tip in suggestions"
-            :key="tip.text"
-            class="suggestion-btn"
-            @click="pickSuggestion(tip)"
-          >
-            {{ tip.icon }} {{ tip.text }}
-          </button>
-        </div>
-        <div class="input-row">
-          <input
-            ref="inputRef"
-            v-model="input"
-            class="msg-input"
-            :disabled="loading"
-            placeholder="输入生产指令..."
-            @keydown.enter.exact.prevent="sendMessage"
-          />
-          <button
-            class="send-btn"
-            :disabled="!input.trim() || loading"
-            @click="sendMessage"
-          >
-            <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-            </svg>
-            <span v-else class="spinner"></span>
-          </button>
+        <div class="msg-bubble thinking">
+          <div class="thinking-bar">
+            <span class="thinking-bar-inner"></span>
+          </div>
+          <span class="thinking-text">正在分析...</span>
         </div>
       </div>
     </div>
-  </Transition>
+
+    <div class="panel-footer">
+      <div class="input-row">
+        <input
+          ref="inputRef"
+          v-model="input"
+          class="msg-input"
+          :disabled="loading"
+          placeholder="输入生产指令，例如：查看 DEV-001 温度状态"
+          @keydown.enter.exact.prevent="sendMessage"
+        />
+        <button
+          class="send-btn"
+          :disabled="!input.trim() || loading"
+          @click="sendMessage"
+        >
+          <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+          </svg>
+          <div v-else class="send-spinner">
+            <span class="spinner-ring"></span>
+          </div>
+        </button>
+      </div>
+      <div class="quick-bar">
+        <button
+          v-for="tip in suggestions"
+          :key="tip.text"
+          class="quick-btn"
+          @click="pickSuggestion(tip)"
+        >
+          {{ tip.icon }} {{ tip.text }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -174,9 +193,14 @@ function scrollToBottom(smooth = true) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.visible) {
+  if (e.key === 'Escape' && props.visible && props.floating) {
     emit('close')
   }
+}
+
+function focusInput(text?: string) {
+  if (text !== undefined) input.value = text
+  nextTick(() => inputRef.value?.focus())
 }
 
 watch(() => props.visible, (v) => {
@@ -241,6 +265,11 @@ function renderMarkdown(text: string): string {
   return html
 }
 
+function formatJson(obj: any, maxLen?: number): string {
+  const s = JSON.stringify(obj, null, 2)
+  return maxLen ? s.slice(0, maxLen) : s
+}
+
 function formatTime(d: Date): string {
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
@@ -249,6 +278,8 @@ function pickSuggestion(tip: Suggestion) {
   input.value = tip.text
   sendMessage()
 }
+
+defineExpose({ focusInput })
 </script>
 
 <style scoped>
@@ -283,22 +314,23 @@ function pickSuggestion(tip: Suggestion) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-color, #252530);
   flex-shrink: 0;
+  background: var(--bg-card, #12121a);
 }
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.ai-panel:not(.floating) .panel-header {
+  padding: 18px 24px;
 }
-.brand-icon { color: var(--accent, #6366f1); }
+.header-brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon { color: var(--accent, #6366f1); flex-shrink: 0; }
+.brand-meta { display: flex; align-items: center; gap: 6px; }
 .brand-text {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary, #f0f0f5);
 }
-.brand-badge {
+.brand-tag {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 4px;
@@ -306,9 +338,15 @@ function pickSuggestion(tip: Suggestion) {
   color: var(--accent, #6366f1);
   font-weight: 600;
 }
+.brand-model {
+  font-size: 11px;
+  color: var(--text-muted, #505060);
+  margin-left: 4px;
+}
+.header-actions { display: flex; align-items: center; gap: 4px; }
 .header-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm, 6px);
   border: none;
   display: flex;
@@ -319,12 +357,11 @@ function pickSuggestion(tip: Suggestion) {
   color: var(--text-muted, #505060);
   transition: all 0.15s ease;
 }
-.header-actions { display: flex; align-items: center; gap: 4px; }
 .header-btn:hover {
   background: var(--bg-hover, #1a1a28);
-  color: var(--danger, #ef4444);
+  color: var(--text-primary, #f0f0f5);
 }
-.close-btn:hover { color: var(--danger, #ef4444); }
+.close-btn:hover { background: rgba(239,68,68,0.12); color: var(--danger, #ef4444); }
 
 /* ===== Body ===== */
 .panel-body {
@@ -333,22 +370,27 @@ function pickSuggestion(tip: Suggestion) {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   background: var(--bg-app, #0a0a0f);
+}
+.ai-panel:not(.floating) .panel-body {
+  padding: 24px 32px;
+  gap: 24px;
 }
 
 /* ===== Messages ===== */
 .msg {
   display: flex;
-  gap: 10px;
-  max-width: 92%;
-  animation: fadeSlideUp 0.25s ease;
+  gap: 12px;
+  max-width: 88%;
+  animation: fadeSlideUp 0.3s ease;
 }
+.ai-panel:not(.floating) .msg { max-width: 75%; }
 .msg.user { align-self: flex-end; flex-direction: row-reverse; }
 
 .msg-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -364,28 +406,38 @@ function pickSuggestion(tip: Suggestion) {
   background: var(--success-light, rgba(16,185,129,0.15));
   color: var(--success, #10b981);
 }
+.msg-avatar.pulsing {
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+}
 
 .msg-bubble {
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: var(--radius-md, 10px);
   font-size: 13px;
   line-height: 1.7;
   min-width: 0;
   word-break: break-word;
 }
+.ai-panel:not(.floating) .msg-bubble { font-size: 14px; padding: 14px 20px; }
 .assistant .msg-bubble {
   background: var(--bg-hover, #1a1a28);
   border: 1px solid var(--border-light, #1f1f28);
   color: var(--text-primary, #f0f0f5);
 }
 .user .msg-bubble {
-  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
-  border: 1px solid var(--accent-light, rgba(99,102,241,0.15));
+  background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.18));
+  border: 1px solid rgba(99,102,241,0.12);
   color: var(--text-primary, #f0f0f5);
 }
 
-/* Markdown content */
+/* Markdown */
 .msg-text :deep(p) { margin: 4px 0; }
+.msg-text :deep(p:first-child) { margin-top: 0; }
+.msg-text :deep(p:last-child) { margin-bottom: 0; }
 .msg-text :deep(table) {
   width: 100%;
   border-collapse: collapse;
@@ -406,58 +458,62 @@ function pickSuggestion(tip: Suggestion) {
   color: var(--text-primary, #f0f0f5);
 }
 .msg-text :deep(tr:last-child td) { border-bottom: none; }
-.msg-text :deep(strong) { color: var(--accent, #6366f1); }
+.msg-text :deep(strong) { color: var(--accent, #6366f1); font-weight: 600; }
 .msg-text :deep(code) {
   background: var(--bg-app, #0a0a0f);
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
   color: var(--accent-secondary, #22d3ee);
 }
-.msg-text :deep(ul), .msg-text :deep(ol) { padding-left: 18px; margin: 4px 0; }
-.msg-text :deep(li) { margin: 2px 0; }
+.msg-text :deep(ul), .msg-text :deep(ol) { padding-left: 20px; margin: 6px 0; }
+.msg-text :deep(li) { margin: 3px 0; }
 .msg-text :deep(hr) {
   border: none;
   border-top: 1px solid var(--border-color, #252530);
-  margin: 10px 0;
+  margin: 12px 0;
 }
 .msg-text :deep(h1), .msg-text :deep(h2), .msg-text :deep(h3) {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary, #f0f0f5);
-  margin: 10px 0 4px;
+  margin: 12px 0 6px;
+  font-weight: 600;
 }
 
 /* Steps */
-.msg-steps { margin-top: 8px; }
-.steps-divider {
-  height: 1px;
-  background: var(--border-color, #252530);
-  margin-bottom: 8px;
+.msg-steps { margin-top: 10px; }
+.steps-label {
+  font-size: 11px;
+  color: var(--text-muted, #505060);
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 .step-item {
   border-radius: var(--radius-sm, 6px);
   background: var(--bg-app, #0a0a0f);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   cursor: pointer;
   transition: all 0.15s ease;
+  border: 1px solid transparent;
 }
-.step-item:hover { background: var(--bg-hover, #1a1a28); }
+.step-item:hover { background: var(--bg-hover, #1a1a28); border-color: var(--border-light, #1f1f28); }
 .step-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 8px;
+  padding: 7px 10px;
   font-size: 12px;
+  user-select: none;
 }
-.step-header svg {
+.step-chevron {
   transition: transform 0.2s ease;
   color: var(--text-muted, #505060);
   flex-shrink: 0;
 }
-.step-header svg.rotated { transform: rotate(90deg); }
+.step-chevron.rotated { transform: rotate(90deg); }
 .step-num {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--border-color, #252530);
   color: var(--text-secondary, #a0a0b0);
@@ -465,32 +521,37 @@ function pickSuggestion(tip: Suggestion) {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
 }
 .step-tool {
   color: var(--accent-secondary, #22d3ee);
+  font-family: monospace;
+  font-size: 11px;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.step-status { font-weight: 600; font-size: 11px; }
+.step-status { display: flex; align-items: center; flex-shrink: 0; }
 .step-status.ok { color: var(--success, #10b981); }
 .step-status.fail { color: var(--danger, #ef4444); }
-.step-detail { padding: 0 8px 8px; }
+
+.step-detail { padding: 0 10px 10px; }
+.detail-row { margin-top: 6px; }
 .detail-label {
   font-size: 11px;
   color: var(--text-muted, #505060);
-  margin: 4px 0 2px;
+  margin-bottom: 3px;
+  font-weight: 500;
 }
-.step-detail pre {
-  background: var(--bg-app, #0a0a0f);
-  padding: 6px 8px;
+.detail-row pre {
+  background: var(--bg-card, #12121a);
+  padding: 8px 10px;
   border-radius: 4px;
   font-size: 11px;
   overflow-x: auto;
-  max-height: 120px;
+  max-height: 140px;
   color: var(--text-secondary, #a0a0b0);
   margin: 0;
   line-height: 1.5;
@@ -499,7 +560,7 @@ function pickSuggestion(tip: Suggestion) {
 .msg-time {
   font-size: 11px;
   color: var(--text-muted, #505060);
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* ===== Footer ===== */
@@ -509,38 +570,42 @@ function pickSuggestion(tip: Suggestion) {
   flex-shrink: 0;
   background: var(--bg-card, #12121a);
 }
+.ai-panel:not(.floating) .panel-footer {
+  padding: 16px 24px 20px;
+}
 
-.suggestions {
+.quick-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-top: 10px;
 }
-.suggestion-btn {
+.quick-btn {
   font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 4px 12px;
+  border-radius: 14px;
   border: 1px solid var(--border-color, #252530);
   background: transparent;
   color: var(--text-secondary, #a0a0b0);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  font-family: inherit;
 }
-.suggestion-btn:hover {
+.quick-btn:hover {
   border-color: var(--accent, #6366f1);
   color: var(--accent, #6366f1);
-  background: var(--accent-light, rgba(99,102,241,0.1));
+  background: rgba(99,102,241,0.08);
 }
 
 .input-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-end;
 }
 .msg-input {
   flex: 1;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: var(--radius-md, 10px);
   border: 1px solid var(--border-color, #252530);
   background: var(--bg-input, #1a1a24);
@@ -548,19 +613,19 @@ function pickSuggestion(tip: Suggestion) {
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: all 0.15s ease;
-  resize: none;
+  transition: all 0.2s ease;
 }
+.ai-panel:not(.floating) .msg-input { padding: 12px 18px; font-size: 14px; }
 .msg-input:focus {
   border-color: var(--accent, #6366f1);
-  box-shadow: 0 0 0 3px var(--accent-light, rgba(99,102,241,0.15));
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
 }
 .msg-input::placeholder { color: var(--text-muted, #505060); }
-.msg-input:disabled { opacity: 0.5; }
+.msg-input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md, 10px);
   border: none;
   display: flex;
@@ -569,59 +634,86 @@ function pickSuggestion(tip: Suggestion) {
   cursor: pointer;
   background: var(--gradient-primary, linear-gradient(135deg, #6366f1, #8b5cf6));
   color: #fff;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
+.ai-panel:not(.floating) .send-btn { width: 48px; height: 48px; border-radius: 12px; }
 .send-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
 }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ===== Thinking Animation ===== */
-.thinking { min-height: 32px; display: flex; align-items: center; }
-.dot {
-  font-size: 24px;
-  line-height: 1;
-  color: var(--accent, #6366f1);
-  animation: blink 1.4s infinite both;
+/* ===== Thinking ===== */
+.thinking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--bg-hover, #1a1a28);
+  border: 1px solid var(--border-light, #1f1f28);
+  border-radius: var(--radius-md, 10px);
+  min-width: 180px;
 }
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink {
-  0%, 80%, 100% { opacity: 0; }
-  40% { opacity: 1; }
+.thinking-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border-color, #252530);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.thinking-bar-inner {
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--gradient-primary, linear-gradient(90deg, #6366f1, #8b5cf6));
+  border-radius: 2px;
+  animation: progressBar 1.6s ease-in-out infinite;
+}
+@keyframes progressBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+.thinking-text {
+  font-size: 12px;
+  color: var(--text-muted, #505060);
 }
 
-/* ===== Transitions ===== */
-.panel-enter-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-.panel-leave-active { transition: all 0.2s ease; }
-.panel-enter-from { opacity: 0; transform: translateY(20px) scale(0.96); }
-.panel-leave-to { opacity: 0; transform: translateY(10px) scale(0.96); }
-
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ===== Send Spinner ===== */
+.send-spinner {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
-/* ===== Spinner ===== */
-.spinner {
+.spinner-ring {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: spin 0.7s linear infinite;
   display: block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== Responsive ===== */
-@media (max-width: 640px) {
-  .ai-panel {
-    width: calc(100vw - 32px);
-    height: 70vh;
-    right: -8px;
-  }
+/* ===== Transitions ===== */
+.step-expand-enter-active, .step-expand-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.step-expand-enter-from, .step-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.step-expand-enter-to, .step-expand-leave-from {
+  opacity: 1;
+  max-height: 400px;
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
