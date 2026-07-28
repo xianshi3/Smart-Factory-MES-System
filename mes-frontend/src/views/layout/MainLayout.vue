@@ -48,18 +48,6 @@
             </template>
           </template>
         </el-menu>
-        <!-- AI 生产助理菜单项 -->
-        <div
-          class="ai-menu-item"
-          :class="{ active: aiPanelVisible, collapsed: isCollapse }"
-          @click="aiPanelVisible = !aiPanelVisible"
-        >
-          <el-icon><MagicStick /></el-icon>
-          <transition name="fade-slide">
-            <span v-show="!isCollapse">AI 生产助理</span>
-          </transition>
-          <span v-if="aiPanelVisible && !isCollapse" class="ai-menu-dot"></span>
-        </div>
       </div>
     </el-aside>
 
@@ -136,8 +124,6 @@
         </router-view>
       </el-main>
     </el-container>
-    <!-- AI 生产助理 -->
-    <AiAssistant :visible="aiPanelVisible" @close="aiPanelVisible = false" />
   </el-container>
 </template>
 
@@ -148,8 +134,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import { usePermissionStore } from '@/stores/permission'
-import AiAssistant from '@/components/ai/AiAssistant.vue'
-import { Close, Cpu, User, Sunny, Moon, ArrowDown, ArrowRight, Setting, SwitchButton, DArrowLeft, DArrowRight, MagicStick } from '@element-plus/icons-vue'
+import { Close, Cpu, User, Sunny, Moon, ArrowDown, ArrowRight, Setting, SwitchButton, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,7 +143,6 @@ const themeStore = useThemeStore()
 const permissionStore = usePermissionStore()
 
 const isCollapse = ref(false)
-const aiPanelVisible = ref(false)
 const menuRef = ref()
 const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据', '系统管理'])
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
@@ -172,6 +156,7 @@ const menuGroups = computed<MG[]>(() => [
     { path: '/dashboard', title: '工作台', icon: 'Odometer' },
     { path: '/device', title: '设备监控', icon: 'Monitor' },
     { path: '/alarm', title: '报警中心', icon: 'Warning' },
+    { path: '/ai-assistant', title: 'AI 生产助理', icon: 'MagicStick' },
   ]},
   { title: '生产管理', icon: 'Document', items: [
     { path: '/workorder', title: '工单管理', icon: 'Document' },
@@ -361,48 +346,6 @@ const handleCommand = (cmd: string) => {
 
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all .15s ease; }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; }
-
-/* ===== AI 菜单项 ===== */
-.ai-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  margin: 2px 8px;
-  padding: 0 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 13px;
-  transition: all 0.15s ease;
-  position: relative;
-  border-top: 1px solid var(--border-color);
-  margin-top: 10px;
-  padding-top: 10px;
-  height: 44px;
-}
-.ai-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-.ai-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
-.ai-menu-item.active .el-icon { color: var(--accent); }
-.ai-menu-item.collapsed {
-  justify-content: center;
-  padding: 0;
-  margin: 3px auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  border-top: none;
-  margin-top: 6px;
-}
-.ai-menu-item.collapsed .el-icon { margin: 0; font-size: 18px; }
-.ai-menu-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: auto;
-  flex-shrink: 0;
-}
 
 /* ===== MAIN ===== */
 .main-area { display: flex; flex-direction: column; overflow: hidden; }

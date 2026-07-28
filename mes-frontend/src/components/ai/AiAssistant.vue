@@ -1,6 +1,6 @@
 <template>
   <Transition name="panel">
-    <div v-if="visible" class="ai-panel">
+    <div v-if="visible !== false" class="ai-panel" :class="{ floating }">
       <div class="panel-header">
         <div class="header-brand">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="brand-icon">
@@ -121,7 +121,10 @@ import { marked } from 'marked'
 
 marked.setOptions({ breaks: true, gfm: true })
 
-const props = defineProps<{ visible: boolean }>()
+const props = withDefaults(defineProps<{ visible?: boolean; floating?: boolean }>(), {
+  visible: true,
+  floating: true,
+})
 const emit = defineEmits<{ close: [] }>()
 
 interface StepEx extends AgentStep {
@@ -249,11 +252,8 @@ function pickSuggestion(tip: Suggestion) {
 </script>
 
 <style scoped>
-/* ===== Panel (浮窗模式, 由菜单触发) ===== */
+/* ===== Panel ===== */
 .ai-panel {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
   width: 420px;
   height: 620px;
   background: var(--bg-card, #12121a);
@@ -264,6 +264,18 @@ function pickSuggestion(tip: Suggestion) {
   flex-direction: column;
   overflow: hidden;
   z-index: 9999;
+}
+.ai-panel.floating {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+}
+.ai-panel:not(.floating) {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 /* ===== Header ===== */

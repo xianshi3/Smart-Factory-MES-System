@@ -99,6 +99,11 @@ const routes: RouteRecordRaw[] = [
         path: 'bom',
         name: 'Bom',
         component: () => import('@/views/bom/BomView.vue')
+      },
+      {
+        path: 'ai-assistant',
+        name: 'AiAssistant',
+        component: () => import('@/views/ai/AiAssistantView.vue')
       }
     ]
   }
