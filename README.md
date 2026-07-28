@@ -1,6 +1,7 @@
 # Smart Factory MES System
 
 <p align="center">
+  <img src="https://img.shields.io/badge/GOAI%20大赛-Boundless%20Agents-8A2BE2?style=for-the-badge" alt="GOAI">
   <img src="https://img.shields.io/badge/Spring%20Cloud-2023.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
   <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?style=for-the-badge&logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Java-17-brightgreen?style=for-the-badge&logo=java" alt="Java 17">
@@ -12,6 +13,7 @@
   <a href="https://github.com/anomalyco/opencode/issues">Issues</a> •
   <a href="#项目展示">Screenshots</a> •
   <a href="#快速开始">Getting Started</a> •
+  <a href="docs/COMPETITION.md">🏆 GOAI 大赛作品说明</a> •
   <a href="docs/DEVELOPMENT.md">Development</a>
 </p>
 
