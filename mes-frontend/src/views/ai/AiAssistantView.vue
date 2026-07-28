@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
+import { MagicStick } from '@element-plus/icons-vue'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
 

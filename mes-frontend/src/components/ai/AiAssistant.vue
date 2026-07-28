@@ -122,6 +122,7 @@
 import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { runAgent, type AgentStep } from '@/api/agent'
 import { marked } from 'marked'
+import { MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User } from '@element-plus/icons-vue'
 
 marked.setOptions({ breaks: true, gfm: true })
 
