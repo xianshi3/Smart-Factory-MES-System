@@ -11,6 +11,13 @@ import os
 from src.services.llm_service import LLmService
 from src.services.knowledge_base import KnowledgeBase
 from src.services.agent_service import AgentService
+from src.services.conversation_store import conversation_store, init_db
+from src.schemas.conversation import (
+    ConversationListResponse, ConversationListItem,
+    ConversationDetailResponse, ConversationResponse, MessageResponse,
+    CreateConversationRequest, CreateConversationResponse,
+    AddMessageRequest, AddMessageResponse, DeleteResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,3 +141,61 @@ async def list_tools():
             for t in TOOL_DEFINITIONS
         ],
     }
+
+
+# ========== 对话历史 CRUD ==========
+
+@router.post("/conversations", response_model=CreateConversationResponse)
+async def create_conversation(req: CreateConversationRequest):
+    conv = await conversation_store.create_conversation(title=req.title)
+    return CreateConversationResponse(
+        conversation=ConversationListItem(
+            id=conv["id"], title=conv["title"],
+            created_at=conv["created_at"], updated_at=conv["updated_at"],
+        )
+    )
+
+
+@router.get("/conversations", response_model=ConversationListResponse)
+async def list_conversations():
+    convs = await conversation_store.list_conversations()
+    return ConversationListResponse(conversations=[
+        ConversationListItem(id=c["id"], title=c["title"], created_at=c["created_at"], updated_at=c["updated_at"])
+        for c in convs
+    ])
+
+
+@router.get("/conversations/{conv_id}", response_model=ConversationDetailResponse)
+async def get_conversation(conv_id: str):
+    conv = await conversation_store.get_conversation(conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    return ConversationDetailResponse(conversation=ConversationResponse(
+        id=conv["id"], user_id=conv.get("user_id", "default"),
+        title=conv["title"], created_at=conv["created_at"], updated_at=conv["updated_at"],
+        messages=[MessageResponse(
+            id=m["id"], role=m["role"], content=m["content"],
+            steps=m.get("steps", []) or [], created_at=m["created_at"],
+        ) for m in conv.get("messages", [])],
+    ))
+
+
+@router.post("/conversations/{conv_id}/messages", response_model=AddMessageResponse)
+async def add_message(conv_id: str, req: AddMessageRequest):
+    conv = await conversation_store.get_conversation(conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    await conversation_store.add_message(conv_id, req.role, req.content, req.steps)
+    if req.auto_title and req.role == "user" and (not conv.get("messages")):
+        title = req.content[:30] + ("..." if len(req.content) > 30 else "")
+        await conversation_store.update_title(conv_id, title)
+    return AddMessageResponse()
+
+
+@router.delete("/conversations/{conv_id}", response_model=DeleteResponse)
+async def delete_conversation(conv_id: str):
+    conv = await conversation_store.get_conversation(conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    await conversation_store.delete_conversation(conv_id)
+    return DeleteResponse()
