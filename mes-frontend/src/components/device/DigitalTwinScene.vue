@@ -277,83 +277,86 @@ function buildLighting(s: THREE.Scene, dark: boolean) {
   s.add(new THREE.HemisphereLight(dark ? 0x888888 : 0xaaaaaa, dark ? 0x333333 : 0x888888, 0.25))
 }
 
-// ─── CNC machining center (vertical mill) ───
+// ─── CNC加工中心 (立式铣床) ───
 function buildMachine(device: any): THREE.Group {
   const st = ST(device.status)
   const c = CLR[st] || 0x6366f1
   const g = GLW[st] || 0x0
   const root = new THREE.Group()
-  const fz = 0.525
+  const fz = 0.525 // 前面板Z轴坐标
 
-  // ── base ──
+  // 【机身底座】— 灰色底板
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 2.0), mat(0x8a8a8a, 0.4, 0.6)))
   root.children[root.children.length - 1].position.y = 0.07
+  // 【底座底板】— 深色垫板
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.025, 1.5), mat(0x505050, 0.7, 0.7)))
   root.children[root.children.length - 1].position.set(0, 0.015, 0.2)
 
-  // ── top accent band ──
+  // 【顶部装饰条】
   root.add(new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.06, 1.68), mat(0x888888, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0, 1.96, 0)
 
-  // ── machine column (C-frame backbone) ──
+  // 【C型框架立柱】— 机身主支撑
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 0.25), mat(0xaaaaaa, 0.25, 0.7)))
   root.children[root.children.length - 1].position.set(0.05, 1.04, -0.95)
+  // 【Z轴导轨】— 3条竖向金属轨
   ;[-0.45, 0, 0.45].forEach(rx => {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(0.025, 1.4, 0.015), mat(0x888888, 0.1, 0.9)))
     root.children[root.children.length - 1].position.set(rx, 1.04, -0.825)
   })
-  // way covers (bellows on column face)
+  // 【风琴罩】— 5段防护罩
   for (let wi = 0; wi < 5; wi++) {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.05), mat(0x666666, 0.5, 0.5)))
     root.children[root.children.length - 1].position.set(0.05, 0.6 + wi * 0.1, -0.8)
   }
-  // electrical cabinet on column right face
+  // 【电气柜】— 立柱右侧
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.2), mat(0x777777, 0.3, 0.7)))
   root.children[root.children.length - 1].position.set(0.9, 0.7, -0.95)
+  // 【电气柜面板】— 深色盖板
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.225, 0.005, 0.205), mat(0x444444, 0.5, 0.5)))
   root.children[root.children.length - 1].position.set(0.9, 0.7, -0.95)
-  // cooling fan grille on column back
+  // 【散热风扇】— 立柱背面圆形格栅
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.01, 12), new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide })))
   root.children[root.children.length - 1].position.set(0.05, 0.85, -1.08)
   root.children[root.children.length - 1].rotation.x = Math.PI / 2
 
-  // ── main cabinet (hollow, open front) ──
+  // 【主机柜外壳】— 白色面板（左/右/顶/底/后 五面）
   const cabMat = mat(0xf0f0f4, 0.35, 0.5)
   const ct = 0.08
-  ;[[-1.16, 1.04, -0.15, ct, 1.8, 1.35],
-   [1.16, 1.04, -0.15, ct, 1.8, 1.35],
-   [0, 1.90, -0.15, 2.24, ct, 1.35],
-   [0, 0.18, -0.15, 2.24, ct, 1.35],
-   [0, 1.04, -0.785, 2.24, 1.64, ct],
+  ;[[-1.16, 1.04, -0.15, ct, 1.8, 1.35],   // 左侧板
+   [1.16, 1.04, -0.15, ct, 1.8, 1.35],       // 右侧板
+   [0, 1.90, -0.15, 2.24, ct, 1.35],          // 顶板
+   [0, 0.18, -0.15, 2.24, ct, 1.35],          // 底板前缘
+   [0, 1.04, -0.785, 2.24, 1.64, ct],         // 后板
   ].forEach(([x, y, z, w, h, d]) => {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cabMat)
     wall.position.set(x, y, z); wall.castShadow = true; root.add(wall)
   })
 
-  // ── door frame (4 panels forming complete front face around glass) ──
+  // 【门框】— 玻璃门四周框架
   const frameMat = mat(0xf0f0f4, 0.35, 0.5)
   const ft = 0.02
-  ;[[-0.975, 1.04, fz, 0.29, 1.64, ft],
-   [1.025, 1.04, fz, 0.19, 1.64, ft],
-   [0.05, 1.745, fz, 1.76, 0.23, ft],
-   [0.05, 0.245, fz, 1.76, 0.05, ft],
+  ;[[-0.975, 1.04, fz, 0.29, 1.64, ft],      // 左门框
+   [1.025, 1.04, fz, 0.19, 1.64, ft],          // 右门框
+   [0.05, 1.745, fz, 1.76, 0.23, ft],          // 上门框
+   [0.05, 0.245, fz, 1.76, 0.05, ft],          // 下门框
   ].forEach(([x, y, z, w, h, d]) => {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat))
     root.children[root.children.length - 1].position.set(x, y, z)
   })
 
-  // side vents on right panel
+  // 【侧边散热口】— 右侧板上的竖槽
   for (let i = 0; i < 4; i++) {
     root.add(new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.15, 0.03), mat(0x2a2a2a, 0.8, 0.3)))
     root.children[root.children.length - 1].position.set(1.195, 0.7 + i * 0.28, 0.1)
   }
 
-  // ── glass door ──
+  // 【玻璃门】— 半透明安全玻璃
   const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x88ccdd, transparent: true, opacity: 0.25, roughness: 0.02, metalness: 0.02, depthWrite: false, side: THREE.DoubleSide })
   const glass = new THREE.Mesh(new THREE.BoxGeometry(1.76, 1.36, 0.01), glassMat)
   glass.position.set(0.05, 0.95, fz); glass.renderOrder = 999; root.add(glass)
 
-  // ── door handle (mounted on glass door area) ──
+  // 【门把手】— 竖直拉手+上下固定座
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.45, 0.03), mat(0xd0d0d0, 0.05, 0.95)))
   root.children[root.children.length - 1].position.set(0.88, 0.95, fz + 0.02)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.04), mat(0x999999, 0.1, 0.9)))
@@ -361,76 +364,75 @@ function buildMachine(device: any): THREE.Group {
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.04), mat(0x999999, 0.1, 0.9)))
   root.children[root.children.length - 1].position.set(0.88, 0.73, fz + 0.02)
 
-  // ── brand plate on cabinet front ──
+  // 【品牌铭牌】— 门框上方黑色底板+蓝色LED条
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.005), mat(0x222222, 0.3, 0.6)))
   root.children[root.children.length - 1].position.set(0.05, 1.83, fz)
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.015, 0.006), new THREE.MeshBasicMaterial({ color: 0x4499ff })))
   root.children[root.children.length - 1].position.set(0.05, 1.83, fz + 0.005)
 
-  // ── interior (visible through glass) ──
-  // table base / saddle (reaches from cabinet floor to table bottom)
+  // ══════════════════════════════════════════
+  // 【设备内部】— 透过玻璃可见
+  // ══════════════════════════════════════════
+  // 【鞍座】— Y轴滑台底座
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.35), mat(0x888888, 0.3, 0.7)))
   root.children[root.children.length - 1].position.set(0.05, 0.345, 0.3)
-  // work table
+  // 【工作台】— X轴台面
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.45), mat(0xa0a0a0, 0.3, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.47, 0.3)
-  // T-slots
-  for (let ti = -1; ti <= 1; ti++) {
-    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.01, 0.45), mat(0x444444, 0.8, 0.3)))
-    root.children[root.children.length - 1].position.set(0.05 + ti * 0.25, 0.5, 0.3)
+  // 【T型槽】— 5条固定卡槽
+  for (let ti = -2; ti <= 2; ti++) {
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.45), mat(0x444444, 0.8, 0.3)))
+    root.children[root.children.length - 1].position.set(0.05 + ti * 0.15, 0.498, 0.3)
   }
-  // vise body (sits on table top at y=0.495)
+  // 【虎钳底座】— 钳体
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.2), mat(0x888888, 0.25, 0.75)))
   root.children[root.children.length - 1].position.set(0.05, 0.525, 0.3)
-  // vise fixed jaw
+  // 【虎钳固定钳口】— 后方夹块
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x666666, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(0.15, 0.575, 0.3)
-  // vise moving jaw
+  // 【虎钳活动钳口】— 前方夹块
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.16), mat(0x777777, 0.2, 0.8)))
   root.children[root.children.length - 1].position.set(-0.07, 0.575, 0.3)
-  // workpiece (aluminum block, clamped in vise)
-  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), mat(0xc0c8d0, 0.25, 0.85)))
-  root.children[root.children.length - 1].position.set(0.04, 0.635, 0.3)
-  // parked tool on table
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
-  root.children[root.children.length - 1].position.set(-0.2, 0.525, 0.3)
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.04, 6), mat(0x887744, 0.3, 0.8)))
-  root.children[root.children.length - 1].position.set(-0.2, 0.475, 0.3)
 
-  // spindle motor housing
+  // 【主轴电机座】— 上方方形壳体
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mat(0xd0d0d0, 0.2, 0.75)))
   root.children[root.children.length - 1].position.set(0.05, 0.9, 0.15)
-  // spindle (animated)
+  // 【主轴】— 高速旋转电主轴 (动画驱动)
   const spindle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.07, 0.1, 0.28, 12),
     mat(c, 0.06, 0.98, g, 0.25)
   )
   spindle.position.set(0.05, 0.8, 0.15); spindle.castShadow = true; root.add(spindle)
-  // HSK tool holder taper
+  // 【HSK刀柄】— 锥度连接
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.04, 0.06, 8), mat(0xaaaaaa, 0.1, 0.95)))
   root.children[root.children.length - 1].position.set(0.05, 0.63, 0.15)
-  // cutting tool (end mill)
+  // 【铣刀】— 立铣刀
   root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.08, 6), mat(0x887744, 0.3, 0.8)))
   root.children[root.children.length - 1].position.set(0.05, 0.56, 0.15)
-  // coolant nozzle
-  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, 0.04, 8), mat(0xcccccc, 0.1, 0.9)))
-  root.children[root.children.length - 1].position.set(0.2, 0.6, 0.25)
-  root.children[root.children.length - 1].rotation.z = Math.PI / 4
 
-  // ── control panel ──
+  // ══════════════════════════════════════════
+  // 【操作面板】
+  // ══════════════════════════════════════════
   const pnl = new THREE.Group()
+  // 【面板外壳】
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.06), mat(0x666666, 0.2, 0.7)))
+  // 【屏幕边框】
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 0.008), mat(0x111111, 0.3, 0.3)))
   pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.035)
+  // 【屏幕背景】
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.005), new THREE.MeshBasicMaterial({ color: 0x226633 })))
   pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.04)
+  // 【屏幕发光】
   pnl.add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.002), new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.15 })))
   pnl.children[pnl.children.length - 1].position.set(0, 0.19, 0.043)
+  // 【急停按钮】— 红色蘑菇头
   const eStop = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.015, 12), new THREE.MeshStandardMaterial({ color: 0xff2222, roughness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.15 }))
   eStop.position.set(0.12, -0.08, 0.035); eStop.rotation.x = Math.PI / 2; pnl.add(eStop)
+  // 【旋钮】— 银色超驰旋钮
   pnl.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.012, 8), mat(0x888888, 0.2, 0.8)))
   pnl.children[pnl.children.length - 1].position.set(-0.12, -0.08, 0.035)
   pnl.children[pnl.children.length - 1].rotation.x = Math.PI / 2
+  // 【操作按钮组】— 6个彩色按钮
   const btnColors = [0x44cc44, 0xffcc00, 0xff6644, 0x4488ff, 0x888888, 0x888888]
   btnColors.forEach((bc, bi) => {
     const col = bi % 3; const row = Math.floor(bi / 3)
@@ -440,53 +442,66 @@ function buildMachine(device: any): THREE.Group {
     btn.rotation.x = Math.PI / 2; pnl.add(btn)
   })
   pnl.position.set(1.42, 1.0, 0.5); root.add(pnl)
+  // 【面板支撑臂】— 连接面板到机身
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.55, 8), mat(0x555555, 0.3, 0.7)))
+  root.children[root.children.length - 1].position.set(1.20, 0.83, 0.5)
 
-  // ── stack light ──
+  // ══════════════════════════════════════════
+  // 【塔灯】— 红/黄/绿 三色信号灯
+  // ══════════════════════════════════════════
   const tower = new THREE.Group()
   tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x666666, 0.3, 0.8)))
-  tower.children[0].position.y = 2.02
+  tower.children[0].position.y = 2.02          // 灯杆
   tower.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.08), mat(0x666666, 0.3, 0.7)))
-  tower.children[1].position.set(0, 1.96, 0)
+  tower.children[1].position.set(0, 1.96, 0)   // 底座
   ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
     const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
       new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.25, roughness: 0.3 }))
-    seg.position.y = 1.94 + ti * 0.045; tower.add(seg)
+    seg.position.y = 1.94 + ti * 0.045; tower.add(seg)  // 红/黄/绿 三段灯
   })
   const led = new THREE.Mesh(
     new THREE.SphereGeometry(0.04, 8, 8),
     new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
   )
-  led.position.y = 2.1; tower.add(led)
+  led.position.y = 2.1; tower.add(led)          // 顶部LED状态球
   tower.position.set(-0.6, 0, 0.6); root.add(tower)
 
-  // ── side window (tool magazine) ──
+  // ══════════════════════════════════════════
+  // 【刀库侧窗】— 左侧透明窗口+6把圆形排列刀具
+  // ══════════════════════════════════════════
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.6, 0.5),
     new THREE.MeshPhysicalMaterial({ color: 0x999999, transparent: true, opacity: 0.3, roughness: 0.05, depthWrite: false })))
-  root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)
+  root.children[root.children.length - 1].position.set(-1.2, 1.02, 0)  // 透明窗
   for (let ti = 0; ti < 6; ti++) {
     const a = (ti / 6) * Math.PI * 2
     root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.04, 6), mat(0x999999, 0.08, 0.92)))
-    root.children[root.children.length - 1].position.set(-1.18, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)
+    root.children[root.children.length - 1].position.set(-1.18, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)  // 刀套
     root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 6), mat(0x887744, 0.3, 0.8)))
-    root.children[root.children.length - 1].position.set(-1.17, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)
+    root.children[root.children.length - 1].position.set(-1.17, 1.02 + Math.sin(a) * 0.24, Math.cos(a) * 0.18)  // 刀具
   }
 
-  // ── chip drawer ──
+  // ══════════════════════════════════════════
+  // 【排屑槽】
+  // ══════════════════════════════════════════
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.35), mat(0x909090, 0.45, 0.7)))
-  root.children[root.children.length - 1].position.set(0, 0.15, 0.75)
+  root.children[root.children.length - 1].position.set(0, 0.15, 0.75)   // 抽屉主体
   root.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.005), mat(0xbbbbbb, 0.2, 0.8)))
-  root.children[root.children.length - 1].position.set(0, 0.15, 0.925)
+  root.children[root.children.length - 1].position.set(0, 0.15, 0.925)  // 面板
   root.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.015, 0.02), mat(0xd0d0d0, 0.1, 0.9)))
-  root.children[root.children.length - 1].position.set(0, 0.2, 0.93)
+  root.children[root.children.length - 1].position.set(0, 0.2, 0.93)    // 拉手
 
-  // ── feet ──
+  // ══════════════════════════════════════════
+  // 【地脚】— 4个圆形垫脚
+  // ══════════════════════════════════════════
   const padGeo = new THREE.CylinderGeometry(0.1, 0.13, 0.05, 8)
   ;[[-1.1, 0.025, -0.85], [1.1, 0.025, -0.85], [-1.1, 0.025, 0.85], [1.1, 0.025, 0.85]].forEach(([px, py, pz]) => {
     root.add(new THREE.Mesh(padGeo, mat(0x707070, 0.5, 0.6)))
     root.children[root.children.length - 1].position.set(px, py, pz)
   })
 
-  // ── data label ──
+  // ══════════════════════════════════════════
+  // 【数据标签】— 设备名称+状态
+  // ══════════════════════════════════════════
   const devName = device.name || device.deviceName || device.deviceCode || '设备'
   const dataDiv = labelHtml(
     `<b>${devName}</b><br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
