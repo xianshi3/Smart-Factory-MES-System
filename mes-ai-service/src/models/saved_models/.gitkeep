@@ -1,0 +1,8 @@
+# ONNX 模型文件目录
+#
+# 请将训练好的 ONNX 模型文件放置于此目录：
+#   - quality_predict.onnx   (质量预测模型)
+#   - output_predict.onnx    (产量预测模型)
+#
+# 生成方式: 使用 skl2onnx / onnxmltools 将 LightGBM/XGBoost 模型转换为 ONNX 格式。
+# 若无模型文件，系统将使用内置的 fallback 逻辑运行（适用于开发/测试）。

@@ -46,7 +46,7 @@ spring:
           filters:
             - StripPrefix=1
         - id: mes-ai
-          uri: http://mes-ai-service:8086
+          uri: http://mes-ai-service:8087
           predicates:
             - Path=/api/ai/**
           filters:

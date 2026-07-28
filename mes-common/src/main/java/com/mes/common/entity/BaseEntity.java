@@ -48,10 +48,12 @@ public class BaseEntity implements Serializable {
     /**
      * 删除时间
      */
+    @TableField(exist = false)
     private LocalDateTime deletedTime;
 
     /**
      * 删除人ID
      */
+    @TableField(exist = false)
     private Long deletedBy;
 }

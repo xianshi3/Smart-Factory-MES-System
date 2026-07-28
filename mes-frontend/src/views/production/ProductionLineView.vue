@@ -14,7 +14,7 @@
       </el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="lineCode" label="生产线编码" width="150" />
       <el-table-column prop="lineName" label="生产线名称" />
       <el-table-column prop="status" label="状态" width="100">

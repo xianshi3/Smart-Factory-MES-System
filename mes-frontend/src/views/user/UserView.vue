@@ -47,7 +47,7 @@
           <div class="user-actions">
             <el-button type="primary" size="small" link @click="handleEdit(user)">编辑</el-button>
             <el-button type="primary" size="small" link @click="handleRole(user)">角色</el-button>
-            <el-button type="danger" size="small" link @click="handleDelete(user)" v-if="user.username !== 'admin'">删除</el-button>
+            <el-button v-if="user.username !== 'admin'" type="danger" size="small" link @click="handleDelete(user)">删除</el-button>
           </div>
         </div>
       </div>
@@ -99,10 +99,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { User, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { getUserList, createUser, updateUser, deleteUser, assignUserRole, getRoleList } from '@/api/system'
 
-interface User {
+interface UserItem {
   id?: number
   username: string
   nickname?: string
@@ -112,6 +112,7 @@ interface User {
   role?: string
   roleName?: string
   status?: number
+  roleId?: number
 }
 
 interface Role {
@@ -120,7 +121,7 @@ interface Role {
   roleCode: string
 }
 
-const users = ref<User[]>([])
+const users = ref<UserItem[]>([])
 const roles = ref<Role[]>([])
 
 const dialogVisible = ref(false)
@@ -143,13 +144,9 @@ const loadUsers = async () => {
   try {
     const res = await getUserList()
     users.value = res.data || res || []
-  } catch (e) {
-    users.value = [
-      { id: 1, username: 'admin', nickname: '管理员', email: 'admin@mes.com', department: 'IT部', position: '系统管理员', roleName: '超级管理员', status: 1 },
-      { id: 2, username: 'zhangsan', nickname: '张三', email: 'zhangsan@mes.com', department: '生产部', position: '生产主管', roleName: '生产主管', status: 1 },
-      { id: 3, username: 'lisi', nickname: '李四', email: 'lisi@mes.com', department: '质量部', position: '质检员', roleName: '质检员', status: 1 },
-      { id: 4, username: 'wangwu', nickname: '王五', email: 'wangwu@mes.com', department: '设备部', position: '设备工程师', roleName: '设备工程师', status: 1 }
-    ]
+  } catch {
+    ElMessage.error('获取用户列表失败，请检查后端服务')
+    users.value = []
   }
 }
 
@@ -157,14 +154,9 @@ const loadRoles = async () => {
   try {
     const res = await getRoleList()
     roles.value = res.data || res || []
-  } catch (e) {
-    roles.value = [
-      { id: 1, roleName: '超级管理员', roleCode: 'ADMIN' },
-      { id: 2, roleName: '生产主管', roleCode: 'MANAGER' },
-      { id: 3, roleName: '生产员工', roleCode: 'USER' },
-      { id: 4, roleName: '质检员', roleCode: 'QC' },
-      { id: 5, roleName: '设备工程师', roleCode: 'ENGINEER' }
-    ]
+  } catch {
+    ElMessage.error('获取角色列表失败，请检查后端服务')
+    roles.value = []
   }
 }
 
@@ -180,7 +172,7 @@ const handleCreate = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (user: User) => {
+const handleEdit = (user: UserItem) => {
   Object.assign(form, user)
   dialogTitle.value = '编辑用户'
   dialogVisible.value = true
@@ -197,13 +189,12 @@ const handleSubmit = async () => {
     }
     dialogVisible.value = false
     loadUsers()
-  } catch (e) {
-    ElMessage.success('操作成功（模拟）')
-    dialogVisible.value = false
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '操作失败')
   }
 }
 
-const handleRole = (user: User) => {
+const handleRole = (user: UserItem) => {
   currentUserId.value = user.id || null
   selectedRoleId.value = user.roleId || null
   roleVisible.value = true
@@ -213,23 +204,23 @@ const handleRoleSubmit = async () => {
   try {
     await assignUserRole(currentUserId.value!, { roleId: selectedRoleId.value })
     ElMessage.success('角色分配成功')
-  } catch (e) {
-    ElMessage.success('角色分配成功（模拟）')
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '角色分配失败')
   }
   roleVisible.value = false
   loadUsers()
 }
 
-const handleDelete = (user: User) => {
+const handleDelete = (user: UserItem) => {
   ElMessageBox.confirm(`确定删除用户 "${user.nickname || user.username}" 吗？`, '删除确认', { type: 'warning' })
     .then(async () => {
       try {
         await deleteUser(user.id!)
         ElMessage.success('删除成功')
-      } catch (e) {
-        ElMessage.success('删除成功（模拟）')
+        loadUsers()
+      } catch (e: any) {
+        ElMessage.error(e?.response?.data?.message || e?.message || '删除失败')
       }
-      loadUsers()
     }).catch(() => {})
 }
 

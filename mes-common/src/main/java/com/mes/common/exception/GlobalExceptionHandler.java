@@ -2,6 +2,7 @@ package com.mes.common.exception;
 
 import com.mes.common.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,9 +34,15 @@ public class GlobalExceptionHandler {
      * 处理业务异常
      */
     @ExceptionHandler(BizException.class)
-    public Result<Void> handleBizException(BizException e) {
-        log.error("业务异常: {}", e.getMessage());
-        return Result.fail(e.getCode(), e.getMessage());
+    public Result<Void> handleBizException(BizException e, HttpServletResponse response) {
+        int code = e.getCode();
+        response.setStatus(code == 401 ? HttpStatus.UNAUTHORIZED.value() : HttpStatus.BAD_REQUEST.value());
+        if (code == 401) {
+            log.warn("认证失败: {}", e.getMessage());
+        } else {
+            log.warn("业务异常: {}", e.getMessage());
+        }
+        return Result.fail(code, e.getMessage());
     }
 
     /**
@@ -128,20 +135,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleDataIntegrity(DataIntegrityViolationException e) {
+        String sqlMessage = e.getMostSpecificCause().getMessage();
         String message = "数据操作失败";
-        Throwable cause = e.getMostSpecificCause();
-        if (cause instanceof SQLIntegrityConstraintViolationException) {
-            SQLIntegrityConstraintViolationException sqlEx = (SQLIntegrityConstraintViolationException) cause;
-            String sqlMessage = sqlEx.getMessage();
-            if (sqlMessage != null) {
-                if (sqlMessage.contains("cannot be null") || sqlMessage.contains("doesn't have a default value")) {
-                    String field = extractFieldFromSQLMessage(sqlMessage);
-                    message = field + " 不能为空";
-                } else if (sqlMessage.contains("Duplicate entry")) {
-                    message = extractDuplicateMessage(sqlMessage);
-                } else {
-                    message = "数据错误: " + sqlMessage;
-                }
+        if (sqlMessage != null) {
+            if (sqlMessage.contains("cannot be null") || sqlMessage.contains("doesn't have a default value")) {
+                String field = extractFieldFromSQLMessage(sqlMessage);
+                message = field + " 不能为空";
+            } else if (sqlMessage.contains("Duplicate entry")) {
+                message = extractDuplicateMessage(sqlMessage);
+            } else if (sqlMessage.contains("Unknown column")) {
+                message = "数据库字段不匹配: " + sqlMessage.substring(0, Math.min(sqlMessage.length(), 100));
+            } else {
+                message = "数据错误: " + sqlMessage.substring(0, Math.min(sqlMessage.length(), 100));
             }
         }
         log.error("数据完整性异常: {}", message);

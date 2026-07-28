@@ -13,6 +13,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
+          'vendor-ui': ['element-plus', '@element-plus/icons-vue'],
+          'vendor-chart': ['echarts', 'vue-echarts'],
+          'vendor-three': ['three'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 800,
+  },
   server: {
     port: 3000,
     proxy: {
@@ -59,7 +72,7 @@ export default defineConfig({
         }
       },
       '/ai': {
-        target: 'http://localhost:8086',
+        target: 'http://localhost:8087',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/ai/, ''),
         bypass: (req) => {

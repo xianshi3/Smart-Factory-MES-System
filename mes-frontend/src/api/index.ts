@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getToken, removeToken } from '@/utils/auth'
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -7,7 +8,7 @@ const request = axios.create({
 
 request.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -28,6 +29,7 @@ request.interceptors.response.use(
     }
     if (code !== 200) {
       if (code === 401) {
+        removeToken()
         window.location.href = '/login'
       }
       return Promise.reject(new Error(res.message || `请求失败 (code: ${code})`))
@@ -36,8 +38,13 @@ request.interceptors.response.use(
   },
   error => {
     const response = error.response
-    if (response && response.data) {
-      const message = response.data.message || response.data.msg || JSON.stringify(response.data)
+    if (response) {
+      if (response.status === 401) {
+        removeToken()
+        window.location.href = '/login'
+        return Promise.reject(new Error('未登录'))
+      }
+      const message = response.data?.message || response.data?.msg || JSON.stringify(response.data)
       console.error('API Error:', message)
       return Promise.reject(new Error(message))
     }

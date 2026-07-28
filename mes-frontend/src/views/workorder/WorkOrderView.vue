@@ -31,7 +31,7 @@
 
     <div class="card-grid">
       <div 
-        v-for="(row, index) in tableData" 
+        v-for="row in tableData" 
         :key="row.id" 
         class="order-card"
       >
@@ -69,11 +69,11 @@
             {{ statusConfig[row.status]?.text }}
           </span>
           <div class="card-actions" @click.stop>
-            <el-button type="danger" size="small" link @click="handleDelete(row)" v-if="canDelete(row)">删除</el-button>
-            <el-button type="primary" size="small" link @click="handleStart(row)" v-if="canStart(row)">开始</el-button>
-            <el-button type="warning" size="small" link @click="handleIssue(row)" v-if="row.status === 'CREATED'">下发</el-button>
-            <el-button type="info" size="small" link @click="handleReport(row)" v-if="canReport(row)">报工</el-button>
-            <el-button type="success" size="small" link @click="handleComplete(row)" v-if="canComplete(row)">完成</el-button>
+            <el-button v-if="canDelete(row)" type="danger" size="small" link @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="canStart(row)" type="primary" size="small" link @click="handleStart(row)">开始</el-button>
+            <el-button v-if="row.status === 'CREATED'" type="warning" size="small" link @click="handleIssue(row)">下发</el-button>
+            <el-button v-if="canReport(row)" type="info" size="small" link @click="handleReport(row)">报工</el-button>
+            <el-button v-if="canComplete(row)" type="success" size="small" link @click="handleComplete(row)">完成</el-button>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport } from '@/api/services'
+import { getWorkOrderPage, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport } from '@/api/services'
 import { Document, Plus, Search, Coin, CircleCheck } from '@element-plus/icons-vue'
 
 const loading = ref(false)
@@ -273,14 +273,6 @@ const handleSubmit = async () => {
     dialogVisible.value = false
     loadData()
   } catch (error: any) { ElMessage.error(error?.message || '创建失败') }
-}
-
-const handleDetail = async (row: any) => {
-  try {
-    const res = await getWorkOrderDetail(row.id)
-    detailData.value = res.data || {}
-    detailVisible.value = true
-  } catch { ElMessage.error('获取详情失败') }
 }
 
 const handleStart = async (row: any) => {

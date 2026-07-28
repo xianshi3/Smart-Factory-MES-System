@@ -10,6 +10,149 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.34 (2026-07-28)
+
+### 企业标准化改造
+
+#### 后端架构分层标准化
+
+- **新增 Service 层**：为 ProductionLine 和 Workstation 创建独立 Service 接口和实现
+  - `ProductionLineService` / `ProductionLineServiceImpl`
+  - `WorkstationService` / `WorkstationServiceImpl`
+- **消除 Controller 直调 Mapper**：`BaseDataController` 改为注入 Service 而非 Mapper
+- **统一 CRUD 模式**：所有模块遵循 Controller → Service(接口) → ServiceImpl → Mapper 分层
+
+#### 逻辑删除统一修复
+
+- **移除全局 `logic-delete-field`**：4 个模块的 `application.yml` 全部清理
+  - `mes-dashboard` / `mes-auth` / `mes-workorder` / `mes-quality`
+- **统一使用物理删除**：`deleteById()` 执行 `DELETE` 而非 `UPDATE SET deleted=1`
+- **所有 create 方法统一 `setDeleted(0)`**：ProductionLine / Workstation / Material / BOM
+- **所有 list 方法统一过滤 `.eq(Deleted, 0)`**：避免返回已删除数据
+- 修复逻辑删除导致的唯一约束冲突（create → delete → recreate 报 DuplicateKey）
+
+#### DTO 与实体规范化
+
+- `BaseEntity.deletedTime` / `deletedBy` 添加 `@TableField(exist = false)`，消除 MyBatis 映射异常
+- `BomServiceImpl.createBom()` 添加 BOM 编号自动生成兜底（`BOM-YYYYMMDD-XXXX` 格式）
+
+### 3D 数字孪生设备监控
+
+#### 前端工程化
+
+- **3D 场景组件**：新增 `DigitalTwinScene.vue` 基于 Three.js
+  - 立式加工中心 CNC 模型（封闭式机柜、滑门视窗、控制面板、叠灯塔、刀库）
+  - 动态厂房环境（地板/安全标线/立柱/桁架/围墙根据设备数量自适应缩放）
+  - 实时动效：主轴旋转、输送带物料流动、LED 呼吸灯、故障脉冲环
+  - 多点射线点击检测（±6px 容差）提升交互体验
+  - 多视角预设切换（透视图/俯视图/前视图）
+- **企业级控制室布局**：三栏式设计（KPI 胶囊 + 3D 场景 + HUD 面板）
+- **BOM 管理页面**：新增 `BomView.vue` 物料清单页面
+
+#### 架构优化
+
+- **ESLint + Prettier**：新增 `.eslintrc.cjs`、lint/format 脚本
+- **代码分割**：Vite 配置 manualChunks，index chunk 从 1810kB 降至 52kB
+- **WebSocket**：设备数据毫秒级推送，实时映射 3D 场景
+- **JWT 认证**：AuthController 重构为 HttpServletRequest 获取 Token
+- **JwtAuthFilter**：新增认证过滤器
+
+---
+
+## v1.0.33 (2026-07-27)
+
+### 新增功能
+
+#### 数字孪生设备监控
+
+- **3D 数字孪生场景**: 基于 Three.js 构建工厂车间三维可视化
+  - 立式加工中心 CNC 模型（封闭式机柜、滑门视窗、控制面板、叠灯塔、刀库）
+  - 动态厂房环境（地板/安全标线/立柱/桁架/围墙根据设备数量自适应缩放）
+  - 实时动效：主轴旋转、输送带物料流动、LED 呼吸灯、故障脉冲环
+  - 多点射线点击检测（±6px 容差）提升交互体验
+  - 多视角预设切换（透视图/俯视图/前视图）
+- **企业级控制室布局**: 三栏式设计
+  - 顶部 KPI 胶囊状态栏（设备总数/运行/空闲/故障）
+  - 主 3D 场景全屏展示
+  - HUD 蒙层面板：告警列表（右上）、性能趋势图（左下）、设备详情（右下）
+  - 视图切换：3D 孪生 / 列表卡片双模式
+- **设备信息面板**: 温度颜色高亮（绿<55°C<橙<70°C<红）、六指标+利用率进度条、AI 预测/SPC/能耗快捷按钮
+
+#### 前端工程化
+
+- **ESLint + Prettier**: 新增 `.eslintrc.cjs`、lint/format 脚本
+- **代码分割**: Vite 配置 manualChunks（vendor-vue/vendor-ui/vendor-chart/vendor-three），index chunk 从 1810kB 降至 52kB
+- **菜单优化**: 默认全部展开 (`:default-openeds`)
+
+### 修复
+
+- **端口冲突修复**: AI 服务 8086→8087，消除与 InfluxDB 端口冲突
+- **ONNX 模型缺失**: 产量预测添加 fallback 逻辑，不再因缺模型 crash
+- **JWT 密钥**: 移除硬编码默认值，仅依赖环境变量 `JWT_SECRET`
+- **MQTTnet 版本**: 4.3.6.992→4.3.6.1152，消除 NuGet 警告
+- **docker-compose profile**: mes-process `dev`→`docker` 与其他服务一致
+- **3D 视图分页**: 列表分页仅在 list 模式显示
+- **相机自动旋转**: 3D 场景默认关闭自动旋转
+- **设备名字段**: DigitalTwinScene 修正 dataLabel 字段映射 (`deviceName`→兼容 `name`)
+- **按钮点击**: 告警/详情/图表面板互不覆盖，左右分区摆放
+- **缺失闭合标签**: 修复 `dt-scene-wrap` 遗漏的 `</div>`
+- **HUD 主题**: 所有面板使用 CSS 变量，兼容亮/暗主题切换
+- **列表卡片**: 缩小最小宽度(280→220px)、增加 pageSize(12→50)，更多设备单页展示
+
+### 优化
+
+- **CNC 模型重设计**: 从简单方块升级为逼真立式加工中心（柜体/滑门/内部工作台+主轴/控制面板/叠灯塔/刀库/排屑抽屉）
+- **天花板桁架**: 改为半透明细线（opacity 0.25），不再遮挡设备
+- **安全标线动态化**: 随设备网格数量自动扩缩
+- **Raycaster 优化**: 仅对 deviceNodes 做碰撞检测，排除厂房元素干扰
+
+---
+
+## v1.0.32 (2026-07-27)
+
+### 新增功能
+
+#### BOM + 物料管理
+
+- **数据库**: 新增 5 张表 (material/bom/bom_item/inventory/inventory_transaction)
+- **后端**: 5 个 Mapper + BomService + BomServiceImpl + 3 个 Controller (Material/Bom/Inventory)
+  - 物料 CRUD + 搜索过滤
+  - BOM CRUD + 嵌套明细管理 + 物料存在性校验 + 循环引用检测
+  - 库存查询 + 库存调整 + 交易记录追溯
+- **前端**: MaterialView.vue 物料列表/新建/编辑/删除
+- **路由**: /material, /bom 加入路由和菜单
+
+### 前端优化
+
+- 移除所有视图的 animationDelay（消除页面卡顿）
+- 删除 3 个死组件 (PageHeader/DataTable/SearchBar)
+- CSS 去重 269 行，创建 useChartTheme composable
+- 统一 8 个视图内边距，修复 16 处硬编码颜色
+- 物料管理列表：极简企业风格、自适应列宽、库存预警、unitLabel 中英文映射
+
+---
+
+## v1.0.31 (2026-07-27)
+
+### 修复
+
+- **前端卡片不可见**: 3 个视图的 `.template-card`/`.order-card`/`.stat-item`/`.device-card` 使用 `animation: fadeInUp` 但未定义 `@keyframes fadeInUp`，`animation-fill-mode: forwards` 导致永久 `opacity: 0`
+- **页面卡顿**: 移除所有视图的 `animationDelay` 内联样式（每张卡片依次动画导致卡顿）
+- **Vite 代理 404**: `/process` 代理的 `rewrite` 错误剥离 `/process` 前缀导致 404
+- **Element Plus 暗色主题**: 导入 `dark/css-vars.css` 使 ElTable/ElDialog 等组件支持主题切换
+- **数据加载报错被吞**: `res.data.records` 加 `?.` 可选链防止 TypeError 被 `catch` 吞掉
+
+### 优化
+
+- 删除 3 个死组件 (PageHeader/DataTable/SearchBar)
+- CSS 去重 269 行（7 个视图删除重复 page-header；stats-grid 合并到 global；status-tag 统一使用 CSS 变量）
+- 创建 `useChartTheme` composable，3 个视图复用图表颜色
+- 统一 8 个视图内边距为 MainLayout.el-main 的 24px
+- 修复硬编码颜色 16 处，改用 CSS 变量
+- 表状态标签改用 `var(--success-light)` 等变量替代硬编码 `rgba()`
+
+---
+
 ## v1.0.30 (2026-07-27)
 
 ### 变更

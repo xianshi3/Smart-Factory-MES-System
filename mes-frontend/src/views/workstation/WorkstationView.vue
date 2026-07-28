@@ -14,7 +14,7 @@
       </el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="workstationCode" label="工位编码" width="150" />
       <el-table-column prop="workstationName" label="工位名称" />
       <el-table-column prop="productionLineName" label="所属生产线" width="150" />

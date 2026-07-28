@@ -5,5 +5,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 COPY config.yaml ./config.yaml
 RUN mkdir -p models tests
-EXPOSE 8086
+EXPOSE 8087
 CMD ["python", "-m", "src.main"]

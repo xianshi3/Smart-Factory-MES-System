@@ -137,3 +137,43 @@ export function resolveAlarm(alarmId: number, userId: string, remarks: string) {
 export function deleteAlarm(alarmId: number) {
   return request({ url: `/api/alarm/${alarmId}`, method: 'delete' })
 }
+
+export function getBomList(params?: any) {
+  return request({ url: '/api/dashboard/bom/list', method: 'get', params })
+}
+
+export function getBomDetail(id: number) {
+  return request({ url: `/api/dashboard/bom/${id}`, method: 'get' })
+}
+
+export function createBom(data: any) {
+  return request({ url: '/api/dashboard/bom', method: 'post', data })
+}
+
+export function updateBom(data: any) {
+  return request({ url: '/api/dashboard/bom', method: 'put', data })
+}
+
+export function deleteBom(id: number) {
+  return request({ url: `/api/dashboard/bom/${id}`, method: 'delete' })
+}
+
+export function validateBom(id: number) {
+  return request({ url: `/api/dashboard/bom/${id}/validate`, method: 'post' })
+}
+
+export function getBomItems(bomId: number) {
+  return request({ url: `/api/dashboard/bom/${bomId}/item/list`, method: 'get' })
+}
+
+export function createBomItem(bomId: number, data: any) {
+  return request({ url: `/api/dashboard/bom/${bomId}/item`, method: 'post', data })
+}
+
+export function updateBomItem(bomId: number, data: any) {
+  return request({ url: `/api/dashboard/bom/${bomId}/item`, method: 'put', data })
+}
+
+export function deleteBomItem(bomId: number, id: number) {
+  return request({ url: `/api/dashboard/bom/${bomId}/item/${id}`, method: 'delete' })
+}

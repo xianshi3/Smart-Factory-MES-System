@@ -38,7 +38,7 @@
     </div>
 
     <div class="stats-row">
-      <div class="stat-card" v-for="(stat, index) in stats" :key="stat.label" :style="{ animationDelay: `${index * 0.1}s` }">
+      <div v-for="(stat, index) in stats" :key="stat.label" class="stat-card" :style="{ animationDelay: `${index * 0.1}s` }">
         <div class="stat-icon" :class="stat.theme">
           <el-icon size="24"><component :is="stat.icon" /></el-icon>
         </div>
@@ -74,8 +74,8 @@
       
       <div class="table-wrapper">
         <el-table 
-          :data="tableData" 
-          v-loading="loading"
+          v-loading="loading" 
+          :data="tableData"
           stripe
           class="modern-table"
         >
@@ -128,11 +128,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
-import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
-import { DataAnalysis, Download, Refresh, TrendCharts, List, Coin, CircleCheck, Warning, Odometer, Search } from '@element-plus/icons-vue'
+import { DataAnalysis, Download, Refresh, TrendCharts, List, Search } from '@element-plus/icons-vue'
 
-const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
 const loading = ref(false)
 const tableData = ref<any[]>([])

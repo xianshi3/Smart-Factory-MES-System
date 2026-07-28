@@ -18,7 +18,7 @@ Smart-Factory-MES-System/
 ├── mes-quality/             # 质量服务 (8084)
 ├── mes-dashboard/           # 看板服务 (8085)
 ├── mes-device-gateway/      # .NET设备网关 (5000)
-├── mes-ai-service/          # Python AI服务 (8086)
+├── mes-ai-service/          # Python AI服务 (8087)
 ├── mes-device-simulator-wpf/ # WPF设备模拟器
 ├── mes-frontend/            # Vue 3前端 (3000)
 ├── sql/                      # 数据库脚本
@@ -31,7 +31,7 @@ Smart-Factory-MES-System/
 
 | 层级 | 技术选型 | 版本 |
 |------|----------|------|
-| 前端 | Vue 3 + TypeScript + Element Plus + ECharts | Vue 3.5 |
+| 前端 | Vue 3 + TypeScript + Element Plus + ECharts + Three.js | Vue 3.5 |
 | 后端 | Java 17 + Spring Cloud + MyBatis-Plus | Spring Cloud 2022.0.0 |
 | 设备接入 | .NET 8 + MQTT + Kafka | .NET 8 |
 | AI服务 | Python 3.11 + FastAPI + LightGBM + XGBoost | FastAPI 0.115 |
@@ -103,7 +103,7 @@ npm run dev
 | 工艺服务 | 8083 | 工艺模板 |
 | 质量服务 | 8084 | 质检追溯 |
 | 看板服务 | 8085 | OEE/WebSocket |
-| AI服务 | 8086 | 质量/产量预测 |
+| AI服务 | 8087 | 质量/产量预测 |
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
 | 设备模拟器 | 8883 | 模拟2000+设备数据上报 |
 | MySQL | 3306 | 数据库 |
@@ -259,7 +259,7 @@ npm run dev
 3. **前端账号**：admin / admin123
 4. **AI模型**：示例模型，需真实数据训练后替换
 5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、Nacos 使用 Docker 运行，Java 服务本地 `java -jar` 启动
-6. **AI服务端口冲突**：AI 服务使用 8086 端口，与 InfluxDB 冲突。启动 AI 服务前需执行 `docker stop mes-influxdb`
+6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突。
 7. **Docker镜像拉取**：如果 Docker 代理无法拉取镜像，需配置镜像加速器（daemon.json 中添加 registry-mirrors）
 
 ---
