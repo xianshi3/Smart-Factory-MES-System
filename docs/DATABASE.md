@@ -18,18 +18,109 @@
 | username | varchar(50) | 用户名 | NOT NULL, UNIQUE |
 | password | varchar(255) | 密码 | NOT NULL |
 | real_name | varchar(50) | 真实姓名 | |
+| nickname | varchar(50) | 昵称 | |
 | phone | varchar(20) | 手机号 | |
 | email | varchar(100) | 邮箱 | |
-| status | int | 状态: 1启用 0禁用 | DEFAULT 1 |
-| role | varchar(20) | 角色 | DEFAULT 'USER' |
+| avatar | varchar(255) | 头像URL | |
+| employee_no | varchar(50) | 员工编号 | UNIQUE |
+| department | varchar(50) | 部门 | |
+| position | varchar(50) | 岗位 | |
+| manager_id | bigint | 直接上级ID | |
+| hire_date | date | 入职日期 | |
+| status | int | 状态: 1在职 0离职 | DEFAULT 1 |
+| role | varchar(20) | 角色字符串 | DEFAULT 'USER' |
+| role_id | bigint | 角色ID(关联sys_role) | INDEX |
 | create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
 | update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
 | deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+| version | int | 乐观锁 | DEFAULT 0 |
+
+**索引**: `uk_username` (username, deleted), `uk_employee_no` (employee_no), `idx_role_id` (role_id)
+
+---
+
+### 2. 角色表 sys_role
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| role_name | varchar(50) | 角色名称 | NOT NULL |
+| role_code | varchar(50) | 角色编码 | NOT NULL, UNIQUE |
+| description | varchar(255) | 角色描述 | |
+| sort | int | 排序 | DEFAULT 0 |
+| status | int | 状态: 1启用 0禁用 | DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
 | version | int | 乐观锁 | DEFAULT 0 |
 
 ---
 
-### 2. 工单表 wo_work_order
+### 3. 权限表 sys_permission
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| permission_name | varchar(100) | 权限名称 | NOT NULL |
+| permission_code | varchar(100) | 权限编码 | NOT NULL, UNIQUE |
+| permission_type | varchar(20) | 类型: MENU/BUTTON/API | NOT NULL |
+| parent_id | bigint | 父权限ID | DEFAULT 0 |
+| path | varchar(255) | 路由路径 | |
+| icon | varchar(50) | 图标 | |
+| sort | int | 排序 | DEFAULT 0 |
+| status | int | 状态: 1启用 0禁用 | DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+| version | int | 乐观锁 | DEFAULT 0 |
+
+---
+
+### 4. 菜单表 sys_menu
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| menu_name | varchar(50) | 菜单名称 | NOT NULL |
+| menu_code | varchar(50) | 菜单编码 | NOT NULL, UNIQUE |
+| parent_id | bigint | 父菜单ID | DEFAULT 0 |
+| path | varchar(255) | 路由路径 | |
+| component | varchar(255) | 组件路径 | |
+| icon | varchar(50) | 图标 | |
+| sort | int | 排序 | DEFAULT 0 |
+| visible | int | 是否可见: 1是 0否 | DEFAULT 1 |
+| status | int | 状态: 1启用 0禁用 | DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+| version | int | 乐观锁 | DEFAULT 0 |
+
+---
+
+### 5. 角色-权限关联表 sys_role_permission
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| role_id | bigint | 角色ID | NOT NULL, INDEX |
+| permission_id | bigint | 权限ID | NOT NULL, INDEX |
+| sort | int | 排序 | DEFAULT 0 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+| version | int | 乐观锁 | DEFAULT 0 |
+
+---
+
+### 6. 工单表 wo_work_order
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -61,7 +152,7 @@
 
 ---
 
-### 3. 报工记录表 wo_work_report
+### 7. 报工记录表 wo_work_report
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -89,7 +180,7 @@
 
 ---
 
-### 4. 工艺模板表 proc_template
+### 8. 工艺模板表 proc_template
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -113,7 +204,7 @@
 
 ---
 
-### 5. 工艺参数表 proc_parameter
+### 9. 工艺参数表 proc_parameter
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -138,7 +229,7 @@
 
 ---
 
-### 6. 质检记录表 qms_quality_record
+### 10. 质检记录表 qms_quality_record
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -174,7 +265,7 @@
 
 ---
 
-### 7. 追溯记录表 qms_traceability
+### 11. 追溯记录表 qms_traceability
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -207,7 +298,7 @@
 
 ---
 
-### 8. AI 对话记录表 ai_chat_conversations
+### 12. AI 对话记录表 ai_chat_conversations
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -220,7 +311,7 @@
 
 **索引**: `idx_user_id` (user_id), `idx_update_time` (update_time)
 
-### 9. AI 消息记录表 ai_chat_messages
+### 13. AI 消息记录表 ai_chat_messages
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -235,7 +326,7 @@
 
 ---
 
-### 10. AI 分析历史表 ai_analysis_history
+### 14. AI 分析历史表 ai_analysis_history
 
 | 字段 | 类型 | 说明 | 约束 |
 |-----|------|------|------|
@@ -319,7 +410,14 @@
 
 | 表名 | 索引名 | 字段 |
 |-----|-------|------|
-| sys_user | uk_username | username |
+| sys_user | uk_username | username, deleted |
+| sys_user | uk_employee_no | employee_no |
+| sys_user | idx_role_id | role_id |
+| sys_role | uk_role_code | role_code |
+| sys_permission | uk_permission_code | permission_code |
+| sys_menu | uk_menu_code | menu_code |
+| sys_role_permission | idx_role_id | role_id |
+| sys_role_permission | idx_permission_id | permission_id |
 | wo_work_order | uk_order_no | order_no |
 | wo_work_order | idx_status | status |
 | wo_work_order | idx_create_time | create_time |
@@ -348,7 +446,7 @@
 
 | 表名 | 记录数 |
 |-----|-------|
-| sys_user | ≥1 |
+| sys_user | 5 |
 | wo_work_order | ≥10 |
 | wo_work_report | ≥5 |
 | proc_template | ≥3 |
@@ -428,6 +526,7 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V6 | 2026-07-28 | BOM/物料/库存表、测试数据 |
 | V7 | 2026-07-28 | AI对话历史（ai_chat_conversations + ai_chat_messages） |
 | V8 | 2026-08-02 | AI分析历史（ai_analysis_history） |
+| V9 | 2026-08-02 | Schema补齐: sys_user (nickname/avatar/employee_no/department/position/manager_id/hire_date/role_id), sys_permission(icon), sys_role_permission(sort), uk_username→(username,deleted), init.sql 完善 |
 
 ---
 

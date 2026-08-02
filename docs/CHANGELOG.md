@@ -10,6 +10,37 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.40 (2026-08-02)
+
+### 前端 UI 全系统统一优化
+
+#### 5 页面主题模式对齐（角色/菜单/权限/设置/个人中心）
+
+- **角色管理 (RoleView)**: 全量重写 — 3 统计卡(总/启用/禁用,点击筛选) + 骨架加载 + 卡片网格(admin/manager/user/qc/engineer 五色图标) + 权限树弹窗保存修复(半选父节点改用 `getCheckedKeys()+getHalfCheckedKeys()` 不再丢失)
+- **菜单管理 (MenuView)**: 全量重写 — tree 表格 + 菜单图标渲染 + cell-code + 父级选择编辑弹窗
+- **权限管理 (PermissionView)**: 全量重写 — tree 表格 + 类型标签(MENU/BUTTON/API 三色药丸) + 权限类型下拉编辑弹窗
+- **系统设置 (SettingsView)**: header 对齐主题 + 新增保存按钮(此前仅主题切换触发持久化,其他开关均不会保存) + `v-loading` 加载态
+- **个人中心 (ProfileView)**: header 对齐主题 + 死按钮修复(编辑→接入 `updateProfile` API + 编辑弹窗) + `User` 图标缺导入补全
+
+#### 之前批次（生产线/工位/物料/BOM）
+
+- **生产线/工位**: 统计卡 + filter-bar + 骨架 + 主题表格
+- **物料管理**: filter-bar + 骨架 + 空态文案
+- **BOM 管理**: filter-bar + 骨架 + 空态文案 + BOM 行项物料下拉选择 + scrap_rate 精度修正
+- **BOM 空白 Bug 修复**: `computed` 未导入导致 setup 运行时 `ReferenceError` 页面空白,根因 `vue-tsc` 全局类型声明漏检 — 已建无头 Chrome CDP 全路由运行时验证流程
+
+### 数据库 Schema 补齐
+
+- **`sys_user` 补齐 8 缺失列**: nickname, avatar, employee_no, department, position, manager_id, hire_date, role_id（此前只有 admin 单用户且缺列致 `/auth/info` 报 5004）
+- **`sys_permission` 补齐 `icon` 列**
+- **`sys_role_permission` 补齐 `sort` 列**
+- **`sys_user.uk_username` 修复**: 改为 `(username, deleted)` 复合唯一键,消除软删除后重新创建同名用户冲突
+- **补充种子用户**: zhangsan/lisi/wangwu/zhaoliu 4 人,统一密码 `admin123`
+- **`init.sql` 完善**: 所有表定义更新为完整规范 Schema（含 deleted_time/deleted_by/version/role_id/sort/icon/uk 修复）
+- **V9 迁移脚本**: 新增 `V9__schema_fix.sql`,使用存储过程实现幂等 ALTER（安全重复执行）
+
+---
+
 ## v1.0.39 (2026-08-02)
 
 ### Redis 企业级深度落地（认证安全 / 分布式序号 / AI 缓存 / 设备在线）
@@ -42,7 +73,7 @@ Smart Factory MES System - 智能工厂制造执行系统
 - **docker-compose**: Redis 内存 128M → 256M，新增 `--maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes`（内存满自动淘汰最久未用，防止 OOM 拒写）
 - **错误码**: 新增 `USER_LOCKED(5005)`
 
-> **注**: 冒烟测试发现既有问题——本地 `sys_user` 表缺少 `nickname/avatar/employee_no/department/position/manager_id/hire_date` 列（init.sql 已定义），导致 `GET /auth/info` 等接口 SQL 报错返回 5004，与本次改动无关，建议在开发库执行 `init.sql` 对应 DDL 或补迁移脚本。
+> **注**: 本版本冒烟测试发现的 sys_user 缺失列问题已在 v1.0.40 通过 V9 迁移修复,详见上方。
 
 ---
 
