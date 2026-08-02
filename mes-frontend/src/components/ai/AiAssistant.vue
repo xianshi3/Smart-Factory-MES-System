@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible !== false" class="ai-panel" :class="{ floating }">
-    <div class="panel-header">
+    <div v-if="floating" class="panel-header">
       <div class="header-brand">
         <div class="brand-icon-box">
           <el-icon :size="20"><MagicStick /></el-icon>
@@ -9,18 +9,25 @@
           <span class="brand-text">AI 生产助理</span>
           <span class="brand-tag">Agent</span>
         </div>
-        <span v-if="!floating" class="brand-model">基于大语言模型</span>
-        <span v-else-if="store.currentTitle" class="brand-title-badge">{{ store.currentTitle }}</span>
+        <span v-if="store.currentTitle" class="brand-title-badge">{{ store.currentTitle }}</span>
       </div>
       <div class="header-actions">
         <button class="header-btn" @click="handleNewChat" title="新建对话">
           <el-icon :size="14"><Plus /></el-icon>
         </button>
-        <button class="header-btn" @click="handleClear" title="清空对话">
+        <button class="header-btn" @click="handleClear" title="清空">
           <el-icon :size="15"><Delete /></el-icon>
         </button>
-        <button v-if="floating" class="header-btn close-btn" @click="emit('close')" title="关闭">
+        <button class="header-btn close-btn" @click="emit('close')" title="关闭">
           <el-icon :size="15"><Close /></el-icon>
+        </button>
+      </div>
+    </div>
+    <div v-else class="panel-topbar">
+      <span class="topbar-title">{{ store.currentTitle || '新对话' }}</span>
+      <div class="header-actions">
+        <button class="header-btn" @click="handleNewChat" title="新建对话">
+          <el-icon :size="14"><Plus /></el-icon>
         </button>
       </div>
     </div>
@@ -333,6 +340,17 @@ defineExpose({ focusInput })
 }
 .header-btn:hover { background: var(--bg-hover, #1a1a28); color: var(--text-primary, #f0f0f5); }
 .close-btn:hover { background: rgba(239,68,68,0.12); color: var(--danger, #ef4444); }
+
+/* ===== Topbar (page mode) ===== */
+.panel-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 24px; border-bottom: 1px solid var(--border-color, #252530);
+  flex-shrink: 0; background: var(--bg-card, #12121a);
+}
+.topbar-title {
+  font-size: 12px; color: var(--text-muted, #505060);
+  max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* ===== Offline Banner ===== */
 .offline-banner {
