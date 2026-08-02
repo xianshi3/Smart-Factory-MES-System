@@ -309,7 +309,8 @@ import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
  VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
-import { mdToHtml } from '@/utils/markdown'
+import { marked } from 'marked'
+marked.setOptions({ breaks: true, gfm: true })
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -478,7 +479,7 @@ function sanitizeHtml(html: string): string {
 }
 function aiAdviceHtml(result: any): string {
   const text = result?.content || result?.response || ''
-  return sanitizeHtml(mdToHtml(text))
+  return sanitizeHtml(marked.parse(text) as string)
 }
 const handleSPCAnalysis = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
