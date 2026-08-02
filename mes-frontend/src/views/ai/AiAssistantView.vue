@@ -184,23 +184,30 @@ onMounted(() => { loadStats(); store.loadList() })
   text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 6px;
 }
 .scap-item {
-  display: flex; align-items: center; gap: 10px; padding: 7px 8px;
+  display: flex; align-items: center; gap: 12px; padding: 8px 10px;
   border-radius: 7px; cursor: pointer; transition: all 0.15s ease; position: relative;
 }
 .scap-item:hover { background: var(--bg-hover, #1a1a28); }
-.scap-item.active { background: var(--accent-light, rgba(99,102,241,0.12)); }
+.scap-item.active {
+  background: var(--accent-light, rgba(99,102,241,0.08));
+  border-left: 2px solid var(--accent, #6366f1);
+  border-radius: 0 7px 7px 0;
+  margin-left: -2px; padding-left: 12px;
+}
 .scap-item.active .scap-title { color: var(--accent, #6366f1); font-weight: 600; }
-.scap-item.loading { pointer-events: none; }
+.scap-item.loading { pointer-events: none; opacity: 0.6; }
 .scap-dot {
   width: 28px; height: 28px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: var(--accent-light, rgba(99,102,241,0.1));
+  color: var(--accent, #6366f1);
 }
-.scap-dot.accent  { background: var(--accent, #6366f1); }
-.scap-dot.success { background: var(--success, #10b981); }
-.scap-dot.warning { background: var(--warning, #f59e0b); }
-.scap-dot.danger  { background: var(--danger, #ef4444); }
-.scap-dot.info    { background: var(--accent-secondary, #22d3ee); }
-.scap-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.scap-dot.accent  { background: var(--accent-light, rgba(99,102,241,0.1)); color: var(--accent, #6366f1); }
+.scap-dot.success { background: var(--success-light, rgba(16,185,129,0.1)); color: var(--success, #10b981); }
+.scap-dot.warning { background: var(--warning-light, rgba(245,158,11,0.1)); color: var(--warning, #f59e0b); }
+.scap-dot.danger  { background: var(--danger-light, rgba(239,68,68,0.1)); color: var(--danger, #ef4444); }
+.scap-dot.info    { background: var(--info-light, rgba(6,182,212,0.1)); color: var(--accent-secondary, #22d3ee); }
+.scap-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .scap-title { font-size: 12px; font-weight: 500; color: var(--text-primary, #f0f0f5); }
 .scap-hint { font-size: 10px; color: var(--text-muted, #505060); }
 .scap-go { color: var(--text-muted, #505060); opacity: 0; transform: translateX(-4px); transition: all 0.2s; }
