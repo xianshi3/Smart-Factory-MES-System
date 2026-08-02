@@ -25,9 +25,12 @@
     </div>
     <div v-else class="panel-topbar">
       <span class="topbar-title">{{ store.currentTitle || '新对话' }}</span>
+      <span class="topbar-count" v-if="store.messageCount">{{ store.messageCount }} 条消息</span>
       <div class="header-actions">
-        <button class="header-btn" @click="handleNewChat" title="新建对话">
+        <button class="header-btn" @click="handleClear" title="清空"><el-icon :size="14"><Delete /></el-icon></button>
+        <button class="header-btn new-chat-btn" @click="handleNewChat" title="新建对话">
           <el-icon :size="14"><Plus /></el-icon>
+          <span>新对话</span>
         </button>
       </div>
     </div>
@@ -343,14 +346,24 @@ defineExpose({ focusInput })
 
 /* ===== Topbar (page mode) ===== */
 .panel-topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 24px; border-bottom: 1px solid var(--border-color, #252530);
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 24px; border-bottom: 1px solid var(--border-color, #252530);
   flex-shrink: 0; background: var(--bg-card, #12121a);
 }
 .topbar-title {
-  font-size: 12px; color: var(--text-muted, #505060);
-  max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 600; color: var(--text-primary, #f0f0f5);
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.topbar-count {
+  font-size: 11px; color: var(--text-muted, #505060);
+}
+.new-chat-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  width: auto; padding: 0 12px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border-color, #252530); font-size: 11px;
+  color: var(--text-secondary, #a0a0b0); font-family: inherit;
+}
+.new-chat-btn:hover { border-color: var(--accent, #6366f1); color: var(--accent, #6366f1); }
 
 /* ===== Offline Banner ===== */
 .offline-banner {
@@ -399,9 +412,10 @@ defineExpose({ focusInput })
 .ai-panel:not(.floating) .panel-body { padding: 24px 32px; gap: 24px; }
 
 /* ===== Messages ===== */
-.msg { display: flex; gap: 12px; max-width: 88%; animation: fadeSlideUp 0.3s ease; }
+.msg { display: flex; gap: 12px; max-width: 88%; animation: msgIn 0.35s ease; }
 .ai-panel:not(.floating) .msg { max-width: 75%; }
 .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(12px); } }
 .msg-avatar {
   width: 32px; height: 32px; border-radius: 50%; display: flex;
   align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
@@ -461,6 +475,18 @@ defineExpose({ focusInput })
 .msg-text :deep(ul), .msg-text :deep(ol) { padding-left: 18px; margin: 6px 0; }
 .msg-text :deep(li) { margin: 3px 0; }
 .msg-text :deep(li::marker) { color: var(--accent, #6366f1); }
+.msg-text :deep(blockquote) {
+  border-left: 3px solid var(--accent, #6366f1); margin: 8px 0; padding: 4px 12px;
+  color: var(--text-secondary, #a0a0b0); font-style: italic;
+}
+.msg-text :deep(pre) {
+  background: var(--bg-app, #0a0a0f); padding: 10px 14px; border-radius: 6px;
+  overflow-x: auto; margin: 8px 0; font-size: 12px; line-height: 1.5;
+  border: 1px solid var(--border-light, #1f1f28);
+}
+.msg-text :deep(pre code) {
+  background: transparent; padding: 0; color: var(--text-secondary, #a0a0b0);
+}
 .msg-text :deep(hr) { border: none; border-top: 1px solid var(--border-color, #252530); margin: 12px 0; }
 .msg-text :deep(h1), .msg-text :deep(h2), .msg-text :deep(h3) { font-size: 15px; color: var(--text-primary, #f0f0f5); margin: 12px 0 6px; font-weight: 600; }
 
@@ -515,10 +541,24 @@ defineExpose({ focusInput })
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* Thinking */
-.thinking { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; background: var(--bg-hover, #1a1a28); border: 1px solid var(--border-light, #1f1f28); border-radius: var(--radius-md, 10px); min-width: 180px; }
+.thinking {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 18px; background: var(--bg-hover, #1a1a28);
+  border: 1px solid var(--border-light, #1f1f28);
+  border-radius: var(--radius-md, 10px); min-width: 160px;
+  animation: msgIn 0.3s ease;
+}
 .thinking-bar { width: 100%; height: 3px; background: var(--border-color, #252530); border-radius: 2px; overflow: hidden; }
-.thinking-bar-inner { display: block; width: 40%; height: 100%; background: var(--gradient-primary, linear-gradient(90deg, #6366f1, #8b5cf6)); border-radius: 2px; animation: progressBar 1.6s ease-in-out infinite; }
-@keyframes progressBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+.thinking-bar-inner {
+  display: block; width: 30%; height: 100%;
+  background: var(--gradient-primary, linear-gradient(90deg, #6366f1, #8b5cf6));
+  border-radius: 2px; animation: progressBar 1.8s ease-in-out infinite;
+}
+@keyframes progressBar {
+  0% { transform: translateX(-100%); width: 30%; }
+  50% { width: 60%; }
+  100% { transform: translateX(400%); width: 30%; }
+}
 .thinking-text { font-size: 12px; color: var(--text-muted, #505060); }
 .send-spinner { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
 .spinner-ring { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: block; }
@@ -526,5 +566,4 @@ defineExpose({ focusInput })
 .step-expand-enter-active, .step-expand-leave-active { transition: all 0.2s ease; overflow: hidden; }
 .step-expand-enter-from, .step-expand-leave-to { opacity: 0; max-height: 0; }
 .step-expand-enter-to, .step-expand-leave-from { opacity: 1; max-height: 400px; }
-@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
