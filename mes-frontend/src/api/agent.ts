@@ -117,17 +117,22 @@ export interface AnalysisRecord {
   created_at: string
 }
 
-export async function saveAnalysis(userId: string, deviceCode: string, deviceName: string, analysisType: string, resultData: any) {
-  await aiRequest.post('/api/v1/agent/analysis', {
+export async function saveAnalysis(userId: string, deviceCode: string, deviceName: string, analysisType: string, resultData: any): Promise<number> {
+  const res = await aiRequest.post('/api/v1/agent/analysis', {
     user_id: userId,
     device_code: deviceCode,
     device_name: deviceName,
     analysis_type: analysisType,
     result_data: resultData,
   })
+  return res.data?.id || 0
 }
 
-export async function listAnalyses(userId: string, type?: string): Promise<AnalysisRecord[]> {
-  const res = await aiRequest.get('/api/v1/agent/analysis', { params: { user_id: userId, type } })
+export async function listAnalyses(userId: string, type?: string, deviceCode?: string): Promise<AnalysisRecord[]> {
+  const res = await aiRequest.get('/api/v1/agent/analysis', { params: { user_id: userId, type, device_code: deviceCode } })
   return res.data.analyses || []
+}
+
+export async function deleteAnalysis(id: number, userId: string) {
+  await aiRequest.delete(`/api/v1/agent/analysis/${id}`, { params: { user_id: userId } })
 }

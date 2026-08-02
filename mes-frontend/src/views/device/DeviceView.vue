@@ -169,6 +169,7 @@
             <span class="ai-hi-tag" :class="h.type">{{ { spc:'SPC', energy:'能耗', capacity:'产能', llm:'AI建议' }[h.type] }}</span>
             <span class="ai-hi-name">{{ h.deviceName }}</span>
             <span class="ai-hi-time">{{ fmtTime(h.ts) }}</span>
+            <button class="ai-hi-del" title="删除记录" @click="removeHistory(h, $event)"><el-icon :size="13"><Close /></el-icon></button>
           </div>
         </div>
         <div class="ai-device-card">
@@ -395,6 +396,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
+import { listAnalyses, saveAnalysis, deleteAnalysis } from '@/api/agent'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
@@ -539,13 +541,13 @@ const handle3DAction = (payload: { type: string; device: any }) => {
   else { openAiDialog(payload.type) }
 }
 const refresh = () => { fetchDeviceData() }
-async function loadAnalysisHistory() {
+async function loadAnalysisHistory(deviceCode?: string) {
   try {
     const userStore = useUserStore()
     const uid = userStore.userInfo?.username || 'default'
-    const records = await listAnalyses(uid)
+    const records = await listAnalyses(uid, undefined, deviceCode)
     aiHistory.value = records.map(r => ({
-      type: r.analysis_type, deviceName: r.device_name, deviceCode: r.device_code,
+      id: r.id, type: r.analysis_type, deviceName: r.device_name, deviceCode: r.device_code,
       ts: new Date(r.created_at).getTime(), data: r.result_data,
     }))
   } catch {
@@ -557,6 +559,25 @@ async function loadAnalysisHistory() {
       aiHistory.value = JSON.parse(localStorage.getItem(key) || '[]')
     } catch { /* 都没有就空 */ }
   }
+}
+const removeHistory = async (h: any, e: Event) => {
+  e.stopPropagation()
+  const userStore = useUserStore()
+  const uid = userStore.userInfo?.username || 'default'
+  // 1. 内存移除
+  const idx = aiHistory.value.indexOf(h)
+  if (idx > -1) aiHistory.value.splice(idx, 1)
+  // 2. MySQL 删除（localStorage 降级记录没有 id，跳过）
+  if (h.id) {
+    try { await deleteAnalysis(h.id, uid) } catch { /* AI服务离线，仅本地移除 */ }
+  }
+  // 3. localStorage 同步删除
+  try {
+    const key = `ai_history_${uid}`
+    const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
+    const kept = local.filter(x => x.id !== h.id && (x.ts !== h.ts || x.deviceCode !== h.deviceCode))
+    localStorage.setItem(key, JSON.stringify(kept))
+  } catch { /* ignore */ }
 }
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
 const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
@@ -586,28 +607,35 @@ const showAIResult = (type: string, data: any) => {
   aiAnalysisResult.value = result
   aiAnalysisLoading.value = false
   const d = detailData.value || {}
-  aiHistory.value.unshift({
+  const entry: any = {
     type, deviceName: d.name || d.code || '', deviceCode: d.code || '',
     ts: Date.now(), data: result,
-  })
+  }
+  aiHistory.value.unshift(entry)
   if (aiHistory.value.length > 20) aiHistory.value.length = 20
   // 持久化到 MySQL + localStorage 降级
   const userStore = useUserStore()
   const uid = userStore.userInfo?.username || 'default'
-  saveAnalysis(uid, d.code || '', d.name || '', type, result).catch((e) => {
+  saveAnalysis(uid, d.code || '', d.name || '', type, result).then((id) => {
+    entry.id = id
+  }).catch((e) => {
     console.warn('分析保存MySQL失败，降级到localStorage:', e)
   })
   // localStorage 降级 — 确保离线也能存
   try {
     const key = `ai_history_${uid}`
     const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
-    local.unshift({ type, deviceName: d.name || d.code || '', deviceCode: d.code || '', ts: Date.now(), data: result })
+    local.unshift({ ...entry })
     localStorage.setItem(key, JSON.stringify(local.slice(0, 50)))
   } catch {}
 }
 const filteredHistory = computed(() => {
-  if (!quickType.value) return aiHistory.value
-  return aiHistory.value.filter(h => h.type === quickType.value)
+  const curCode = detailData.value?.code
+  let list = aiHistory.value
+  // 每台设备只显示该设备的历史记录
+  if (curCode) list = list.filter(h => h.deviceCode === curCode)
+  if (quickType.value) list = list.filter(h => h.type === quickType.value)
+  return list
 })
 const spcChart = computed(() => {
   const r = aiAnalysisResult.value
@@ -650,6 +678,8 @@ function aiAdviceHtml(result: any): string {
 const openAiDialog = (type?: string) => {
   aiAnalysisVisible.value = true; aiAnalysisResult.value = null
   aiAnalysisLoading.value = false; quickType.value = type || null
+  // 打开时按当前设备重新加载历史
+  loadAnalysisHistory(detailData.value?.code)
 }
 const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentAnalysisType.value = 'spc'
   try {
@@ -947,6 +977,13 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .ai-hi-tag.llm { background: var(--accent-secondary, #22d3ee); }
 .ai-hi-name { font-size: 13px; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-hi-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.ai-hi-del {
+  flex-shrink: 0; width: 22px; height: 22px; border: none; border-radius: 5px;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.15s;
+}
+.ai-hi-row:hover .ai-hi-del { opacity: 1; }
+.ai-hi-del:hover { background: #fef2f2; color: var(--danger, #ef4444); }
 
 /* device card */
 .ai-device-card {

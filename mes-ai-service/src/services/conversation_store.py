@@ -225,14 +225,17 @@ class ConversationStore:
         await _run_sync(_delete_conversation_sync, conv_id)
 
     # ======== 分析历史 ========
-    async def save_analysis(self, user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict):
-        await _run_sync(_save_analysis_sync, user_id, device_code, device_name, analysis_type, result_data)
+    async def save_analysis(self, user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict) -> int:
+        return await _run_sync(_save_analysis_sync, user_id, device_code, device_name, analysis_type, result_data)
 
-    async def list_analyses(self, user_id: str = "default", analysis_type: Optional[str] = None) -> list[dict]:
-        return await _run_sync(_list_analyses_sync, user_id, analysis_type)
+    async def list_analyses(self, user_id: str = "default", analysis_type: Optional[str] = None, device_code: Optional[str] = None) -> list[dict]:
+        return await _run_sync(_list_analyses_sync, user_id, analysis_type, device_code)
+
+    async def delete_analysis(self, analysis_id: int, user_id: str = "default") -> bool:
+        return await _run_sync(_delete_analysis_sync, analysis_id, user_id)
 
 
-def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict):
+def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict) -> int:
     conn = _get_conn()
     cur: Any = conn.cursor()
     result_json = json.dumps(result_data, ensure_ascii=False, default=str)
@@ -240,22 +243,25 @@ def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analys
         "INSERT INTO ai_analysis_history (user_id, device_code, device_name, analysis_type, result_data) VALUES (%s, %s, %s, %s, %s)",
         (user_id, device_code, device_name, analysis_type, result_json),
     )
+    last_id = int(cur.lastrowid)
     conn.close()
+    return last_id
 
 
-def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None) -> list[dict]:
+def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None, device_code: Optional[str] = None) -> list[dict]:
     conn = _get_conn()
     cur: Any = conn.cursor()
+    sql = ("SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time "
+           "FROM ai_analysis_history WHERE user_id = %s")
+    params: list = [user_id]
     if analysis_type:
-        cur.execute(
-            "SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time FROM ai_analysis_history WHERE user_id = %s AND analysis_type = %s ORDER BY create_time DESC LIMIT 50",
-            (user_id, analysis_type),
-        )
-    else:
-        cur.execute(
-            "SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time FROM ai_analysis_history WHERE user_id = %s ORDER BY create_time DESC LIMIT 50",
-            (user_id,),
-        )
+        sql += " AND analysis_type = %s"
+        params.append(analysis_type)
+    if device_code:
+        sql += " AND device_code = %s"
+        params.append(device_code)
+    sql += " ORDER BY create_time DESC LIMIT 50"
+    cur.execute(sql, tuple(params))
     rows = cur.fetchall()  # type: ignore[assignment]
     conn.close()
     return [
@@ -268,6 +274,18 @@ def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None) -> li
         }
         for r in rows
     ]
+
+
+def _delete_analysis_sync(analysis_id: int, user_id: str = "default") -> bool:
+    conn = _get_conn()
+    cur: Any = conn.cursor()
+    cur.execute(
+        "DELETE FROM ai_analysis_history WHERE id = %s AND user_id = %s",
+        (analysis_id, user_id),
+    )
+    deleted = cur.rowcount > 0
+    conn.close()
+    return deleted
 
 
 conversation_store = ConversationStore()

@@ -226,17 +226,25 @@ class AnalysisListResponse(BaseModel):
     analyses: list[AnalysisItem]
 
 
-@router.post("/analysis", response_model=DeleteResponse)
+@router.post("/analysis")
 async def save_analysis(req: SaveAnalysisRequest):
-    await conversation_store.save_analysis(
+    analysis_id = await conversation_store.save_analysis(
         user_id=req.user_id, device_code=req.device_code,
         device_name=req.device_name, analysis_type=req.analysis_type,
         result_data=req.result_data,
     )
-    return DeleteResponse()
+    return {"success": True, "id": analysis_id}
 
 
 @router.get("/analysis", response_model=AnalysisListResponse)
-async def list_analyses(user_id: str = "default", type: Opt[str] = None):
-    rows = await conversation_store.list_analyses(user_id=user_id, analysis_type=type)
+async def list_analyses(user_id: str = "default", type: Opt[str] = None, device_code: Opt[str] = None):
+    rows = await conversation_store.list_analyses(user_id=user_id, analysis_type=type, device_code=device_code)
     return AnalysisListResponse(analyses=[AnalysisItem(**r) for r in rows])
+
+
+@router.delete("/analysis/{analysis_id}", response_model=DeleteResponse)
+async def delete_analysis(analysis_id: int, user_id: str = "default"):
+    deleted = await conversation_store.delete_analysis(analysis_id=analysis_id, user_id=user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="分析记录不存在")
+    return DeleteResponse()
