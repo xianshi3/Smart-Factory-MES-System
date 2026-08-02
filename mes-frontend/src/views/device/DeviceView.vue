@@ -298,7 +298,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, reactive, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
@@ -320,7 +321,7 @@ const page = ref(1)
 const pageSize = ref(50)
 const detailVisible = ref(false)
 const detailData = ref<any>({})
-const viewMode = ref<'list' | '3d'>('3d')
+const route = useRoute()
 const predictVisible = ref(false)
 const predictData = ref<any>({})
 const aiAnalysisVisible = ref(false)
@@ -545,6 +546,14 @@ const handleLLMChat = async () => {
 
 onMounted(() => {
   fetchDeviceData()
+  if (route.query.device) {
+    viewMode.value = '3d'
+    const stopWatch = watch(deviceList, (list) => {
+      if (!list.length) return
+      const target = list.find((d: any) => d.code === route.query.device || d.name === route.query.device)
+      if (target) { handleDeviceSelect(target); nextTick(() => stopWatch()) }
+    })
+  }
   refreshInterval = window.setInterval(fetchDeviceData, 5000)
   wsService.connect()
   wsUnsubscribe.value = wsService.subscribe((data: any) => {
