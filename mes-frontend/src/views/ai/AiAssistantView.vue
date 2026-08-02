@@ -1,13 +1,16 @@
 <template>
   <div class="ai-page">
-    <div class="ai-side">
+    <div class="ai-side" :class="{ collapsed }">
       <div class="side-brand">
         <div class="brand-glow"></div>
-        <div class="brand-icon-box">
+        <div class="brand-icon-box" @click="collapsed = !collapsed" title="折叠侧栏">
           <el-icon :size="18"><MagicStick /></el-icon>
         </div>
         <span class="brand-name">AI 助理</span>
         <span class="brand-dot online"></span>
+        <button class="collapse-btn" @click="collapsed = !collapsed" :title="collapsed ? '展开' : '折叠'">
+          <el-icon :size="12"><DArrowLeft v-if="!collapsed" /><DArrowRight v-else /></el-icon>
+        </button>
       </div>
 
       <div class="side-stats">
@@ -73,12 +76,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import type { Component } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
-import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight } from '@element-plus/icons-vue'
+import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { useAiChatStore } from '@/stores/aiChat'
 import axios from 'axios'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
 const store = useAiChatStore()
+const collapsed = ref(false)
 
 interface Capability {
   icon: Component; label: string; tag: string; prompt: string; grad: string; _loading: boolean; _active: boolean
@@ -231,6 +235,29 @@ onMounted(() => { loadStats(); store.loadList() })
 .conv-name { font-size: 12px; color: var(--text-primary, #f0f0f5); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conv-time { font-size: 10px; color: var(--text-muted, #505060); flex-shrink: 0; }
 .conv-note { font-size: 11px; color: var(--text-muted, #505060); padding: 12px 8px; text-align: center; }
+
+/* ===== Collapse ===== */
+.collapse-btn {
+  width: 22px; height: 22px; border-radius: 5px; border: none;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  background: transparent; color: var(--text-muted, #505060);
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.collapse-btn:hover { background: var(--bg-hover, #1a1a28); color: var(--text-primary, #f0f0f5); }
+
+.ai-side.collapsed { width: 56px; }
+.ai-side.collapsed .brand-name,
+.ai-side.collapsed .brand-dot,
+.ai-side.collapsed .side-label,
+.ai-side.collapsed .scap-info,
+.ai-side.collapsed .scap-go,
+.ai-side.collapsed .st-lbl,
+.ai-side.collapsed .side-convs { display: none; }
+.ai-side.collapsed .side-brand { justify-content: center; padding: 14px 8px; }
+.ai-side.collapsed .side-stats { flex-direction: column; padding: 8px 4px; gap: 6px; }
+.ai-side.collapsed .st-item { padding: 4px; }
+.ai-side.collapsed .scap-item { justify-content: center; padding: 8px; }
+.ai-side.collapsed .side-capabilities { padding: 4px; }
 
 /* ===== Main ===== */
 .ai-main { flex: 1; min-width: 0; }
