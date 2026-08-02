@@ -107,6 +107,9 @@
               <el-button v-if="d.status==='running'" size="small" type="danger" link @click="handleStop(d)"><el-icon><VideoPause /></el-icon>停止</el-button>
               <el-button v-if="d.status==='idle'" size="small" type="success" link @click="handleStart(d)"><el-icon><VideoPlay /></el-icon>启动</el-button>
               <el-button size="small" type="primary" link @click="handleCardPredict(d)"><el-icon><Cpu /></el-icon>预测</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'spc')"><el-icon><Histogram /></el-icon>SPC</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'energy')"><el-icon><Lightning /></el-icon>能耗</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'llm')"><el-icon><ChatLineRound /></el-icon>AI建议</el-button>
               <el-button size="small" type="primary" link @click="handleDetail(d)">详情</el-button>
             </div>
           </div>
@@ -135,7 +138,9 @@
         </div>
         <div class="dt-dlg-ai-btns">
           <el-button type="warning" @click="handlePredict(detailData)"><el-icon><Cpu /></el-icon> 故障预测</el-button>
-          <el-button @click="openAiDialog"><el-icon><Histogram /></el-icon> AI分析</el-button>
+          <el-button @click="handleCardAI(detailData, 'spc')"><el-icon><Histogram /></el-icon> SPC分析</el-button>
+          <el-button @click="handleCardAI(detailData, 'energy')"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
+          <el-button type="primary" @click="handleCardAI(detailData, 'llm')"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
         </div>
       </div>
     </el-dialog>
@@ -583,6 +588,7 @@ const handleStart = async (d: any) => { try { await startDevice(d.id || d.code);
 const handleStop = async (d: any) => { try { await stopDevice(d.id || d.code); ElMessage.success('停止成功'); fetchDeviceData() } catch { ElMessage.error('停止失败') } }
 
 const handleCardPredict = (d: any) => { detailData.value = d; handlePredict(d) }
+const handleCardAI = (d: any, type: string) => { detailData.value = d; openAiDialog(type) }
 const handlePredict = async (d: any) => {
   try {
     const payload = { device_code: d.code || d.id, history_data: [{ temperature: Number(d.temperature) || 80, speed: Number(d.speed) || 50 }], hours_ahead: 24 }
@@ -677,6 +683,8 @@ function aiAdviceHtml(result: any): string {
 const openAiDialog = (type?: string) => {
   aiAnalysisVisible.value = true; aiAnalysisResult.value = null
   aiAnalysisLoading.value = false; quickType.value = type || null
+  // 标题跟随入口类型（修复3D点击后标题始终为"AI建议"）
+  currentAnalysisType.value = type || currentAnalysisType.value
   // 打开时按当前设备重新加载历史
   loadAnalysisHistory(detailData.value?.code)
 }
