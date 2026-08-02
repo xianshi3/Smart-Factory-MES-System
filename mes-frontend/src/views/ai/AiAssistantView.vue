@@ -254,10 +254,12 @@ onMounted(() => { loadStats(); store.loadList() })
 .ai-side.collapsed .st-lbl,
 .ai-side.collapsed .side-convs { display: none; }
 .ai-side.collapsed .side-brand { justify-content: center; padding: 14px 8px; }
+.ai-side.collapsed .collapse-btn { display: none; }
 .ai-side.collapsed .side-stats { flex-direction: column; padding: 8px 4px; gap: 6px; }
 .ai-side.collapsed .st-item { padding: 4px; }
 .ai-side.collapsed .scap-item { justify-content: center; padding: 8px; }
 .ai-side.collapsed .side-capabilities { padding: 4px; }
+.ai-side.collapsed .scap-item.active { border-left: none; border-radius: 7px; margin-left: 0; padding-left: 8px; }
 
 /* ===== Main ===== */
 .ai-main { flex: 1; min-width: 0; }

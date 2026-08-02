@@ -283,7 +283,7 @@ const handleCommand = (cmd: string) => {
   display: flex; 
   align-items: center; 
   justify-content: space-between;
-  padding: 0 14px; 
+  padding: 0 12px; 
   flex-shrink: 0; 
   border-bottom: 1px solid var(--border-color); 
 }
@@ -302,6 +302,19 @@ const handleCommand = (cmd: string) => {
   color: var(--text-muted); cursor: pointer; transition: all .15s; flex-shrink: 0;
 }
 .collapse-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+/* collapsed sidebar */
+.sidebar.collapsed .sidebar-header {
+  justify-content: center; padding: 0 8px;
+}
+.sidebar.collapsed .collapse-btn {
+  position: absolute; top: 8px; right: -12px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-color);
+  z-index: 11;
+}
+.sidebar.collapsed .brand-logo { justify-content: center; }
 
 .menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 0; }
 .sidebar-menu { background: transparent; border: none; }
