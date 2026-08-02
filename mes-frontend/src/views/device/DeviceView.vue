@@ -158,10 +158,10 @@
 
       <!-- History list (shown when no active result) -->
       <div v-else-if="!aiAnalysisResult && !aiAnalysisLoading" class="ai-prompt-area">
-        <div v-if="aiHistory.length" class="ai-history-panel">
-          <div class="ai-subtitle">分析记录</div>
+        <div v-if="filteredHistory.length" class="ai-history-panel">
+          <div class="ai-subtitle">{{ quickType ? ({ llm:'AI建议', spc:'SPC分析', energy:'能耗优化', capacity:'产能预测' }[quickType]) + '记录' : '分析记录' }}</div>
           <div
-            v-for="(h, i) in aiHistory.slice(0, 8)"
+            v-for="(h, i) in filteredHistory.slice(0, 8)"
             :key="i"
             class="ai-hi-row"
             @click="aiAnalysisResult = h.data; currentAnalysisType = h.type"
@@ -185,11 +185,14 @@
             <span>⚡ {{ detailData?.power ?? '--' }} kW</span>
             <span>📊 {{ detailData?.utilization || '0%' }}</span>
           </div>
-          <div class="ai-dc-actions">
+          <div class="ai-dc-actions" v-if="!quickType">
             <el-button size="small" @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC分析</el-button>
             <el-button size="small" @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
             <el-button size="small" @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
             <el-button size="small" type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
+          </div>
+          <div class="ai-dc-actions" v-else>
+            <el-button size="small" type="primary" @click="handleQuickAnalysis">{{ quickBtn.cta }}</el-button>
           </div>
         </div>
       </div>
@@ -296,6 +299,7 @@ const aiAnalysisVisible = ref(false)
 const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
+const quickType = ref<string | null>(null) // null=多选, 'llm'/'spc'/'energy'/'capacity'=单选
 const selectedDevice = ref<any>(null)
 const aiHistory = ref<any[]>([])
 const hudPanels = reactive({ alarms: true, charts: true })
@@ -407,7 +411,7 @@ const handleDeviceSelect = (d: any) => { selectedDevice.value = d; detailData.va
 const handle3DAction = (payload: { type: string; device: any }) => {
   detailData.value = payload.device
   if (payload.type === 'predict') { handlePredict(payload.device) }
-  else { openAiDialog() }
+  else { openAiDialog(payload.type) }
 }
 const refresh = () => { fetchDeviceData() }
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
@@ -444,6 +448,21 @@ const showAIResult = (type: string, data: any) => {
   })
   if (aiHistory.value.length > 20) aiHistory.value.length = 20
 }
+const filteredHistory = computed(() => {
+  if (!quickType.value) return aiHistory.value
+  return aiHistory.value.filter(h => h.type === quickType.value)
+})
+const quickBtn = computed(() => {
+  const map: Record<string, { cta: string }> = { llm: { cta: '开始 AI 建议分析' }, spc: { cta: '开始 SPC 分析' }, energy: { cta: '开始能耗优化分析' }, capacity: { cta: '开始产能预测分析' } }
+  return map[quickType.value || 'llm'] || { cta: '开始分析' }
+})
+function handleQuickAnalysis() {
+  const t = quickType.value || 'llm'
+  if (t === 'spc') handleSPCAnalysis()
+  else if (t === 'energy') handleEnergyOptimization()
+  else if (t === 'capacity') handleCapacityPrediction()
+  else handleLLMChat()
+}
 function fmtTime(ts: number): string {
   const diff = Date.now() - ts
   if (diff < 60000) return '刚刚'
@@ -457,7 +476,10 @@ function aiAdviceHtml(result: any): string {
     .replace(/\son\w+="[^"]*"/gi, '')
     .replace(/\son\w+='[^']*'/gi, '')
 }
-const openAiDialog = () => { aiAnalysisVisible.value = true; aiAnalysisResult.value = null; aiAnalysisLoading.value = false }
+const openAiDialog = (type?: string) => {
+  aiAnalysisVisible.value = true; aiAnalysisResult.value = null
+  aiAnalysisLoading.value = false; quickType.value = type || null
+}
 const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentAnalysisType.value = 'spc'
   try {
     const d = detailData.value || {}
