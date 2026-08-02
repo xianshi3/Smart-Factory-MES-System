@@ -280,6 +280,8 @@ import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 import { marked } from 'marked'
 marked.setOptions({ breaks: true, gfm: true })
+import { listAnalyses, saveAnalysis } from '@/api/agent'
+import { useUserStore } from '@/stores/user'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -414,6 +416,17 @@ const handle3DAction = (payload: { type: string; device: any }) => {
   else { openAiDialog(payload.type) }
 }
 const refresh = () => { fetchDeviceData() }
+async function loadAnalysisHistory() {
+  try {
+    const userStore = useUserStore()
+    const uid = userStore.userInfo?.username || 'default'
+    const records = await listAnalyses(uid)
+    aiHistory.value = records.map(r => ({
+      type: r.analysis_type, deviceName: r.device_name, deviceCode: r.device_code,
+      ts: new Date(r.created_at).getTime(), data: r.result_data,
+    }))
+  } catch { /* 后端未启动，使用内存历史 */ }
+}
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
 const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
 const handleStop = async (d: any) => { try { await stopDevice(d.id || d.code); ElMessage.success('停止成功'); fetchDeviceData() } catch { ElMessage.error('停止失败') } }
@@ -447,6 +460,10 @@ const showAIResult = (type: string, data: any) => {
     ts: Date.now(), data: result,
   })
   if (aiHistory.value.length > 20) aiHistory.value.length = 20
+  // 持久化到 MySQL
+  const userStore = useUserStore()
+  const uid = userStore.userInfo?.username || 'default'
+  saveAnalysis(uid, d.code || '', d.name || '', type, result).catch(() => {})
 }
 const filteredHistory = computed(() => {
   if (!quickType.value) return aiHistory.value
@@ -546,6 +563,7 @@ const handleLLMChat = async () => {
 
 onMounted(() => {
   fetchDeviceData()
+  loadAnalysisHistory()
   if (route.query.device) {
     viewMode.value = '3d'
     const stopWatch = watch(deviceList, (list) => {

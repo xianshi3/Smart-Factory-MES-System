@@ -105,3 +105,29 @@ export async function addConversationMessage(
 export async function deleteConversation(id: string) {
   await aiRequest.delete(`/api/v1/agent/conversations/${id}`)
 }
+
+// ========== 分析历史 ==========
+
+export interface AnalysisRecord {
+  id: number
+  device_code: string
+  device_name: string
+  analysis_type: string
+  result_data: any
+  created_at: string
+}
+
+export async function saveAnalysis(userId: string, deviceCode: string, deviceName: string, analysisType: string, resultData: any) {
+  await aiRequest.post('/api/v1/agent/analysis', {
+    user_id: userId,
+    device_code: deviceCode,
+    device_name: deviceName,
+    analysis_type: analysisType,
+    result_data: resultData,
+  })
+}
+
+export async function listAnalyses(userId: string, type?: string): Promise<AnalysisRecord[]> {
+  const res = await aiRequest.get('/api/v1/agent/analysis', { params: { user_id: userId, type } })
+  return res.data.analyses || []
+}

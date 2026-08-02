@@ -63,6 +63,20 @@ def init_db():
             KEY `idx_conversation_id` (`conversation_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    conn.cursor().execute("""
+        CREATE TABLE IF NOT EXISTS `ai_analysis_history` (
+            `id` bigint NOT NULL AUTO_INCREMENT,
+            `user_id` varchar(50) NOT NULL DEFAULT 'default',
+            `device_code` varchar(50) DEFAULT NULL,
+            `device_name` varchar(100) DEFAULT NULL,
+            `analysis_type` varchar(20) NOT NULL,
+            `result_data` json DEFAULT NULL,
+            `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_user_id` (`user_id`),
+            KEY `idx_type` (`analysis_type`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
     conn.close()
 
 
@@ -209,6 +223,51 @@ class ConversationStore:
 
     async def delete_conversation(self, conv_id: str):
         await _run_sync(_delete_conversation_sync, conv_id)
+
+    # ======== 分析历史 ========
+    async def save_analysis(self, user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict):
+        await _run_sync(_save_analysis_sync, user_id, device_code, device_name, analysis_type, result_data)
+
+    async def list_analyses(self, user_id: str = "default", analysis_type: Optional[str] = None) -> list[dict]:
+        return await _run_sync(_list_analyses_sync, user_id, analysis_type)
+
+
+def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict):
+    conn = _get_conn()
+    cur: Any = conn.cursor()
+    result_json = json.dumps(result_data, ensure_ascii=False, default=str)
+    cur.execute(
+        "INSERT INTO ai_analysis_history (user_id, device_code, device_name, analysis_type, result_data) VALUES (%s, %s, %s, %s, %s)",
+        (user_id, device_code, device_name, analysis_type, result_json),
+    )
+    conn.close()
+
+
+def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None) -> list[dict]:
+    conn = _get_conn()
+    cur: Any = conn.cursor()
+    if analysis_type:
+        cur.execute(
+            "SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time FROM ai_analysis_history WHERE user_id = %s AND analysis_type = %s ORDER BY create_time DESC LIMIT 50",
+            (user_id, analysis_type),
+        )
+    else:
+        cur.execute(
+            "SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time FROM ai_analysis_history WHERE user_id = %s ORDER BY create_time DESC LIMIT 50",
+            (user_id,),
+        )
+    rows = cur.fetchall()  # type: ignore[assignment]
+    conn.close()
+    return [
+        {
+            "id": r["id"], "user_id": r["user_id"],
+            "device_code": r["device_code"], "device_name": r["device_name"],
+            "analysis_type": r["analysis_type"],
+            "result_data": json.loads(r["result_data"]) if isinstance(r["result_data"], str) else r["result_data"],
+            "created_at": _fmt(r["create_time"]),
+        }
+        for r in rows
+    ]
 
 
 conversation_store = ConversationStore()

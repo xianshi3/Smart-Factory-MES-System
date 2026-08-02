@@ -199,3 +199,44 @@ async def delete_conversation(conv_id: str):
         raise HTTPException(status_code=404, detail="对话不存在")
     await conversation_store.delete_conversation(conv_id)
     return DeleteResponse()
+
+
+# ========== 分析历史 ==========
+
+from pydantic import BaseModel, Field
+from typing import Optional as Opt, Any
+
+class SaveAnalysisRequest(BaseModel):
+    device_code: str = ""
+    device_name: str = ""
+    analysis_type: str = Field(..., pattern="^(spc|energy|capacity|llm)$")
+    result_data: dict = Field(default_factory=dict)
+    user_id: str = "default"
+
+class AnalysisItem(BaseModel):
+    id: int
+    device_code: str
+    device_name: str
+    analysis_type: str
+    result_data: Any
+    created_at: str
+
+class AnalysisListResponse(BaseModel):
+    success: bool = True
+    analyses: list[AnalysisItem]
+
+
+@router.post("/analysis", response_model=DeleteResponse)
+async def save_analysis(req: SaveAnalysisRequest):
+    await conversation_store.save_analysis(
+        user_id=req.user_id, device_code=req.device_code,
+        device_name=req.device_name, analysis_type=req.analysis_type,
+        result_data=req.result_data,
+    )
+    return DeleteResponse()
+
+
+@router.get("/analysis", response_model=AnalysisListResponse)
+async def list_analyses(user_id: str = "default", type: Opt[str] = None):
+    rows = await conversation_store.list_analyses(user_id=user_id, analysis_type=type)
+    return AnalysisListResponse(analyses=[AnalysisItem(**r) for r in rows])
