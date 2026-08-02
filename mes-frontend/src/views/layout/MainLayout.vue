@@ -305,16 +305,17 @@ const handleCommand = (cmd: string) => {
 
 /* collapsed sidebar */
 .sidebar.collapsed .sidebar-header {
-  justify-content: center; padding: 0 8px;
+  justify-content: center; padding: 0 8px; position: relative;
 }
 .sidebar.collapsed .collapse-btn {
-  position: absolute; top: 8px; right: -12px;
+  position: absolute; top: 14px; right: -14px;
   background: var(--bg-card);
   box-shadow: var(--shadow-sm);
   border-color: var(--border-color);
   z-index: 11;
 }
 .sidebar.collapsed .brand-logo { justify-content: center; }
+.sidebar.collapsed { overflow: visible; }
 
 .menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 0; }
 .sidebar-menu { background: transparent; border: none; }
