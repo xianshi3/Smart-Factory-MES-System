@@ -25,6 +25,16 @@
       </div>
     </div>
 
+    <Transition name="banner">
+      <div v-if="!store.aiOnline" class="offline-banner">
+        <el-icon :size="16"><WarningFilled /></el-icon>
+        <span>AI 服务未连接 — 请在终端启动 mes-ai-service</span>
+        <button class="banner-retry" @click="store.checkHealth()">
+          <el-icon :size="14"><Refresh /></el-icon> 重试
+        </button>
+      </div>
+    </Transition>
+
     <div class="panel-body" ref="bodyRef">
       <template v-for="(msg, i) in store.messages" :key="i">
         <div v-if="i === 0 && msg.role === 'assistant' && !store.currentId" class="msg assistant welcome-msg">
@@ -156,7 +166,7 @@ import { marked } from 'marked'
 import type { Component } from 'vue'
 import {
   MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User,
-  DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning, Plus,
+  DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning, Plus, WarningFilled, Refresh,
 } from '@element-plus/icons-vue'
 import { useAiChatStore } from '@/stores/aiChat'
 
@@ -210,6 +220,7 @@ watch(() => store.messages.length, () => scrollToBottom())
 
 onMounted(() => {
   store.loadList()
+  store.checkHealth()
   document.addEventListener('keydown', onKeydown)
 })
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
@@ -322,6 +333,45 @@ defineExpose({ focusInput })
 }
 .header-btn:hover { background: var(--bg-hover, #1a1a28); color: var(--text-primary, #f0f0f5); }
 .close-btn:hover { background: rgba(239,68,68,0.12); color: var(--danger, #ef4444); }
+
+/* ===== Offline Banner ===== */
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin: 0;
+  background: linear-gradient(90deg, rgba(239,68,68,0.12), rgba(245,158,11,0.08));
+  border-bottom: 1px solid rgba(239,68,68,0.2);
+  color: var(--danger, #ef4444);
+  font-size: 12px;
+  flex-shrink: 0;
+  animation: bannerIn 0.3s ease;
+}
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.banner-retry {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(239,68,68,0.3);
+  background: transparent;
+  color: var(--danger, #ef4444);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.banner-retry:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: var(--danger, #ef4444);
+}
+.banner-enter-active, .banner-leave-active { transition: all 0.25s ease; }
+.banner-enter-from, .banner-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+.banner-enter-to, .banner-leave-from { opacity: 1; max-height: 40px; }
 
 /* ===== Body ===== */
 .panel-body {

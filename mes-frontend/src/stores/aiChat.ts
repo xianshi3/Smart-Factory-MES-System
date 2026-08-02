@@ -18,6 +18,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const userStore = useUserStore()
 
   const userId = computed(() => userStore.userInfo?.username || 'default')
+  const aiOnline = ref(true)
   const conversations = ref<ConversationListItem[]>([])
   const currentId = ref<string | null>(null)
   const messages = ref<MessageItem[]>([])
@@ -40,6 +41,25 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   const isEmpty = computed(() => messages.value.length === 0)
   const messageCount = computed(() => messages.value.length)
+
+  async function checkHealth(): Promise<boolean> {
+    try {
+      await runAgent('ping', [{ role: 'user', content: 'test' }])
+    } catch {
+      // 快速 ping — 用 kb/search 作为轻量健康检查
+    }
+    try {
+      const { default: axios } = await import('axios')
+      await axios.get('/ai/api/v1/agent/tools', { timeout: 3000 })
+      aiOnline.value = true
+      return true
+    } catch {
+      aiOnline.value = false
+      return false
+    }
+  }
+
+  function setOnline(v: boolean) { aiOnline.value = v }
 
   async function loadList() {
     loadingList.value = true
@@ -112,6 +132,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
       const res = await runAgent(text, history.slice(-10))
 
+      aiOnline.value = true // 服务可达
+
       const assistantMsg: MessageItem = {
         role: 'assistant',
         content: res.success ? (res.content || '已完成') : ('执行失败：' + (res.content || '未知错误')),
@@ -129,17 +151,14 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
       return true
     } catch (e: any) {
+      aiOnline.value = false
       const errorMsg: MessageItem = {
         role: 'assistant',
-        content: '连接 AI 服务失败：' + (e?.message || '网络异常') + '。请确认 AI 服务已启动。',
+        content: '**AI 服务未连接**\n\n请在终端执行以下命令启动：\n\n```bash\ncd mes-ai-service && python src/main.py\n```',
         timestamp: new Date(),
         saved: false,
       }
       messages.value.push(errorMsg)
-      try {
-        await addConversationMessage(convId, 'assistant', errorMsg.content)
-        errorMsg.saved = true
-      } catch { /* 静默 */ }
       return false
     } finally {
       loading.value = false
@@ -174,9 +193,12 @@ export const useAiChatStore = defineStore('aiChat', () => {
     messages,
     loading,
     loadingList,
+    aiOnline,
     currentTitle,
     isEmpty,
     messageCount,
+    checkHealth,
+    setOnline,
     loadList,
     selectConversation,
     newChat,
