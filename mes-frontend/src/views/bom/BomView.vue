@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, List } from '@element-plus/icons-vue'
 import { getBomList, createBom, updateBom, deleteBom, validateBom, getBomItems, createBomItem, updateBomItem, deleteBomItem } from '@/api/services'
