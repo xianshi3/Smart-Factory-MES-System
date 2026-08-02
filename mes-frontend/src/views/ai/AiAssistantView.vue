@@ -13,19 +13,6 @@
         </button>
       </div>
 
-      <div class="side-stats">
-        <div class="st-item" @click="router.push('/device')" title="查看设备监控页面">
-          <span class="st-icon accent"><el-icon :size="12"><Monitor /></el-icon></span>
-          <span class="st-val">{{ stats[0].value }}</span>
-          <span class="st-lbl">在线设备</span>
-        </div>
-        <div class="st-item" @click="router.push('/alarm')" title="查看告警中心">
-          <span class="st-icon warning"><el-icon :size="12"><Warning /></el-icon></span>
-          <span class="st-val">{{ stats[1].value }}</span>
-          <span class="st-lbl">活跃告警</span>
-        </div>
-      </div>
-
       <div class="side-capabilities">
         <div class="side-label">AI 能力</div>
         <div
@@ -77,23 +64,15 @@ import { ref, reactive, onMounted } from 'vue'
 import type { Component } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
 import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
 import { useAiChatStore } from '@/stores/aiChat'
-import axios from 'axios'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
 const store = useAiChatStore()
-const router = useRouter()
 const collapsed = ref(false)
 
 interface Capability {
   icon: Component; label: string; tag: string; prompt: string; grad: string; _loading: boolean; _active: boolean
 }
-
-const stats = reactive([
-  { value: '--', label: '在线设备', cls: 'accent' },
-  { value: '--', label: '活跃告警', cls: 'warning' },
-])
 
 const capabilities = reactive<Capability[]>([
   { icon: Monitor, label: '设备监控', tag: '实时状态', prompt: '请列出所有设备，显示设备编号、名称、运行状态、当前温度和主轴转速', grad: 'accent', _loading: false, _active: false },
@@ -121,19 +100,7 @@ function fmt(iso: string): string {
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-async function loadStats() {
-  try {
-    const [devRes, alarmRes] = await Promise.all([
-      axios.get('/api/dashboard/device/status', { timeout: 4000 }),
-      axios.get('/api/dashboard/alarm/active-count', { timeout: 4000 }).catch(() => ({ data: { count: 0 } })),
-    ])
-    const devices = devRes.data?.data ?? devRes.data ?? []
-    stats[0].value = String(Array.isArray(devices) ? devices.length : '--')
-    stats[1].value = String(alarmRes.data?.count ?? alarmRes.data?.data?.count ?? '--')
-  } catch { stats[0].value = '离线'; stats[1].value = '--' }
-}
-
-onMounted(() => { loadStats(); store.loadList() })
+onMounted(() => { store.loadList() })
 </script>
 
 <style scoped>
@@ -170,19 +137,6 @@ onMounted(() => { loadStats(); store.loadList() })
   box-shadow: 0 0 6px rgba(16,185,129,0.5);
 }
 .brand-dot.online { background: var(--success, #10b981); }
-
-/* stats */
-.side-stats { display: flex; padding: 10px 8px; gap: 2px; border-bottom: 1px solid var(--border-color, #252530); }
-.st-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 2px; border-radius: 6px; transition: background 0.15s;
-}
-.st-item:hover { background: var(--bg-hover, #1a1a28); }
-.st-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
-.st-icon.accent  { background: rgba(99,102,241,0.12); color: var(--accent, #6366f1); }
-.st-icon.warning { background: rgba(245,158,11,0.12); color: var(--warning, #f59e0b); }
-.st-val { font-size: 15px; font-weight: 700; color: var(--text-primary, #f0f0f5); }
-.st-lbl { font-size: 10px; color: var(--text-muted, #505060); }
 
 /* capabilities */
 .side-capabilities { padding: 8px; border-bottom: 1px solid var(--border-color, #252530); flex-shrink: 0; }
@@ -257,9 +211,6 @@ onMounted(() => { loadStats(); store.loadList() })
 .ai-side.collapsed .st-lbl,
 .ai-side.collapsed .side-convs { display: none; }
 .ai-side.collapsed .side-brand { justify-content: center; padding: 14px 8px; }
-.ai-side.collapsed .collapse-btn { display: none; }
-.ai-side.collapsed .side-stats { flex-direction: column; padding: 8px 4px; gap: 6px; }
-.ai-side.collapsed .st-item { padding: 4px; }
 .ai-side.collapsed .scap-item { justify-content: center; padding: 8px; }
 .ai-side.collapsed .side-capabilities { padding: 4px; }
 .ai-side.collapsed .scap-item.active { border-left: none; border-radius: 7px; margin-left: 0; padding-left: 8px; }
