@@ -14,12 +14,12 @@
       </div>
 
       <div class="side-stats">
-        <div class="st-item" @click="store.sendMessage('请列出所有在线设备，显示编号、名称、运行状态和温度')" title="点击查询所有设备状态">
+        <div class="st-item" @click="router.push('/device')" title="查看设备监控页面">
           <span class="st-icon accent"><el-icon :size="12"><Monitor /></el-icon></span>
           <span class="st-val">{{ stats[0].value }}</span>
           <span class="st-lbl">在线设备</span>
         </div>
-        <div class="st-item" @click="store.sendMessage('请列出当前所有活跃告警，并逐一分析告警原因给出处理建议')" title="点击分析告警">
+        <div class="st-item" @click="router.push('/alarm')" title="查看告警中心">
           <span class="st-icon warning"><el-icon :size="12"><Warning /></el-icon></span>
           <span class="st-val">{{ stats[1].value }}</span>
           <span class="st-lbl">活跃告警</span>
@@ -77,11 +77,13 @@ import { ref, reactive, onMounted } from 'vue'
 import type { Component } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
 import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { useAiChatStore } from '@/stores/aiChat'
 import axios from 'axios'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
 const store = useAiChatStore()
+const router = useRouter()
 const collapsed = ref(false)
 
 interface Capability {
