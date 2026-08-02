@@ -257,7 +257,11 @@ function renderMarkdown(text: string): string {
   if (!text) return ''
   const cached = mdCache.get(text)
   if (cached) return cached
-  const html = marked.parse(text) as string
+  let html = marked.parse(text) as string
+  // 将 DEV-XXX 转为可点击的设备卡片，跳转3D数字孪生页面
+  html = html.replace(/DEV-[\w-]+/g, (m) =>
+    `<a class="device-link" href="/device?device=${m}" title="查看 ${m} 数字孪生模型">🔗 ${m}</a>`
+  )
   mdCache.set(text, html)
   return html
 }
@@ -491,6 +495,15 @@ defineExpose({ focusInput })
 }
 .msg-text :deep(hr) { border: none; border-top: 1px solid var(--border-color, #252530); margin: 12px 0; }
 .msg-text :deep(h1), .msg-text :deep(h2), .msg-text :deep(h3) { font-size: 15px; color: var(--text-primary, #f0f0f5); margin: 12px 0 6px; font-weight: 600; }
+.msg-text :deep(a.device-link) {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 500;
+  background: var(--accent-light, rgba(99,102,241,0.1)); color: var(--accent, #6366f1);
+  text-decoration: none; transition: all 0.15s; margin: 0 2px;
+}
+.msg-text :deep(a.device-link:hover) {
+  background: var(--accent, #6366f1); color: #fff;
+}
 
 /* Steps */
 .msg-steps { margin-top: 10px; }

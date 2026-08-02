@@ -75,12 +75,12 @@ interface Capability {
 }
 
 const capabilities = reactive<Capability[]>([
-  { icon: Monitor, label: '设备监控', tag: '实时状态', prompt: '请列出所有设备，显示设备编号、名称、运行状态、当前温度和主轴转速', grad: 'accent', _loading: false, _active: false },
-  { icon: Warning, label: '异常诊断', tag: '智能分析', prompt: '请检查当前有哪些设备存在异常告警，对异常设备逐一分析可能的根因并给出处理建议', grad: 'danger', _loading: false, _active: false },
-  { icon: Document, label: '工单创建', tag: '一键开工', prompt: '请先检查当前设备状态，如果发现温度过高或运行异常的设备，自动为该设备创建一条 HIGH 优先级的维修工单', grad: 'success', _loading: false, _active: false },
-  { icon: Notebook, label: '手册检索', tag: '知识库', prompt: '请搜索知识库中关于 CNC 主轴温度过高的处理流程、维护规范和预防措施', grad: 'info', _loading: false, _active: false },
-  { icon: TrendCharts, label: '数据分析', tag: '趋势洞察', prompt: '请分析最近的生产数据趋势，包括产能利用率、质检合格率和设备OEE，识别潜在瓶颈并给出优化建议', grad: 'warning', _loading: false, _active: false },
-  { icon: Setting, label: '自动规则', tag: '智能监控', prompt: '请帮我创建一条监控规则：当任意设备温度超过55°C超过5分钟时，自动创建一条紧急维修工单并通知设备工程师', grad: 'accent', _loading: false, _active: false },
+  { icon: Monitor, label: '孪生总览', tag: '全厂健康', prompt: '请使用 get_all_device_health 获取全工厂所有设备的数字孪生健康状态总览，标注异常设备和健康评分', grad: 'accent', _loading: false, _active: false },
+  { icon: Warning, label: '异常诊断', tag: '根因分析', prompt: '请检查当前有哪些设备存在异常告警，使用 get_device_digital_twin 获取完整孪生数据，对异常设备逐一分析根因并给出处理建议', grad: 'danger', _loading: false, _active: false },
+  { icon: Document, label: '智能工单', tag: '自动闭环', prompt: '请先检查所有设备数字孪生数据，如果发现温度过高或运行异常的设备，自动为该设备创建维修工单并提示查看3D模型', grad: 'success', _loading: false, _active: false },
+  { icon: Notebook, label: '手册检索', tag: '知识库', prompt: '请搜索知识库中关于 CNC 主轴温度过高的处理流程、维护规范和预防措施，结合设备数字孪生数据给出针对性建议', grad: 'info', _loading: false, _active: false },
+  { icon: TrendCharts, label: '趋势预测', tag: '预测维护', prompt: '请使用 get_device_trend 分析关键设备的运行趋势，结合数字孪生数据预测潜在故障时间窗口，给出预防性维护建议', grad: 'warning', _loading: false, _active: false },
+  { icon: Setting, label: '自动规则', tag: '孪生监控', prompt: '请帮我创建数字孪生监控规则：当任意设备温度超过55°C超过5分钟时，自动分析孪生数据并创建紧急维修工单通知设备工程师', grad: 'accent', _loading: false, _active: false },
 ])
 
 function triggerCapability(cap: Capability) {
