@@ -139,10 +139,11 @@ onMounted(() => { loadStats(); store.loadList() })
 
 /* ===== Side ===== */
 .ai-side {
-  width: 220px; flex-shrink: 0;
+  width: 220px; flex-shrink: 0; overflow: hidden;
   background: var(--bg-sidebar, #0d0d12);
   border-right: 1px solid var(--border-color, #252530);
   display: flex; flex-direction: column; overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .side-brand {
@@ -227,7 +228,7 @@ onMounted(() => { loadStats(); store.loadList() })
 .conv-list { display: flex; flex-direction: column; gap: 1px; }
 .conv-item {
   display: flex; align-items: center; padding: 7px 8px; border-radius: 6px;
-  cursor: pointer; transition: all 0.12s ease; gap: 6px;
+  cursor: pointer; transition: all 0.12s ease; gap: 6px; position: relative;
 }
 .conv-item:hover { background: var(--bg-hover, #1a1a28); }
 .conv-item.current { background: var(--accent-light, rgba(99,102,241,0.1)); }

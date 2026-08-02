@@ -75,7 +75,7 @@
           </div>
         </div>
         <div v-else class="msg" :class="msg.role">
-          <div class="msg-avatar">
+          <div class="msg-avatar" :class="{ compact: i > 0 && store.messages[i - 1]?.role === msg.role }">
             <el-icon v-if="msg.role === 'assistant'" :size="16"><MagicStick /></el-icon>
             <el-icon v-else :size="16"><User /></el-icon>
           </div>
@@ -409,7 +409,8 @@ defineExpose({ focusInput })
   flex: 1; overflow-y: auto; padding: 16px;
   display: flex; flex-direction: column; gap: 18px; background: var(--bg-app, #0a0a0f);
 }
-.ai-panel:not(.floating) .panel-body { padding: 24px 32px; gap: 24px; }
+.ai-panel:not(.floating) .panel-body { padding: 24px 32px; gap: 20px; }
+.ai-panel:not(.floating) .msg.compact-avatar { gap: 0; }
 
 /* ===== Messages ===== */
 .msg { display: flex; gap: 12px; max-width: 88%; animation: msgIn 0.35s ease; }
@@ -427,6 +428,7 @@ defineExpose({ focusInput })
   0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.3); }
   50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
 }
+.msg-avatar.compact { visibility: hidden; width: 0; height: 0; margin: 0; }
 
 .msg-bubble {
   padding: 12px 16px; border-radius: var(--radius-md, 10px);
@@ -446,21 +448,21 @@ defineExpose({ focusInput })
 .welcome-msg { max-width: 92%; }
 .welcome-card {
   background: var(--bg-hover, #1a1a28); border: 1px solid var(--border-light, #1f1f28);
-  border-radius: var(--radius-md, 10px); padding: 18px 20px;
+  border-radius: var(--radius-md, 10px); padding: 20px 22px;
 }
-.welcome-greet { font-size: 14px; color: var(--text-primary, #f0f0f5); margin: 0 0 14px; line-height: 1.5; }
+.welcome-greet { font-size: 14px; color: var(--text-primary, #f0f0f5); margin: 0 0 16px; line-height: 1.5; }
 .welcome-greet :deep(strong) { color: var(--accent, #6366f1); }
-.welcome-features { display: flex; flex-direction: column; gap: 8px; }
+.welcome-features { display: flex; flex-direction: column; gap: 10px; }
 .wf-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary, #a0a0b0); }
 .wf-dot {
-  width: 26px; height: 26px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.wf-dot.accent { background: var(--accent, #6366f1); }
-.wf-dot.cyan { background: var(--accent-secondary, #22d3ee); }
-.wf-dot.green { background: var(--success, #10b981); }
-.wf-dot.amber { background: var(--warning, #f59e0b); }
-.welcome-hint { font-size: 12px; color: var(--text-muted, #505060); margin: 14px 0 0; }
+.wf-dot.accent { background: var(--accent-light, rgba(99,102,241,0.1)); color: var(--accent, #6366f1); }
+.wf-dot.cyan   { background: var(--info-light, rgba(6,182,212,0.1)); color: var(--accent-secondary, #22d3ee); }
+.wf-dot.green  { background: var(--success-light, rgba(16,185,129,0.1)); color: var(--success, #10b981); }
+.wf-dot.amber  { background: var(--warning-light, rgba(245,158,11,0.1)); color: var(--warning, #f59e0b); }
+.welcome-hint { font-size: 12px; color: var(--text-muted, #505060); margin: 16px 0 0; }
 
 /* Markdown */
 .msg-text :deep(p) { margin: 4px 0; }
