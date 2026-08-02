@@ -10,6 +10,42 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.39 (2026-08-02)
+
+### Redis 企业级深度落地（认证安全 / 分布式序号 / AI 缓存 / 设备在线）
+
+#### AI 服务 Redis 缓存 + 限流（mes-ai-service）
+
+- **统一封装**: 新增 `redis_store.py`（连接超时 1s、`decode_responses`、全部操作带降级），Redis 不可用时自动回退 MySQL/直连，不影响业务
+- **分析历史缓存**: zset 缓存最近 50 条（key `analysis:recent:{user}:{device}`，TTL 300s），保存/删除双写同步，列表优先读缓存、空或异常回查 MySQL 防掩盖新增
+- **LLM 结果缓存**: 内容寻址（消息+上下文+历史+模型 hash 前 32 位），命中直接复用，成功结果缓存 1 小时
+- **LLM 限流**: 滑动窗口 INCR+TTL 60s，超限返回"服务繁忙"（可配置 `rate_limit`，默认 60 次/分钟）
+
+#### 认证安全增强（mes-auth）
+
+- **Token 黑名单**: 登出/改密后将 token SHA-256 写入 `auth:blacklist:{hash}`，TTL=剩余有效期；`JwtAuthFilter` 校验时命中即 401（新增 `POST /auth/logout`）
+- **登录失败锁定**: 连续失败 5 次锁定 15 分钟（`auth:fail:{username}`，INCR+TTL），锁定后正确密码也被拒绝，登录成功自动清零
+- **降级原则**: Redis 不可用时跳过黑名单/锁定（不阻断登录），不影响原流程；`JwtUtils` 新增 `getRemainingMillis`
+
+#### 工单号分布式生成（mes-workorder）
+
+- **并发唯一序号**: `wo:seq` Redis INCR 生成 `WO+yyyyMMddHHmmss+4位序号`，替代毫秒时间戳（并发创建同毫秒会撞号）；Redis 不可用时降级回时间戳
+- **报工原子化**: `completed_quantity` 改为 SQL 原子自增（`+=`），修复并发报工读改写竞态，并重新读取最新进度判断是否转待质检
+
+#### 设备在线心跳 Redis（mes-device-gateway）
+
+- **心跳写入**: 每收到设备数据/状态消息，写入 `device:online:{deviceId}`（值含时间+状态，TTL 90s），Redis 连接失败自动降级不影响网关主流程
+- **配置**: `RedisServer/RedisPort/RedisPassword/DeviceHeartbeatTtlSeconds`（appsettings + 环境变量），新增 `StackExchange.Redis` 依赖
+
+#### 基础设施
+
+- **docker-compose**: Redis 内存 128M → 256M，新增 `--maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes`（内存满自动淘汰最久未用，防止 OOM 拒写）
+- **错误码**: 新增 `USER_LOCKED(5005)`
+
+> **注**: 冒烟测试发现既有问题——本地 `sys_user` 表缺少 `nickname/avatar/employee_no/department/position/manager_id/hire_date` 列（init.sql 已定义），导致 `GET /auth/info` 等接口 SQL 报错返回 5004，与本次改动无关，建议在开发库执行 `init.sql` 对应 DDL 或补迁移脚本。
+
+---
+
 ## v1.0.38 (2026-08-02)
 
 ### 设备分析体系企业级升级（SPC / 能耗优化 / 分析历史）
