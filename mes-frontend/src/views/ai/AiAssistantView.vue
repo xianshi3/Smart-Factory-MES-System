@@ -14,12 +14,12 @@
       </div>
 
       <div class="side-stats">
-        <div class="st-item">
+        <div class="st-item" @click="store.sendMessage('请列出所有在线设备，显示编号、名称、运行状态和温度')" title="点击查询所有设备状态">
           <span class="st-icon accent"><el-icon :size="12"><Monitor /></el-icon></span>
           <span class="st-val">{{ stats[0].value }}</span>
           <span class="st-lbl">在线设备</span>
         </div>
-        <div class="st-item">
+        <div class="st-item" @click="store.sendMessage('请列出当前所有活跃告警，并逐一分析告警原因给出处理建议')" title="点击分析告警">
           <span class="st-icon warning"><el-icon :size="12"><Warning /></el-icon></span>
           <span class="st-val">{{ stats[1].value }}</span>
           <span class="st-lbl">活跃告警</span>
