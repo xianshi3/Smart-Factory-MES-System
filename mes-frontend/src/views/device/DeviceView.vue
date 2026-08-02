@@ -82,35 +82,56 @@
                 <span class="dc-card-name">{{ d.name }}</span>
                 <span class="dc-card-code">{{ d.code }}</span>
               </div>
-              <span class="dc-card-tag" :class="d.status">{{ getStatusText(d.status) }}</span>
+              <span class="status-tag" :class="'status-tag--' + d.status">{{ getStatusText(d.status) }}</span>
             </div>
             <div class="dc-card-metrics">
               <div class="dc-metric">
                 <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ fmtTemp(d.temperature) }}</span>
-                <span class="dc-m-unit">°C</span>
+                <span class="dc-m-unit">°C 温度</span>
               </div>
               <div class="dc-metric">
                 <span class="dc-m-val">{{ d.speed || 0 }}</span>
-                <span class="dc-m-unit">rpm</span>
+                <span class="dc-m-unit">rpm 转速</span>
               </div>
               <div class="dc-metric">
                 <span class="dc-m-val">{{ d.power ?? '--' }}</span>
-                <span class="dc-m-unit">kW</span>
+                <span class="dc-m-unit">kW 功率</span>
               </div>
               <div class="dc-metric">
-                <span class="dc-m-val">{{ d.utilization || '0%' }}</span>
-                <span class="dc-m-unit">利用率</span>
+                <span class="dc-m-val">{{ d.efficiency || '0%' }}</span>
+                <span class="dc-m-unit">OEE</span>
               </div>
             </div>
-            <div class="dc-card-util"><div :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
+            <div class="dc-card-progress">
+              <div class="dc-progress-info">
+                <span class="dc-progress-label">利用率</span>
+                <span class="dc-progress-value">{{ d.utilization || '0%' }}</span>
+              </div>
+              <div class="dc-progress-bar"><div class="dc-progress-fill" :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
+            </div>
             <div class="dc-card-foot" @click.stop>
-              <el-button v-if="d.status==='running'" size="small" type="danger" link @click="handleStop(d)"><el-icon><VideoPause /></el-icon>停止</el-button>
-              <el-button v-if="d.status==='idle'" size="small" type="success" link @click="handleStart(d)"><el-icon><VideoPlay /></el-icon>启动</el-button>
-              <el-button size="small" type="primary" link @click="handleCardPredict(d)"><el-icon><Cpu /></el-icon>预测</el-button>
-              <el-button size="small" link @click="handleCardAI(d, 'spc')"><el-icon><Histogram /></el-icon>SPC</el-button>
-              <el-button size="small" link @click="handleCardAI(d, 'energy')"><el-icon><Lightning /></el-icon>能耗</el-button>
-              <el-button size="small" link @click="handleCardAI(d, 'llm')"><el-icon><ChatLineRound /></el-icon>AI建议</el-button>
-              <el-button size="small" type="primary" link @click="handleDetail(d)">详情</el-button>
+              <el-tooltip v-if="d.status==='running'" content="停止设备" placement="top">
+                <el-button size="small" circle type="danger" plain @click="handleStop(d)"><el-icon><VideoPause /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip v-if="d.status==='idle'" content="启动设备" placement="top">
+                <el-button size="small" circle type="success" plain @click="handleStart(d)"><el-icon><VideoPlay /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="故障预测" placement="top">
+                <el-button size="small" circle type="primary" plain @click="handleCardPredict(d)"><el-icon><Cpu /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="SPC 过程能力分析" placement="top">
+                <el-button size="small" circle plain @click="handleCardAI(d, 'spc')"><el-icon><Histogram /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="能耗优化分析" placement="top">
+                <el-button size="small" circle plain @click="handleCardAI(d, 'energy')"><el-icon><Lightning /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="AI 智能建议" placement="top">
+                <el-button size="small" circle plain @click="handleCardAI(d, 'llm')"><el-icon><ChatLineRound /></el-icon></el-button>
+              </el-tooltip>
+              <div class="dc-foot-spacer"></div>
+              <el-tooltip content="查看详情" placement="top">
+                <el-button size="small" circle plain @click="handleDetail(d)"><el-icon><View /></el-icon></el-button>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -862,17 +883,30 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 .dt-list-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; padding: 16px; align-content: start; }
 
-.dc-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 18px 20px 16px; cursor: pointer; transition: all .15s; }
-.dc-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(0,0,0,.04); }
-.dc-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.dc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+.dc-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.dc-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
 .dc-card-info { flex: 1; min-width: 0; }
 .dc-card-name { display: block; font-size: 15px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dc-card-code { font-size: 12px; color: var(--text-muted); }
-.dc-card-tag { font-size: 11px; padding: 2px 10px; border-radius: 8px; font-weight: 600; flex-shrink: 0; }
-.dc-card-tag.running { background: var(--success-light); color: var(--success); }
-.dc-card-tag.idle { background: var(--info-light); color: var(--info); }
-.dc-card-tag.fault { background: var(--danger-light); color: var(--danger); }
-.dc-card-tag.maintenance { background: var(--warning-light); color: var(--warning); }
+.dc-card-code { font-size: 12px; color: var(--accent); font-family: monospace; }
 
 .dc-card-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
 .dc-metric { text-align: center; }
@@ -881,9 +915,23 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dc-m-val.hot { color: var(--danger); }
 .dc-m-unit { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-.dc-card-util { height: 5px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
-.dc-card-util div { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s; min-width: 2px; }
-.dc-card-foot { display: flex; gap: 4px; padding-top: 2px; }
+.dc-card-progress { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.dc-progress-info { display: flex; justify-content: space-between; align-items: center; }
+.dc-progress-label { font-size: 12px; color: var(--text-muted); }
+.dc-progress-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.dc-progress-bar { height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
+.dc-progress-fill { height: 100%; background: var(--gradient-primary); border-radius: 3px; transition: width .3s ease; min-width: 2px; }
+
+.dc-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+.dc-card-foot .el-button { margin-left: 0; }
+.dc-foot-spacer { flex: 1; }
+.dc-card-foot .el-button + .el-button { margin-left: 4px; }
 .dt-list-pager { display: flex; justify-content: center; padding: 6px; flex-shrink: 0; }
 
 /* ===== DIALOGS ===== */

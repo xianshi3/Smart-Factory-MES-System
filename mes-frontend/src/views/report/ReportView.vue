@@ -50,7 +50,7 @@
     </div>
 
     <div class="content-row">
-      <div class="chart-card">
+      <div class="chart-card chart-main">
         <div class="card-header">
           <span class="card-title">
             <el-icon><TrendCharts /></el-icon>
@@ -59,6 +59,17 @@
         </div>
         <div class="chart-container">
           <v-chart :option="outputChart" autoresize style="height: 280px" />
+        </div>
+      </div>
+      <div class="chart-card chart-side">
+        <div class="card-header">
+          <span class="card-title">
+            <el-icon><Odometer /></el-icon>
+            质量概览
+          </span>
+        </div>
+        <div class="chart-container">
+          <v-chart :option="qualityGauge" autoresize style="height: 280px" />
         </div>
       </div>
     </div>
@@ -129,7 +140,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
 import { useChartTheme } from '@/composables/useChartTheme'
-import { DataAnalysis, Download, Refresh, TrendCharts, List, Search } from '@element-plus/icons-vue'
+import { DataAnalysis, Download, Refresh, TrendCharts, List, Search, Odometer } from '@element-plus/icons-vue'
 
 const chartTheme = useChartTheme()
 const loading = ref(false)
@@ -144,6 +155,7 @@ const stats = ref([
 ])
 
 const outputChart = ref({})
+const qualityGauge = ref({})
 
 const getRate = (row: any) => {
   if (!row.output || row.output === 0) return '-'
@@ -243,6 +255,42 @@ const updateChart = () => {
       }
     ]
   }
+
+  // 质量概览仪表盘（良品率 + 平均OEE）
+  const total = tableData.value.reduce((s, d) => s + (d.output || 0), 0)
+  const qualified = tableData.value.reduce((s, d) => s + (d.qualified || 0), 0)
+  const rate = total ? Math.round((qualified / total) * 100) : 0
+  const avgOee = tableData.value.length
+    ? Math.round(tableData.value.reduce((s, d) => s + (d.oee || 0), 0) / tableData.value.length)
+    : 0
+  const gaugeCommon = {
+    pointer: { length: '55%', width: 4 },
+    axisLine: { lineStyle: { width: 10 } },
+    axisTick: { show: false },
+    splitLine: { length: 8, lineStyle: { width: 1 } },
+    axisLabel: { color: textColor, fontSize: 10, distance: 14 },
+    detail: { fontSize: 20, fontWeight: 700, offsetCenter: [0, '62%'], color: textColor },
+    title: { offsetCenter: [0, '88%'], fontSize: 12, color: textColor }
+  }
+  qualityGauge.value = {
+    tooltip: { trigger: 'item', backgroundColor: bgColor, borderColor, textStyle: { color: textColor } },
+    series: [
+      {
+        type: 'gauge', min: 0, max: 100, startAngle: 200, endAngle: -20,
+        radius: '85%', center: ['30%', '52%'],
+        ...gaugeCommon,
+        progress: { show: true, width: 10, itemStyle: { color: '#10b981' } },
+        data: [{ value: rate, name: '良品率' }]
+      },
+      {
+        type: 'gauge', min: 0, max: 100, startAngle: 200, endAngle: -20,
+        radius: '85%', center: ['78%', '52%'],
+        ...gaugeCommon,
+        progress: { show: true, width: 10, itemStyle: { color: '#6366f1' } },
+        data: [{ value: avgOee, name: '平均OEE' }]
+      }
+    ]
+  }
 }
 
 const handleReset = () => {
@@ -307,6 +355,13 @@ onMounted(() => { loadData() })
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
+  transition: all var(--transition-normal);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
@@ -327,7 +382,12 @@ onMounted(() => { loadData() })
 .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); }
 .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
-.content-row { margin-bottom: 20px; }
+.content-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
 
 .chart-card {
   background: var(--bg-card);
@@ -481,6 +541,10 @@ html.light .table-section {
 @media (max-width: 1200px) {
   .stats-grid,
   .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .content-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {

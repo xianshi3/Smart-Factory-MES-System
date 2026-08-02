@@ -17,23 +17,44 @@
     <el-alert v-if="error" :title="error" type="error" show-icon closable class="mb-4" @close="error = ''" />
 
     <div class="stats-grid">
-      <StatCard
-        v-for="(stat, index) in stats"
-        :key="stat.label"
-        :icon="stat.icon"
-        :label="stat.label"
-        :value="stat.value"
-        :theme="stat.theme"
-        :delay="index * 0.1"
-      />
+      <template v-if="loading && !devices.length">
+        <div v-for="i in 4" :key="i" class="stat-skeleton">
+          <el-skeleton animated>
+            <template #template>
+              <el-skeleton-item variant="rect" style="height: 96px; border-radius: var(--radius-lg)" />
+            </template>
+          </el-skeleton>
+        </div>
+      </template>
+      <template v-else>
+        <StatCard
+          v-for="(stat, index) in stats"
+          :key="stat.label"
+          :icon="stat.icon"
+          :label="stat.label"
+          :value="stat.value"
+          :theme="stat.theme"
+          :delay="index * 0.1"
+        />
+      </template>
     </div>
 
     <el-row :gutter="20" class="charts-row">
-      <el-col :span="12">
-        <ChartCard title="生产趋势" icon="TrendCharts" :option="productionChart" :height="'280px'" />
+      <el-col :xs="24" :md="12">
+        <el-skeleton v-if="!devices.length" animated>
+          <template #template>
+            <el-skeleton-item variant="rect" style="height: 280px; border-radius: var(--radius-lg)" />
+          </template>
+        </el-skeleton>
+        <ChartCard v-else title="生产趋势" icon="TrendCharts" :option="productionChart" :height="'280px'" />
       </el-col>
-      <el-col :span="12">
-        <ChartCard title="设备状态分布" icon="PieChart" :option="statusChart" :height="'280px'" />
+      <el-col :xs="24" :md="12">
+        <el-skeleton v-if="!devices.length" animated>
+          <template #template>
+            <el-skeleton-item variant="rect" style="height: 280px; border-radius: var(--radius-lg)" />
+          </template>
+        </el-skeleton>
+        <ChartCard v-else title="设备状态分布" icon="PieChart" :option="statusChart" :height="'280px'" />
       </el-col>
     </el-row>
 
@@ -43,32 +64,52 @@
           <el-icon><Monitor /></el-icon>
           设备状态监控
         </span>
-        <div class="device-summary">
-          <span class="summary-item online">
-            <span class="summary-dot"></span>
-            {{ onlineCount }} 运行中
-          </span>
-          <span class="summary-item idle">
-            <span class="summary-dot"></span>
-            {{ idleCount }} 空闲
-          </span>
-          <span class="summary-item alarm">
-            <span class="summary-dot"></span>
-            {{ alarmCount }} 告警
-          </span>
+        <div class="section-actions">
+          <div class="device-summary">
+            <span class="summary-item online">
+              <span class="summary-dot"></span>
+              {{ onlineCount }} 运行中
+            </span>
+            <span class="summary-item idle">
+              <span class="summary-dot"></span>
+              {{ idleCount }} 空闲
+            </span>
+            <span class="summary-item alarm">
+              <span class="summary-dot"></span>
+              {{ alarmCount }} 告警
+            </span>
+          </div>
+          <router-link class="more-link" to="/device">
+            查看全部 <el-icon :size="12"><ArrowRight /></el-icon>
+          </router-link>
         </div>
       </div>
       <div class="device-grid">
-        <DeviceCard
-          v-for="(device, index) in devices.slice(0, 8)"
-          :key="device.id || index"
-          :name="device.deviceName || device.deviceCode || `设备${index + 1}`"
-          :status="device.status"
-          :utilization="Math.round((device.speed || 0) / 15)"
-          :temperature="device.temperature ?? 0"
-          :power="Math.round((device.speed || 0) * 0.02 + 5)"
-          :delay="index * 0.05"
-        />
+        <template v-if="loading && !devices.length">
+          <div v-for="i in 8" :key="i" class="device-skeleton">
+            <el-skeleton animated>
+              <template #template>
+                <el-skeleton-item variant="rect" style="height: 152px; border-radius: var(--radius-lg)" />
+              </template>
+            </el-skeleton>
+          </div>
+        </template>
+        <template v-else-if="devices.length">
+          <DeviceCard
+            v-for="(device, index) in devices.slice(0, 8)"
+            :key="device.id || index"
+            :name="device.deviceName || device.deviceCode || `设备${index + 1}`"
+            :status="device.status"
+            :utilization="Math.round((device.speed || 0) / 15)"
+            :temperature="device.temperature ?? 0"
+            :power="Math.round((device.speed || 0) * 0.02 + 5)"
+            :delay="index * 0.05"
+          />
+        </template>
+        <div v-else class="empty-state">
+          <el-icon :size="40"><Monitor /></el-icon>
+          <span>暂无设备数据</span>
+        </div>
       </div>
     </div>
   </div>
@@ -84,7 +125,7 @@ import { wsService } from '@/utils/websocket'
 import StatCard from '@/components/common/StatCard.vue'
 import DeviceCard from '@/components/common/DeviceCard.vue'
 import ChartCard from '@/components/common/ChartCard.vue'
-import { Refresh, Monitor } from '@element-plus/icons-vue'
+import { Refresh, Monitor, ArrowRight } from '@element-plus/icons-vue'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -294,6 +335,27 @@ watch(() => themeStore.isDark, () => {
   display: flex;
   gap: 20px;
 }
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+
+.more-link:hover { color: var(--accent); }
+
+.stat-skeleton,
+.device-skeleton { width: 100%; }
 
 .summary-item {
   display: flex;

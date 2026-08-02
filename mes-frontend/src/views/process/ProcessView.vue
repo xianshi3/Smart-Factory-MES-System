@@ -26,7 +26,15 @@
       <el-button @click="handleReset">重置</el-button>
     </div>
 
-    <div class="card-grid">
+    <div v-if="loading" class="card-grid">
+      <el-skeleton v-for="i in 6" :key="i" animated>
+        <template #template>
+          <el-skeleton-item variant="rect" style="height: 190px; border-radius: var(--radius-lg)" />
+        </template>
+      </el-skeleton>
+    </div>
+
+    <div v-else class="card-grid">
       <div 
         v-for="row in tableData" 
         :key="row.id" 
@@ -43,6 +51,10 @@
           <div class="template-model">
             <el-icon><Box /></el-icon>
             <span>{{ row.productModel }}</span>
+          </div>
+          <div class="template-time">
+            <el-icon><Clock /></el-icon>
+            <span>更新: {{ row.updateTime ? row.updateTime.substring(0, 16) : '-' }}</span>
           </div>
         </div>
         
@@ -125,7 +137,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTemplatePage, createTemplate, updateTemplate, publishTemplate, deleteTemplate, checkParameters } from '@/api/services'
-import { Setting, Plus, Search, Box } from '@element-plus/icons-vue'
+import { Setting, Plus, Search, Box, Clock } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -196,15 +208,12 @@ const handlePublish = async (row: any) => {
 
 const handleParamCheck = async (row: any) => {
   try {
-    const res = await checkParameters({ templateId: row.id, parameters: row })
-    const result = res?.data || res
-    if (result?.passed) {
-      ElMessage.success('参数校验通过')
-    } else {
-      ElMessage.warning(result?.message || '参数存在异常，请检查')
-    }
+    // 不传 paramValues 时后端回退用模板默认值校验
+    const res = await checkParameters({ templateId: row.id, paramValues: {} })
+    const data = res?.data
+    ElMessage.success(typeof data === 'string' ? data : '参数校验通过')
   } catch (e: any) {
-    ElMessage.error(e?.message || '参数校验请求失败')
+    ElMessage.warning(e?.message || '参数校验不通过，请检查参数配置')
   }
 }
 
@@ -247,10 +256,12 @@ onMounted(() => { loadData() })
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot--success { background: var(--success); }
+.status-dot--success { background: var(--success); box-shadow: 0 0 6px var(--success); }
 .status-dot--info { background: var(--info); }
 
 .template-version {
@@ -288,6 +299,16 @@ onMounted(() => { loadData() })
 
 .template-model .el-icon { font-size: 14px; }
 
+.template-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+.template-time .el-icon { font-size: 13px; }
+
 .card-footer {
   display: flex;
   justify-content: space-between;
@@ -295,8 +316,4 @@ onMounted(() => { loadData() })
   padding-top: 12px;
   border-top: 1px solid var(--border-light);
 }
-
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot--success { background: var(--success); }
-.status-dot--info { background: var(--info); }
 </style>
