@@ -198,129 +198,57 @@
       <div v-if="!aiAnalysisLoading && aiAnalysisResult" class="ai-result-area">
         <button class="ai-back-btn" @click="aiAnalysisResult = null"><el-icon :size="14"><DArrowLeft /></el-icon> 返回</button>
 
-      <!-- SPC Result -->
-      <div v-else-if="currentAnalysisType === 'spc' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">制程能力</div>
-          <div class="dt-ai-cpk">
-            <div class="dt-ai-cpk-ring" :class="aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
-            <div><span>CPK</span><em>{{ aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability }}</em></div>
-          </div>
-          <div class="dt-ai-stats">
-            <div><label>CP</label><span>{{ (aiAnalysisResult.capability?.cp || aiAnalysisResult.cp)?.toFixed(2) }}</span></div>
-            <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean || aiAnalysisResult.mean }}</span></div>
-            <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std || aiAnalysisResult.std }}</span></div>
-            <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
-          </div>
-        </div>
-        <div v-if="(aiAnalysisResult.control_limits || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">控制限</div>
-          <div class="dt-ai-limits">
-            <div v-for="cl in (aiAnalysisResult.control_limits || [])" :key="cl.name">
-              <em :class="cl.name.includes('UCL') ? 'danger' : cl.name.includes('LCL') ? 'danger' : ''">{{ cl.value }}</em>
-              <span>{{ cl.name }}</span>
+        <template v-if="currentAnalysisType === 'spc'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head accent">SPC 制程能力分析</div>
+            <div class="ai-rc-body">
+              <div class="ai-cpk-badge" :class="aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
+              <div class="ai-stats-row">
+                <div><label>CP</label><span>{{ (aiAnalysisResult.capability?.cp || aiAnalysisResult.cp)?.toFixed(2) }}</span></div>
+                <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean || aiAnalysisResult.mean }}</span></div>
+                <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std || aiAnalysisResult.std }}</span></div>
+                <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-if="(aiAnalysisResult.rules_violated || []).length || (aiAnalysisResult.violations || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">异常检测</div>
-          <div v-if="(aiAnalysisResult.rules_violated || []).length" class="dt-ai-warn">
-            <el-icon><Warning /></el-icon>
-            <span v-for="r in aiAnalysisResult.rules_violated" :key="r">{{ r }}</span>
-          </div>
-          <el-tag v-else type="success" size="small">无异常规则触发</el-tag>
-        </div>
-        <div v-if="(aiAnalysisResult.recommendations || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">建议</div>
-          <div class="dt-ai-recs"><div v-for="(r,i) in aiAnalysisResult.recommendations" :key="i">{{ i+1 }}. {{ r }}</div></div>
-        </div>
-      </div>
+        </template>
 
-      <!-- Energy Result -->
-      <div v-else-if="currentAnalysisType === 'energy' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">优化方案</div>
-          <div class="dt-ai-energy-delta">
-            <div>节能<span class="val">{{ aiAnalysisResult.estimated_energy_savings_pct }}%</span></div>
-            <div>月省<span class="val">{{ aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span></div>
-          </div>
-        </div>
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">参数调整</div>
-          <div class="dt-ai-params">
-            <div v-for="(chg, key) in aiAnalysisResult.parameter_changes" :key="key" class="dt-ai-param-row">
-              <label>{{ key === 'speed' ? '转速' : key === 'temperature' ? '温度' : '压力' }}</label>
-              <span class="old">{{ aiAnalysisResult.current_parameters?.[key] }}</span>
-              <el-icon><ArrowRight /></el-icon>
-              <span class="new">{{ aiAnalysisResult.recommended_parameters?.[key] }}</span>
-              <span class="chg" :class="chg?.startsWith('+') ? 'up' : chg?.startsWith('-') ? 'down' : ''">{{ chg }}</span>
+        <template v-else-if="currentAnalysisType === 'energy'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head warning">能耗优化分析</div>
+            <div class="ai-rc-body">
+              <div class="ai-energy-kpis">
+                <div><span class="kpi-val">{{ aiAnalysisResult.estimated_energy_savings_pct }}%</span><small>节能潜力</small></div>
+                <div><span class="kpi-val">{{ aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span><small>月省电量</small></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-if="(aiAnalysisResult.alternative_plans || []).length > 1" class="dt-ai-section">
-          <div class="dt-ai-section-title">备选方案</div>
-          <div class="dt-ai-alt">
-            <div v-for="(alt, i) in aiAnalysisResult.alternative_plans?.slice(1, 3)" :key="i" class="dt-ai-alt-row">
-              <span>方案{{ i+1 }}</span>
-              <span>转速 {{ alt.speed }} · 温度 {{ alt.temperature }} · 压力 {{ alt.pressure }}</span>
-              <span>品质 {{ alt.quality }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        </template>
 
-      <!-- Capacity Result -->
-      <div v-else-if="currentAnalysisType === 'capacity' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">预测概览</div>
-          <div class="dt-ai-energy-delta">
-            <div>总产量<span class="val">{{ aiAnalysisResult.summary?.total || aiAnalysisResult.total_predicted }}</span></div>
-            <div>日均<span class="val">{{ aiAnalysisResult.summary?.daily_avg || aiAnalysisResult.average_daily }}</span></div>
-            <div>趋势<span class="val">{{ aiAnalysisResult.summary?.trend || '稳定' }}</span></div>
-          </div>
-        </div>
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">逐日预测</div>
-          <div class="dt-ai-table">
-            <div class="dt-ai-table-head"><span>日期</span><span>预计产量</span><span>置信区间</span></div>
-            <div v-for="p in (aiAnalysisResult.predictions || [])" :key="p.date" class="dt-ai-table-row">
-              <span>{{ p.date?.slice(5) }} {{ p.day }}</span>
-              <span>{{ p.predicted_output }}</span>
-              <span class="muted">{{ p.confidence_lower }} ~ {{ p.confidence_upper }}</span>
+        <template v-else-if="currentAnalysisType === 'capacity'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head success">产能预测</div>
+            <div class="ai-rc-body">
+              <div class="ai-energy-kpis">
+                <div><span class="kpi-val">{{ aiAnalysisResult.summary?.total || aiAnalysisResult.total_predicted }}</span><small>总产量</small></div>
+                <div><span class="kpi-val">{{ aiAnalysisResult.summary?.daily_avg || aiAnalysisResult.average_daily }}</span><small>日均</small></div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
 
-      <!-- AI建议 Result -->
-      <div v-else-if="currentAnalysisType === 'llm' && aiAnalysisResult" class="dt-ai-advice">
-        <div class="dt-ai-advice-header">
-          <span class="dt-ai-advice-icon"><el-icon><Cpu /></el-icon></span>
-          <div>
-            <strong>{{ detailData?.name || '设备' }}</strong>
-            <span>AI 智能建议</span>
+        <template v-else>
+          <div class="ai-result-card">
+            <div class="ai-rc-head accent">AI 智能建议 — {{ detailData?.name }}</div>
+            <div class="ai-rc-body ai-llm-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
           </div>
+        </template>
+
+        <div class="ai-result-meta">
+          <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || '') }}</el-tag>
+          <span>{{ detailData?.name }}</span>
+          <span>{{ detailData?.temperature ?? '--' }}°C</span>
         </div>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
-        <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
-          <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
-        </div>
-        <div v-else class="dt-ai-advice-body">
-          <div v-for="(v, k) in aiAnalysisResult" :key="k" class="dt-ai-advice-item">
-            <strong>{{ k }}</strong>
-            <p>{{ typeof v === 'string' ? v : JSON.stringify(v) }}</p>
-          </div>
-        </div>
-        <div class="dt-ai-advice-status">
-          <span class="dt-ai-status-row">
-            <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || 'running') }}</el-tag>
-            <span>温度 {{ detailData?.temperature ?? '--' }}°C</span>
-            <span>转速 {{ detailData?.speed ?? '--' }} rpm</span>
-            <span>功率 {{ detailData?.power ?? '--' }} kW</span>
-          </span>
-        </div>
-      </div>
       </div>  <!-- end ai-result-area -->
 
       <!-- Generic / Other Result -->
