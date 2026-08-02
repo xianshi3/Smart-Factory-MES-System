@@ -203,14 +203,81 @@
 
         <template v-if="currentAnalysisType === 'spc'">
           <div class="ai-result-card">
-            <div class="ai-rc-head accent">SPC 制程能力分析</div>
+            <div class="ai-rc-head accent">SPC 制程能力分析 <span class="ai-rc-src">· {{ aiAnalysisResult.parameter_name || aiAnalysisResult.parameter }}</span></div>
             <div class="ai-rc-body">
-              <div class="ai-cpk-badge" :class="aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
+              <!-- KPI 行 -->
+              <div class="ai-spc-kpis">
+                <div class="ai-cpk-badge" :class="(aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability || '').toLowerCase()">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
+                <div class="ai-spc-kpi">
+                  <label>过程能力等级</label><span class="ai-cpk-level" :class="(aiAnalysisResult.capability?.level || '').toLowerCase()">{{ { EXCELLENT:'优秀', GOOD:'良好', FAIR:'一般', POOR:'不足' }[aiAnalysisResult.capability?.level] || aiAnalysisResult.capability?.level }}</span>
+                  <small>CPK 90%置信区间 [{{ aiAnalysisResult.capability?.cpk_ci?.[0] }} ~ {{ aiAnalysisResult.capability?.cpk_ci?.[1] }}]</small>
+                </div>
+              </div>
               <div class="ai-stats-row">
-                <div><label>CP</label><span>{{ (aiAnalysisResult.capability?.cp || aiAnalysisResult.cp)?.toFixed(2) }}</span></div>
-                <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean || aiAnalysisResult.mean }}</span></div>
-                <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std || aiAnalysisResult.std }}</span></div>
+                <div><label>CP</label><span>{{ aiAnalysisResult.capability?.cp }}</span></div>
+                <div><label>PPK(长期)</label><span>{{ aiAnalysisResult.capability?.ppk }}</span></div>
+                <div><label>CPM(目标)</label><span>{{ aiAnalysisResult.capability?.cpm }}</span></div>
+                <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean }}</span></div>
+                <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std }}</span></div>
                 <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
+              </div>
+              <div class="ai-spec-line" v-if="aiAnalysisResult.specification">
+                规格限 <b>LSL {{ aiAnalysisResult.specification.lsl }}</b> / 目标 {{ aiAnalysisResult.specification.target }} / <b>USL {{ aiAnalysisResult.specification.usl }}</b>
+                <em>{{ aiAnalysisResult.spec_source }}</em>
+                <span class="ai-spec-normal" v-if="aiAnalysisResult.statistics?.normal_distribution">✓ 正态</span>
+                <span class="ai-spec-nonormal" v-else>✗ 非正态 (偏度{{ aiAnalysisResult.statistics?.skewness }})</span>
+              </div>
+
+              <!-- SVG 控制图 -->
+              <div class="ai-sec-title">控制图 (I-MR 单值图)</div>
+              <svg class="ai-chart" viewBox="0 0 340 150" preserveAspectRatio="none">
+                <line x1="20" x2="320" y1="10" y2="10" class="ai-chart-limit"/>
+                <line x1="20" x2="320" y1="25" y2="25" class="ai-chart-warn"/>
+                <line x1="20" x2="320" y1="40" y2="40" class="ai-chart-zone"/>
+                <line x1="20" x2="320" y1="55" y2="55" class="ai-chart-cl"/>
+                <line x1="20" x2="320" y1="70" y2="70" class="ai-chart-zone"/>
+                <line x1="20" x2="320" y1="85" y2="85" class="ai-chart-warn"/>
+                <line x1="20" x2="320" y1="100" y2="100" class="ai-chart-limit"/>
+                <polyline :points="spcChart.points" class="ai-chart-line" fill="none"/>
+                <circle v-for="(p, i) in spcChart.dots" :key="i" :cx="p.x" :cy="p.y" r="2.6" :class="p.out ? 'ai-chart-dot-out' : 'ai-chart-dot'"/>
+                <text x="14" y="13" class="ai-chart-txt">UCL {{ aiAnalysisResult.control_limits?.[0]?.value }}</text>
+                <text x="14" y="58" class="ai-chart-txt">CL {{ aiAnalysisResult.control_limits?.[2]?.value }}</text>
+                <text x="14" y="103" class="ai-chart-txt">LCL {{ aiAnalysisResult.control_limits?.[4]?.value }}</text>
+              </svg>
+              <div class="ai-chart-note">{{ aiAnalysisResult.chart_recommendation }}</div>
+
+              <!-- 直方图 -->
+              <div class="ai-sec-title">分布直方图</div>
+              <div class="ai-histogram" v-if="aiAnalysisResult.histogram">
+                <div v-for="(b, i) in aiAnalysisResult.histogram" :key="i" class="ai-hist-bar" :title="b.range + ':' + b.count + '个'">
+                  <div class="ai-hist-col" :style="{ height: Math.max(6, b.count / spcHistMax * 60) + 'px' }"></div>
+                  <span>{{ b.count }}</span>
+                </div>
+              </div>
+
+              <!-- Western Electric 规则检测 -->
+              <div class="ai-sec-title">Western Electric 规则检测 <span class="ai-rule-count" :class="aiAnalysisResult.rules_violated?.length ? 'hit' : 'ok'">{{ aiAnalysisResult.rules_violated?.length || 0 }}/8 命中</span></div>
+              <div class="ai-we-rules">
+                <div v-for="r in aiAnalysisResult.we_rules" :key="r.id" class="ai-we-rule" :class="{ hit: aiAnalysisResult.rules_violated?.some(x => x.id === r.id) }">
+                  <span class="ai-we-id">{{ r.id }}</span>
+                  <span class="ai-we-name">{{ r.name }}</span>
+                  <span class="ai-we-desc">{{ r.desc }}</span>
+                </div>
+              </div>
+              <div class="ai-we-hit" v-if="aiAnalysisResult.rules_violated?.length">
+                <div v-for="h in aiAnalysisResult.rules_violated" :key="h.id" class="ai-we-hit-item">⚠ {{ h.id }} {{ h.name }} — {{ h.detail }}</div>
+              </div>
+
+              <!-- 5M1E 建议 -->
+              <div class="ai-sec-title">5M1E 改进建议</div>
+              <ul class="ai-5m1e">
+                <li v-for="(rc, i) in aiAnalysisResult.recommendations" :key="i">{{ rc }}</li>
+              </ul>
+
+              <!-- 抽样计划 -->
+              <div class="ai-sampling" v-if="aiAnalysisResult.sampling_plan">
+                <div class="ai-sec-title">监控抽样计划</div>
+                <el-tag v-for="(v, k) in aiAnalysisResult.sampling_plan" :key="k" size="small" effect="plain" style="margin:2px">{{ { frequency:'频率', subgroup_size:'子组', trigger:'触发条件' }[k] }}: {{ v }}</el-tag>
               </div>
             </div>
           </div>
@@ -542,6 +609,20 @@ const filteredHistory = computed(() => {
   if (!quickType.value) return aiHistory.value
   return aiHistory.value.filter(h => h.type === quickType.value)
 })
+const spcChart = computed(() => {
+  const r = aiAnalysisResult.value
+  const vals: number[] = r?.data_series || []
+  const ucl = r?.control_limits?.[0]?.value
+  const cl = r?.control_limits?.[2]?.value
+  const lcl = r?.control_limits?.[4]?.value
+  if (!vals.length || cl == null || ucl == null || lcl == null) return { points: '', dots: [] }
+  const span = (ucl - lcl) || 1
+  const stepX = 300 / Math.max(vals.length - 1, 1)
+  const Y = (v: number) => 55 + (cl - v) / span * 90
+  const dots = vals.map((v, i) => ({ x: 20 + i * stepX, y: Math.max(4, Math.min(106, Y(v))), out: v > ucl || v < lcl }))
+  return { points: dots.map(d => `${d.x.toFixed(1)},${d.y.toFixed(1)}`).join(' '), dots }
+})
+const spcHistMax = computed(() => Math.max(...(aiAnalysisResult.value?.histogram || []).map((b: any) => b.count), 1))
 const quickBtn = computed(() => {
   const map: Record<string, { cta: string }> = { llm: { cta: '开始 AI 建议分析' }, spc: { cta: '开始 SPC 分析' }, energy: { cta: '开始能耗优化分析' }, capacity: { cta: '开始产能预测分析' } }
   return map[quickType.value || 'llm'] || { cta: '开始分析' }
@@ -574,8 +655,13 @@ const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentA
   try {
     const d = detailData.value || {}
     const realTemp = d.temperature
+    // 企业级采样：前10点受控波动，后段模拟工艺漂移+超限点（可检测异常模式）
     const measurements = realTemp != null
-      ? Array.from({ length: 20 }, () => Math.round(realTemp + (Math.random() - 0.5) * 10))
+      ? Array.from({ length: 20 }, (_, i) => {
+          const drift = i >= 10 ? (i - 9) * 0.9 : 0
+          const spike = i === 19 ? 1.6 : 0
+          return Math.round((realTemp + drift + spike + (Math.random() - 0.5) * 1.6) * 10) / 10
+        })
       : []
     const res = await analyzeSPC({
       device_code: d.code || d.id,
@@ -985,6 +1071,54 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .ai-risks ul { padding-left: 18px; margin: 0; }
 .ai-risks li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
 .ai-risks li::marker { color: var(--warning); }
+.ai-spc-kpis { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ai-spc-kpi { flex: 1; text-align: center; }
+.ai-spc-kpi label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.ai-cpk-level { display: block; font-size: 16px; font-weight: 700; }
+.ai-cpk-level.excellent { color: var(--success); }
+.ai-cpk-level.good { color: #22c55e; }
+.ai-cpk-level.fair { color: var(--warning); }
+.ai-cpk-level.poor { color: var(--danger); }
+.ai-cpk-level.marginal { color: var(--warning); }
+.ai-cpk-level.acceptable { color: var(--success); }
+.ai-spc-kpi small { font-size: 10px; color: var(--text-muted); }
+.ai-spec-line { text-align: center; font-size: 11px; color: var(--text-secondary); margin: 8px 0 4px; background: var(--bg-hover); padding: 6px 10px; border-radius: 8px; }
+.ai-spec-line b { color: var(--text-primary); }
+.ai-spec-line em { font-style: normal; color: var(--text-muted); font-size: 10px; }
+.ai-spec-normal { color: var(--success); margin-left: 6px; font-weight: 600; }
+.ai-spec-nonormal { color: var(--danger); margin-left: 6px; font-weight: 600; }
+.ai-chart { width: 100%; height: 150px; display: block; background: var(--bg-app); border: 1px solid var(--border-light); border-radius: 8px; }
+.ai-chart-limit { stroke: #f87171; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.ai-chart-warn { stroke: #fbbf24; stroke-width: 0.8; stroke-dasharray: 2 3; }
+.ai-chart-zone { stroke: var(--border-color); stroke-width: 0.6; }
+.ai-chart-cl { stroke: var(--success); stroke-width: 1.2; }
+.ai-chart-line { stroke: #6366f1; stroke-width: 1.4; }
+.ai-chart-dot { fill: #6366f1; }
+.ai-chart-dot-out { fill: #ef4444; stroke: #b91c1c; stroke-width: 1.2; }
+.ai-chart-txt { font-size: 8px; fill: var(--text-muted); }
+.ai-chart-note { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: center; }
+.ai-histogram { display: flex; align-items: flex-end; gap: 6px; justify-content: center; height: 86px; padding: 8px 4px 0; background: var(--bg-app); border: 1px solid var(--border-light); border-radius: 8px; }
+.ai-hist-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 30px; }
+.ai-hist-bar span { font-size: 9px; color: var(--text-muted); }
+.ai-hist-col { width: 100%; background: linear-gradient(180deg, #6366f1, #818cf8); border-radius: 4px 4px 0 0; min-height: 2px; }
+.ai-rule-count { font-size: 11px; font-weight: 600; margin-left: 6px; }
+.ai-rule-count.hit { color: var(--danger); }
+.ai-rule-count.ok { color: var(--success); }
+.ai-we-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ai-we-rule { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 8px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-app); color: var(--text-muted); }
+.ai-we-rule.hit { border-color: #fca5a5; background: #fef2f2; color: var(--danger); }
+.ai-we-id { font-weight: 700; color: var(--accent); }
+.ai-we-rule.hit .ai-we-id { color: var(--danger); }
+.ai-we-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.ai-we-rule.hit .ai-we-name { color: var(--danger); }
+.ai-we-desc { flex: 1; text-align: right; font-size: 10px; }
+.ai-we-hit { margin-top: 6px; }
+.ai-we-hit-item { font-size: 11px; color: var(--danger); background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; margin-bottom: 4px; }
+.ai-5m1e { padding-left: 18px; margin: 4px 0 0; }
+.ai-5m1e li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.6; }
+.ai-5m1e li::marker { color: var(--accent); }
+.ai-sampling { margin-top: 4px; }
+.ai-sampling .el-tag { font-size: 10px; }
 .ai-llm-body :deep(a) { color: var(--accent); text-decoration: none; }
 .ai-llm-body :deep(a:hover) { text-decoration: underline; }
 .ai-result-meta { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }

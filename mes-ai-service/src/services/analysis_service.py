@@ -261,7 +261,26 @@ class EnergyOptimizationService:
 
 
 class SPCService:
-    """SPC统计过程控制服务 — 动态控制限 + Western Electric 规则"""
+    """企业级SPC统计过程控制 — 真实规格限 + 8条Western Electric规则 + 全过程能力"""
+
+    # 参数名 → proc_parameter.param_name 匹配词
+    PARAM_ALIAS = {
+        "temperature": ["温度", "temp", "temperature"],
+        "speed": ["主轴转速", "转速", "speed"],
+        "pressure": ["装配压力", "压力", "pressure"],
+        "feed": ["进给速度", "feed", "feed_rate"],
+        "cut_depth": ["切削深度", "cut_depth"],
+    }
+    WE_RULES = [
+        {"id": "W1", "name": "超出控制限", "desc": "1个点超出3σ控制限(±3σ)", "zone": 3, "n": 1},
+        {"id": "W2", "name": "连续同侧", "desc": "连续9个点位于中心线同侧", "zone": 0, "n": 9},
+        {"id": "W3", "name": "持续趋势", "desc": "连续6个点递增或递减", "zone": 0, "n": 6, "trend": True},
+        {"id": "W4", "name": "交替模式", "desc": "连续14个点上下交替", "zone": 0, "n": 14, "alternating": True},
+        {"id": "W5", "name": "2σ警戒", "desc": "连续3点中2点落在同侧2σ~3σ区", "zone": 2, "n": 3, "k": 2},
+        {"id": "W6", "name": "1σ倾向", "desc": "连续5点中4点落在同侧1σ~3σ区", "zone": 1, "n": 5, "k": 4},
+        {"id": "W7", "name": "分层过稳", "desc": "连续15点落在±1σ内(过拟合/分层)", "zone": 1, "n": 15, "inside": True},
+        {"id": "W8", "name": "混合偏移", "desc": "连续8点落在±1σ外(混合分布)", "zone": 1, "n": 8, "outside": True},
+    ]
 
     def analyze(
         self,
@@ -272,82 +291,226 @@ class SPCService:
         if not measurements or len(measurements) < 5:
             return {"error": "数据量不足，需要至少5个数据点"}
 
-        arr = np.array(measurements)
+        arr = np.array(measurements, dtype=float)
         n = len(arr)
         mean = float(np.mean(arr))
         std = float(np.std(arr, ddof=1))
         if std == 0:
             std = abs(mean) * 0.01 if mean != 0 else 0.1
 
-        ucl = mean + 3 * std
-        lcl = mean - 3 * std
-        ucl_warn = mean + 2 * std
-        lcl_warn = mean - 2 * std
+        # ---- 真实工艺规格限（proc_parameter）----
+        spec = self._load_spec(parameter)
+        lsl = spec.get("lsl")
+        usl = spec.get("usl")
+        target = spec.get("target")
+        spec_source = spec.get("source", "estimated")
 
-        # CP / CPK (estimated spec: 6 sigma process window)
-        spec_half = 3 * std * 1.5
-        spec_usl = mean + spec_half
-        spec_lsl = mean - spec_half
-        cp = (spec_usl - spec_lsl) / (6 * std) if std > 0 else 0
-        cpu = (spec_usl - mean) / (3 * std) if std > 0 else 0
-        cpl = (mean - spec_lsl) / (3 * std) if std > 0 else 0
+        # 无真实规格时用 6σ 过程窗口估算
+        if lsl is None or usl is None:
+            half = 3 * std * 1.5
+            lsl, usl = mean - half, mean + half
+            if target is None:
+                target = mean
+        if target is None:
+            target = (lsl + usl) / 2
+
+        # ---- 控制限（I-MR 单值控制图）----
+        ucl, lcl = mean + 3 * std, mean - 3 * std
+        ucl_warn, lcl_warn = mean + 2 * std, mean - 2 * std
+        zone1_up, zone1_lo = mean + std, mean - std
+
+        # ---- 过程能力：CP/CPK（短期）+ PP/PPK（长期）+ Cpm（目标）----
+        cp = (usl - lsl) / (6 * std) if std > 0 else 0
+        cpu = (usl - mean) / (3 * std) if std > 0 else 0
+        cpl = (mean - lsl) / (3 * std) if std > 0 else 0
         cpk = min(cpu, cpl)
+        pp = (usl - lsl) / (6 * np.std(arr, ddof=0)) if np.std(arr, ddof=0) > 0 else 0
+        ppu = (usl - mean) / (3 * np.std(arr, ddof=0)) if np.std(arr, ddof=0) > 0 else 0
+        ppl = (mean - lsl) / (3 * np.std(arr, ddof=0)) if np.std(arr, ddof=0) > 0 else 0
+        ppk = min(ppu, ppl)
+        cpm = (usl - lsl) / (6 * float(np.sqrt(np.mean((arr - target) ** 2)))) if np.sqrt(np.mean((arr - target) ** 2)) > 0 else 0
 
-        violations = []
-        for i, v in enumerate(measurements):
+        # CPK 90% 置信区间（近似）
+        ci_half = 1.5 * abs(cpk) / max(n - 1, 1) ** 0.5
+        cpk_ci = (round(cpk - ci_half, 2), round(cpk + ci_half, 2))
+        if cpk > 0:
+            cpk_ci = (round(max(cpk - ci_half, 0.01), 2), cpk_ci[1])
+        else:
+            cpk_ci = (cpk_ci[0], round(min(cpk + ci_half, 0.01), 2))
+
+        # ---- 正态性检验（Jarque-Bera）----
+        skew = float((np.mean((arr - mean) ** 3)) / std ** 3) if std > 0 else 0
+        kurt = float((np.mean((arr - mean) ** 4)) / std ** 4) if std > 0 else 0
+        jb_stat = n / 6 * (skew ** 2 + (kurt - 3) ** 2 / 4)
+        normal = jb_stat < 5.99  # χ²(2, 0.05)
+
+        # ---- 8条 Western Electric 规则检测 ----
+        z = (arr - mean) / std
+        rules_hit, violations = [], []
+        for i, v in enumerate(arr):
             if v > ucl:
-                violations.append({"index": i, "value": round(v, 1), "type": "UCL"})
+                violations.append({"index": i + 1, "value": round(v, 2), "type": "UCL"})
             elif v < lcl:
-                violations.append({"index": i, "value": round(v, 1), "type": "LCL"})
+                violations.append({"index": i + 1, "value": round(v, 2), "type": "LCL"})
 
-        rules = []
-        out_count = sum(1 for v in measurements if v > ucl or v < lcl)
-        if out_count:
-            rules.append(f"规则1: {out_count}点超出控制限")
+        for r in self.WE_RULES:
+            hit, detail = self._check_rule(r, z, arr)
+            if hit:
+                rules_hit.append({"id": r["id"], "name": r["name"], "desc": r["desc"], "detail": detail})
 
-        above = sum(1 for v in measurements[-7:] if v > mean)
-        if above >= 7:
-            rules.append("规则2: 连续≥7点高于中心线")
-        if n - above >= 7:
-            below = sum(1 for v in measurements[-7:] if v < mean)
-            if below >= 7:
-                rules.append("规则2: 连续≥7点低于中心线")
-
-        if n >= 7:
-            diffs = np.diff(arr[-7:])
-            if all(d > 0 for d in diffs):
-                rules.append("规则3: 连续7点上升趋势")
-            elif all(d < 0 for d in diffs):
-                rules.append("规则3: 连续7点下降趋势")
-
+        # ---- 过程能力等级 ----
         capability = "EXCELLENT" if cpk >= 1.33 else "GOOD" if cpk >= 1.0 else "FAIR" if cpk >= 0.67 else "POOR"
         stability = round(max(0, min(1, 1.0 - (std / (abs(mean) + 0.01)))), 3)
 
-        bins = min(6, max(4, n // 4))
-        hist, edges = np.histogram(arr, bins=bins)
-        histogram = [{"range": f"{round(edges[i], 1)}-{round(edges[i+1], 1)}", "count": int(hist[i])} for i in range(bins)]
+        # ---- 控制图类型推荐 ----
+        chart_type = "I-MR 单值控制图（样本量小，逐件测量）" if n < 30 else "Xbar-R 均值-极差控制图（建议按子组收集）"
 
-        recs = []
-        if cpk < 1.0:
-            recs.append("制程能力不足，建议减少变异或调整参数")
-        if rules:
-            recs.append("检测到异常模式，排查设备和工艺")
-        if not recs:
-            recs.append("制程稳定，保持当前参数")
+        # ---- 直方图 ----
+        bins = min(8, max(5, n // 4))
+        hist, edges = np.histogram(arr, bins=bins)
+        histogram = [{"range": f"{round(edges[i], 1)}-{round(edges[i+1], 1)}", "count": int(hist[i]),
+                      "center": round((edges[i] + edges[i + 1]) / 2, 1)} for i in range(bins)]
+
+        # ---- 5M1E 建议 ----
+        recs = self._recommendations(rules_hit, cpk, normal)
 
         return {
             "device_code": device_code,
             "parameter": parameter,
+            "parameter_name": spec.get("name", parameter),
             "sample_size": n,
-            "statistics": {"mean": round(mean, 1), "std": round(std, 1), "min": round(float(arr.min()), 1), "max": round(float(arr.max()), 1)},
-            "capability": {"cp": round(cp, 2), "cpk": round(cpk, 2), "level": capability},
+            "spec_source": spec_source,
+            "specification": {
+                "lsl": round(lsl, 2) if isinstance(lsl, float) else lsl,
+                "usl": round(usl, 2) if isinstance(usl, float) else usl,
+                "target": round(target, 2) if isinstance(target, float) else target,
+            },
+            "statistics": {"mean": round(mean, 2), "std": round(std, 2),
+                           "min": round(float(arr.min()), 2), "max": round(float(arr.max()), 2),
+                           "skewness": round(skew, 3), "kurtosis": round(kurt, 3),
+                           "normal_distribution": bool(normal)},
+            "capability": {"cp": round(cp, 2), "cpk": round(cpk, 2), "pp": round(pp, 2),
+                           "ppk": round(ppk, 2), "cpm": round(cpm, 2), "level": capability,
+                           "cpk_ci": cpk_ci},
             "stability": stability,
-            "control_limits": [{"name": "UCL", "value": round(ucl, 1)}, {"name": "UWL", "value": round(ucl_warn, 1)}, {"name": "CL", "value": round(mean, 1)}, {"name": "LWL", "value": round(lcl_warn, 1)}, {"name": "LCL", "value": round(lcl, 1)}],
+            "control_limits": [{"name": "UCL", "value": round(ucl, 2)}, {"name": "UWL", "value": round(ucl_warn, 2)},
+                               {"name": "CL", "value": round(mean, 2)}, {"name": "LWL", "value": round(lcl_warn, 2)},
+                               {"name": "LCL", "value": round(lcl, 2)}],
+            "zones": {"z1_up": round(zone1_up, 2), "z1_lo": round(zone1_lo, 2)},
+            "chart_recommendation": chart_type,
             "violations": violations,
-            "rules_violated": rules,
+            "rules_violated": rules_hit,
             "histogram": histogram,
+            "we_rules": self.WE_RULES,
+            "data_series": [round(float(v), 2) for v in arr],
             "recommendations": recs,
+            "sampling_plan": {
+                "frequency": "每2小时抽样1次（班组生产节拍内）",
+                "subgroup_size": "建议子组5件连续取样",
+                "trigger": "任一规则命中立即排查，连续3次命中触发停线评审",
+            },
         }
+
+    # ---------- 私有方法 ----------
+
+    def _load_spec(self, parameter: str) -> dict:
+        """从 proc_parameter 读取真实工艺规格限"""
+        aliases = self.PARAM_ALIAS.get(parameter, [parameter])
+        try:
+            conn = pymysql.connect(**DB_CONFIG)
+            cur = conn.cursor()
+            for alias in aliases:
+                cur.execute(
+                    "SELECT param_name, param_value, min_value, max_value, unit "
+                    "FROM proc_parameter WHERE param_name LIKE %s AND min_value IS NOT NULL "
+                    "AND max_value IS NOT NULL LIMIT 1",
+                    (f"%{alias}%",),
+                )
+                row = cur.fetchone()
+                if row:
+                    conn.close()
+                    return {
+                        "name": row["param_name"], "unit": row.get("unit", ""),
+                        "lsl": float(row["min_value"]), "usl": float(row["max_value"]),
+                        "target": float(row["param_value"]) if row.get("param_value") is not None else None,
+                        "source": "proc_parameter(工艺参数表)",
+                    }
+            conn.close()
+        except Exception as e:
+            logger.warning(f"读取工艺规格失败: {e}")
+        return {"lsl": None, "usl": None, "target": None, "source": "estimated(6σ窗口估算)"}
+
+    def _check_rule(self, rule: dict, z: np.ndarray, arr: np.ndarray) -> tuple:
+        n = len(z)
+        detail = ""
+        rid = rule["id"]
+
+        if rid == "W1":
+            idx = np.where(np.abs(z) > 3)[0]
+            if len(idx):
+                return True, f"第{int(idx[0]) + 1}点超出3σ控制限 (z={z[idx[0]]:.2f})"
+        elif rid == "W2":
+            side = z > 0
+            for i in range(n - 8):
+                if all(side[i:i + 9]) or all(~side[i:i + 9]):
+                    return True, f"第{i + 1}~{i + 9}点连续位于中心线同侧"
+        elif rid == "W3":
+            d = np.diff(arr)
+            for i in range(n - 5):
+                if all(d[i:i + 5] > 0) or all(d[i:i + 5] < 0):
+                    return True, f"第{i + 1}~{i + 6}点持续{'上升' if d[i] > 0 else '下降'}"
+        elif rid == "W4":
+            for i in range(n - 13):
+                window = np.diff(np.sign(z[i:i + 14]))
+                if len(window) and not np.any(window == 0) and all(window[1:] == -window[:-1]):
+                    return True, f"第{i + 1}~{i + 14}点呈现规律性上下交替"
+        elif rid == "W5":
+            outer = np.abs(z) > 2
+            for i in range(n - 2):
+                w = outer[i:i + 3]
+                if np.count_nonzero(w) >= 2 and all(np.sign(z[i + j]) == np.sign(z[i]) for j in np.where(w)[0]):
+                    return True, f"连续3点中2点落在同侧2σ~3σ区 (第{i + 1}~{i + 3}点)"
+        elif rid == "W6":
+            outer = np.abs(z) > 1
+            for i in range(n - 4):
+                w = outer[i:i + 5]
+                if np.count_nonzero(w) >= 4 and all(np.sign(z[i + j]) == np.sign(z[i]) for j in np.where(w)[0]):
+                    return True, f"连续5点中4点落在同侧1σ~3σ区 (第{i + 1}~{i + 5}点)"
+        elif rid == "W7":
+            inside = np.abs(z) <= 1
+            for i in range(n - 14):
+                if all(inside[i:i + 15]):
+                    return True, f"连续15点均落在±1σ内 (第{i + 1}~{i + 15}点)"
+        elif rid == "W8":
+            outside = np.abs(z) > 1
+            for i in range(n - 7):
+                if all(outside[i:i + 8]):
+                    return True, f"连续8点落在±1σ外 (第{i + 1}~{i + 8}点)"
+        return False, detail
+
+    def _recommendations(self, rules_hit: list, cpk: float, normal: bool) -> list:
+        """按命中规则类型生成 5M1E 分组的改进建议"""
+        ids = {r["id"] for r in rules_hit}
+        recs = []
+        if "W1" in ids:
+            recs.append("【机】超限点对应批次设备参数已漂移，立即停线校准传感器与执行机构")
+        if "W2" in ids or "W5" in ids or "W6" in ids:
+            recs.append("【料】同侧偏移通常对应原材料批次变更，核对来料批次与供应商")
+        if "W3" in ids:
+            recs.append("【机】持续趋势提示刀具磨损/热变形累积，检查刀具寿命与冷却系统")
+        if "W4" in ids:
+            recs.append("【法】交替波动多源于参数振荡，检查PID调节与班次交替操作差异")
+        if "W7" in ids:
+            recs.append("【法】数据过稳需核查测量系统分辨力或抽样分层问题")
+        if "W8" in ids:
+            recs.append("【测】混合分布提示多工艺路线/多设备混样，按设备分层重新抽样")
+        if cpk < 1.0:
+            recs.append("【环】制程能力不足，检查温湿度等环境因素并减少过程变异")
+        if not normal:
+            recs.append("【测】数据不服从正态分布，核查测量系统与数据采集完整性")
+        if not recs:
+            recs.append("制程受控且能力充足，保持当前工艺，持续按抽样计划监控")
+        return recs
 
 
 class CapacityPredictionService:
