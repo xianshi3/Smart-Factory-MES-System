@@ -47,7 +47,13 @@
             <span class="conv-name">{{ conv.title }}</span>
             <span class="conv-time">{{ fmt(conv.updated_at) }}</span>
           </div>
-          <div v-if="store.loadingList" class="conv-note">加载中...</div>
+          <div v-if="store.loadingList" class="conv-loading">
+            <el-skeleton v-for="i in 3" :key="i" animated>
+              <template #template>
+                <el-skeleton-item variant="rect" style="height: 32px; border-radius: 6px" />
+              </template>
+            </el-skeleton>
+          </div>
           <div v-else-if="!store.conversations.length" class="conv-note">暂无记录</div>
         </div>
       </div>
@@ -182,6 +188,9 @@ onMounted(() => { store.loadList() })
 /* conversations */
 .side-convs { flex: 1; overflow-y: auto; padding: 8px; }
 .conv-list { display: flex; flex-direction: column; gap: 1px; }
+.conv-loading { display: flex; flex-direction: column; gap: 8px; padding: 4px 8px; }
+.scap-item, .conv-item { animation: convIn 0.3s ease both; }
+@keyframes convIn { from { opacity: 0; transform: translateY(6px); } }
 .conv-item {
   display: flex; align-items: center; padding: 7px 8px; border-radius: 6px;
   cursor: pointer; transition: all 0.12s ease; gap: 6px; position: relative;

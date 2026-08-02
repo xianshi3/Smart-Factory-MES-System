@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -187,13 +188,21 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
             return Result.error("模板参数配置为空");
         }
 
-        Map<String, Double> inputValues = dto.getParamValues();
+        // 请求参数值可能为空，此时回退使用模板默认值校验（null 防护）
+        Map<String, Double> inputValues = dto.getParamValues() != null ? dto.getParamValues() : new HashMap<>();
         List<String> errors = new ArrayList<>();
 
         for (ProcessParameter param : parameters) {
             Double value = inputValues.get(param.getParamCode());
+            if (value == null && param.getParamValue() != null && !param.getParamValue().trim().isEmpty()) {
+                try {
+                    value = Double.parseDouble(param.getParamValue().trim());
+                } catch (NumberFormatException ignored) {
+                    // 默认值不是数字时忽略，按未提供处理
+                }
+            }
             if (value == null) {
-                errors.add("参数[" + param.getParamName() + "]未提供值");
+                errors.add("参数[" + param.getParamName() + "]未提供值且无默认值");
                 continue;
             }
             if (param.getMinValue() != null && value < param.getMinValue()) {

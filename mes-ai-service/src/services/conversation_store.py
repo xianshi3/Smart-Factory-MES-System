@@ -6,9 +6,15 @@ import json
 import os
 import uuid
 import asyncio
+import time
 from datetime import datetime
 from typing import Optional, Any
+import logging
 import yaml
+
+from src.services.redis_store import redis_store
+
+logger = logging.getLogger(__name__)
 
 _config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml")
 try:
@@ -235,6 +241,11 @@ class ConversationStore:
         return await _run_sync(_delete_analysis_sync, analysis_id, user_id)
 
 
+def _analysis_cache_key(user_id: str, device_code: Optional[str]) -> str:
+    """分析历史 Redis 缓存 key — 按用户+设备维度"""
+    return f"analysis:recent:{user_id}:{device_code or '_all'}"
+
+
 def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analysis_type: str, result_data: dict) -> int:
     conn = _get_conn()
     cur: Any = conn.cursor()
@@ -245,10 +256,56 @@ def _save_analysis_sync(user_id: str, device_code: str, device_name: str, analys
     )
     last_id = int(cur.lastrowid)
     conn.close()
+    # 双写 Redis 热点缓存（失败静默，不影响主流程）
+    _seed_analysis_cache(user_id, device_code, [{
+        "id": last_id, "user_id": user_id, "device_code": device_code,
+        "device_name": device_name, "analysis_type": analysis_type,
+        "result_data": result_data, "created_at": _fmt(datetime.now()),
+    }], prepend=True)
     return last_id
 
 
+def _seed_analysis_cache(user_id: str, device_code: Optional[str], records: list, prepend: bool = False):
+    """回填 Redis 最近N条缓存（非空才缓存，TTL 300s 自动过期保证新鲜）"""
+    if not records or not redis_store.enabled:
+        return
+    key = _analysis_cache_key(user_id, device_code)
+    try:
+        mapping = {}
+        now = time.time()
+        for i, r in enumerate(records):
+            r = dict(r)
+            r["result_data"] = json.loads(r["result_data"]) if isinstance(r["result_data"], str) else r["result_data"]
+            r["created_at"] = _fmt(r["create_time"]) if "create_time" in r else r.get("created_at", "")
+            member = json.dumps(r, ensure_ascii=False, default=str)
+            mapping[member] = now - i if not prepend else now + i
+        redis_store.zadd(key, mapping)
+        redis_store.zremrangebyrank(key, 50, -1)  # 只留 50 条
+        redis_store.expire(key, 300)
+    except Exception as e:
+        logger.warning(f"分析历史缓存回填失败: {e}")
+
+
 def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None, device_code: Optional[str] = None) -> list[dict]:
+    # 优先读 Redis 热点缓存（打开面板秒开；删除/新增均实时同步缓存）
+    key = _analysis_cache_key(user_id, device_code)
+    try:
+        if redis_store.enabled:
+            cached = redis_store.zrevrange(key, 0, 49)
+            if cached:
+                recs = []
+                for m in cached:
+                    try:
+                        rec = json.loads(m)
+                        if not analysis_type or rec.get("analysis_type") == analysis_type:
+                            recs.append(rec)
+                    except Exception:
+                        continue
+                if recs or analysis_type:  # 缓存命中（非空，或按类型过滤后有数据）
+                    return recs
+    except Exception:
+        pass  # 缓存异常 → 直查 MySQL
+
     conn = _get_conn()
     cur: Any = conn.cursor()
     sql = ("SELECT id, user_id, device_code, device_name, analysis_type, result_data, create_time "
@@ -264,7 +321,7 @@ def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None, devic
     cur.execute(sql, tuple(params))
     rows = cur.fetchall()  # type: ignore[assignment]
     conn.close()
-    return [
+    result = [
         {
             "id": r["id"], "user_id": r["user_id"],
             "device_code": r["device_code"], "device_name": r["device_name"],
@@ -274,17 +331,40 @@ def _list_analyses_sync(user_id: str, analysis_type: Optional[str] = None, devic
         }
         for r in rows
     ]
+    # 回填缓存（MySQL 有数据才缓存，避免缓存空结果掩盖新增）
+    if result:
+        _seed_analysis_cache(user_id, device_code, result)
+    return result
 
 
 def _delete_analysis_sync(analysis_id: int, user_id: str = "default") -> bool:
     conn = _get_conn()
     cur: Any = conn.cursor()
+    # 先取记录定位缓存
+    cur.execute(
+        "SELECT device_code FROM ai_analysis_history WHERE id = %s AND user_id = %s",
+        (analysis_id, user_id),
+    )
+    row = cur.fetchone()  # type: ignore[assignment]
     cur.execute(
         "DELETE FROM ai_analysis_history WHERE id = %s AND user_id = %s",
         (analysis_id, user_id),
     )
     deleted = cur.rowcount > 0
     conn.close()
+    # 同步清理 Redis 缓存中的对应成员
+    if deleted and row:
+        try:
+            key = _analysis_cache_key(user_id, row.get("device_code"))
+            members = redis_store.zrevrange(key, 0, -1)
+            for m in members:
+                try:
+                    if int(json.loads(m).get("id", 0)) == analysis_id:
+                        redis_store.zrem(key, m)
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.warning(f"分析历史缓存删除失败: {e}")
     return deleted
 
 

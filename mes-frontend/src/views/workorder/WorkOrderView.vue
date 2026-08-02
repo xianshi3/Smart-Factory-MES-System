@@ -29,7 +29,15 @@
       <el-button @click="handleReset">重置</el-button>
     </div>
 
-    <div class="card-grid">
+    <div v-if="loading" class="card-grid">
+      <el-skeleton v-for="i in 6" :key="i" animated>
+        <template #template>
+          <el-skeleton-item variant="rect" style="height: 190px; border-radius: var(--radius-lg)" />
+        </template>
+      </el-skeleton>
+    </div>
+
+    <div v-else class="card-grid">
       <div 
         v-for="row in tableData" 
         :key="row.id" 
@@ -41,7 +49,12 @@
         </div>
         
         <div class="card-body">
-          <div class="card-product">{{ row.productName }}</div>
+          <div class="card-product-row">
+            <div class="card-product">{{ row.productName }}</div>
+            <span :class="['priority-tag', `priority-tag--${(row.priority || 'MEDIUM').toLowerCase()}`]">
+              {{ priorityText(row.priority) }}
+            </span>
+          </div>
           <div class="card-meta">
             <span class="meta-item">
               <el-icon><Coin /></el-icon>
@@ -61,6 +74,11 @@
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: getProgress(row) + '%' }"></div>
             </div>
+          </div>
+
+          <div class="card-time">
+            <el-icon><Calendar /></el-icon>
+            <span>{{ row.plannedStartTime ? row.plannedStartTime.substring(5, 16) : '--' }} ~ {{ row.plannedEndTime ? row.plannedEndTime.substring(5, 16) : '--' }}</span>
           </div>
         </div>
         
@@ -186,7 +204,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getWorkOrderPage, createWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, deleteWorkOrder, submitReport } from '@/api/services'
-import { Document, Plus, Search, Coin, CircleCheck } from '@element-plus/icons-vue'
+import { Document, Plus, Search, Coin, CircleCheck, Calendar } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -241,6 +259,7 @@ const getProgress = (row: any) => {
   if (!row.planQuantity) return 0
   return Math.round(((row.completedQuantity || 0) / row.planQuantity) * 100)
 }
+const priorityText = (p: string) => ({ HIGH: '高优先级', MEDIUM: '中优先级', LOW: '低优先级' } as any)[p] || '中优先级'
 const canStart = (row: any) => row.status === 'ISSUED'
 const canDelete = (row: any) => row.status === 'CREATED' || row.status === 'CLOSED'
 const canReport = (row: any) => row.status === 'IN_PRODUCTION' || row.status === 'PENDING_QC'
@@ -374,21 +393,39 @@ onMounted(() => { loadData() })
 
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 .status-dot--info { background: var(--info); }
-.status-dot--warning { background: var(--warning); }
-.status-dot--primary { background: var(--accent); }
-.status-dot--success { background: var(--success); }
+.status-dot--warning { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.status-dot--primary { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.status-dot--success { background: var(--success); box-shadow: 0 0 6px var(--success); }
 
 .card-body { margin-bottom: 14px; }
+
+.card-product-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
 
 .card-product {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.priority-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.priority-tag--high { background: var(--danger-light); color: var(--danger); }
+.priority-tag--medium { background: var(--warning-light); color: var(--warning); }
+.priority-tag--low { background: var(--info-light); color: var(--info); }
 
 .card-meta {
   display: flex;
@@ -434,6 +471,16 @@ onMounted(() => { loadData() })
   border-radius: 3px;
   transition: width 0.3s ease;
 }
+
+.card-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+.card-time .el-icon { font-size: 13px; }
 
 .card-footer {
   display: flex;

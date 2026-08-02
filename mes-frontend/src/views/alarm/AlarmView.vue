@@ -127,7 +127,7 @@
     </div>
 
     <div class="alarm-table-panel">
-      <el-table v-loading="loading" :data="filteredAlarms" style="width: 100%">
+      <el-table v-loading="loading" :data="pagedAlarms" style="width: 100%" empty-text="暂无告警记录">
         <el-table-column prop="alarmCode" label="告警编码" width="150">
           <template #default="{ row }">
             <div class="alarm-code">{{ row.alarmCode }}</div>
@@ -200,6 +200,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <div v-if="filteredAlarms.length" class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="filteredAlarms.length"
+          :page-sizes="[10, 20, 50]"
+        />
+      </div>
     </div>
 
     <el-dialog v-model="resolveDialogVisible" title="解决告警" width="450px" class="resolve-dialog">
@@ -229,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
 import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search } from '@element-plus/icons-vue'
@@ -242,6 +252,8 @@ const loading = ref(false)
 const statusFilter = ref('')
 const searchKeyword = ref('')
 const dateRange = ref<[Date, Date] | null>(null)
+const currentPage = ref(1)
+const pageSize = ref(10)
 const resolveDialogVisible = ref(false)
 const resolveRemarks = ref('')
 const currentAlarm = ref<any>({})
@@ -256,6 +268,15 @@ const filteredAlarms = computed(() => {
   if (statusFilter.value) {
     list = list.filter(a => a.status === statusFilter.value)
   }
+  if (dateRange.value) {
+    const [start, end] = dateRange.value
+    const startT = new Date(start).setHours(0, 0, 0, 0)
+    const endT = new Date(end).setHours(23, 59, 59, 999)
+    list = list.filter(a => {
+      const t = new Date(a.occurrenceTime).getTime()
+      return !Number.isNaN(t) && t >= startT && t <= endT
+    })
+  }
   if (searchKeyword.value) {
     const kw = searchKeyword.value.toLowerCase()
     list = list.filter(a => 
@@ -265,6 +286,13 @@ const filteredAlarms = computed(() => {
     )
   }
   return list
+})
+
+watch([statusFilter, searchKeyword, dateRange], () => { currentPage.value = 1 })
+
+const pagedAlarms = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredAlarms.value.slice(start, start + pageSize.value)
 })
 
 const loadAlarms = async () => {
@@ -282,7 +310,6 @@ const loadAlarms = async () => {
 
 const filterStatus = (status: string) => {
   statusFilter.value = status
-  loadAlarms()
 }
 
 const handleAck = async (row: any) => {
@@ -526,6 +553,7 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  padding-bottom: 20px;
 }
 
 .alarm-code {

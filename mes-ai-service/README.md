@@ -13,10 +13,10 @@
 - **ONNX推理**: 支持ONNX格式模型加载与高性能推理
 
 ### 大模型模块
-- **智能对话**: 智谱AI GLM-4 大模型支持
+- **智能对话**: 智谱AI GLM-4 大模型支持（结果缓存 1h + 限流 60次/分钟）
 - **AI Agent**: 智能生产助理 — 自然语言→工具调用→任务闭环
 - **对话历史**: MySQL 持久化存储，多轮对话记录管理
-- **分析历史**: MySQL 持久化（`ai_analysis_history`），按用户/设备隔离，支持删除
+- **分析历史**: MySQL 持久化（`ai_analysis_history`）+ Redis 最近 50 条缓存，按用户/设备隔离，支持删除
 - **生产分析**: AI智能分析生产数据
 - **根因分析**: AI辅助故障根因分析
 - **能耗优化**: 企业级多维节能方案（真实遥测 + 参数/削峰填谷/待机/维护 + 财务测算 + 路线图）
@@ -185,12 +185,21 @@ model:
 llm:
   api_key: "${ZHIPU_API_KEY}"
   model: "glm-4-flash"
+  rate_limit: 60          # LLM调用限流（次/分钟），超限返回"服务繁忙"
 
 redis:
   host: "localhost"
   port: 6379
   db: 1
 ```
+
+**Redis 缓存说明**（Redis 不可用时全部自动降级，不影响业务）：
+
+| 用途 | Key | 说明 |
+|------|-----|------|
+| 分析历史缓存 | `analysis:recent:{user}:{device}` | zset 最近 50 条，TTL 300s，保存/删除双写同步 |
+| LLM 结果缓存 | `llm:cache:{hash}` | 内容寻址（消息+上下文+历史+模型），命中直接复用，TTL 1h |
+| LLM 限流 | `ratelimit:llm` | INCR+TTL 60s 滑动窗口，超限返回"服务繁忙" |
 
 ## 项目结构
 
@@ -206,9 +215,10 @@ mes-ai-service/
 │   ├── services/            # 业务逻辑
 │   │   ├── quality_predictor.py   # 质量预测服务
 │   │   ├── inference_service.py # 推理服务
-│   │   ├── llm_service.py      # 智谱AI大模型服务
+│   │   ├── llm_service.py      # 智谱AI大模型服务（含缓存+限流）
 │   │   ├── analysis_service.py  # AI分析服务（能耗/SPC/产能/根因/交期）
-│   │   ├── conversation_store.py # 对话+分析历史 MySQL 存储
+│   │   ├── conversation_store.py # 对话+分析历史 MySQL 存储（含Redis缓存）
+│   │   ├── redis_store.py     # Redis统一封装（降级安全）
 │   │   └── feature_engineering.py # 特征工程
 │   ├── router/             # 路由
 │   │   ├── prediction.py   # 预测路由
@@ -237,7 +247,9 @@ mes-ai-service/
 | scikit-learn | 1.5 |
 | 智谱AI SDK | - |
 | PyMySQL | 1.1 |
+| redis-py | 5.2 |
 | MySQL | 8.0 |
+| Redis | 7 |
 
 ## 测试
 

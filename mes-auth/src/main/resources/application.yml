@@ -27,6 +27,17 @@ spring:
       max-active: 20
       max-wait: 60000
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 1s
+      connect-timeout: 1s
+      lettuce:
+        pool:
+          enabled: false
+
   mybatis-plus:
     mapper-locations: classpath:mapper/*.xml,classpath*:mapper/**/*.xml
     type-aliases-package: com.mes.common.entity

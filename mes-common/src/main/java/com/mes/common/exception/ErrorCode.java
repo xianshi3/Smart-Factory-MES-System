@@ -36,7 +36,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(5001, "用户不存在"),
     USER_PASSWORD_ERROR(5002, "密码错误"),
     TOKEN_EXPIRED(5003, "Token已过期"),
-    TOKEN_INVALID(5004, "Token无效");
+    TOKEN_INVALID(5004, "Token无效"),
+    USER_LOCKED(5005, "登录失败次数过多，账户已锁定，请15分钟后再试");
 
     /** 错误码 */
     private final int code;

@@ -12,12 +12,17 @@ import com.mes.common.result.Result;
 import com.mes.common.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务类
@@ -28,8 +33,16 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String LOGIN_FAIL_KEY = "auth:fail:";
+    private static final String TOKEN_BLACKLIST_KEY = "auth:blacklist:";
+    /** 连续登录失败超过该次数则锁定账户 */
+    private static final int LOGIN_FAIL_LIMIT = 5;
+    /** 账户锁定时长（秒） */
+    private static final long LOGIN_LOCK_SECONDS = 900L;
+
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
+    private final StringRedisTemplate redisTemplate;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -38,12 +51,18 @@ public class AuthService {
      * @return 登录结果（包含Token）
      */
     public Result<Map<String, Object>> login(LoginDTO dto) {
+        // 检查账户是否被锁定
+        if (isAccountLocked(dto.getUsername())) {
+            throw new BizException(ErrorCode.USER_LOCKED);
+        }
+
         // 根据用户名查询用户
         User user = userMapper.selectByUsername(dto.getUsername());
         if (user == null) {
+            recordLoginFail(dto.getUsername());
             throw new BizException(ErrorCode.USER_NOT_FOUND);
         }
-        
+
         // 验证密码
         String storedPassword = user.getPassword();
         String inputPassword = dto.getPassword();
@@ -62,13 +81,17 @@ public class AuthService {
 
         if (!matched) {
             log.warn("密码验证失败 - 输入: {}, 存储: {}", inputPassword, storedPassword);
+            recordLoginFail(dto.getUsername());
             throw new BizException(ErrorCode.USER_PASSWORD_ERROR);
         }
+        // 登录成功，清除失败计数
+        clearLoginFail(dto.getUsername());
+
         // 生成Token
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole());
         String token = jwtUtils.generateToken(user.getId(), user.getUsername(), claims);
-        
+
         // 返回结果
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
@@ -76,6 +99,96 @@ public class AuthService {
         result.put("username", user.getUsername());
         result.put("role", user.getRole());
         return Result.ok(result);
+    }
+
+    /**
+     * 用户登出：将当前Token加入黑名单，使其立即失效
+     * @param token JWT令牌
+     */
+    public void logout(String token) {
+        String rawToken = token.replace("Bearer ", "");
+        try {
+            long ttlMillis = jwtUtils.getRemainingMillis(rawToken);
+            if (ttlMillis <= 0) {
+                return;
+            }
+            redisTemplate.opsForValue().set(
+                    TOKEN_BLACKLIST_KEY + sha256(rawToken), "1",
+                    Duration.ofSeconds(Math.max(1, ttlMillis / 1000)));
+            log.info("Token已加入黑名单，剩余有效期 {}ms", ttlMillis);
+        } catch (Exception e) {
+            // Redis不可用或Token无效时降级：不影响登出响应
+            log.warn("Token加入黑名单失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 检查账户是否被锁定（Redis不可用时返回false，降级为不锁定）
+     */
+    private boolean isAccountLocked(String username) {
+        try {
+            String count = redisTemplate.opsForValue().get(LOGIN_FAIL_KEY + username);
+            return count != null && Integer.parseInt(count) >= LOGIN_FAIL_LIMIT;
+        } catch (Exception e) {
+            log.warn("查询登录失败计数失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 记录一次登录失败（首次失败时设置TTL，Redis不可用时降级跳过）
+     */
+    private void recordLoginFail(String username) {
+        try {
+            String key = LOGIN_FAIL_KEY + username;
+            Boolean created = redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofSeconds(LOGIN_LOCK_SECONDS));
+            if (Boolean.TRUE.equals(created)) {
+                return;
+            }
+            Long count = redisTemplate.opsForValue().increment(key);
+            if (count != null && count >= LOGIN_FAIL_LIMIT) {
+                log.warn("用户 {} 登录失败次数达到 {}，账户已锁定{}分钟", username, count, LOGIN_LOCK_SECONDS / 60);
+            }
+        } catch (Exception e) {
+            log.warn("记录登录失败次数失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 登录成功时清除失败计数（Redis不可用时降级跳过）
+     */
+    private void clearLoginFail(String username) {
+        try {
+            redisTemplate.delete(LOGIN_FAIL_KEY + username);
+        } catch (Exception e) {
+            log.warn("清除登录失败计数失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Token是否在黑名单中（Redis不可用时返回false，不阻断请求）
+     */
+    public boolean isTokenBlacklisted(String token) {
+        try {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(TOKEN_BLACKLIST_KEY + sha256(token)));
+        } catch (Exception e) {
+            log.warn("查询Token黑名单失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private static String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+            }
+            return hex.toString();
+        } catch (Exception e) {
+            return String.valueOf(input.hashCode());
+        }
     }
 
     /**
@@ -186,6 +299,8 @@ public class AuthService {
         // 更新密码
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userMapper.updateById(user);
+        // 将当前Token加入黑名单，使旧会话立即失效
+        logout(token);
         log.info("用户 {} 修改密码成功", user.getUsername());
     }
 

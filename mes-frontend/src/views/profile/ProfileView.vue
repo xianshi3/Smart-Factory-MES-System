@@ -1,9 +1,12 @@
 <template>
   <div class="profile-container">
     <div class="page-header">
-      <div class="header-title">
-        <el-icon size="24"><User /></el-icon>
-        <h1>个人中心</h1>
+      <div class="header-left">
+        <div class="page-title">
+          <el-icon><User /></el-icon>
+          <h1>个人中心</h1>
+        </div>
+        <p class="page-desc">查看和管理个人信息、账号安全与偏好设置</p>
       </div>
     </div>
 
@@ -182,6 +185,34 @@
       </div>
     </div>
 
+    <!-- 编辑基本信息弹窗 -->
+    <el-dialog v-model="showEditDialog" title="编辑基本信息" width="480px">
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="姓名">
+          <el-input v-model="editForm.realName" placeholder="请输入姓名" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="editForm.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="部门">
+          <el-input v-model="editForm.department" placeholder="请输入所属部门" />
+        </el-form-item>
+        <el-form-item label="岗位">
+          <el-input v-model="editForm.position" placeholder="请输入岗位" />
+        </el-form-item>
+        <el-form-item label="手机号码">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号码" />
+        </el-form-item>
+        <el-form-item label="电子邮箱">
+          <el-input v-model="editForm.email" placeholder="请输入电子邮箱" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSaveBasicInfo">保存</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 修改密码弹窗 -->
     <el-dialog v-model="showPasswordDialog" title="修改密码" width="450px">
       <el-form ref="passwordFormRef" :model="passwordForm" label-width="100px" :rules="passwordRules">
@@ -207,8 +238,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserInfo, changePassword } from '@/api/auth'
-import { Camera, Document, Edit, Lock, Iphone, Message, Key, Operation, Monitor, Setting, Download } from '@element-plus/icons-vue'
+import { getUserInfo, updateProfile, changePassword } from '@/api/auth'
+import { Camera, Document, Edit, Lock, Iphone, Message, Key, Operation, Monitor, Setting, Download, User } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -227,7 +258,9 @@ const userInfo = ref<any>({
 })
 
 const loading = ref(false)
+const saving = ref(false)
 const showPasswordDialog = ref(false)
+const showEditDialog = ref(false)
 const passwordFormRef = ref()
 
 const passwordForm = reactive({
@@ -261,7 +294,7 @@ const loadUserInfo = async () => {
   try {
     loading.value = true
     const res = await getUserInfo()
-    userInfo.value = res.data || res
+    userInfo.value = res.data?.data || res.data || res || {}
   } catch (e) {
     console.error('获取用户信息失败', e)
   } finally {
@@ -274,15 +307,29 @@ onMounted(() => {
 })
 
 const editForm = ref<any>({})
-const editPasswordForm = ref<any>({})
-const showForm = ref(false)
-const editing = ref(false)
 
 const editBasicInfo = () => {
   editForm.value = { ...userInfo.value }
-  editPasswordForm.value = { ...userInfo.value }
-  showForm.value = true
-  editing.value = true
+  showEditDialog.value = true
+}
+
+const handleSaveBasicInfo = async () => {
+  saving.value = true
+  try {
+    const payload: any = {}
+    const fields = ['realName', 'nickname', 'phone', 'email', 'department', 'position']
+    for (const f of fields) {
+      if (editForm.value[f] !== undefined) payload[f] = editForm.value[f]
+    }
+    await updateProfile(payload)
+    ElMessage.success('个人信息已更新')
+    showEditDialog.value = false
+    loadUserInfo()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '更新失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 const handleChangePassword = async () => {
@@ -327,22 +374,6 @@ const handleExportData = () => {
 
 .page-header {
   margin-bottom: 24px;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-}
-
-.header-title h1 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.header-title .el-icon {
-  color: var(--accent);
 }
 
 .profile-content {
@@ -610,7 +641,7 @@ const handleExportData = () => {
 
 html.light .profile-card,
 html.light .info-section {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 900px) {

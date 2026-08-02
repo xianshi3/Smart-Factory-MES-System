@@ -120,7 +120,7 @@ npm run dev
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
 | 设备模拟器 | 8883 | 模拟2000+设备数据上报 |
 | MySQL | 3306 | 数据库 |
-| Redis | 6379 | 缓存 |
+| Redis | 6379 | 缓存/黑名单/限流/在线心跳/分布式序号 |
 | MQTT | 1883 | 设备通信 |
 | Kafka | 9092 | 消息队列 |
 
@@ -179,7 +179,30 @@ npm run dev
 | JwtUtils | JWT工具类 |
 | MesConstants | 常量定义 |
 
-### 5.3 前端页面 (mes-frontend)
+### 5.4 Redis 使用规范
+
+**通用原则：Redis 不可用时必须优雅降级，禁止阻断主流程。**
+
+| 场景 | Key 设计 | TTL | 实现位置 | 降级策略 |
+|------|----------|-----|----------|----------|
+| Token 黑名单 | `auth:blacklist:{sha256(token)}` | 剩余有效期 | mes-auth AuthService/JwtAuthFilter | 跳过校验，放行 |
+| 登录失败锁定 | `auth:fail:{username}` | 900s（5次锁定） | mes-auth AuthService | 跳过计数，不锁定 |
+| 工单号序号 | `wo:seq`（INCR） | 永久 | mes-workorder | 降级为毫秒时间戳 |
+| 设备在线心跳 | `device:online:{deviceId}` | 90s | .NET 网关 DeviceHeartbeatService | 跳过写入 |
+| 分析历史缓存 | `analysis:recent:{user}:{device}`（zset） | 300s | mes-ai-service redis_store | 回查 MySQL |
+| LLM 结果缓存 | `llm:cache:{hash}` | 3600s | mes-ai-service redis_store | 直连大模型 |
+| LLM 限流 | `ratelimit:llm` | 60s 窗口 | mes-ai-service redis_store | 不限流 |
+| 看板数据缓存 | `dashboard:*` | 30s | mes-dashboard | 直查数据库 |
+| 工艺模板状态 | `template:status:{id}` | 24h | mes-process | 直查数据库 |
+| 设备控制指令 | `device:control:{deviceId}` | 5min | mes-dashboard | 指令直发设备 |
+
+**约定：**
+- 所有 key 使用 `模块:业务:标识` 三段式命名，`:` 分隔
+- 客户端连接统一设置超时（Java/Python 1s，.NET 1s），禁止无限等待
+- 缓存数据写入与删除双写同步（如分析历史保存/删除需同步更新缓存）
+- Python 侧统一走 `redis_store.py` 封装，禁止散落裸 Redis 调用
+
+### 5.5 前端页面 (mes-frontend)
 
 | 页面 | 路由 | 功能 |
 |------|------|------|
@@ -217,7 +240,8 @@ npm run dev
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | /auth/login | 用户登录 |
+| POST | /auth/login | 用户登录（失败5次锁定15分钟） |
+| POST | /auth/logout | 用户登出（Token加入黑名单立即失效） |
 | POST | /auth/register | 用户注册 |
 | GET | /auth/info | 获取用户信息 |
 
@@ -290,4 +314,4 @@ npm run dev
 
 ---
 
-*最后更新：2026-07-27*
+*最后更新：2026-08-02*

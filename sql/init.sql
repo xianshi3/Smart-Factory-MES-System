@@ -29,23 +29,27 @@ CREATE TABLE `sys_user` (
     `hire_date` date DEFAULT NULL COMMENT '入职日期',
     `status` int DEFAULT '1' COMMENT '状态: 1-在职 0-离职',
     `role` varchar(20) DEFAULT 'USER' COMMENT '角色: ADMIN/USER/MANAGER',
+    `role_id` bigint DEFAULT NULL COMMENT '角色ID(关联sys_role)',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
     `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_username` (`username`),
-    UNIQUE KEY `uk_employee_no` (`employee_no`)
+    UNIQUE KEY `uk_username` (`username`, `deleted`),
+    UNIQUE KEY `uk_employee_no` (`employee_no`),
+    KEY `idx_role_id` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- Insert default admin user (password: admin123, BCrypt hashed)
-INSERT INTO `sys_user` (`username`, `password`, `real_name`, `nickname`, `phone`, `email`, `avatar`, `employee_no`, `department`, `position`, `manager_id`, `hire_date`, `status`, `role`)
+INSERT INTO `sys_user` (`username`, `password`, `real_name`, `nickname`, `phone`, `email`, `avatar`, `employee_no`, `department`, `position`, `manager_id`, `hire_date`, `status`, `role`, `role_id`)
 VALUES 
-('admin', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN'),
-('zhangsan', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER'),
-('lisi', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER'),
-('wangwu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER'),
-('zhaoliu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER');
+('admin', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN', 1),
+('zhangsan', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER', 2),
+('lisi', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER', 3),
+('wangwu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER', 4),
+('zhaoliu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER', 5);
 
 -- Update manager relationship
 UPDATE sys_user SET manager_id = 1 WHERE username = 'zhangsan';
@@ -62,10 +66,14 @@ CREATE TABLE `sys_role` (
     `role_name` varchar(50) NOT NULL COMMENT '角色名称',
     `role_code` varchar(50) NOT NULL COMMENT '角色编码',
     `description` varchar(255) DEFAULT NULL COMMENT '角色描述',
+    `sort` int DEFAULT '0' COMMENT '排序',
     `status` int DEFAULT '1' COMMENT '状态: 1-启用 0-禁用',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_role_code` (`role_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
@@ -85,6 +93,9 @@ CREATE TABLE `sys_permission` (
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_permission_code` (`permission_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限表';
@@ -95,9 +106,14 @@ CREATE TABLE `sys_role_permission` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `role_id` bigint NOT NULL COMMENT '角色ID',
     `permission_id` bigint NOT NULL COMMENT '权限ID',
+    `sort` int DEFAULT '0' COMMENT '排序',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_role_permission` (`role_id`, `permission_id`)
+    KEY `idx_role_id` (`role_id`),
+    KEY `idx_permission_id` (`permission_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
 
 -- 菜单表 (用于前端路由)
@@ -116,17 +132,20 @@ CREATE TABLE `sys_menu` (
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    `version` int DEFAULT '0' COMMENT '乐观锁版本号',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_menu_code` (`menu_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
 
 -- 插入角色数据
-INSERT INTO `sys_role` (`role_name`, `role_code`, `description`, `status`) VALUES
-('超级管理员', 'ADMIN', '拥有系统所有权限', 1),
-('生产主管', 'MANAGER', '负责生产管理相关权限', 1),
-('生产员工', 'USER', '基本操作权限', 1),
-('质检员', 'QC', '质量检验相关权限', 1),
-('设备工程师', 'ENGINEER', '设备维护相关权限', 1);
+INSERT INTO `sys_role` (`role_name`, `role_code`, `description`, `sort`, `status`) VALUES
+('超级管理员', 'ADMIN', '拥有系统所有权限', 1, 1),
+('生产主管', 'MANAGER', '负责生产管理相关权限', 2, 1),
+('生产员工', 'USER', '基本操作权限', 3, 1),
+('质检员', 'QC', '质量检验相关权限', 4, 1),
+('设备工程师', 'ENGINEER', '设备维护相关权限', 5, 1);
 
 -- 插入权限数据
 INSERT INTO `sys_permission` (`permission_name`, `permission_code`, `permission_type`, `parent_id`, `path`, `sort`) VALUES

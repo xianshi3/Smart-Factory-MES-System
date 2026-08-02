@@ -13,8 +13,8 @@
       </div>
     </div>
 
-    <div class="search-section">
-      <el-input v-model="searchForm.keyword" placeholder="搜索物料名称或编码" clearable prefix-icon="Search" @clear="loadData" />
+    <div class="filter-bar">
+      <el-input v-model="searchForm.keyword" placeholder="搜索物料名称或编码" clearable class="search-input" prefix-icon="Search" @keyup.enter="loadData" @clear="loadData" />
       <el-select v-model="searchForm.materialType" placeholder="物料类型" clearable style="width:140px" @change="loadData">
         <el-option label="全部" value="" /><el-option label="原材料" value="RAW" /><el-option label="半成品" value="SEMI" /><el-option label="成品" value="FINISHED" /><el-option label="辅助材料" value="SUPPLY" />
       </el-select>
@@ -22,7 +22,16 @@
     </div>
 
     <div class="table-wrapper">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+      <div v-if="loading && !tableData.length" class="skeleton-wrap">
+        <div v-for="i in 6" :key="i" class="skeleton-row">
+          <el-skeleton animated>
+            <template #template>
+              <el-skeleton-item variant="rect" style="height: 44px; border-radius: 6px" />
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
+      <el-table v-else v-loading="loading" :data="tableData" border stripe style="width:100%" empty-text="暂无物料数据">
         <el-table-column type="index" label="#" width="40" align="center" />
         <el-table-column prop="materialCode" label="编码" width="105"><template #default="{ row }"><span class="cell-code">{{ row.materialCode }}</span></template></el-table-column>
         <el-table-column prop="materialName" label="物料名称" min-width="160" />
@@ -133,8 +142,9 @@ onMounted(() => loadData())
 <style scoped>
 .page-view { display: flex; flex-direction: column; gap: 16px; }
 
-.search-section { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.search-section .el-input { width: 240px; }
+.search-input { width: 240px; }
+
+.skeleton-wrap { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
 
 .table-wrapper { border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
 .table-wrapper :deep(.el-table th) { font-weight: 600; color: var(--text-secondary); font-size: 13px; }

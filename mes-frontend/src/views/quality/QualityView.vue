@@ -27,7 +27,15 @@
       <el-button @click="handleReset">重置</el-button>
     </div>
 
-    <div class="card-grid">
+    <div v-if="loading" class="card-grid">
+      <el-skeleton v-for="i in 6" :key="i" animated>
+        <template #template>
+          <el-skeleton-item variant="rect" style="height: 200px; border-radius: var(--radius-lg)" />
+        </template>
+      </el-skeleton>
+    </div>
+
+    <div v-else class="card-grid">
       <div 
         v-for="row in tableData" 
         :key="row.id" 
@@ -79,7 +87,6 @@
         <p>暂无质检数据</p>
       </div>
     </div>
-
     <div class="pagination-wrapper">
       <el-pagination
         v-model:current-page="pagination.page"

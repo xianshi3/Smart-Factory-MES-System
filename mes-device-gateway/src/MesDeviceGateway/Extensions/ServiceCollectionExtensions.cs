@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
 
         // 核心服务
         services.AddSingleton<DataCleanseService>();
+        services.AddSingleton<DeviceHeartbeatService>();
         
         // Kafka生产者 - 使用HostedService
         services.AddHostedService(provider =>

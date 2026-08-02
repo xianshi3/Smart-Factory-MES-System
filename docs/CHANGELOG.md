@@ -10,6 +10,73 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.40 (2026-08-02)
+
+### 前端 UI 全系统统一优化
+
+#### 5 页面主题模式对齐（角色/菜单/权限/设置/个人中心）
+
+- **角色管理 (RoleView)**: 全量重写 — 3 统计卡(总/启用/禁用,点击筛选) + 骨架加载 + 卡片网格(admin/manager/user/qc/engineer 五色图标) + 权限树弹窗保存修复(半选父节点改用 `getCheckedKeys()+getHalfCheckedKeys()` 不再丢失)
+- **菜单管理 (MenuView)**: 全量重写 — tree 表格 + 菜单图标渲染 + cell-code + 父级选择编辑弹窗
+- **权限管理 (PermissionView)**: 全量重写 — tree 表格 + 类型标签(MENU/BUTTON/API 三色药丸) + 权限类型下拉编辑弹窗
+- **系统设置 (SettingsView)**: header 对齐主题 + 新增保存按钮(此前仅主题切换触发持久化,其他开关均不会保存) + `v-loading` 加载态
+- **个人中心 (ProfileView)**: header 对齐主题 + 死按钮修复(编辑→接入 `updateProfile` API + 编辑弹窗) + `User` 图标缺导入补全
+
+#### 之前批次（生产线/工位/物料/BOM）
+
+- **生产线/工位**: 统计卡 + filter-bar + 骨架 + 主题表格
+- **物料管理**: filter-bar + 骨架 + 空态文案
+- **BOM 管理**: filter-bar + 骨架 + 空态文案 + BOM 行项物料下拉选择 + scrap_rate 精度修正
+- **BOM 空白 Bug 修复**: `computed` 未导入导致 setup 运行时 `ReferenceError` 页面空白,根因 `vue-tsc` 全局类型声明漏检 — 已建无头 Chrome CDP 全路由运行时验证流程
+
+### 数据库 Schema 补齐
+
+- **`sys_user` 补齐 8 缺失列**: nickname, avatar, employee_no, department, position, manager_id, hire_date, role_id（此前只有 admin 单用户且缺列致 `/auth/info` 报 5004）
+- **`sys_permission` 补齐 `icon` 列**
+- **`sys_role_permission` 补齐 `sort` 列**
+- **`sys_user.uk_username` 修复**: 改为 `(username, deleted)` 复合唯一键,消除软删除后重新创建同名用户冲突
+- **补充种子用户**: zhangsan/lisi/wangwu/zhaoliu 4 人,统一密码 `admin123`
+- **`init.sql` 完善**: 所有表定义更新为完整规范 Schema（含 deleted_time/deleted_by/version/role_id/sort/icon/uk 修复）
+- **V9 迁移脚本**: 新增 `V9__schema_fix.sql`,使用存储过程实现幂等 ALTER（安全重复执行）
+
+---
+
+## v1.0.39 (2026-08-02)
+
+### Redis 企业级深度落地（认证安全 / 分布式序号 / AI 缓存 / 设备在线）
+
+#### AI 服务 Redis 缓存 + 限流（mes-ai-service）
+
+- **统一封装**: 新增 `redis_store.py`（连接超时 1s、`decode_responses`、全部操作带降级），Redis 不可用时自动回退 MySQL/直连，不影响业务
+- **分析历史缓存**: zset 缓存最近 50 条（key `analysis:recent:{user}:{device}`，TTL 300s），保存/删除双写同步，列表优先读缓存、空或异常回查 MySQL 防掩盖新增
+- **LLM 结果缓存**: 内容寻址（消息+上下文+历史+模型 hash 前 32 位），命中直接复用，成功结果缓存 1 小时
+- **LLM 限流**: 滑动窗口 INCR+TTL 60s，超限返回"服务繁忙"（可配置 `rate_limit`，默认 60 次/分钟）
+
+#### 认证安全增强（mes-auth）
+
+- **Token 黑名单**: 登出/改密后将 token SHA-256 写入 `auth:blacklist:{hash}`，TTL=剩余有效期；`JwtAuthFilter` 校验时命中即 401（新增 `POST /auth/logout`）
+- **登录失败锁定**: 连续失败 5 次锁定 15 分钟（`auth:fail:{username}`，INCR+TTL），锁定后正确密码也被拒绝，登录成功自动清零
+- **降级原则**: Redis 不可用时跳过黑名单/锁定（不阻断登录），不影响原流程；`JwtUtils` 新增 `getRemainingMillis`
+
+#### 工单号分布式生成（mes-workorder）
+
+- **并发唯一序号**: `wo:seq` Redis INCR 生成 `WO+yyyyMMddHHmmss+4位序号`，替代毫秒时间戳（并发创建同毫秒会撞号）；Redis 不可用时降级回时间戳
+- **报工原子化**: `completed_quantity` 改为 SQL 原子自增（`+=`），修复并发报工读改写竞态，并重新读取最新进度判断是否转待质检
+
+#### 设备在线心跳 Redis（mes-device-gateway）
+
+- **心跳写入**: 每收到设备数据/状态消息，写入 `device:online:{deviceId}`（值含时间+状态，TTL 90s），Redis 连接失败自动降级不影响网关主流程
+- **配置**: `RedisServer/RedisPort/RedisPassword/DeviceHeartbeatTtlSeconds`（appsettings + 环境变量），新增 `StackExchange.Redis` 依赖
+
+#### 基础设施
+
+- **docker-compose**: Redis 内存 128M → 256M，新增 `--maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes`（内存满自动淘汰最久未用，防止 OOM 拒写）
+- **错误码**: 新增 `USER_LOCKED(5005)`
+
+> **注**: 本版本冒烟测试发现的 sys_user 缺失列问题已在 v1.0.40 通过 V9 迁移修复,详见上方。
+
+---
+
 ## v1.0.38 (2026-08-02)
 
 ### 设备分析体系企业级升级（SPC / 能耗优化 / 分析历史）
