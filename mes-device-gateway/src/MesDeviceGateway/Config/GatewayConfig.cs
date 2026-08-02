@@ -57,4 +57,20 @@ public class GatewayConfig
     /// 启用健康检查
     /// </summary>
     public bool EnableHealthChecks { get; set; } = true;
+    /// <summary>
+    /// Redis服务器地址（用于设备在线心跳）
+    /// </summary>
+    public string RedisServer { get; set; } = "localhost";
+    /// <summary>
+    /// Redis服务器端口
+    /// </summary>
+    public int RedisPort { get; set; } = 6379;
+    /// <summary>
+    /// Redis密码
+    /// </summary>
+    public string RedisPassword { get; set; } = string.Empty;
+    /// <summary>
+    /// 设备心跳TTL秒数（超过该时间未上报视为离线）
+    /// </summary>
+    public int DeviceHeartbeatTtlSeconds { get; set; } = 90;
 }

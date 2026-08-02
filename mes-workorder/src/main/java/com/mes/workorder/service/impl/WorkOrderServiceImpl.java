@@ -31,6 +31,11 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     private final WorkReportMapper workReportMapper;
     private final WorkOrderMapper workOrderMapper;
+    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+
+    private static final String ORDER_SEQ_KEY = "wo:seq";
+    private static final java.time.format.DateTimeFormatter SEQ_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -134,11 +139,19 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         report.setRemark(dto.getRemark());
         workReportMapper.insert(report);
 
-        wo.setCompletedQuantity(wo.getCompletedQuantity() + dto.getReportQuantity());
+        // 原子更新已完成数量，避免并发报工时的读改写竞态
+        var incrementWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
+                .setSql("completed_quantity = completed_quantity + " + dto.getReportQuantity())
+                .eq("id", dto.getWorkOrderId())
+                .eq("deleted", 0);
+        workOrderMapper.update(null, incrementWrapper);
+
+        // 重新读取最新进度，判断是否达到计划量
+        wo = getByIdOrThrow(dto.getWorkOrderId());
         if (wo.getCompletedQuantity() >= wo.getPlanQuantity()) {
             transitionStatus(wo, WorkOrderStatusEnum.PENDING_QC);
+            updateById(wo);
         }
-        updateById(wo);
         return report;
     }
 
@@ -201,6 +214,15 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
 
     private String generateOrderNo() {
+        // 优先使用Redis自增序列保证并发唯一（带日期前缀，可读性好）
+        try {
+            Long seq = stringRedisTemplate.opsForValue().increment(ORDER_SEQ_KEY);
+            if (seq != null) {
+                return "WO" + LocalDateTime.now().format(SEQ_FORMAT) + String.format("%04d", seq % 10000);
+            }
+        } catch (Exception e) {
+            log.warn("Redis生成工单号失败，降级为时间戳: {}", e.getMessage());
+        }
         return "WO" + System.currentTimeMillis();
     }
 

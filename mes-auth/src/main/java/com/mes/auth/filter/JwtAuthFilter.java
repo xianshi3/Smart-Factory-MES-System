@@ -1,5 +1,6 @@
 package com.mes.auth.filter;
 
+import com.mes.auth.service.AuthService;
 import com.mes.common.utils.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final AuthService authService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -35,6 +37,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Long userId = jwtUtils.getUserId(token);
                 request.setAttribute("currentUserId", userId);
+                // Token在黑名单中则拒绝（已登出/已改密的Token）
+                if (authService.isTokenBlacklisted(token)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":5004,\"message\":\"Token已失效，请重新登录\"}");
+                    return;
+                }
             } catch (Exception ignored) {
             }
         }

@@ -82,4 +82,13 @@ public class JwtUtils {
     public boolean isTokenExpired(String token) {
         return parseToken(token).getExpiration().before(new Date());
     }
+
+    /**
+     * 获取令牌剩余有效时间（毫秒）
+     * @param token 令牌字符串
+     * @return 剩余毫秒数，负数表示已过期
+     */
+    public long getRemainingMillis(String token) {
+        return parseToken(token).getExpiration().getTime() - System.currentTimeMillis();
+    }
 }

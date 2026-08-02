@@ -11,6 +11,7 @@ namespace MesDeviceGateway.Services;
 public class DataCleanseService
 {
     private readonly KafkaProducerService _kafkaProducer;
+    private readonly DeviceHeartbeatService _heartbeat;
     private readonly GatewayConfig _config;
     private readonly ILogger<DataCleanseService> _logger;
 
@@ -26,10 +27,12 @@ public class DataCleanseService
     /// <param name="logger">日志记录器</param>
     public DataCleanseService(
         KafkaProducerService kafkaProducer,
+        DeviceHeartbeatService heartbeat,
         GatewayConfig config,
         ILogger<DataCleanseService> logger)
     {
         _kafkaProducer = kafkaProducer;
+        _heartbeat = heartbeat;
         _config = config;
         _logger = logger;
 
@@ -57,6 +60,9 @@ public class DataCleanseService
             _logger.LogDebug("Duplicate message ignored: {DedupKey}", dedupKey);
             return;
         }
+
+        // 记录设备在线心跳（Redis不可用时静默降级）
+        await _heartbeat.RecordHeartbeatAsync(message.DeviceId);
 
         message.Data = FilterAbnormalValues(message.Data);
 
@@ -87,6 +93,9 @@ public class DataCleanseService
             _logger.LogWarning("Invalid status message");
             return;
         }
+
+        // 状态消息同样刷新在线心跳
+        await _heartbeat.RecordHeartbeatAsync(message.DeviceId, message.Status);
 
         var kafkaMsg = new KafkaMessage
         {

@@ -1,9 +1,12 @@
 """大语言模型服务模块"""
 import os
 import json
+import hashlib
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+
+from src.services.redis_store import redis_store
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +100,26 @@ class LLmService:
                 "message": "大模型服务暂不可用，请配置智谱AI API Key",
                 "content": None,
             }
-        
+
+        # ---- 结果缓存：相同请求(消息+上下文+历史)直接复用，降本 ----
+        cache_key = self._cache_key(message, context, history)
+        cached = redis_store.get_json(cache_key)
+        if cached:
+            return cached
+
+        # ---- 速率限制：滑动窗口 INCR + EXPIRE，防突刺/防刷 ----
+        rate_limit = int(self.config.get("llm", {}).get("rate_limit", 60))
+        if redis_store.enabled:
+            count = redis_store.incr("ratelimit:llm", ttl=60)
+            if count > rate_limit:
+                logger.warning(f"LLM 调用触发限流 ({count}/{rate_limit} per 60s)")
+                return {
+                    "success": False,
+                    "message": f"AI 服务繁忙，请稍后再试（每分钟限 {rate_limit} 次）",
+                    "content": None,
+                    "limited": True,
+                }
+
         try:
             messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
             
@@ -119,7 +141,7 @@ class LLmService:
             
             content = response.choices[0].message.content if response.choices else ""
             
-            return {
+            result = {
                 "success": True,
                 "content": content,
                 "model": self.model_name,
@@ -128,6 +150,9 @@ class LLmService:
                     "completion_tokens": response.usage.completion_tokens if response.usage else 0,
                 }
             }
+            # 缓存成功结果 1 小时
+            redis_store.set_json(cache_key, 3600, result)
+            return result
             
         except Exception as e:
             logger.error(f"大模型对话失败: {e}")
@@ -136,6 +161,12 @@ class LLmService:
                 "message": f"对话失败: {str(e)}",
                 "content": None,
             }
+
+    def _cache_key(self, message: str, context: Optional[dict], history: Optional[list]) -> str:
+        """LLM 结果缓存 key — 内容寻址(完整请求), 不会串上下文"""
+        payload = {"m": message, "c": context or {}, "h": (history or [])[-5:], "model": self.model_name}
+        digest = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:32]
+        return f"llm:cache:{digest}"
 
     def _build_context_prompt(self, context: Dict[str, Any]) -> str:
         """构建上下文提示"""

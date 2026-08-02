@@ -20,6 +20,7 @@ model:
 llm:
   api_key: "${ZHIPU_API_KEY}"
   model: "glm-4-flash"
+  rate_limit: 60
 
 kafka:
   bootstrap_servers: "localhost:9092"

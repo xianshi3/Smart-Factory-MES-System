@@ -30,6 +30,14 @@ public class AuthController {
         return authService.login(dto);
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "用户登出（Token加入黑名单立即失效）")
+    public Result<Void> logout(HttpServletRequest request) {
+        String token = resolveToken(request);
+        authService.logout(token);
+        return Result.ok();
+    }
+
     @PostMapping("/register")
     @Operation(summary = "用户注册")
     public Result<Void> register(@Valid @RequestBody RegisterDTO dto) {
