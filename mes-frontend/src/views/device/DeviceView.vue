@@ -425,7 +425,15 @@ async function loadAnalysisHistory() {
       type: r.analysis_type, deviceName: r.device_name, deviceCode: r.device_code,
       ts: new Date(r.created_at).getTime(), data: r.result_data,
     }))
-  } catch { /* 后端未启动，使用内存历史 */ }
+  } catch {
+    // MySQL 不可用 → 降级到 localStorage
+    const userStore = useUserStore()
+    const uid = userStore.userInfo?.username || 'default'
+    try {
+      const key = `ai_history_${uid}`
+      aiHistory.value = JSON.parse(localStorage.getItem(key) || '[]')
+    } catch { /* 都没有就空 */ }
+  }
 }
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
 const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
@@ -460,10 +468,19 @@ const showAIResult = (type: string, data: any) => {
     ts: Date.now(), data: result,
   })
   if (aiHistory.value.length > 20) aiHistory.value.length = 20
-  // 持久化到 MySQL
+  // 持久化到 MySQL + localStorage 降级
   const userStore = useUserStore()
   const uid = userStore.userInfo?.username || 'default'
-  saveAnalysis(uid, d.code || '', d.name || '', type, result).catch(() => {})
+  saveAnalysis(uid, d.code || '', d.name || '', type, result).catch((e) => {
+    console.warn('分析保存MySQL失败，降级到localStorage:', e)
+  })
+  // localStorage 降级 — 确保离线也能存
+  try {
+    const key = `ai_history_${uid}`
+    const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
+    local.unshift({ type, deviceName: d.name || d.code || '', deviceCode: d.code || '', ts: Date.now(), data: result })
+    localStorage.setItem(key, JSON.stringify(local.slice(0, 50)))
+  } catch {}
 }
 const filteredHistory = computed(() => {
   if (!quickType.value) return aiHistory.value
@@ -510,7 +527,7 @@ const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentA
       measurements
     })
     showAIResult('spc', res?.data || res)
-  } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败') }
+  } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败，请确认AI服务已启动') }
 }
 const handleEnergyOptimization = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
