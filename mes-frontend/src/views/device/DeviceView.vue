@@ -468,18 +468,12 @@ const handlePredict = async (d: any) => {
 }
 
 const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
-function sanitizeHtml(html: string): string {
-  const s = document.createElement('div')
-  s.textContent = html
-  const text = s.innerHTML
-  return text
+function aiAdviceHtml(result: any): string {
+  const text = result?.content || result?.response || ''
+  return (marked.parse(text) as string)
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/\son\w+="[^"]*"/gi, '')
     .replace(/\son\w+='[^']*'/gi, '')
-}
-function aiAdviceHtml(result: any): string {
-  const text = result?.content || result?.response || ''
-  return sanitizeHtml(marked.parse(text) as string)
 }
 const handleSPCAnalysis = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
