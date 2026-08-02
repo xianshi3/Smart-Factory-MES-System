@@ -19,6 +19,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   const userId = computed(() => userStore.userInfo?.username || 'default')
   const aiOnline = ref(true)
+  let _pollTimer: ReturnType<typeof setInterval> | null = null
   const conversations = ref<ConversationListItem[]>([])
   const currentId = ref<string | null>(null)
   const messages = ref<MessageItem[]>([])
@@ -44,22 +45,28 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   async function checkHealth(): Promise<boolean> {
     try {
-      await runAgent('ping', [{ role: 'user', content: 'test' }])
-    } catch {
-      // 快速 ping — 用 kb/search 作为轻量健康检查
-    }
-    try {
       const { default: axios } = await import('axios')
       await axios.get('/ai/api/v1/agent/tools', { timeout: 3000 })
       aiOnline.value = true
+      stopPolling()
       return true
     } catch {
-      aiOnline.value = false
+      if (aiOnline.value) {
+        aiOnline.value = false
+        startPolling()
+      }
       return false
     }
   }
 
-  function setOnline(v: boolean) { aiOnline.value = v }
+  function startPolling() {
+    stopPolling()
+    _pollTimer = setInterval(checkHealth, 5000)
+  }
+
+  function stopPolling() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null }
+  }
 
   async function loadList() {
     loadingList.value = true
@@ -132,7 +139,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
       const res = await runAgent(text, history.slice(-10))
 
-      aiOnline.value = true // 服务可达
+      aiOnline.value = true; stopPolling()
 
       const assistantMsg: MessageItem = {
         role: 'assistant',
@@ -152,6 +159,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
       return true
     } catch (e: any) {
       aiOnline.value = false
+      startPolling()
       const errorMsg: MessageItem = {
         role: 'assistant',
         content: '**AI 服务未连接**\n\n请在终端执行以下命令启动：\n\n```bash\ncd mes-ai-service && python src/main.py\n```',
@@ -198,7 +206,6 @@ export const useAiChatStore = defineStore('aiChat', () => {
     isEmpty,
     messageCount,
     checkHealth,
-    setOnline,
     loadList,
     selectConversation,
     newChat,
