@@ -13,8 +13,8 @@
       </div>
     </div>
 
-    <div class="search-section">
-      <el-input v-model="searchForm.keyword" placeholder="搜索BOM编号或名称" clearable prefix-icon="Search" @clear="loadData" />
+    <div class="filter-bar">
+      <el-input v-model="searchForm.keyword" placeholder="搜索BOM编号或名称" clearable class="search-input" prefix-icon="Search" @keyup.enter="loadData" @clear="loadData" />
       <el-select v-model="searchForm.status" placeholder="状态" clearable style="width:120px" @change="loadData">
         <el-option label="全部" value="" />
         <el-option label="草稿" value="DRAFT" />
@@ -25,7 +25,16 @@
     </div>
 
     <div class="table-wrapper">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+      <div v-if="loading && !tableData.length" class="skeleton-wrap">
+        <div v-for="i in 6" :key="i" class="skeleton-row">
+          <el-skeleton animated>
+            <template #template>
+              <el-skeleton-item variant="rect" style="height: 44px; border-radius: 6px" />
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
+      <el-table v-else v-loading="loading" :data="tableData" border stripe style="width:100%" empty-text="暂无BOM数据">
         <el-table-column type="index" label="#" width="40" align="center" />
         <el-table-column prop="bomCode" label="BOM编号" width="130">
           <template #default="{ row }"><span class="cell-code">{{ row.bomCode }}</span></template>
@@ -107,7 +116,12 @@
       </div>
       <el-table :data="items" border stripe size="small" style="width:100%">
         <el-table-column type="index" label="#" width="40" align="center" />
-        <el-table-column prop="materialId" label="物料ID" width="80" align="center" />
+        <el-table-column label="物料" min-width="200">
+          <template #default="{ row }">
+            <span class="cell-code">{{ row.materialCode || row.materialId }}</span>
+            <span v-if="row.materialName" class="mat-name">{{ row.materialName }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="数量" width="100" align="right">
           <template #default="{ row }">{{ row.quantity ?? '-' }}</template>
         </el-table-column>
@@ -133,8 +147,10 @@
 
     <el-dialog v-model="itemFormVisible" :title="editingItemIndex >= 0 ? '编辑物料行项' : '添加物料行项'" width="480px" top="12vh">
       <el-form :model="itemForm" label-width="90px">
-        <el-form-item label="物料ID" required>
-          <el-input-number v-model="itemForm.materialId" :min="1" style="width:100%" />
+        <el-form-item label="物料" required>
+          <el-select v-model="itemForm.materialId" filterable placeholder="搜索选择物料" style="width:100%" @change="onMaterialChange">
+            <el-option v-for="m in materials" :key="m.id" :label="`${m.materialCode} - ${m.materialName}`" :value="m.id" />
+          </el-select>
         </el-form-item>
         <el-row :gutter="16">
           <el-col :span="12">
@@ -177,6 +193,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, List } from '@element-plus/icons-vue'
 import { getBomList, createBom, updateBom, deleteBom, validateBom, getBomItems, createBomItem, updateBomItem, deleteBomItem } from '@/api/services'
+import request from '@/api'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -190,9 +207,29 @@ const itemVisible = ref(false)
 const itemFormVisible = ref(false)
 const itemSaving = ref(false)
 const items = ref<any[]>([])
+const materials = ref<any[]>([])
 const currentBom = ref<any>(null)
 const itemForm = reactive<any>({})
 const editingItemIndex = ref(-1)
+
+const materialMap = computed(() => new Map(materials.value.map(m => [m.id, m])))
+
+function enrichItems(list: any[]) {
+  return (list || []).map(it => {
+    const m = materialMap.value.get(it.materialId)
+    return m ? { ...it, materialCode: m.materialCode, materialName: m.materialName, unit: it.unit || m.unit } : it
+  })
+}
+
+async function loadMaterials() {
+  try {
+    const res = await request({ url: '/api/dashboard/material/list', method: 'get', params: { page: 1, size: 100 } })
+    const d = res?.data || res || []
+    materials.value = Array.isArray(d) ? d : d.records || []
+  } catch {
+    materials.value = []
+  }
+}
 
 function statusTag(v: string) {
   const m: Record<string, string> = { DRAFT: 'info', VALIDATED: 'success', RELEASED: 'primary' }
@@ -277,12 +314,18 @@ async function handleItems(row: any) {
   currentBom.value = row
   items.value = []
   itemVisible.value = true
+  if (!materials.value.length) await loadMaterials()
   try {
     const res = await getBomItems(row.id)
-    items.value = res?.data || []
+    items.value = enrichItems(res?.data)
   } catch {
     ElMessage.error('获取物料清单失败')
   }
+}
+
+function onMaterialChange(id: number) {
+  const m = materials.value.find(x => x.id === id)
+  if (m && !itemForm.unit) itemForm.unit = m.unit || ''
 }
 
 function handleAddItem() {
@@ -314,7 +357,7 @@ async function handleItemSubmit() {
     }
     itemFormVisible.value = false
     const res = await getBomItems(currentBom.value.id)
-    items.value = res?.data || []
+    items.value = enrichItems(res?.data)
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || e?.message || '操作失败')
   } finally {
@@ -339,8 +382,11 @@ onMounted(() => loadData())
 <style scoped>
 .page-view { display: flex; flex-direction: column; gap: 16px; }
 
-.search-section { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.search-section .el-input { width: 240px; }
+.search-input { width: 240px; }
+
+.skeleton-wrap { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+
+.mat-name { margin-left: 6px; color: var(--text-primary); font-size: 12px; }
 
 .table-wrapper { border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
 .table-wrapper :deep(.el-table th) { font-weight: 600; color: var(--text-secondary); font-size: 13px; }
