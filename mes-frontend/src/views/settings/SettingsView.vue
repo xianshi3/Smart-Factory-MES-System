@@ -1,13 +1,22 @@
 <template>
   <div class="settings-container">
     <div class="page-header">
-      <div class="header-title">
-        <el-icon size="24"><Setting /></el-icon>
-        <h1>系统设置</h1>
+      <div class="header-left">
+        <div class="page-title">
+          <el-icon><Setting /></el-icon>
+          <h1>系统设置</h1>
+        </div>
+        <p class="page-desc">管理系统外观、生产、设备、质量与通知等偏好</p>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" class="save-btn" :loading="saving" @click="handleSave">
+          <el-icon><Check /></el-icon>
+          保存设置
+        </el-button>
       </div>
     </div>
 
-    <div class="settings-content">
+    <div class="settings-content" v-loading="loading">
       <!-- 外观设置 -->
       <div class="settings-section">
         <div class="section-title">
@@ -321,10 +330,24 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useThemeStore } from '@/stores/theme'
-import { Setting, Monitor, Document, Cpu, CircleCheck, Bell, DataAnalysis, InfoFilled, Moon, Sunny } from '@element-plus/icons-vue'
+import { Setting, Monitor, Document, Cpu, CircleCheck, Bell, DataAnalysis, InfoFilled, Moon, Sunny, Check } from '@element-plus/icons-vue'
 import request from '@/api'
 
 const themeStore = useThemeStore()
+
+const saving = ref(false)
+
+const handleSave = async () => {
+  saving.value = true
+  try {
+    await request({ url: '/auth/settings', method: 'put', data: settings })
+    ElMessage.success('设置已保存')
+  } catch {
+    ElMessage.error('保存设置失败')
+  } finally {
+    saving.value = false
+  }
+}
 
 const isDark = computed({
   get: () => themeStore.isDark,
@@ -337,7 +360,14 @@ const isDark = computed({
 
 const handleThemeChange = () => {
   saveSettings()
-  ElMessage.success('主题切换成功')
+}
+
+const saveSettings = async () => {
+  try {
+    await request({ url: '/auth/settings', method: 'put', data: settings })
+  } catch {
+    // ignore, theme still applied locally
+  }
 }
 
 const loading = ref(false)
@@ -401,21 +431,7 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-}
-
-.header-title h1 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.header-title .el-icon {
-  color: var(--accent);
-}
+.save-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
 
 .settings-content {
   display: flex;
@@ -508,7 +524,7 @@ onMounted(() => {
 }
 
 html.light .settings-section {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 768px) {

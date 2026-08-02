@@ -8,39 +8,70 @@
         </div>
         <p class="page-desc">系统菜单与权限配置</p>
       </div>
-      <el-button type="primary" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        新增菜单
-      </el-button>
+      <div class="header-actions">
+        <el-button type="primary" class="create-btn" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新增菜单
+        </el-button>
+      </div>
     </div>
 
-    <el-table :data="menus" row-key="id" :tree-props="{ children: 'children' }" default-expand-all>
-      <el-table-column prop="menuName" label="菜单名称">
-        <template #default="{ row }">{{ row.menuName }}</template>
-      </el-table-column>
-      <el-table-column prop="menuCode" label="菜单编码" />
-      <el-table-column prop="path" label="路由路径" />
-      <el-table-column prop="component" label="组件" />
-      <el-table-column prop="icon" label="图标" width="80">
-        <template #default="{ row }">
-          <el-icon v-if="row.icon"><component :is="row.icon" /></el-icon>
-        </template>
-      </el-table-column>
-      <el-table-column prop="sort" label="排序" width="80" />
-      <el-table-column prop="status" label="状态" width="80">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-            {{ row.status === 1 ? '启用' : '禁用' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="150">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-          <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-panel">
+      <div v-if="loading && !menus.length" class="skeleton-wrap">
+        <div v-for="i in 6" :key="i" class="skeleton-row">
+          <el-skeleton animated>
+            <template #template>
+              <el-skeleton-item variant="rect" style="height: 44px; border-radius: 6px" />
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
+      <el-table v-else v-loading="loading" :data="menus" row-key="id" :tree-props="{ children: 'children' }" default-expand-all style="width: 100%" empty-text="暂无菜单数据">
+        <el-table-column prop="menuName" label="菜单名称" min-width="180">
+          <template #default="{ row }">
+            <div class="menu-name">
+              <el-icon v-if="row.icon" class="menu-icon"><component :is="row.icon" /></el-icon>
+              <span>{{ row.menuName }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="menuCode" label="菜单编码" min-width="140">
+          <template #default="{ row }">
+            <span class="cell-code">{{ row.menuCode }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="path" label="路由路径" min-width="140">
+          <template #default="{ row }">
+            <span class="path-cell">{{ row.path || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="component" label="组件" min-width="160">
+          <template #default="{ row }">
+            <span class="path-cell">{{ row.component || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sort" label="排序" width="70" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <span :class="['status-tag', row.status === 1 ? 'status-tag--enabled' : 'status-tag--disabled']">
+              {{ row.status === 1 ? '启用' : '禁用' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button type="primary" link size="small" @click="handleEdit(row)">
+                <el-icon><Edit /></el-icon>编辑
+              </el-button>
+              <el-button type="danger" link size="small" @click="handleDelete(row)">
+                <el-icon><Delete /></el-icon>删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 菜单编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
@@ -57,8 +88,11 @@
         <el-form-item label="组件">
           <el-input v-model="form.component" placeholder="请输入组件路径" />
         </el-form-item>
+        <el-form-item label="图标">
+          <el-input v-model="form.icon" placeholder="如: Monitor / Connection" />
+        </el-form-item>
         <el-form-item label="父级菜单">
-          <el-select v-model="form.parentId" placeholder="请选择父级菜单" clearable>
+          <el-select v-model="form.parentId" placeholder="请选择父级菜单" clearable style="width: 100%">
             <el-option v-for="m in topMenus" :key="m.id" :label="m.menuName" :value="m.id" />
           </el-select>
         </el-form-item>
@@ -80,7 +114,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Menu, Edit, Delete } from '@element-plus/icons-vue'
 import { getMenuList, createMenu, updateMenu, deleteMenu } from '@/api/system'
 
 interface MenuItem {
@@ -97,6 +131,7 @@ interface MenuItem {
 }
 
 const menus = ref<MenuItem[]>([])
+const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增菜单')
 const form = ref<Partial<MenuItem>>({})
@@ -104,6 +139,7 @@ const form = ref<Partial<MenuItem>>({})
 const topMenus = computed(() => menus.value.filter(m => !m.parentId || m.parentId === 0))
 
 const loadData = async () => {
+  loading.value = true
   try {
     const res = await getMenuList()
     const list = res.data?.data
@@ -114,6 +150,8 @@ const loadData = async () => {
     }
   } catch (e) {
     console.error('Load menu error:', e)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -130,6 +168,10 @@ const handleEdit = (row: MenuItem) => {
 }
 
 const handleSubmit = async () => {
+  if (!form.value.menuName || !form.value.menuCode) {
+    ElMessage.warning('请填写菜单名称和编码')
+    return
+  }
   try {
     if (form.value.id) {
       await updateMenu(form.value)
@@ -164,4 +206,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-wrapper {
+  background: var(--bg-app);
+  min-height: 100%;
+}
+
+.create-btn { height: 36px; padding: 0 16px; border-radius: var(--radius-md); }
+
+.table-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table-panel :deep(.el-table th) { font-weight: 600; color: var(--text-secondary); font-size: 13px; }
+
+.skeleton-wrap { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+
+.menu-name { display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+.menu-icon { color: var(--accent); flex-shrink: 0; }
+
+.cell-code { font-family: SF Mono, Consolas, monospace; color: var(--accent); font-weight: 500; }
+.path-cell { font-family: SF Mono, Consolas, monospace; font-size: 12px; color: var(--text-secondary); }
+
+.status-tag--enabled { background: var(--success-light); color: var(--success); }
+.status-tag--disabled { background: var(--danger-light); color: var(--danger); }
+
+.action-buttons { display: flex; gap: 4px; }
+
+html.light .table-panel { box-shadow: var(--shadow-sm); }
 </style>
