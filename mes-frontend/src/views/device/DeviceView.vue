@@ -135,10 +135,7 @@
         </div>
         <div class="dt-dlg-ai-btns">
           <el-button type="warning" @click="handlePredict(detailData)"><el-icon><Cpu /></el-icon> 故障预测</el-button>
-          <el-button @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC</el-button>
-          <el-button @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
-          <el-button @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
-          <el-button type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
+          <el-button @click="openAiDialog"><el-icon><Histogram /></el-icon> AI分析</el-button>
         </div>
       </div>
     </el-dialog>
@@ -156,8 +153,50 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI建议'" width="600px" destroy-on-close>
+    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI建议'" width="680px" destroy-on-close class="ai-dlg" :close-on-click-modal="false">
       <div v-if="aiAnalysisLoading" class="dt-loading"><el-icon class="is-loading" size="32"><Loading /></el-icon><p>AI分析中...</p></div>
+
+      <!-- History list (shown when no active result) -->
+      <div v-else-if="!aiAnalysisResult && !aiAnalysisLoading" class="ai-prompt-area">
+        <div v-if="aiHistory.length" class="ai-history-panel">
+          <div class="ai-subtitle">分析记录</div>
+          <div
+            v-for="(h, i) in aiHistory.slice(0, 8)"
+            :key="i"
+            class="ai-hi-row"
+            @click="aiAnalysisResult = h.data; currentAnalysisType = h.type"
+          >
+            <span class="ai-hi-tag" :class="h.type">{{ { spc:'SPC', energy:'能耗', capacity:'产能', llm:'AI建议' }[h.type] }}</span>
+            <span class="ai-hi-name">{{ h.deviceName }}</span>
+            <span class="ai-hi-time">{{ fmtTime(h.ts) }}</span>
+          </div>
+        </div>
+        <div class="ai-device-card">
+          <div class="ai-dc-head">
+            <span class="ai-dc-icon"><el-icon :size="18"><Cpu /></el-icon></span>
+            <div>
+              <strong>{{ detailData?.name || '选择设备' }}</strong>
+              <small>{{ getStatusText(detailData?.status || '') }}</small>
+            </div>
+          </div>
+          <div class="ai-dc-metrics">
+            <span>🌡 {{ detailData?.temperature ?? '--' }}°C</span>
+            <span>⚙ {{ detailData?.speed ?? '--' }} rpm</span>
+            <span>⚡ {{ detailData?.power ?? '--' }} kW</span>
+            <span>📊 {{ detailData?.utilization || '0%' }}</span>
+          </div>
+          <div class="ai-dc-actions">
+            <el-button size="small" @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC分析</el-button>
+            <el-button size="small" @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
+            <el-button size="small" @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
+            <el-button size="small" type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result area -->
+      <div v-if="!aiAnalysisLoading && aiAnalysisResult" class="ai-result-area">
+        <button class="ai-back-btn" @click="aiAnalysisResult = null"><el-icon :size="14"><DArrowLeft /></el-icon> 返回</button>
 
       <!-- SPC Result -->
       <div v-else-if="currentAnalysisType === 'spc' && aiAnalysisResult" class="dt-ai-result">
@@ -282,6 +321,7 @@
           </span>
         </div>
       </div>
+      </div>  <!-- end ai-result-area -->
 
       <!-- Generic / Other Result -->
       <div v-else-if="aiAnalysisResult" class="dt-ai-result">
@@ -290,8 +330,6 @@
         </div>
         <div v-else class="dt-ai-raw">{{ JSON.stringify(aiAnalysisResult, null, 2) }}</div>
       </div>
-
-      <div v-else class="dt-loading"><p>暂无结果</p></div>
       <template #footer><el-button @click="aiAnalysisVisible=false">关闭</el-button></template>
     </el-dialog>
   </div>
@@ -307,7 +345,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
- VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight } from '@element-plus/icons-vue'
+ VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 import { marked } from 'marked'
 marked.setOptions({ breaks: true, gfm: true })
@@ -331,6 +369,7 @@ const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
 const selectedDevice = ref<any>(null)
+const aiHistory = ref<any[]>([])
 const hudPanels = reactive({ alarms: true, charts: true })
 
 let refreshInterval: number
@@ -467,7 +506,24 @@ const handlePredict = async (d: any) => {
   } catch { ElMessage.error('预测失败，请确认AI服务已启动') }
 }
 
-const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
+const showAIResult = (type: string, data: any) => {
+  const result = data?.data || data
+  currentAnalysisType.value = type
+  aiAnalysisResult.value = result
+  aiAnalysisLoading.value = false
+  const d = detailData.value || {}
+  aiHistory.value.unshift({
+    type, deviceName: d.name || d.code || '', deviceCode: d.code || '',
+    ts: Date.now(), data: result,
+  })
+  if (aiHistory.value.length > 20) aiHistory.value.length = 20
+}
+function fmtTime(ts: number): string {
+  const diff = Date.now() - ts
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
 function aiAdviceHtml(result: any): string {
   const text = result?.content || result?.response || ''
   return (marked.parse(text) as string)
@@ -475,8 +531,8 @@ function aiAdviceHtml(result: any): string {
     .replace(/\son\w+="[^"]*"/gi, '')
     .replace(/\son\w+='[^']*'/gi, '')
 }
-const handleSPCAnalysis = async () => {
-  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
+const openAiDialog = () => { aiAnalysisVisible.value = true; aiAnalysisResult.value = null; aiAnalysisLoading.value = false }
+const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentAnalysisType.value = 'spc'
   try {
     const d = detailData.value || {}
     const realTemp = d.temperature
@@ -742,4 +798,96 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-ai-advice-item p { margin: 0; font-size: 13px; color: var(--text-secondary); }
 .dt-ai-advice-status { margin-top: 12px; }
 .dt-ai-status-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
+
+/* ===== AI Panel Redesign ===== */
+.ai-dlg :deep(.el-dialog__body) { padding: 16px 20px; }
+
+.ai-subtitle { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* history */
+.ai-history-panel { margin-bottom: 16px; }
+.ai-hi-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  border: 1px solid var(--border-color); margin-bottom: 4px;
+}
+.ai-hi-row:hover { background: var(--bg-hover); border-color: var(--accent); }
+.ai-hi-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+  color: #fff; flex-shrink: 0;
+}
+.ai-hi-tag.spc { background: var(--accent, #6366f1); }
+.ai-hi-tag.energy { background: var(--warning, #f59e0b); }
+.ai-hi-tag.capacity { background: var(--success, #10b981); }
+.ai-hi-tag.llm { background: var(--accent-secondary, #22d3ee); }
+.ai-hi-name { font-size: 13px; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-hi-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+/* device card */
+.ai-device-card {
+  border: 1px solid var(--border-color); border-radius: var(--radius-lg, 14px);
+  padding: 18px 20px; background: var(--bg-card);
+}
+.ai-dc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.ai-dc-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent-light); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-dc-head strong { font-size: 15px; color: var(--text-primary); }
+.ai-dc-head small { display: block; font-size: 11px; color: var(--text-muted); }
+.ai-dc-metrics { display: flex; gap: 16px; margin-bottom: 14px; padding: 10px 14px; background: var(--bg-hover); border-radius: 8px; font-size: 13px; color: var(--text-secondary); }
+.ai-dc-metrics span { display: flex; align-items: center; gap: 4px; }
+.ai-dc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* loading */
+.ai-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 0; gap: 16px; color: var(--text-muted); font-size: 13px;
+}
+.ai-loading-spin {
+  width: 36px; height: 36px; border: 3px solid var(--border-color);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* result */
+.ai-result-area { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.ai-back-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px;
+  border-radius: 6px; border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-muted); font-size: 12px; cursor: pointer; margin-bottom: 14px;
+  font-family: inherit; transition: all 0.15s;
+}
+.ai-back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ai-result-card { border: 1px solid var(--border-color); border-radius: var(--radius-lg, 14px); overflow: hidden; }
+.ai-rc-head {
+  padding: 10px 16px; font-size: 13px; font-weight: 600; color: #fff;
+}
+.ai-rc-head.accent { background: var(--accent, #6366f1); }
+.ai-rc-head.success { background: var(--success, #10b981); }
+.ai-rc-head.warning { background: var(--warning, #f59e0b); }
+.ai-rc-body { padding: 16px; }
+.ai-cpk-badge {
+  width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 12px;
+}
+.ai-cpk-badge.acceptable, .ai-cpk-badge.good { background: var(--success, #10b981); }
+.ai-cpk-badge.marginal { background: var(--warning, #f59e0b); }
+.ai-cpk-badge.poor { background: var(--danger, #ef4444); }
+.ai-stats-row { display: flex; gap: 12px; justify-content: center; }
+.ai-stats-row div { text-align: center; }
+.ai-stats-row label { display: block; font-size: 10px; color: var(--text-muted); }
+.ai-stats-row span { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.ai-energy-kpis { display: flex; gap: 16px; justify-content: center; }
+.ai-energy-kpis div { text-align: center; }
+.kpi-val { display: block; font-size: 24px; font-weight: 700; color: var(--accent); }
+.ai-energy-kpis small { font-size: 11px; color: var(--text-muted); }
+.ai-llm-body { line-height: 1.8; font-size: 13px; color: var(--text-primary); }
+.ai-llm-body :deep(p) { margin: 0 0 6px; }
+.ai-llm-body :deep(strong) { color: var(--accent); }
+.ai-llm-body :deep(li) { margin-bottom: 2px; }
+.ai-llm-body :deep(code) { background: var(--accent-light); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+.ai-result-meta { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
 </style>
