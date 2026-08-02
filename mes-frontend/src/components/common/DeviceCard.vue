@@ -21,7 +21,7 @@
       <div class="metric-row">
         <div class="metric-item">
           <span class="metric-label">温度</span>
-          <span class="metric-value" :class="{ 'temp-high': temperature > 60 }">{{ temperature }}°C</span>
+          <span class="metric-value" :class="{ 'temp-high': temperature > 60 }">{{ temperature != null ? Number(temperature).toFixed(1) : '--' }}°C</span>
         </div>
         <div class="metric-item">
           <span class="metric-label">功率</span>

@@ -370,7 +370,7 @@ public partial class MainWindow : Window
                 deviceName = deviceName,
                 deviceType = deviceType,
                 status = status,
-                temperature = _temperature,
+                temperature = Math.Round(_temperature, 1),
                 speed = _speed
             };
 

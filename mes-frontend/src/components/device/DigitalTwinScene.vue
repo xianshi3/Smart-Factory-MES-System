@@ -33,7 +33,7 @@
         <div class="panel-grid">
           <div>
             <label>温度</label>
-            <span :class="tempClass(selectedDevice.temperature)">{{ selectedDevice.temperature ?? '--' }}°C</span>
+            <span :class="tempClass(selectedDevice.temperature)">{{ selectedDevice.temperature != null ? Number(selectedDevice.temperature).toFixed(1) : '--' }}°C</span>
           </div>
           <div><label>转速</label><span>{{ selectedDevice.speed ?? '--' }} rpm</span></div>
           <div><label>功率</label><span>{{ selectedDevice.power ?? '--' }} kW</span></div>

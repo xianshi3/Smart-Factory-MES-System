@@ -86,7 +86,7 @@
             </div>
             <div class="dc-card-metrics">
               <div class="dc-metric">
-                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ d.temperature ?? '--' }}</span>
+                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ fmtTemp(d.temperature) }}</span>
                 <span class="dc-m-unit">°C</span>
               </div>
               <div class="dc-metric">
@@ -129,7 +129,7 @@
           <el-tag :type="getStatusType(detailData.status)" size="large">{{ getStatusText(detailData.status) }}</el-tag>
         </div>
         <div class="dt-dlg-det-kpis">
-          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',detailData.temperature+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
+          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',fmtTemp(detailData.temperature)+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
             <strong>{{ kv[1] }}</strong><span>{{ kv[0] }}</span>
           </div>
         </div>
@@ -186,7 +186,7 @@
             </div>
           </div>
           <div class="ai-dc-metrics">
-            <span>🌡 {{ detailData?.temperature ?? '--' }}°C</span>
+            <span>🌡 {{ fmtTemp(detailData?.temperature) }}°C</span>
             <span>⚙ {{ detailData?.speed ?? '--' }} rpm</span>
             <span>⚡ {{ detailData?.power ?? '--' }} kW</span>
             <span>📊 {{ detailData?.utilization || '0%' }}</span>
@@ -379,7 +379,7 @@
         <div class="ai-result-meta">
           <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || '') }}</el-tag>
           <span>{{ detailData?.name }}</span>
-          <span>{{ detailData?.temperature ?? '--' }}°C</span>
+          <span>{{ fmtTemp(detailData?.temperature) }}°C</span>
         </div>
       </div>  <!-- end ai-result-area -->
 
@@ -672,6 +672,10 @@ function fmtTime(ts: number): string {
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+function fmtTemp(t: any): string {
+  if (t == null || isNaN(Number(t))) return '--'
+  return Number(t).toFixed(1)
 }
 function aiAdviceHtml(result: any): string {
   const text = result?.content || result?.response || ''
