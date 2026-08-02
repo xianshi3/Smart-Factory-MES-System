@@ -218,11 +218,67 @@
 
         <template v-else-if="currentAnalysisType === 'energy'">
           <div class="ai-result-card">
-            <div class="ai-rc-head warning">能耗优化分析</div>
+            <div class="ai-rc-head warning">能耗优化分析 <span class="ai-rc-src" v-if="aiAnalysisResult.data_source === 'mysql_realtime'">· 实时遥测数据</span><span class="ai-rc-src" v-else>· 请求参数估算</span></div>
             <div class="ai-rc-body">
-              <div class="ai-energy-kpis">
-                <div><span class="kpi-val">{{ aiAnalysisResult.estimated_energy_savings_pct }}%</span><small>节能潜力</small></div>
-                <div><span class="kpi-val">{{ aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span><small>月省电量</small></div>
+              <!-- KPI 四宫格 -->
+              <div class="ai-kpi-grid">
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.savings_pct ?? aiAnalysisResult.estimated_energy_savings_pct }}%</span><small>节能潜力</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.monthly_savings_kwh ?? aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span><small>月省电量</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">¥{{ aiAnalysisResult.kpis?.monthly_savings_cost ?? aiAnalysisResult.estimated_monthly_savings_cost ?? '--' }}</span><small>月省成本</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.co2_reduction_kg ?? '--' }} kg</span><small>CO₂减排/月</small></div>
+              </div>
+              <div class="ai-kpi-sub" v-if="aiAnalysisResult.baseline">
+                基线 {{ aiAnalysisResult.baseline.monthly_baseline_kwh }} kWh/月 · 负载率 {{ (aiAnalysisResult.baseline.load_factor * 100).toFixed(0) }}% · 单位能耗 {{ aiAnalysisResult.baseline.specific_energy_before }} → {{ aiAnalysisResult.baseline.specific_energy_after }} kWh/件
+              </div>
+
+              <!-- 优化策略构成 -->
+              <div class="ai-sec-title" v-if="aiAnalysisResult.optimization_breakdown">优化策略构成</div>
+              <div class="ai-breakdown" v-if="aiAnalysisResult.optimization_breakdown">
+                <div v-for="b in aiAnalysisResult.optimization_breakdown" :key="b.strategy" class="ai-bd-row">
+                  <span class="ai-bd-name">{{ b.strategy }}<em>{{ b.phase }}</em></span>
+                  <span class="ai-bd-bar"><i :style="{ width: Math.min(100, b.savings_kwh / Math.max(...aiAnalysisResult.optimization_breakdown.map(x => x.savings_kwh), 1) * 100) + '%' }"></i></span>
+                  <span class="ai-bd-val">{{ b.savings_kwh > 0 ? b.savings_kwh + ' kWh' : '—' }}<small>{{ b.savings_cost > 0 ? '¥' + b.savings_cost : '' }}</small></span>
+                </div>
+              </div>
+
+              <!-- 参数对比 -->
+              <div class="ai-sec-title">参数调优建议</div>
+              <table class="ai-param-table">
+                <thead><tr><th>参数</th><th>当前值</th><th>推荐值</th><th>变化</th></tr></thead>
+                <tbody>
+                  <tr><td>转速</td><td>{{ aiAnalysisResult.current_parameters?.speed }} rpm</td><td>{{ aiAnalysisResult.recommended_parameters?.speed }} rpm</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.speed }}</td></tr>
+                  <tr><td>温度</td><td>{{ aiAnalysisResult.current_parameters?.temperature }}°C</td><td>{{ aiAnalysisResult.recommended_parameters?.temperature }}°C</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.temperature }}</td></tr>
+                  <tr><td>功率</td><td>{{ aiAnalysisResult.current_parameters?.power }} kW</td><td>{{ aiAnalysisResult.recommended_parameters?.power }} kW</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.power }}</td></tr>
+                </tbody>
+              </table>
+
+              <!-- 削峰填谷 -->
+              <div class="ai-sec-title">削峰填谷 · 分时电价策略</div>
+              <div class="ai-tou-row" v-if="aiAnalysisResult.tou_schedule">
+                <div v-for="(t, k) in aiAnalysisResult.tou_schedule" :key="k" class="ai-tou-cell" :class="k">
+                  <div class="ai-tou-head"><span class="ai-tou-tag" :class="k">{{ { peak:'峰', flat:'平', valley:'谷' }[k] }}</span><b>¥{{ t.price }}/kWh</b></div>
+                  <div class="ai-tou-hours">{{ t.hours }}</div>
+                  <div class="ai-tou-action">{{ t.action }}</div>
+                </div>
+              </div>
+
+              <!-- 实施路线图 -->
+              <div class="ai-sec-title">实施路线图</div>
+              <div class="ai-roadmap" v-if="aiAnalysisResult.roadmap">
+                <div v-for="(rp, i) in aiAnalysisResult.roadmap" :key="i" class="ai-rm-item">
+                  <div class="ai-rm-phase">{{ rp.phase }}</div>
+                  <div class="ai-rm-body">
+                    <div class="ai-rm-head"><span class="ai-rm-duration">{{ rp.duration }}</span><span class="ai-rm-saving">{{ rp.expected_savings }} 节能</span></div>
+                    <div class="ai-rm-actions"><el-tag v-for="a in rp.actions" :key="a" size="small" effect="plain">{{ a }}</el-tag></div>
+                    <div class="ai-rm-kpis"><small>验收KPI: {{ rp.kpis.join(' / ') }}</small></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 风险提示 -->
+              <div class="ai-risks" v-if="aiAnalysisResult.risk_and_notes">
+                <div class="ai-sec-title">风险与注意事项</div>
+                <ul><li v-for="(n, i) in aiAnalysisResult.risk_and_notes" :key="i">{{ n }}</li></ul>
               </div>
             </div>
           </div>
@@ -886,6 +942,49 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .ai-llm-body :deep(th) { background: var(--bg-hover); color: var(--accent); padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-color); }
 .ai-llm-body :deep(td) { padding: 7px 10px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
 .ai-llm-body :deep(tr:last-child td) { border-bottom: none; }
+.ai-rc-src { font-size: 11px; font-weight: 400; opacity: .85; }
+.ai-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+.ai-kpi-cell { text-align: center; padding: 10px 4px; background: var(--bg-hover); border-radius: 10px; }
+.ai-kpi-cell .kpi-val { font-size: 18px; }
+.ai-kpi-sub { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.ai-sec-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid var(--warning); }
+.ai-breakdown { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ai-bd-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.ai-bd-name { width: 76px; color: var(--text-primary); white-space: nowrap; }
+.ai-bd-name em { font-style: normal; font-size: 10px; color: var(--text-muted); margin-left: 3px; }
+.ai-bd-bar { flex: 1; height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; }
+.ai-bd-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--warning), #fbbf24); border-radius: 4px; }
+.ai-bd-val { width: 108px; text-align: right; color: var(--warning); font-weight: 600; white-space: nowrap; }
+.ai-bd-val small { display: block; font-size: 10px; color: var(--text-muted); font-weight: 400; }
+.ai-param-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ai-param-table th { background: var(--bg-hover); color: var(--text-muted); padding: 7px 10px; text-align: left; font-weight: 600; }
+.ai-param-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.ai-delta { color: var(--warning); font-weight: 600; }
+.ai-tou-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ai-tou-cell { border: 1px solid var(--border-light); border-radius: 10px; padding: 10px; background: var(--bg-app); }
+.ai-tou-cell.peak { border-color: #fca5a5; }
+.ai-tou-cell.flat { border-color: #93c5fd; }
+.ai-tou-cell.valley { border-color: #6ee7b7; }
+.ai-tou-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.ai-tou-tag { font-size: 11px; font-weight: 700; color: #fff; padding: 2px 8px; border-radius: 4px; }
+.ai-tou-tag.peak { background: var(--danger, #ef4444); }
+.ai-tou-tag.flat { background: #3b82f6; }
+.ai-tou-tag.valley { background: var(--success, #10b981); }
+.ai-tou-head b { font-size: 12px; color: var(--text-primary); }
+.ai-tou-hours { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+.ai-tou-action { font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
+.ai-roadmap { display: flex; flex-direction: column; gap: 8px; }
+.ai-rm-item { display: flex; gap: 10px; }
+.ai-rm-phase { flex-shrink: 0; width: 78px; font-size: 10px; font-weight: 700; color: #fff; background: var(--warning); border-radius: 6px; text-align: center; padding: 6px 2px; align-self: flex-start; }
+.ai-rm-body { flex: 1; border-left: 2px dashed var(--border-color); padding: 0 0 2px 12px; }
+.ai-rm-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+.ai-rm-duration { color: var(--text-muted); }
+.ai-rm-saving { color: var(--success); font-weight: 600; }
+.ai-rm-actions .el-tag { margin: 0 4px 4px 0; }
+.ai-rm-kpis { font-size: 10px; color: var(--text-muted); }
+.ai-risks ul { padding-left: 18px; margin: 0; }
+.ai-risks li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+.ai-risks li::marker { color: var(--warning); }
 .ai-llm-body :deep(a) { color: var(--accent); text-decoration: none; }
 .ai-llm-body :deep(a:hover) { text-decoration: underline; }
 .ai-result-meta { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
