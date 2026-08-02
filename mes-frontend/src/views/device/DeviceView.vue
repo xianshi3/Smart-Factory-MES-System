@@ -405,7 +405,6 @@ import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 import { marked } from 'marked'
 marked.setOptions({ breaks: true, gfm: true })
-import { listAnalyses, saveAnalysis } from '@/api/agent'
 import { useUserStore } from '@/stores/user'
 
 const themeStore = useThemeStore()
