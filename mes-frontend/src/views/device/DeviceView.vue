@@ -406,10 +406,8 @@ const updateCharts = () => {
 const handleDeviceSelect = (d: any) => { selectedDevice.value = d; detailData.value = d }
 const handle3DAction = (payload: { type: string; device: any }) => {
   detailData.value = payload.device
-  if (payload.type === 'predict') handlePredict(payload.device)
-  else if (payload.type === 'spc') handleSPCAnalysis()
-  else if (payload.type === 'energy') handleEnergyOptimization()
-  else if (payload.type === 'llm') handleLLMChat()
+  if (payload.type === 'predict') { handlePredict(payload.device) }
+  else { openAiDialog() }
 }
 const refresh = () => { fetchDeviceData() }
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
