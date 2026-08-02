@@ -34,7 +34,7 @@ Smart-Factory-MES-System/
 | 前端 | Vue 3 + TypeScript + Element Plus + ECharts + Three.js | Vue 3.5 |
 | 后端 | Java 17 + Spring Cloud + MyBatis-Plus | Spring Cloud 2022.0.0 |
 | 设备接入 | .NET 8 + MQTT + Kafka | .NET 8 |
-| AI服务 | Python 3.11 + FastAPI + LightGBM + XGBoost | FastAPI 0.115 |
+| AI服务 | Python 3.12 + FastAPI + PyMySQL + LightGBM + XGBoost | FastAPI 0.115 |
 | 基础设施 | MySQL 8.0.33 + Redis 7 + Kafka 3.4 + EMQX 5.8 | - |
 
 ### 1.3 环境配置
@@ -57,7 +57,20 @@ ZHIPU_API_KEY=your-api-key-here
 | JDK | 17+ | Java运行环境 |
 | Maven | 3.9+ | 项目构建 |
 | Node.js | 18+ | 前端开发 |
-| Python | 3.10+ | AI服务运行环境 |
+| Python | 3.12+ | AI服务运行环境 |
+
+### 2.2 依赖安装
+
+```bash
+# Java (项目根目录)
+mvn clean install -DskipTests
+
+# Python AI 服务
+cd mes-ai-service
+pip install -r requirements.txt
+```
+
+> **注意**: Python 3.12 需要 `numpy>=2.0`，`requirements.txt` 已放宽版本约束。首次安装需确保 `pymysql` 和 `sniffio` 正确安装。
 | .NET | 8.0+ | 设备网关运行环境 |
 | Docker | 24+ | 容器化部署 |
 

@@ -14,9 +14,13 @@
 
 ### 大模型模块
 - **智能对话**: 智谱AI GLM-4 大模型支持
+- **AI Agent**: 智能生产助理 — 自然语言→工具调用→任务闭环
+- **对话历史**: MySQL 持久化存储，多轮对话记录管理
+- **分析历史**: MySQL 持久化（`ai_analysis_history`），按用户/设备隔离，支持删除
 - **生产分析**: AI智能分析生产数据
 - **根因分析**: AI辅助故障根因分析
-- **能耗优化**: AI推荐节能方案
+- **能耗优化**: 企业级多维节能方案（真实遥测 + 参数/削峰填谷/待机/维护 + 财务测算 + 路线图）
+- **SPC统计过程控制**: 8条 Western Electric 规则 + 全过程能力 + 5M1E 建议
 - **产能预测**: AI预测产能趋势
 
 ### 数据处理
@@ -75,6 +79,32 @@ python src/main.py
 | POST | `/api/v1/llm/chat` | 智能对话 |
 | POST | `/api/v1/llm/analyze` | 生产数据分析 |
 | POST | `/api/v1/predict/process/recommend` | 工艺参数推荐 |
+
+### Agent API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/agent/run` | Agent 执行（多工具编排） |
+| GET | `/api/v1/agent/tools` | 可用工具列表 |
+| POST | `/api/v1/agent/kb/search` | 知识库搜索 |
+| POST | `/api/v1/agent/conversations` | 新建对话 |
+| GET | `/api/v1/agent/conversations` | 列表（按 user_id 过滤） |
+| GET | `/api/v1/agent/conversations/{id}` | 详情（含消息） |
+| POST | `/api/v1/agent/conversations/{id}/messages` | 保存消息 |
+| DELETE | `/api/v1/agent/conversations/{id}` | 删除对话（逻辑删除） |
+| POST | `/api/v1/agent/analysis` | 保存分析历史（返回记录 id） |
+| GET | `/api/v1/agent/analysis` | 分析历史列表（按 user_id / type / device_code 过滤） |
+| DELETE | `/api/v1/agent/analysis/{id}` | 删除分析历史（物理删除，校验 user_id） |
+
+### 智能分析 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/analysis/energy/optimize` | 能耗优化（企业级多维策略） |
+| POST | `/api/v1/analysis/spc/analyze` | SPC 统计过程控制分析 |
+| POST | `/api/v1/analysis/capacity/predict` | 产能预测 |
+| POST | `/api/v1/analysis/root-cause/analyze` | 质量根因分析 |
+| POST | `/api/v1/analysis/delivery/predict` | 交期预测 |
 
 ### 健康检查
 
@@ -177,12 +207,17 @@ mes-ai-service/
 │   │   ├── quality_predictor.py   # 质量预测服务
 │   │   ├── inference_service.py # 推理服务
 │   │   ├── llm_service.py      # 智谱AI大模型服务
-│   │   ├── analysis_service.py  # AI分析服务
+│   │   ├── analysis_service.py  # AI分析服务（能耗/SPC/产能/根因/交期）
+│   │   ├── conversation_store.py # 对话+分析历史 MySQL 存储
 │   │   └── feature_engineering.py # 特征工程
 │   ├── router/             # 路由
 │   │   ├── prediction.py   # 预测路由
 │   │   ├── llm.py        # 大模型路由
-│   │   └── analysis.py   # 分析路由
+│   │   ├── analysis.py   # 分析路由
+│   │   └── agent.py     # Agent 路由（含对话历史CRUD）
+│   ├── schemas/
+│   │   ├── schemas.py    # 核心数据模型
+│   │   └── conversation.py # 对话历史模型
 ├── models/                # 训练模型输出
 ├── config.yaml            # 配置文件
 ├── .env.local            # 本地敏感配置（不提交）
@@ -194,13 +229,15 @@ mes-ai-service/
 
 | 组件 | 版本 |
 |------|------|
-| Python | 3.11 |
+| Python | 3.12 |
 | FastAPI | 0.115 |
 | LightGBM | 4.5 |
 | XGBoost | 2.1 |
 | ONNX Runtime | 1.19 |
 | scikit-learn | 1.5 |
 | 智谱AI SDK | - |
+| PyMySQL | 1.1 |
+| MySQL | 8.0 |
 
 ## 测试
 
@@ -210,4 +247,4 @@ pytest tests/test_prediction.py -v
 
 ---
 
-*最后更新: 2026-05-05*
+*最后更新: 2026-08-02*

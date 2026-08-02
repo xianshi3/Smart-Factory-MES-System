@@ -36,6 +36,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     @Transactional(rollbackFor = Exception.class)
     public WorkOrder create(CreateWorkOrderDTO dto, Long userId) {
         WorkOrder workOrder = new WorkOrder();
+        workOrder.setDeleted(0);
         workOrder.setOrderNo(generateOrderNo());
         workOrder.setProductName(dto.getProductName());
         workOrder.setProductModel(dto.getProductModel());
@@ -144,7 +145,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     @Override
     public PageResult<WorkOrder> queryPage(int current, int size, String status, String keyword) {
         LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
-        // 注意：@TableLogic 会自动过滤 deleted=1，不需要手动添加
+        wrapper.eq(WorkOrder::getDeleted, 0);
         if (status != null && !status.isEmpty()) {
             wrapper.eq(WorkOrder::getStatus, status);
         }
@@ -175,6 +176,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> delete(Long id, Long userId) {
         log.info("删除工单, id={}", id);
         WorkOrder order = getById(id);
@@ -183,7 +185,6 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
             return Result.error("工单不存在");
         }
 
-        // 检查删除条件：只有 CREATED(草稿) 或 CLOSED(已关闭) 状态可删除
         String status = order.getStatus();
         log.info("工单状态: {}, orderNo: {}", status, order.getOrderNo());
         if (!WorkOrderStatusEnum.CREATED.getCode().equals(status) 
@@ -192,13 +193,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
             return Result.error("只有草稿或已关闭的工单可删除");
         }
 
-        // 逻辑删除 - 使用wrapper避免乐观锁问题
-        var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
-                .set("deleted", 1)
-                .set("deleted_time", LocalDateTime.now())
-                .set("deleted_by", userId)
-                .eq("id", id);
-        workOrderMapper.update(null, updateWrapper);
+        baseMapper.deleteById(id);
         log.info("删除成功, id={}", id);
 
         return Result.ok();

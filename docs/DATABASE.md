@@ -207,6 +207,55 @@
 
 ---
 
+### 8. AI 对话记录表 ai_chat_conversations
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | varchar(36) | 对话ID (UUID) | PK |
+| user_id | varchar(50) | 用户ID | NOT NULL, INDEX |
+| title | varchar(200) | 对话标题 | DEFAULT '新对话' |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+
+**索引**: `idx_user_id` (user_id), `idx_update_time` (update_time)
+
+### 9. AI 消息记录表 ai_chat_messages
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| conversation_id | varchar(36) | 所属对话ID | NOT NULL, INDEX |
+| role | varchar(20) | 角色: user / assistant | NOT NULL |
+| content | text | 消息内容 (Markdown) | NOT NULL |
+| steps | json | Agent 执行步骤 | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+
+**索引**: `idx_conversation_id` (conversation_id)
+
+---
+
+### 10. AI 分析历史表 ai_analysis_history
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| user_id | varchar(50) | 用户ID | NOT NULL, DEFAULT 'default', INDEX |
+| device_code | varchar(50) | 设备编码 | |
+| device_name | varchar(100) | 设备名称 | |
+| analysis_type | varchar(20) | 分析类型: spc / energy / capacity / llm | NOT NULL, INDEX |
+| result_data | json | 分析结果数据 (完整JSON) | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+
+**索引**: `idx_user_id` (user_id), `idx_type` (analysis_type)
+
+**说明**:
+- 由 mes-ai-service 独有（与 ai_chat_* 表同属 AI 服务域）
+- 按 `user_id` 隔离，按 `device_code` 过滤（每台设备只看自己的历史）
+- `DELETE /api/v1/agent/analysis/{id}` 物理删除（校验 user_id）
+
+---
+
 ## 表关系图
 
 ```
@@ -217,34 +266,51 @@
 │ username   │       │ issue_by          │◄──────│ process_template_id
 │ password   │       │ work_order_id     │       │ (FK)           │
 │ role       │       └────────────────────┘       └─────────────────┘
-└─────────────┘                  │                        │
-        │                      │                        │
-        │              ┌───────▼────────┐     ┌───────▼────────┐
-        │              │ wo_work_report │     │ proc_parameter│
-        │              ├───────────────┤     ├──────────────┤
-        └────────────►│ operator_id  │     │ template_id │
-                    │ work_order_id│     │ (FK)       │
-                    └─────────────┘     └─────────────┘
-                           │
-                           │
-              ┌────────────▼────────────┐
-              │ qms_quality_record   │
-              ├─────────────────────┤
-              │ id (PK)            │
-              │ work_order_id (FK) │
-              │ sn                │
-              │ check_type       │
-              │ check_result    │
-              └─────────────────┘
-                           │
-                           ▼
-              ┌─────────────────────┐
-              │ qms_traceability  │
-              ├──────────────────┤
-              │ sn (索引)       │
-              │ work_order_id  │
-              │ work_order_no │
-              └──────────────────┘
+└──────┬──────┘                  │                        │
+       │                         │                        │
+       │                 ┌───────▼────────┐     ┌───────▼────────┐
+       │                 │ wo_work_report │     │ proc_parameter│
+       │                 ├───────────────┤     ├──────────────┤
+       └────────────────►│ operator_id  │     │ template_id │
+                       │ work_order_id│     │ (FK)       │
+                       └─────────────┘     └─────────────┘
+                              │
+                              │
+                 ┌────────────▼────────────┐
+                 │ qms_quality_record   │
+                 ├─────────────────────┤
+                 │ id (PK)            │
+                 │ work_order_id (FK) │
+                 │ sn                │
+                 │ check_type       │
+                 │ check_result    │
+                 └─────────────────┘
+                              │
+                              ▼
+                 ┌─────────────────────┐
+                 │ qms_traceability  │
+                 ├──────────────────┤
+                 │ sn (索引)       │
+                 │ work_order_id  │
+                 │ work_order_no │
+                 └──────────────────┘
+
+       ┌────────────────────┐
+       │ai_chat_conversations│
+       ├────────────────────┤
+       │ id (PK)           │
+       │ user_id ← sys_user│
+       └────────┬───────────┘
+                │ 1:N
+       ┌────────▼───────────┐
+       │ ai_chat_messages  │
+       ├──────────────────┤
+       │ id (PK)          │
+       │ conversation_id  │
+       │ role             │
+       │ content (Markdown)│
+       │ steps (JSON)     │
+       └──────────────────┘
 ```
 
 ---
@@ -268,6 +334,11 @@
 | qms_quality_record | idx_check_time | check_time |
 | qms_traceability | idx_sn | sn |
 | qms_traceability | idx_work_order_id | work_order_id |
+| ai_chat_conversations | idx_user_id | user_id |
+| ai_chat_conversations | idx_update_time | update_time |
+| ai_chat_messages | idx_conversation_id | conversation_id |
+| ai_analysis_history | idx_user_id | user_id |
+| ai_analysis_history | idx_type | analysis_type |
 
 ---
 
@@ -286,6 +357,9 @@
 | qms_traceability | ≥4 |
 | mes_workstation | ≥5 |
 | dash_device_status | ≥20 |
+| ai_chat_conversations | ≥0 |
+| ai_chat_messages | ≥0 |
+| ai_analysis_history | ≥0 |
 
 ### 连接信息
 
@@ -351,7 +425,10 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V4 | 2026-04-13 | 权限增强（sys_role, sys_permission, sys_menu, sys_role_permission） |
 | V5 | 2026-05-02 | 告警事件表（alarm_event） |
 | V5.5 | 2026-07-27 | 修复唯一约束复合索引 |
+| V6 | 2026-07-28 | BOM/物料/库存表、测试数据 |
+| V7 | 2026-07-28 | AI对话历史（ai_chat_conversations + ai_chat_messages） |
+| V8 | 2026-08-02 | AI分析历史（ai_analysis_history） |
 
 ---
 
-*最后更新: 2026-07-27*
+*最后更新: 2026-08-02*

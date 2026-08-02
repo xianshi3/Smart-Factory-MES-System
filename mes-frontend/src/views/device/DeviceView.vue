@@ -86,7 +86,7 @@
             </div>
             <div class="dc-card-metrics">
               <div class="dc-metric">
-                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ d.temperature ?? '--' }}</span>
+                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ fmtTemp(d.temperature) }}</span>
                 <span class="dc-m-unit">°C</span>
               </div>
               <div class="dc-metric">
@@ -107,6 +107,9 @@
               <el-button v-if="d.status==='running'" size="small" type="danger" link @click="handleStop(d)"><el-icon><VideoPause /></el-icon>停止</el-button>
               <el-button v-if="d.status==='idle'" size="small" type="success" link @click="handleStart(d)"><el-icon><VideoPlay /></el-icon>启动</el-button>
               <el-button size="small" type="primary" link @click="handleCardPredict(d)"><el-icon><Cpu /></el-icon>预测</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'spc')"><el-icon><Histogram /></el-icon>SPC</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'energy')"><el-icon><Lightning /></el-icon>能耗</el-button>
+              <el-button size="small" link @click="handleCardAI(d, 'llm')"><el-icon><ChatLineRound /></el-icon>AI建议</el-button>
               <el-button size="small" type="primary" link @click="handleDetail(d)">详情</el-button>
             </div>
           </div>
@@ -126,7 +129,7 @@
           <el-tag :type="getStatusType(detailData.status)" size="large">{{ getStatusText(detailData.status) }}</el-tag>
         </div>
         <div class="dt-dlg-det-kpis">
-          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',detailData.temperature+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
+          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',fmtTemp(detailData.temperature)+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
             <strong>{{ kv[1] }}</strong><span>{{ kv[0] }}</span>
           </div>
         </div>
@@ -135,10 +138,9 @@
         </div>
         <div class="dt-dlg-ai-btns">
           <el-button type="warning" @click="handlePredict(detailData)"><el-icon><Cpu /></el-icon> 故障预测</el-button>
-          <el-button @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC</el-button>
-          <el-button @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
-          <el-button @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
-          <el-button type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
+          <el-button @click="handleCardAI(detailData, 'spc')"><el-icon><Histogram /></el-icon> SPC分析</el-button>
+          <el-button @click="handleCardAI(detailData, 'energy')"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
+          <el-button type="primary" @click="handleCardAI(detailData, 'llm')"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
         </div>
       </div>
     </el-dialog>
@@ -156,132 +158,230 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI建议'" width="600px" destroy-on-close>
+    <el-dialog v-model="aiAnalysisVisible" :title="currentAnalysisType === 'spc' ? 'SPC统计分析' : currentAnalysisType === 'energy' ? '能耗优化' : currentAnalysisType === 'capacity' ? '产能预测' : 'AI建议'" width="680px" destroy-on-close class="ai-dlg" :close-on-click-modal="false">
       <div v-if="aiAnalysisLoading" class="dt-loading"><el-icon class="is-loading" size="32"><Loading /></el-icon><p>AI分析中...</p></div>
 
-      <!-- SPC Result -->
-      <div v-else-if="currentAnalysisType === 'spc' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">制程能力</div>
-          <div class="dt-ai-cpk">
-            <div class="dt-ai-cpk-ring" :class="aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
-            <div><span>CPK</span><em>{{ aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability }}</em></div>
-          </div>
-          <div class="dt-ai-stats">
-            <div><label>CP</label><span>{{ (aiAnalysisResult.capability?.cp || aiAnalysisResult.cp)?.toFixed(2) }}</span></div>
-            <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean || aiAnalysisResult.mean }}</span></div>
-            <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std || aiAnalysisResult.std }}</span></div>
-            <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
+      <!-- History list (shown when no active result) -->
+      <div v-else-if="!aiAnalysisResult && !aiAnalysisLoading" class="ai-prompt-area">
+        <div v-if="filteredHistory.length" class="ai-history-panel">
+          <div class="ai-subtitle">{{ quickType ? ({ llm:'AI建议', spc:'SPC分析', energy:'能耗优化', capacity:'产能预测' }[quickType]) + '记录' : '分析记录' }}</div>
+          <div
+            v-for="(h, i) in filteredHistory.slice(0, 8)"
+            :key="i"
+            class="ai-hi-row"
+            @click="aiAnalysisResult = h.data; currentAnalysisType = h.type"
+          >
+            <span class="ai-hi-tag" :class="h.type">{{ { spc:'SPC', energy:'能耗', capacity:'产能', llm:'AI建议' }[h.type] }}</span>
+            <span class="ai-hi-name">{{ h.deviceName }}</span>
+            <span class="ai-hi-time">{{ fmtTime(h.ts) }}</span>
+            <button class="ai-hi-del" title="删除记录" @click="removeHistory(h, $event)"><el-icon :size="13"><Close /></el-icon></button>
           </div>
         </div>
-        <div v-if="(aiAnalysisResult.control_limits || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">控制限</div>
-          <div class="dt-ai-limits">
-            <div v-for="cl in (aiAnalysisResult.control_limits || [])" :key="cl.name">
-              <em :class="cl.name.includes('UCL') ? 'danger' : cl.name.includes('LCL') ? 'danger' : ''">{{ cl.value }}</em>
-              <span>{{ cl.name }}</span>
+        <div class="ai-device-card">
+          <div class="ai-dc-head">
+            <span class="ai-dc-icon"><el-icon :size="18"><Cpu /></el-icon></span>
+            <div>
+              <strong>{{ detailData?.name || '选择设备' }}</strong>
+              <small>{{ getStatusText(detailData?.status || '') }}</small>
             </div>
           </div>
-        </div>
-        <div v-if="(aiAnalysisResult.rules_violated || []).length || (aiAnalysisResult.violations || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">异常检测</div>
-          <div v-if="(aiAnalysisResult.rules_violated || []).length" class="dt-ai-warn">
-            <el-icon><Warning /></el-icon>
-            <span v-for="r in aiAnalysisResult.rules_violated" :key="r">{{ r }}</span>
+          <div class="ai-dc-metrics">
+            <span>🌡 {{ fmtTemp(detailData?.temperature) }}°C</span>
+            <span>⚙ {{ detailData?.speed ?? '--' }} rpm</span>
+            <span>⚡ {{ detailData?.power ?? '--' }} kW</span>
+            <span>📊 {{ detailData?.utilization || '0%' }}</span>
           </div>
-          <el-tag v-else type="success" size="small">无异常规则触发</el-tag>
-        </div>
-        <div v-if="(aiAnalysisResult.recommendations || []).length" class="dt-ai-section">
-          <div class="dt-ai-section-title">建议</div>
-          <div class="dt-ai-recs"><div v-for="(r,i) in aiAnalysisResult.recommendations" :key="i">{{ i+1 }}. {{ r }}</div></div>
-        </div>
-      </div>
-
-      <!-- Energy Result -->
-      <div v-else-if="currentAnalysisType === 'energy' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">优化方案</div>
-          <div class="dt-ai-energy-delta">
-            <div>节能<span class="val">{{ aiAnalysisResult.estimated_energy_savings_pct }}%</span></div>
-            <div>月省<span class="val">{{ aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span></div>
+          <div class="ai-dc-actions" v-if="!quickType">
+            <el-button size="small" @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC分析</el-button>
+            <el-button size="small" @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
+            <el-button size="small" @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
+            <el-button size="small" type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
           </div>
-        </div>
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">参数调整</div>
-          <div class="dt-ai-params">
-            <div v-for="(chg, key) in aiAnalysisResult.parameter_changes" :key="key" class="dt-ai-param-row">
-              <label>{{ key === 'speed' ? '转速' : key === 'temperature' ? '温度' : '压力' }}</label>
-              <span class="old">{{ aiAnalysisResult.current_parameters?.[key] }}</span>
-              <el-icon><ArrowRight /></el-icon>
-              <span class="new">{{ aiAnalysisResult.recommended_parameters?.[key] }}</span>
-              <span class="chg" :class="chg?.startsWith('+') ? 'up' : chg?.startsWith('-') ? 'down' : ''">{{ chg }}</span>
-            </div>
-          </div>
-        </div>
-        <div v-if="(aiAnalysisResult.alternative_plans || []).length > 1" class="dt-ai-section">
-          <div class="dt-ai-section-title">备选方案</div>
-          <div class="dt-ai-alt">
-            <div v-for="(alt, i) in aiAnalysisResult.alternative_plans?.slice(1, 3)" :key="i" class="dt-ai-alt-row">
-              <span>方案{{ i+1 }}</span>
-              <span>转速 {{ alt.speed }} · 温度 {{ alt.temperature }} · 压力 {{ alt.pressure }}</span>
-              <span>品质 {{ alt.quality }}</span>
-            </div>
+          <div class="ai-dc-actions" v-else>
+            <el-button size="small" type="primary" @click="handleQuickAnalysis">{{ quickBtn.cta }}</el-button>
           </div>
         </div>
       </div>
 
-      <!-- Capacity Result -->
-      <div v-else-if="currentAnalysisType === 'capacity' && aiAnalysisResult" class="dt-ai-result">
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">预测概览</div>
-          <div class="dt-ai-energy-delta">
-            <div>总产量<span class="val">{{ aiAnalysisResult.summary?.total || aiAnalysisResult.total_predicted }}</span></div>
-            <div>日均<span class="val">{{ aiAnalysisResult.summary?.daily_avg || aiAnalysisResult.average_daily }}</span></div>
-            <div>趋势<span class="val">{{ aiAnalysisResult.summary?.trend || '稳定' }}</span></div>
-          </div>
-        </div>
-        <div class="dt-ai-section">
-          <div class="dt-ai-section-title">逐日预测</div>
-          <div class="dt-ai-table">
-            <div class="dt-ai-table-head"><span>日期</span><span>预计产量</span><span>置信区间</span></div>
-            <div v-for="p in (aiAnalysisResult.predictions || [])" :key="p.date" class="dt-ai-table-row">
-              <span>{{ p.date?.slice(5) }} {{ p.day }}</span>
-              <span>{{ p.predicted_output }}</span>
-              <span class="muted">{{ p.confidence_lower }} ~ {{ p.confidence_upper }}</span>
+      <!-- Result area -->
+      <div v-if="!aiAnalysisLoading && aiAnalysisResult" class="ai-result-area">
+        <button class="ai-back-btn" @click="aiAnalysisResult = null"><el-icon :size="14"><DArrowLeft /></el-icon> 返回</button>
+
+        <template v-if="currentAnalysisType === 'spc'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head accent">SPC 制程能力分析 <span class="ai-rc-src">· {{ aiAnalysisResult.parameter_name || aiAnalysisResult.parameter }}</span></div>
+            <div class="ai-rc-body">
+              <!-- KPI 行 -->
+              <div class="ai-spc-kpis">
+                <div class="ai-cpk-badge" :class="(aiAnalysisResult.capability?.level || aiAnalysisResult.process_capability || '').toLowerCase()">{{ (aiAnalysisResult.capability?.cpk || aiAnalysisResult.cpk)?.toFixed(2) }}</div>
+                <div class="ai-spc-kpi">
+                  <label>过程能力等级</label><span class="ai-cpk-level" :class="(aiAnalysisResult.capability?.level || '').toLowerCase()">{{ { EXCELLENT:'优秀', GOOD:'良好', FAIR:'一般', POOR:'不足' }[aiAnalysisResult.capability?.level] || aiAnalysisResult.capability?.level }}</span>
+                  <small>CPK 90%置信区间 [{{ aiAnalysisResult.capability?.cpk_ci?.[0] }} ~ {{ aiAnalysisResult.capability?.cpk_ci?.[1] }}]</small>
+                </div>
+              </div>
+              <div class="ai-stats-row">
+                <div><label>CP</label><span>{{ aiAnalysisResult.capability?.cp }}</span></div>
+                <div><label>PPK(长期)</label><span>{{ aiAnalysisResult.capability?.ppk }}</span></div>
+                <div><label>CPM(目标)</label><span>{{ aiAnalysisResult.capability?.cpm }}</span></div>
+                <div><label>均值</label><span>{{ aiAnalysisResult.statistics?.mean }}</span></div>
+                <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std }}</span></div>
+                <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
+              </div>
+              <div class="ai-spec-line" v-if="aiAnalysisResult.specification">
+                规格限 <b>LSL {{ aiAnalysisResult.specification.lsl }}</b> / 目标 {{ aiAnalysisResult.specification.target }} / <b>USL {{ aiAnalysisResult.specification.usl }}</b>
+                <em>{{ aiAnalysisResult.spec_source }}</em>
+                <span class="ai-spec-normal" v-if="aiAnalysisResult.statistics?.normal_distribution">✓ 正态</span>
+                <span class="ai-spec-nonormal" v-else>✗ 非正态 (偏度{{ aiAnalysisResult.statistics?.skewness }})</span>
+              </div>
+
+              <!-- SVG 控制图 -->
+              <div class="ai-sec-title">控制图 (I-MR 单值图)</div>
+              <svg class="ai-chart" viewBox="0 0 340 150" preserveAspectRatio="none">
+                <line x1="20" x2="320" y1="10" y2="10" class="ai-chart-limit"/>
+                <line x1="20" x2="320" y1="25" y2="25" class="ai-chart-warn"/>
+                <line x1="20" x2="320" y1="40" y2="40" class="ai-chart-zone"/>
+                <line x1="20" x2="320" y1="55" y2="55" class="ai-chart-cl"/>
+                <line x1="20" x2="320" y1="70" y2="70" class="ai-chart-zone"/>
+                <line x1="20" x2="320" y1="85" y2="85" class="ai-chart-warn"/>
+                <line x1="20" x2="320" y1="100" y2="100" class="ai-chart-limit"/>
+                <polyline :points="spcChart.points" class="ai-chart-line" fill="none"/>
+                <circle v-for="(p, i) in spcChart.dots" :key="i" :cx="p.x" :cy="p.y" r="2.6" :class="p.out ? 'ai-chart-dot-out' : 'ai-chart-dot'"/>
+                <text x="14" y="13" class="ai-chart-txt">UCL {{ aiAnalysisResult.control_limits?.[0]?.value }}</text>
+                <text x="14" y="58" class="ai-chart-txt">CL {{ aiAnalysisResult.control_limits?.[2]?.value }}</text>
+                <text x="14" y="103" class="ai-chart-txt">LCL {{ aiAnalysisResult.control_limits?.[4]?.value }}</text>
+              </svg>
+              <div class="ai-chart-note">{{ aiAnalysisResult.chart_recommendation }}</div>
+
+              <!-- 直方图 -->
+              <div class="ai-sec-title">分布直方图</div>
+              <div class="ai-histogram" v-if="aiAnalysisResult.histogram">
+                <div v-for="(b, i) in aiAnalysisResult.histogram" :key="i" class="ai-hist-bar" :title="b.range + ':' + b.count + '个'">
+                  <div class="ai-hist-col" :style="{ height: Math.max(6, b.count / spcHistMax * 60) + 'px' }"></div>
+                  <span>{{ b.count }}</span>
+                </div>
+              </div>
+
+              <!-- Western Electric 规则检测 -->
+              <div class="ai-sec-title">Western Electric 规则检测 <span class="ai-rule-count" :class="aiAnalysisResult.rules_violated?.length ? 'hit' : 'ok'">{{ aiAnalysisResult.rules_violated?.length || 0 }}/8 命中</span></div>
+              <div class="ai-we-rules">
+                <div v-for="r in aiAnalysisResult.we_rules" :key="r.id" class="ai-we-rule" :class="{ hit: aiAnalysisResult.rules_violated?.some(x => x.id === r.id) }">
+                  <span class="ai-we-id">{{ r.id }}</span>
+                  <span class="ai-we-name">{{ r.name }}</span>
+                  <span class="ai-we-desc">{{ r.desc }}</span>
+                </div>
+              </div>
+              <div class="ai-we-hit" v-if="aiAnalysisResult.rules_violated?.length">
+                <div v-for="h in aiAnalysisResult.rules_violated" :key="h.id" class="ai-we-hit-item">⚠ {{ h.id }} {{ h.name }} — {{ h.detail }}</div>
+              </div>
+
+              <!-- 5M1E 建议 -->
+              <div class="ai-sec-title">5M1E 改进建议</div>
+              <ul class="ai-5m1e">
+                <li v-for="(rc, i) in aiAnalysisResult.recommendations" :key="i">{{ rc }}</li>
+              </ul>
+
+              <!-- 抽样计划 -->
+              <div class="ai-sampling" v-if="aiAnalysisResult.sampling_plan">
+                <div class="ai-sec-title">监控抽样计划</div>
+                <el-tag v-for="(v, k) in aiAnalysisResult.sampling_plan" :key="k" size="small" effect="plain" style="margin:2px">{{ { frequency:'频率', subgroup_size:'子组', trigger:'触发条件' }[k] }}: {{ v }}</el-tag>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
 
-      <!-- AI建议 Result -->
-      <div v-else-if="currentAnalysisType === 'llm' && aiAnalysisResult" class="dt-ai-advice">
-        <div class="dt-ai-advice-header">
-          <span class="dt-ai-advice-icon"><el-icon><Cpu /></el-icon></span>
-          <div>
-            <strong>{{ detailData?.name || '设备' }}</strong>
-            <span>AI 智能建议</span>
+        <template v-else-if="currentAnalysisType === 'energy'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head warning">能耗优化分析 <span class="ai-rc-src" v-if="aiAnalysisResult.data_source === 'mysql_realtime'">· 实时遥测数据</span><span class="ai-rc-src" v-else>· 请求参数估算</span></div>
+            <div class="ai-rc-body">
+              <!-- KPI 四宫格 -->
+              <div class="ai-kpi-grid">
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.savings_pct ?? aiAnalysisResult.estimated_energy_savings_pct }}%</span><small>节能潜力</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.monthly_savings_kwh ?? aiAnalysisResult.estimated_monthly_savings_kwh }} kWh</span><small>月省电量</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">¥{{ aiAnalysisResult.kpis?.monthly_savings_cost ?? aiAnalysisResult.estimated_monthly_savings_cost ?? '--' }}</span><small>月省成本</small></div>
+                <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.co2_reduction_kg ?? '--' }} kg</span><small>CO₂减排/月</small></div>
+              </div>
+              <div class="ai-kpi-sub" v-if="aiAnalysisResult.baseline">
+                基线 {{ aiAnalysisResult.baseline.monthly_baseline_kwh }} kWh/月 · 负载率 {{ (aiAnalysisResult.baseline.load_factor * 100).toFixed(0) }}% · 单位能耗 {{ aiAnalysisResult.baseline.specific_energy_before }} → {{ aiAnalysisResult.baseline.specific_energy_after }} kWh/件
+              </div>
+
+              <!-- 优化策略构成 -->
+              <div class="ai-sec-title" v-if="aiAnalysisResult.optimization_breakdown">优化策略构成</div>
+              <div class="ai-breakdown" v-if="aiAnalysisResult.optimization_breakdown">
+                <div v-for="b in aiAnalysisResult.optimization_breakdown" :key="b.strategy" class="ai-bd-row">
+                  <span class="ai-bd-name">{{ b.strategy }}<em>{{ b.phase }}</em></span>
+                  <span class="ai-bd-bar"><i :style="{ width: Math.min(100, b.savings_kwh / Math.max(...aiAnalysisResult.optimization_breakdown.map(x => x.savings_kwh), 1) * 100) + '%' }"></i></span>
+                  <span class="ai-bd-val">{{ b.savings_kwh > 0 ? b.savings_kwh + ' kWh' : '—' }}<small>{{ b.savings_cost > 0 ? '¥' + b.savings_cost : '' }}</small></span>
+                </div>
+              </div>
+
+              <!-- 参数对比 -->
+              <div class="ai-sec-title">参数调优建议</div>
+              <table class="ai-param-table">
+                <thead><tr><th>参数</th><th>当前值</th><th>推荐值</th><th>变化</th></tr></thead>
+                <tbody>
+                  <tr><td>转速</td><td>{{ aiAnalysisResult.current_parameters?.speed }} rpm</td><td>{{ aiAnalysisResult.recommended_parameters?.speed }} rpm</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.speed }}</td></tr>
+                  <tr><td>温度</td><td>{{ aiAnalysisResult.current_parameters?.temperature }}°C</td><td>{{ aiAnalysisResult.recommended_parameters?.temperature }}°C</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.temperature }}</td></tr>
+                  <tr><td>功率</td><td>{{ aiAnalysisResult.current_parameters?.power }} kW</td><td>{{ aiAnalysisResult.recommended_parameters?.power }} kW</td><td class="ai-delta">{{ aiAnalysisResult.parameter_changes?.power }}</td></tr>
+                </tbody>
+              </table>
+
+              <!-- 削峰填谷 -->
+              <div class="ai-sec-title">削峰填谷 · 分时电价策略</div>
+              <div class="ai-tou-row" v-if="aiAnalysisResult.tou_schedule">
+                <div v-for="(t, k) in aiAnalysisResult.tou_schedule" :key="k" class="ai-tou-cell" :class="k">
+                  <div class="ai-tou-head"><span class="ai-tou-tag" :class="k">{{ { peak:'峰', flat:'平', valley:'谷' }[k] }}</span><b>¥{{ t.price }}/kWh</b></div>
+                  <div class="ai-tou-hours">{{ t.hours }}</div>
+                  <div class="ai-tou-action">{{ t.action }}</div>
+                </div>
+              </div>
+
+              <!-- 实施路线图 -->
+              <div class="ai-sec-title">实施路线图</div>
+              <div class="ai-roadmap" v-if="aiAnalysisResult.roadmap">
+                <div v-for="(rp, i) in aiAnalysisResult.roadmap" :key="i" class="ai-rm-item">
+                  <div class="ai-rm-phase">{{ rp.phase }}</div>
+                  <div class="ai-rm-body">
+                    <div class="ai-rm-head"><span class="ai-rm-duration">{{ rp.duration }}</span><span class="ai-rm-saving">{{ rp.expected_savings }} 节能</span></div>
+                    <div class="ai-rm-actions"><el-tag v-for="a in rp.actions" :key="a" size="small" effect="plain">{{ a }}</el-tag></div>
+                    <div class="ai-rm-kpis"><small>验收KPI: {{ rp.kpis.join(' / ') }}</small></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 风险提示 -->
+              <div class="ai-risks" v-if="aiAnalysisResult.risk_and_notes">
+                <div class="ai-sec-title">风险与注意事项</div>
+                <ul><li v-for="(n, i) in aiAnalysisResult.risk_and_notes" :key="i">{{ n }}</li></ul>
+              </div>
+            </div>
           </div>
-        </div>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div v-if="aiAnalysisResult.content || aiAnalysisResult.response" class="dt-ai-advice-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
-        <div v-else-if="aiAnalysisResult.success === false" class="dt-ai-warn">
-          <el-icon><Warning /></el-icon> {{ aiAnalysisResult.message || 'AI建议暂不可用，请配置API Key' }}
-        </div>
-        <div v-else class="dt-ai-advice-body">
-          <div v-for="(v, k) in aiAnalysisResult" :key="k" class="dt-ai-advice-item">
-            <strong>{{ k }}</strong>
-            <p>{{ typeof v === 'string' ? v : JSON.stringify(v) }}</p>
+        </template>
+
+        <template v-else-if="currentAnalysisType === 'capacity'">
+          <div class="ai-result-card">
+            <div class="ai-rc-head success">产能预测</div>
+            <div class="ai-rc-body">
+              <div class="ai-energy-kpis">
+                <div><span class="kpi-val">{{ aiAnalysisResult.summary?.total || aiAnalysisResult.total_predicted }}</span><small>总产量</small></div>
+                <div><span class="kpi-val">{{ aiAnalysisResult.summary?.daily_avg || aiAnalysisResult.average_daily }}</span><small>日均</small></div>
+              </div>
+            </div>
           </div>
+        </template>
+
+        <template v-else>
+          <div class="ai-result-card">
+            <div class="ai-rc-head accent">AI 智能建议 — {{ detailData?.name }}</div>
+            <div class="ai-rc-body ai-llm-body" v-html="aiAdviceHtml(aiAnalysisResult)"></div>
+          </div>
+        </template>
+
+        <div class="ai-result-meta">
+          <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || '') }}</el-tag>
+          <span>{{ detailData?.name }}</span>
+          <span>{{ fmtTemp(detailData?.temperature) }}°C</span>
         </div>
-        <div class="dt-ai-advice-status">
-          <span class="dt-ai-status-row">
-            <el-tag size="small" :type="detailData?.status === 'running' ? 'success' : 'info'">{{ getStatusText(detailData?.status || 'running') }}</el-tag>
-            <span>温度 {{ detailData?.temperature ?? '--' }}°C</span>
-            <span>转速 {{ detailData?.speed ?? '--' }} rpm</span>
-            <span>功率 {{ detailData?.power ?? '--' }} kW</span>
-          </span>
-        </div>
-      </div>
+      </div>  <!-- end ai-result-area -->
 
       <!-- Generic / Other Result -->
       <div v-else-if="aiAnalysisResult" class="dt-ai-result">
@@ -290,25 +390,27 @@
         </div>
         <div v-else class="dt-ai-raw">{{ JSON.stringify(aiAnalysisResult, null, 2) }}</div>
       </div>
-
-      <div v-else class="dt-loading"><p>暂无结果</p></div>
       <template #footer><el-button @click="aiAnalysisVisible=false">关闭</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, reactive, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getDeviceStatus } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
+import { listAnalyses, saveAnalysis, deleteAnalysis } from '@/api/agent'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
- VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight } from '@element-plus/icons-vue'
+ VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
-import { mdToHtml } from '@/utils/markdown'
+import { marked } from 'marked'
+marked.setOptions({ breaks: true, gfm: true })
+import { useUserStore } from '@/stores/user'
 
 const themeStore = useThemeStore()
 const chartTheme = useChartTheme()
@@ -320,6 +422,7 @@ const page = ref(1)
 const pageSize = ref(50)
 const detailVisible = ref(false)
 const detailData = ref<any>({})
+const route = useRoute()
 const viewMode = ref<'list' | '3d'>('3d')
 const predictVisible = ref(false)
 const predictData = ref<any>({})
@@ -327,7 +430,9 @@ const aiAnalysisVisible = ref(false)
 const aiAnalysisLoading = ref(false)
 const aiAnalysisResult = ref<any>(null)
 const currentAnalysisType = ref('')
+const quickType = ref<string | null>(null) // null=多选, 'llm'/'spc'/'energy'/'capacity'=单选
 const selectedDevice = ref<any>(null)
+const aiHistory = ref<any[]>([])
 const hudPanels = reactive({ alarms: true, charts: true })
 
 let refreshInterval: number
@@ -436,17 +541,54 @@ const updateCharts = () => {
 const handleDeviceSelect = (d: any) => { selectedDevice.value = d; detailData.value = d }
 const handle3DAction = (payload: { type: string; device: any }) => {
   detailData.value = payload.device
-  if (payload.type === 'predict') handlePredict(payload.device)
-  else if (payload.type === 'spc') handleSPCAnalysis()
-  else if (payload.type === 'energy') handleEnergyOptimization()
-  else if (payload.type === 'llm') handleLLMChat()
+  if (payload.type === 'predict') { handlePredict(payload.device) }
+  else { openAiDialog(payload.type) }
 }
 const refresh = () => { fetchDeviceData() }
+async function loadAnalysisHistory(deviceCode?: string) {
+  try {
+    const userStore = useUserStore()
+    const uid = userStore.userInfo?.username || 'default'
+    const records = await listAnalyses(uid, undefined, deviceCode)
+    aiHistory.value = records.map(r => ({
+      id: r.id, type: r.analysis_type, deviceName: r.device_name, deviceCode: r.device_code,
+      ts: new Date(r.created_at).getTime(), data: r.result_data,
+    }))
+  } catch {
+    // MySQL 不可用 → 降级到 localStorage
+    const userStore = useUserStore()
+    const uid = userStore.userInfo?.username || 'default'
+    try {
+      const key = `ai_history_${uid}`
+      aiHistory.value = JSON.parse(localStorage.getItem(key) || '[]')
+    } catch { /* 都没有就空 */ }
+  }
+}
+const removeHistory = async (h: any, e: Event) => {
+  e.stopPropagation()
+  const userStore = useUserStore()
+  const uid = userStore.userInfo?.username || 'default'
+  // 1. 内存移除
+  const idx = aiHistory.value.indexOf(h)
+  if (idx > -1) aiHistory.value.splice(idx, 1)
+  // 2. MySQL 删除（localStorage 降级记录没有 id，跳过）
+  if (h.id) {
+    try { await deleteAnalysis(h.id, uid) } catch { /* AI服务离线，仅本地移除 */ }
+  }
+  // 3. localStorage 同步删除
+  try {
+    const key = `ai_history_${uid}`
+    const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
+    const kept = local.filter(x => x.id !== h.id && (x.ts !== h.ts || x.deviceCode !== h.deviceCode))
+    localStorage.setItem(key, JSON.stringify(kept))
+  } catch { /* ignore */ }
+}
 const handleDetail = (d: any) => { detailData.value = d; detailVisible.value = true }
 const handleStart = async (d: any) => { try { await startDevice(d.id || d.code); ElMessage.success('启动成功'); fetchDeviceData() } catch { ElMessage.error('启动失败') } }
 const handleStop = async (d: any) => { try { await stopDevice(d.id || d.code); ElMessage.success('停止成功'); fetchDeviceData() } catch { ElMessage.error('停止失败') } }
 
 const handleCardPredict = (d: any) => { detailData.value = d; handlePredict(d) }
+const handleCardAI = (d: any, type: string) => { detailData.value = d; openAiDialog(type) }
 const handlePredict = async (d: any) => {
   try {
     const payload = { device_code: d.code || d.id, history_data: [{ temperature: Number(d.temperature) || 80, speed: Number(d.speed) || 50 }], hours_ahead: 24 }
@@ -464,27 +606,103 @@ const handlePredict = async (d: any) => {
   } catch { ElMessage.error('预测失败，请确认AI服务已启动') }
 }
 
-const showAIResult = (type: string, data: any) => { currentAnalysisType.value = type; aiAnalysisResult.value = data?.data || data; aiAnalysisLoading.value = false }
-function sanitizeHtml(html: string): string {
-  const s = document.createElement('div')
-  s.textContent = html
-  const text = s.innerHTML
-  return text
+const showAIResult = (type: string, data: any) => {
+  const result = data?.data || data
+  currentAnalysisType.value = type
+  aiAnalysisResult.value = result
+  aiAnalysisLoading.value = false
+  const d = detailData.value || {}
+  const entry: any = {
+    type, deviceName: d.name || d.code || '', deviceCode: d.code || '',
+    ts: Date.now(), data: result,
+  }
+  aiHistory.value.unshift(entry)
+  if (aiHistory.value.length > 20) aiHistory.value.length = 20
+  // 持久化到 MySQL + localStorage 降级
+  const userStore = useUserStore()
+  const uid = userStore.userInfo?.username || 'default'
+  saveAnalysis(uid, d.code || '', d.name || '', type, result).then((id) => {
+    entry.id = id
+  }).catch((e) => {
+    console.warn('分析保存MySQL失败，降级到localStorage:', e)
+  })
+  // localStorage 降级 — 确保离线也能存
+  try {
+    const key = `ai_history_${uid}`
+    const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
+    local.unshift({ ...entry })
+    localStorage.setItem(key, JSON.stringify(local.slice(0, 50)))
+  } catch {}
+}
+const filteredHistory = computed(() => {
+  const curCode = detailData.value?.code
+  let list = aiHistory.value
+  // 每台设备只显示该设备的历史记录
+  if (curCode) list = list.filter(h => h.deviceCode === curCode)
+  if (quickType.value) list = list.filter(h => h.type === quickType.value)
+  return list
+})
+const spcChart = computed(() => {
+  const r = aiAnalysisResult.value
+  const vals: number[] = r?.data_series || []
+  const ucl = r?.control_limits?.[0]?.value
+  const cl = r?.control_limits?.[2]?.value
+  const lcl = r?.control_limits?.[4]?.value
+  if (!vals.length || cl == null || ucl == null || lcl == null) return { points: '', dots: [] }
+  const span = (ucl - lcl) || 1
+  const stepX = 300 / Math.max(vals.length - 1, 1)
+  const Y = (v: number) => 55 + (cl - v) / span * 90
+  const dots = vals.map((v, i) => ({ x: 20 + i * stepX, y: Math.max(4, Math.min(106, Y(v))), out: v > ucl || v < lcl }))
+  return { points: dots.map(d => `${d.x.toFixed(1)},${d.y.toFixed(1)}`).join(' '), dots }
+})
+const spcHistMax = computed(() => Math.max(...(aiAnalysisResult.value?.histogram || []).map((b: any) => b.count), 1))
+const quickBtn = computed(() => {
+  const map: Record<string, { cta: string }> = { llm: { cta: '开始 AI 建议分析' }, spc: { cta: '开始 SPC 分析' }, energy: { cta: '开始能耗优化分析' }, capacity: { cta: '开始产能预测分析' } }
+  return map[quickType.value || 'llm'] || { cta: '开始分析' }
+})
+function handleQuickAnalysis() {
+  const t = quickType.value || 'llm'
+  if (t === 'spc') handleSPCAnalysis()
+  else if (t === 'energy') handleEnergyOptimization()
+  else if (t === 'capacity') handleCapacityPrediction()
+  else handleLLMChat()
+}
+function fmtTime(ts: number): string {
+  const diff = Date.now() - ts
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+function fmtTemp(t: any): string {
+  if (t == null || isNaN(Number(t))) return '--'
+  return Number(t).toFixed(1)
+}
+function aiAdviceHtml(result: any): string {
+  const text = result?.content || result?.response || ''
+  return (marked.parse(text) as string)
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/\son\w+="[^"]*"/gi, '')
     .replace(/\son\w+='[^']*'/gi, '')
 }
-function aiAdviceHtml(result: any): string {
-  const text = result?.content || result?.response || ''
-  return sanitizeHtml(mdToHtml(text))
+const openAiDialog = (type?: string) => {
+  aiAnalysisVisible.value = true; aiAnalysisResult.value = null
+  aiAnalysisLoading.value = false; quickType.value = type || null
+  // 标题跟随入口类型（修复3D点击后标题始终为"AI建议"）
+  currentAnalysisType.value = type || currentAnalysisType.value
+  // 打开时按当前设备重新加载历史
+  loadAnalysisHistory(detailData.value?.code)
 }
-const handleSPCAnalysis = async () => {
-  aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
+const handleSPCAnalysis = async () => { aiAnalysisLoading.value = true; currentAnalysisType.value = 'spc'
   try {
     const d = detailData.value || {}
     const realTemp = d.temperature
+    // 企业级采样：前10点受控波动，后段模拟工艺漂移+超限点（可检测异常模式）
     const measurements = realTemp != null
-      ? Array.from({ length: 20 }, () => Math.round(realTemp + (Math.random() - 0.5) * 10))
+      ? Array.from({ length: 20 }, (_, i) => {
+          const drift = i >= 10 ? (i - 9) * 0.9 : 0
+          const spike = i === 19 ? 1.6 : 0
+          return Math.round((realTemp + drift + spike + (Math.random() - 0.5) * 1.6) * 10) / 10
+        })
       : []
     const res = await analyzeSPC({
       device_code: d.code || d.id,
@@ -492,7 +710,7 @@ const handleSPCAnalysis = async () => {
       measurements
     })
     showAIResult('spc', res?.data || res)
-  } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败') }
+  } catch { aiAnalysisLoading.value = false; ElMessage.error('SPC分析失败，请确认AI服务已启动') }
 }
 const handleEnergyOptimization = async () => {
   aiAnalysisVisible.value = true; aiAnalysisLoading.value = true
@@ -545,6 +763,15 @@ const handleLLMChat = async () => {
 
 onMounted(() => {
   fetchDeviceData()
+  loadAnalysisHistory()
+  if (route.query.device) {
+    viewMode.value = '3d'
+    const stopWatch = watch(deviceList, (list) => {
+      if (!list.length) return
+      const target = list.find((d: any) => d.code === route.query.device || d.name === route.query.device)
+      if (target) { handleDeviceSelect(target); nextTick(() => stopWatch()) }
+    })
+  }
   refreshInterval = window.setInterval(fetchDeviceData, 5000)
   wsService.connect()
   wsUnsubscribe.value = wsService.subscribe((data: any) => {
@@ -737,4 +964,210 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-ai-advice-item p { margin: 0; font-size: 13px; color: var(--text-secondary); }
 .dt-ai-advice-status { margin-top: 12px; }
 .dt-ai-status-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
+
+/* ===== AI Panel Redesign ===== */
+.ai-dlg :deep(.el-dialog__body) { padding: 16px 20px; }
+
+.ai-subtitle { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* history */
+.ai-history-panel { margin-bottom: 16px; }
+.ai-hi-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  border: 1px solid var(--border-color); margin-bottom: 4px;
+}
+.ai-hi-row:hover { background: var(--bg-hover); border-color: var(--accent); }
+.ai-hi-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+  color: #fff; flex-shrink: 0;
+}
+.ai-hi-tag.spc { background: var(--accent, #6366f1); }
+.ai-hi-tag.energy { background: var(--warning, #f59e0b); }
+.ai-hi-tag.capacity { background: var(--success, #10b981); }
+.ai-hi-tag.llm { background: var(--accent-secondary, #22d3ee); }
+.ai-hi-name { font-size: 13px; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-hi-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.ai-hi-del {
+  flex-shrink: 0; width: 22px; height: 22px; border: none; border-radius: 5px;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.15s;
+}
+.ai-hi-row:hover .ai-hi-del { opacity: 1; }
+.ai-hi-del:hover { background: #fef2f2; color: var(--danger, #ef4444); }
+
+/* device card */
+.ai-device-card {
+  border: 1px solid var(--border-color); border-radius: var(--radius-lg, 14px);
+  padding: 18px 20px; background: var(--bg-card);
+}
+.ai-dc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.ai-dc-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent-light); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-dc-head strong { font-size: 15px; color: var(--text-primary); }
+.ai-dc-head small { display: block; font-size: 11px; color: var(--text-muted); }
+.ai-dc-metrics { display: flex; gap: 16px; margin-bottom: 14px; padding: 10px 14px; background: var(--bg-hover); border-radius: 8px; font-size: 13px; color: var(--text-secondary); }
+.ai-dc-metrics span { display: flex; align-items: center; gap: 4px; }
+.ai-dc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* loading */
+.ai-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 0; gap: 16px; color: var(--text-muted); font-size: 13px;
+}
+.ai-loading-spin {
+  width: 36px; height: 36px; border: 3px solid var(--border-color);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* result */
+.ai-result-area { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.ai-back-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px;
+  border-radius: 6px; border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-muted); font-size: 12px; cursor: pointer; margin-bottom: 14px;
+  font-family: inherit; transition: all 0.15s;
+}
+.ai-back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ai-result-card { border: 1px solid var(--border-color); border-radius: var(--radius-lg, 14px); overflow: hidden; }
+.ai-rc-head {
+  padding: 10px 16px; font-size: 13px; font-weight: 600; color: #fff;
+}
+.ai-rc-head.accent { background: var(--accent, #6366f1); }
+.ai-rc-head.success { background: var(--success, #10b981); }
+.ai-rc-head.warning { background: var(--warning, #f59e0b); }
+.ai-rc-body { padding: 16px; }
+.ai-cpk-badge {
+  width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 12px;
+}
+.ai-cpk-badge.acceptable, .ai-cpk-badge.good { background: var(--success, #10b981); }
+.ai-cpk-badge.marginal { background: var(--warning, #f59e0b); }
+.ai-cpk-badge.poor { background: var(--danger, #ef4444); }
+.ai-stats-row { display: flex; gap: 12px; justify-content: center; }
+.ai-stats-row div { text-align: center; }
+.ai-stats-row label { display: block; font-size: 10px; color: var(--text-muted); }
+.ai-stats-row span { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.ai-energy-kpis { display: flex; gap: 16px; justify-content: center; }
+.ai-energy-kpis div { text-align: center; }
+.kpi-val { display: block; font-size: 24px; font-weight: 700; color: var(--accent); }
+.ai-energy-kpis small { font-size: 11px; color: var(--text-muted); }
+.ai-llm-body { line-height: 1.85; font-size: 13px; color: var(--text-primary); }
+.ai-llm-body :deep(h2) { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-color); }
+.ai-llm-body :deep(h3) { font-size: 14px; font-weight: 600; color: var(--accent); margin: 14px 0 6px; }
+.ai-llm-body :deep(h4) { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 4px; }
+.ai-llm-body :deep(p) { margin: 0 0 8px; }
+.ai-llm-body :deep(strong) { font-weight: 700; color: var(--accent); }
+.ai-llm-body :deep(em) { color: var(--text-secondary); font-style: italic; }
+.ai-llm-body :deep(ul), .ai-llm-body :deep(ol) { padding-left: 20px; margin: 6px 0 10px; }
+.ai-llm-body :deep(li) { margin-bottom: 4px; }
+.ai-llm-body :deep(li::marker) { color: var(--accent); }
+.ai-llm-body :deep(code) { background: var(--accent-light); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+.ai-llm-body :deep(pre) { background: var(--bg-app); padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid var(--border-light); font-size: 12px; line-height: 1.6; }
+.ai-llm-body :deep(pre code) { background: transparent; padding: 0; color: var(--text-secondary); }
+.ai-llm-body :deep(blockquote) { border-left: 3px solid var(--accent); margin: 10px 0; padding: 6px 14px; color: var(--text-secondary); background: var(--bg-hover); border-radius: 0 6px 6px 0; }
+.ai-llm-body :deep(hr) { border: none; border-top: 1px solid var(--border-color); margin: 16px 0; }
+.ai-llm-body :deep(table) { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+.ai-llm-body :deep(th) { background: var(--bg-hover); color: var(--accent); padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-color); }
+.ai-llm-body :deep(td) { padding: 7px 10px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.ai-llm-body :deep(tr:last-child td) { border-bottom: none; }
+.ai-rc-src { font-size: 11px; font-weight: 400; opacity: .85; }
+.ai-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+.ai-kpi-cell { text-align: center; padding: 10px 4px; background: var(--bg-hover); border-radius: 10px; }
+.ai-kpi-cell .kpi-val { font-size: 18px; }
+.ai-kpi-sub { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.ai-sec-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid var(--warning); }
+.ai-breakdown { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ai-bd-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.ai-bd-name { width: 76px; color: var(--text-primary); white-space: nowrap; }
+.ai-bd-name em { font-style: normal; font-size: 10px; color: var(--text-muted); margin-left: 3px; }
+.ai-bd-bar { flex: 1; height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; }
+.ai-bd-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--warning), #fbbf24); border-radius: 4px; }
+.ai-bd-val { width: 108px; text-align: right; color: var(--warning); font-weight: 600; white-space: nowrap; }
+.ai-bd-val small { display: block; font-size: 10px; color: var(--text-muted); font-weight: 400; }
+.ai-param-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ai-param-table th { background: var(--bg-hover); color: var(--text-muted); padding: 7px 10px; text-align: left; font-weight: 600; }
+.ai-param-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.ai-delta { color: var(--warning); font-weight: 600; }
+.ai-tou-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ai-tou-cell { border: 1px solid var(--border-light); border-radius: 10px; padding: 10px; background: var(--bg-app); }
+.ai-tou-cell.peak { border-color: #fca5a5; }
+.ai-tou-cell.flat { border-color: #93c5fd; }
+.ai-tou-cell.valley { border-color: #6ee7b7; }
+.ai-tou-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.ai-tou-tag { font-size: 11px; font-weight: 700; color: #fff; padding: 2px 8px; border-radius: 4px; }
+.ai-tou-tag.peak { background: var(--danger, #ef4444); }
+.ai-tou-tag.flat { background: #3b82f6; }
+.ai-tou-tag.valley { background: var(--success, #10b981); }
+.ai-tou-head b { font-size: 12px; color: var(--text-primary); }
+.ai-tou-hours { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+.ai-tou-action { font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
+.ai-roadmap { display: flex; flex-direction: column; gap: 8px; }
+.ai-rm-item { display: flex; gap: 10px; }
+.ai-rm-phase { flex-shrink: 0; width: 78px; font-size: 10px; font-weight: 700; color: #fff; background: var(--warning); border-radius: 6px; text-align: center; padding: 6px 2px; align-self: flex-start; }
+.ai-rm-body { flex: 1; border-left: 2px dashed var(--border-color); padding: 0 0 2px 12px; }
+.ai-rm-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+.ai-rm-duration { color: var(--text-muted); }
+.ai-rm-saving { color: var(--success); font-weight: 600; }
+.ai-rm-actions .el-tag { margin: 0 4px 4px 0; }
+.ai-rm-kpis { font-size: 10px; color: var(--text-muted); }
+.ai-risks ul { padding-left: 18px; margin: 0; }
+.ai-risks li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+.ai-risks li::marker { color: var(--warning); }
+.ai-spc-kpis { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ai-spc-kpi { flex: 1; text-align: center; }
+.ai-spc-kpi label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.ai-cpk-level { display: block; font-size: 16px; font-weight: 700; }
+.ai-cpk-level.excellent { color: var(--success); }
+.ai-cpk-level.good { color: #22c55e; }
+.ai-cpk-level.fair { color: var(--warning); }
+.ai-cpk-level.poor { color: var(--danger); }
+.ai-cpk-level.marginal { color: var(--warning); }
+.ai-cpk-level.acceptable { color: var(--success); }
+.ai-spc-kpi small { font-size: 10px; color: var(--text-muted); }
+.ai-spec-line { text-align: center; font-size: 11px; color: var(--text-secondary); margin: 8px 0 4px; background: var(--bg-hover); padding: 6px 10px; border-radius: 8px; }
+.ai-spec-line b { color: var(--text-primary); }
+.ai-spec-line em { font-style: normal; color: var(--text-muted); font-size: 10px; }
+.ai-spec-normal { color: var(--success); margin-left: 6px; font-weight: 600; }
+.ai-spec-nonormal { color: var(--danger); margin-left: 6px; font-weight: 600; }
+.ai-chart { width: 100%; height: 150px; display: block; background: var(--bg-app); border: 1px solid var(--border-light); border-radius: 8px; }
+.ai-chart-limit { stroke: #f87171; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.ai-chart-warn { stroke: #fbbf24; stroke-width: 0.8; stroke-dasharray: 2 3; }
+.ai-chart-zone { stroke: var(--border-color); stroke-width: 0.6; }
+.ai-chart-cl { stroke: var(--success); stroke-width: 1.2; }
+.ai-chart-line { stroke: #6366f1; stroke-width: 1.4; }
+.ai-chart-dot { fill: #6366f1; }
+.ai-chart-dot-out { fill: #ef4444; stroke: #b91c1c; stroke-width: 1.2; }
+.ai-chart-txt { font-size: 8px; fill: var(--text-muted); }
+.ai-chart-note { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: center; }
+.ai-histogram { display: flex; align-items: flex-end; gap: 6px; justify-content: center; height: 86px; padding: 8px 4px 0; background: var(--bg-app); border: 1px solid var(--border-light); border-radius: 8px; }
+.ai-hist-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 30px; }
+.ai-hist-bar span { font-size: 9px; color: var(--text-muted); }
+.ai-hist-col { width: 100%; background: linear-gradient(180deg, #6366f1, #818cf8); border-radius: 4px 4px 0 0; min-height: 2px; }
+.ai-rule-count { font-size: 11px; font-weight: 600; margin-left: 6px; }
+.ai-rule-count.hit { color: var(--danger); }
+.ai-rule-count.ok { color: var(--success); }
+.ai-we-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ai-we-rule { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 8px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-app); color: var(--text-muted); }
+.ai-we-rule.hit { border-color: #fca5a5; background: #fef2f2; color: var(--danger); }
+.ai-we-id { font-weight: 700; color: var(--accent); }
+.ai-we-rule.hit .ai-we-id { color: var(--danger); }
+.ai-we-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.ai-we-rule.hit .ai-we-name { color: var(--danger); }
+.ai-we-desc { flex: 1; text-align: right; font-size: 10px; }
+.ai-we-hit { margin-top: 6px; }
+.ai-we-hit-item { font-size: 11px; color: var(--danger); background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; margin-bottom: 4px; }
+.ai-5m1e { padding-left: 18px; margin: 4px 0 0; }
+.ai-5m1e li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.6; }
+.ai-5m1e li::marker { color: var(--accent); }
+.ai-sampling { margin-top: 4px; }
+.ai-sampling .el-tag { font-size: 10px; }
+.ai-llm-body :deep(a) { color: var(--accent); text-decoration: none; }
+.ai-llm-body :deep(a:hover) { text-decoration: underline; }
+.ai-result-meta { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; background: var(--bg-hover); border-radius: 8px; font-size: 11px; color: var(--text-muted); }
 </style>

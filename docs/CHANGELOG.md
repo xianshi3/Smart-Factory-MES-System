@@ -10,6 +10,145 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.38 (2026-08-02)
+
+### 设备分析体系企业级升级（SPC / 能耗优化 / 分析历史）
+
+#### AI 分析历史 MySQL 持久化
+
+- **数据表**: 新增 `ai_analysis_history`（V8 迁移），按 `user_id` + `device_code` 隔离
+- **后端**: `conversation_store.py` 新增 `save_analysis` / `list_analyses` / `delete_analysis`；Agent 路由新增 `POST/GET /api/v1/agent/analysis` + `DELETE /api/v1/agent/analysis/{id}`（校验 user_id 防越权）
+- **前端**: 设备页挂载/打开面板时自动加载历史；历史记录支持**删除**（悬停按钮，MySQL + localStorage + 内存三级同步）
+- **按设备隔离**: 每台设备只显示自己的历史记录（后端 `device_code` 过滤 + 前端 `filteredHistory` 双保险）
+- **存储降级**: MySQL 不可用时自动降级 localStorage，刷新不丢失
+
+#### 能耗优化 — 企业级实现
+
+- **真实数据接入**: 从 `dash_device_status` 读取真实遥测（温度/转速/状态/设备类型），查不到才退回请求参数
+- **四维优化策略**: 参数调优（工艺约束网格搜索）+ 削峰填谷（峰 1.15 / 平 0.73 / 谷 0.38 元分时电价）+ 待机管理（自动断电）+ 预防性维护
+- **财务测算**: 月省电量/成本、年化节省、CO₂ 减排（0.581kg/kWh）、投资回本周期
+- **实施路线图**: P1 快速见效（1-2周）→ P2 系统优化（1-3月）→ P3 持续改善（3-6月），含验收 KPI
+- **前端看板**: KPI 四宫格、策略构成条形图、参数对比表、峰平谷分时电价卡片、路线图时间线、风险提示
+
+#### SPC 统计分析 — 企业级实现
+
+- **真实规格限**: 从 `proc_parameter` 读取工艺参数 LSL/USL/目标值，无则 6σ 窗口估算
+- **完整 Western Electric 8 条规则**（ISO 8258）: 超限/连续9点同侧/6点趋势/14点交替/2σ警戒/1σ倾向/分层过稳/混合偏移
+- **全过程能力**: CP/CPK + PP/PPK（长期）+ Cpm（目标）+ CPK 90% 置信区间 + 能力等级
+- **正态性检验**: Jarque-Bera（偏度/峰度），控制图类型推荐（I-MR / Xbar-R）
+- **5M1E 建议**: 按命中规则类型分组生成（机/料/法/环/测），含监控抽样计划
+- **前端可视化**: SVG 控制图（六条参考线 + 超限点标红）、直方图、规则检测网格、命中详情
+
+#### 数字孪生 AI 集成
+
+- **新增 4 个 Agent 工具**: `get_device_digital_twin` / `get_all_device_health` / `get_device_alarms` / `get_device_trend`
+- **设备页 URL 参数**: `?device=DEV-001` 自动选中设备并切到 3D 视图
+- **AI 消息联动**: 回复中的 `DEV-XXX` 自动转为 3D 视图链接
+- **分析面板重设计**: 历史记录 + 分类型面板（SPC/能耗/产能/AI建议）+ 专属历史 + 设备卡片
+
+#### 交互与修复
+
+- **设备列表入口**: 设备卡片/详情弹窗新增 SPC分析、能耗优化、AI建议 快捷按钮
+- **3D 标题修复**: 点击"能耗优化"等按钮后面板标题跟随入口类型（此前恒显示"AI建议"）
+- **AI 建议排版**: Markdown 全元素美化（标题/表格/列表/代码块/引用/链接）
+- **温度精度**: 模拟器发送四舍五入 + 前端统一 1 位小数显示（`87.44609665427511` → `87.4`）
+
+---
+
+## v1.0.37 (2026-07-28)
+
+### AI 生产助理 — 离线提醒 + Python 3.12 兼容 + UI 升级
+
+#### AI 服务离线提醒
+
+- **自动检测**: 组件挂载时 ping `/ai/api/v1/agent/tools` 检测 AI 服务状态
+- **横幅提醒**: AI 服务离线时，聊天区域顶部显示红色横幅，附带启动命令和重试按钮
+- **自动恢复**: 发送消息成功后自动设回在线状态，横幅消失（过渡动画）
+- **替代静默错误**: 不再静默失败，用户一眼可见服务状态
+
+#### Python 3.12 兼容性
+
+- `numpy` 版本约束从 `==1.26.4` 放宽到 `>=1.26,<3.0`（Python 3.12 移除 `np.long`）
+- `scikit-learn` 版本约束从 `==1.5.2` 放宽到 `>=1.5`
+- 新增 `pymysql>=1.1.0` 依赖用于 MySQL 连接
+
+#### UI 全面升级
+
+- **图标库统一**: 所有内联 SVG 替换为 Element Plus 图标组件（`MagicStick`, `Delete`, `Close`, `ArrowRight`, `CircleCheck`, `CircleClose`, `User`）
+- **欢迎卡片**: 欢迎消息使用 4 色图标卡片渲染（Monitor / Warning / Document / Notebook），替代 Markdown 小黑点
+- **侧边栏能力卡片**: emoji 表情替换为 Element Plus 图标（`Monitor`, `Warning`, `Document`, `Notebook`, `TrendCharts`, `Setting`）
+- **双栏页面布局**: 页面模式左侧显示 Agent 介绍 + 能力 + 聊天记录列表，右侧对话区
+
+---
+
+## v1.0.36 (2026-07-28)
+
+### AI 生产助理 — 对话历史 + MySQL 持久化
+
+#### 对话历史功能
+
+- **MySQL 持久化**: 对话记录从 SQLite 迁移到 MySQL `mes_db`，新增 `ai_chat_conversations` + `ai_chat_messages` 两张 InnoDB 表
+- **用户关联**: 对话按 `user_id` 隔离，通过 Pinia `useUserStore` 获取登录用户名，每个用户只能看到自己的对话
+- **历史管理**: 侧边栏展示对话列表（标题/时间/删除），支持新建、切换、删除对话
+- **自动标题**: 首条用户消息自动截取前 30 字符作为对话标题
+- **逻辑删除**: 对话采用 `deleted=1` 逻辑删除，数据可恢复
+
+#### 前后端联动
+
+| 层 | 改动 |
+|---|---|
+| Python 后端 | `conversation_store.py` 改用 PyMySQL 直连 MySQL；API 端点新增 `user_id` 查询参数 |
+| Vue 前端 | 新增 `stores/aiChat.ts` Pinia store；`AiAssistant.vue` 全面改用 store 管理消息 |
+| 数据库 | 新增 `V7__ai_chat_history.sql` 迁移文件；`init.sql` 同步建表 |
+
+#### 企业级架构
+
+```
+mes-frontend → Pinia AiChatStore → Python mes-ai-service → PyMySQL → MySQL mes_db
+                                              ↕
+                                   mes-ai-service 独立拥有 ai_chat_* 表
+                                   Java 微服务各自拥有业务表
+                                   每服务独享数据，标准微服务模式
+```
+
+---
+
+## v1.0.35 (2026-07-28)
+
+### AI Agent 生产助理
+
+#### Agent 架构
+
+基于 GLM-4 function calling 的工业 Agent，支持自然语言→工具调用→任务闭环。
+
+```
+用户输入 → 意图理解 → 工具调用 → 结果处理 → 多步推理 → 最终回复
+                          ↓
+                    MES REST API (设备/工单/库存)
+                          ↓
+                    RAG 知识库 (设备手册/质检标准)
+```
+
+#### 后端 Agent 服务
+
+- **Tool 定义层** (`src/services/tools.py`)：10 个 MES 工具，包括
+  - `list_devices` / `get_device_detail` — 设备状态查询
+  - `list_work_orders` / `create_work_order` — 工单管理
+  - `list_production_lines` / `list_workstations` — 生产线/工位
+  - `list_boms` / `list_materials` / `get_inventory` — BOM/物料/库存
+  - `query_device_docs` — 知识库文档检索
+- **Agent 编排** (`src/services/agent_service.py`)：基于 GLM-4 function calling，支持最多 8 步迭代推理
+- **RAG 知识库** (`src/services/knowledge_base.py`)：轻量级关键词检索，内置 6 篇预设文档（CNC 操作手册、温度异常处理、质检标准、SPC 标准、工单规范、维护计划）
+- **Agent API** (`src/router/agent.py`)：`POST /api/v1/agent/run` + 知识库搜索 + 工具列表查询
+
+#### 前端 AI 助手
+
+- **AiAssistant 组件**：浮动按钮触发，对话气泡展示，支持 Markdown 渲染
+- **执行步骤可视化**：每步工具调用的参数和结果可折叠展开
+- **快捷指令**：设备状态、设备诊断、创建工单、查手册一键发送
+
+---
+
 ## v1.0.34 (2026-07-28)
 
 ### 企业标准化改造

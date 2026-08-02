@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import asyncio
 import logging
 import yaml
 import os
@@ -61,9 +62,10 @@ class DeliveryPredictionRequest(BaseModel):
 
 @router.post("/energy/optimize")
 async def optimize_energy(request: EnergyOptimizationRequest):
-    """能耗优化接口"""
+    """能耗优化接口 — 企业级多维策略（真实遥测+参数/削峰填谷/待机/维护）"""
     try:
-        result = services["energy"].optimize(
+        result = await asyncio.to_thread(
+            services["energy"].optimize,
             device_code=request.device_code,
             current_params=request.current_params,
             target_output=request.target_output,

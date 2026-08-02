@@ -28,6 +28,7 @@
 - **高并发设备接入**：MQTT 协议采集，Kafka 消息队列实现 10000+ 条/秒数据吞吐
 - **实时数据展示**：WebSocket 毫秒级推送，InfluxDB 时序数据库存储
 - **AI 智能预测**：Python FastAPI 推理服务，集成 LightGBM/XGBoost 模型，支持 ONNX 部署
+- **AI Agent 生产助理**：基于 GLM-4 function calling 的多步推理 Agent，支持自然语言→工具调用→任务闭环
 - **全链路权限控制**：JWT + Spring Security 实现 RBAC 菜单级/按钮级权限
 
 ---
@@ -104,6 +105,7 @@
 | 设备接入 | .NET 8 + MQTT | .NET 8 |
 | AI 推理 | Python FastAPI | 0.115 |
 | 机器学习 | LightGBM + XGBoost | 4.5 / 2.1 |
+| AI Agent | GLM-4 + Function Calling + RAG | - |
 
 ---
 
@@ -142,10 +144,12 @@ Smart-Factory-MES-System/
 ├── mes-ai-service/               # Python AI 推理服务 (8087)
 │   ├── src/
 │   │   ├── app.py               # FastAPI 主应用
-│   │   ├── router/              # API 路由
-│   │   ├── services/            # AI 推理服务
+│   │   ├── router/              # API 路由（含 Agent 路由）
+│   │   ├── services/            # AI 推理 + Agent 编排服务
 │   │   └── schemas/             # Pydantic 模型
 │   ├── models/                   # ONNX 模型文件
+│   ├── knowledge/                # 知识库文档（设备手册、质检标准）
+│   ├── check_agent.py           # Agent 服务前置检查
 │   └── requirements.txt
 ├── mes-frontend/                   # Vue 3 前端 (3000)
 │   ├── src/
@@ -192,6 +196,12 @@ Smart-Factory-MES-System/
 - 设备故障预警（提前 24 小时）
 - 工艺参数推荐
 - 产能预测
+
+### 6. AI Agent 生产助理
+- 自然语言→工具调用：直接通过对话查询设备、创建工单、查看库存
+- 多步推理编排：自动拆解复杂任务，按顺序调用多个 API
+- RAG 知识增强：检索设备手册、质检标准辅助决策
+- 任务闭环验证：从指令下发到结果反馈全流程可追溯
 
 ### 6. 生产报表统计
 - 多维度生产报表

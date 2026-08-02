@@ -4,12 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.schemas.schemas import ModelStatusResponse
 from src.services.inference_service import InferenceService
 from src.services.feature_engineering import FeatureEngineering
+from src.services.conversation_store import init_db
 from src.router.prediction import router as prediction_router
 from src.router.llm import router as llm_router
 from src.router.analysis import router as analysis_router
+from src.router.agent import router as agent_router
 from datetime import datetime
 import yaml
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 config_path = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
 with open(config_path, "r", encoding="utf-8") as f:
@@ -21,6 +26,8 @@ feature_engineering = FeatureEngineering(config)
 
 def create_app() -> FastAPI:
     """创建并配置 FastAPI 应用实例"""
+    init_db()
+    logger.info("对话历史数据库已初始化")
     app = FastAPI(
         title="MES AI Service",
         description="智能工厂AI服务 - 质量预测与产量预测",
@@ -50,5 +57,6 @@ def create_app() -> FastAPI:
     app.include_router(prediction_router)
     app.include_router(llm_router)
     app.include_router(analysis_router)
+    app.include_router(agent_router)
 
     return app
