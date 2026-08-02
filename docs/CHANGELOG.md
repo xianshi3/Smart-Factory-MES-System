@@ -10,6 +10,32 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.37 (2026-07-28)
+
+### AI 生产助理 — 离线提醒 + Python 3.12 兼容 + UI 升级
+
+#### AI 服务离线提醒
+
+- **自动检测**: 组件挂载时 ping `/ai/api/v1/agent/tools` 检测 AI 服务状态
+- **横幅提醒**: AI 服务离线时，聊天区域顶部显示红色横幅，附带启动命令和重试按钮
+- **自动恢复**: 发送消息成功后自动设回在线状态，横幅消失（过渡动画）
+- **替代静默错误**: 不再静默失败，用户一眼可见服务状态
+
+#### Python 3.12 兼容性
+
+- `numpy` 版本约束从 `==1.26.4` 放宽到 `>=1.26,<3.0`（Python 3.12 移除 `np.long`）
+- `scikit-learn` 版本约束从 `==1.5.2` 放宽到 `>=1.5`
+- 新增 `pymysql>=1.1.0` 依赖用于 MySQL 连接
+
+#### UI 全面升级
+
+- **图标库统一**: 所有内联 SVG 替换为 Element Plus 图标组件（`MagicStick`, `Delete`, `Close`, `ArrowRight`, `CircleCheck`, `CircleClose`, `User`）
+- **欢迎卡片**: 欢迎消息使用 4 色图标卡片渲染（Monitor / Warning / Document / Notebook），替代 Markdown 小黑点
+- **侧边栏能力卡片**: emoji 表情替换为 Element Plus 图标（`Monitor`, `Warning`, `Document`, `Notebook`, `TrendCharts`, `Setting`）
+- **双栏页面布局**: 页面模式左侧显示 Agent 介绍 + 能力 + 聊天记录列表，右侧对话区
+
+---
+
 ## v1.0.36 (2026-07-28)
 
 ### AI 生产助理 — 对话历史 + MySQL 持久化

@@ -213,7 +213,7 @@ mes-ai-service/
 
 | 组件 | 版本 |
 |------|------|
-| Python | 3.11 |
+| Python | 3.12 |
 | FastAPI | 0.115 |
 | LightGBM | 4.5 |
 | XGBoost | 2.1 |
