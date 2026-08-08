@@ -1,55 +1,90 @@
-# Smart Factory MES System
+<div align="center">
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Spring%20Cloud-2023.0.0-brightgreen?style=for-the-badge&logo=spring" alt="Spring Cloud">
-  <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?style=for-the-badge&logo=vue.js" alt="Vue 3">
-  <img src="https://img.shields.io/badge/Java-17-brightgreen?style=for-the-badge&logo=java" alt="Java 17">
-  <img src="https://img.shields.io/badge/.NET-8-brightgreen?style=for-the-badge&logo=.NET" alt=".NET 8">
-  <img src="https://img.shields.io/badge/Python-3.11-brightgreen?style=for-the-badge&logo=python" alt="Python 3.11">
-</p>
+# 🏭 Smart Factory MES System
 
-<p align="center">
-  <a href="https://github.com/xianshi3/smart-factory-mes-system/issues">Issues</a> •
-  <a href="#项目展示">Screenshots</a> •
-  <a href="#快速开始">Getting Started</a> •
-  <a href="docs/DEVELOPMENT.md">Development</a>
-</p>
+**开源智能工厂制造执行系统** — 面向离散制造业的工业互联网平台
 
-<p align="center">
-  <a href="https://github.com/xianshi3/smart-factory-mes-system/actions"><img src="https://github.com/xianshi3/smart-factory-mes-system/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/xianshi3/smart-factory-mes-system/releases"><img src="https://img.shields.io/github/v/release/xianshi3/smart-factory-mes-system?style=flat" alt="Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/xianshi3/smart-factory-mes-system?style=flat" alt="License"></a>
-</p>
+基于微服务架构 · 3D 数字孪生 · AI 智能助理 · 支持 2000+ 设备并发连接
 
----
+[![CI](https://github.com/xianshi3/smart-factory-mes-system/actions/workflows/ci.yml/badge.svg)](https://github.com/xianshi3/smart-factory-mes-system/actions)
+[![Release](https://img.shields.io/github/v/release/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/releases)
+[![License](https://img.shields.io/github/license/xianshi3/smart-factory-mes-system?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/stargazers)
+[![Forks](https://img.shields.io/github/forks/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/forks)
+[![Issues](https://img.shields.io/github/issues/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/issues)
+[![Java 17](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
+[![Spring Cloud 2023](https://img.shields.io/badge/Spring%20Cloud-2023-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-cloud)
+[![Vue 3](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)](https://vuejs.org/)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776ab?style=flat-square&logo=python)](https://www.python.org/)
+[![.NET 8](https://img.shields.io/badge/.NET-8-512bd4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 
-## 项目简介
-
-智能工厂制造执行系统（Manufacturing Execution System，MES）是面向离散制造业的工业互联网平台，基于微服务架构设计，支持2000+设备并发连接，实现生产过程的实时监控、质量追溯和智能预测。
-
-### 核心特性
-
-- **微服务架构**：基于 Spring Cloud 2023 设计 6 大核心服务，实现服务解耦和独立部署
-- **数字孪生 3D 可视化**：基于 Three.js 构建工厂车间三维场景，实时映射设备状态、动效和数据
-- **高并发设备接入**：MQTT 协议采集，Kafka 消息队列实现 10000+ 条/秒数据吞吐
-- **实时数据展示**：WebSocket 毫秒级推送，InfluxDB 时序数据库存储
-- **AI 智能预测**：Python FastAPI 推理服务，集成 LightGBM/XGBoost 模型，支持 ONNX 部署
-- **AI Agent 生产助理**：基于 GLM-4 function calling 的多步推理 Agent，支持自然语言→工具调用→任务闭环
-- **全链路权限控制**：JWT + Spring Security 实现 RBAC 菜单级/按钮级权限
+**English** · [简体中文](#-项目简介) · [API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/smart-factory-mes-system/issues) · [Request Feature](https://github.com/xianshi3/smart-factory-mes-system/issues)
 
 ---
 
-## 项目展示
+</div>
+
+## 📑 目录
+
+- [✨ 项目简介](#-项目简介)
+- [🎯 核心特性](#-核心特性)
+- [🖼️ 界面预览](#️-界面预览)
+- [🏗️ 技术架构](#️-技术架构)
+- [📁 项目结构](#-项目结构)
+- [🚀 快速开始](#-快速开始)
+- [🔑 访问地址与默认账号](#-访问地址与默认账号)
+- [📚 文档](#-文档)
+- [🤝 参与贡献](#-参与贡献)
+- [📄 许可证](#-许可证)
+
+---
+
+## ✨ 项目简介
+
+智能工厂制造执行系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的智能工厂数字化底座。
+
+| 🚀 2000+ | ⚡ 10000+/s | 🧩 6 大微服务 | 🎯 95% | 🤖 AI Agent |
+|:---:|:---:|:---:|:---:|:---:|
+| 设备并发连接 | 数据吞吐 | 独立部署 | 质量预测准确率 | 自然语言生产助理 |
+
+---
+
+## 🎯 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| 🏗️ **微服务架构** | Spring Cloud 2023 设计 6 大核心服务，服务解耦、独立部署、水平扩展 |
+| 🧊 **3D 数字孪生** | Three.js 构建工厂车间三维场景，实时映射设备状态、动效与数据 |
+| 📡 **高并发设备接入** | MQTT 协议采集 + Kafka 消息队列，10000+ 条/秒数据吞吐 |
+| 📊 **实时数据展示** | WebSocket 毫秒级推送，InfluxDB 时序数据库存储 |
+| 🔮 **AI 智能预测** | FastAPI 推理服务，LightGBM/XGBoost 模型，支持 ONNX 部署 |
+| 💬 **AI Agent 生产助理** | GLM-4 function calling 多步推理，自然语言 → 工具调用 → 任务闭环 |
+| 🔐 **全链路权限控制** | JWT + Spring Security，RBAC 菜单级 / 按钮级权限 |
+| 📈 **SPC 统计分析** | 真实规格限 + 8 条 Nelson 判异规则 + 全过程能力指数 + 控制图 |
+
+---
+
+## 🖼️ 界面预览
+
+<div align="center">
+
+**📊 生产看板**
 
 ![生产看板](docs/screenshots/dashboard.jpg)
 
+**🧊 设备监控（3D 数字孪生）**
+
 ![设备监控](docs/screenshots/device-monitor.jpg)
+
+**💬 AI 生产助理**
 
 ![AI 生产助理](docs/screenshots/ai-assistant.jpg)
 
+</div>
+
 ---
 
-## 技术架构
+## 🏗️ 技术架构
 
 ### 整体架构图
 
@@ -139,180 +174,80 @@ flowchart TB
 
 | 层级 | 技术选型 | 版本 |
 |------|----------|------|
-| 前端框架 | Vue 3 + TypeScript + Composition API | Vue 3.5 |
-| 状态管理 | Pinia | 2.3 |
-| UI 组件 | Element Plus | 2.9 |
-| 3D 渲染 | Three.js | 0.172 |
-| 数据可视化 | ECharts + GoJS | 5.6 |
-| 构建工具 | Vite | 6.0 |
-| 后端框架 | Spring Boot | 3.2.5 |
-| 微服务 | Spring Cloud | 2023.0.0 |
-| ORM | MyBatis-Plus | 3.5.6 |
-| 数据库 | MySQL | 8.0.33 |
-| 缓存 | Redis | 7 |
-| 消息队列 | Kafka | 3.4 |
-| 时序数据库 | InfluxDB | 2.7 |
-| 搜索引擎 | Elasticsearch | 8.10.0 |
-| 设备接入 | .NET 8 + MQTT | .NET 8 |
-| AI 推理 | Python FastAPI | 0.115 |
-| 机器学习 | LightGBM + XGBoost | 4.5 / 2.1 |
-| AI Agent | GLM-4 + Function Calling + RAG | - |
+| 前端 | Vue 3 + TypeScript + Element Plus + Pinia + Vite | 3.5 / 2.9 / 2.3 / 6.0 |
+| 3D / 可视化 | Three.js + ECharts + GoJS | 0.172 / 5.6 |
+| 后端 | Spring Boot + Spring Cloud (Alibaba) | 3.2.5 / 2023.0.0 |
+| 持久层 | MyBatis-Plus + MySQL | 3.5.6 / 8.0.33 |
+| 缓存 / 消息 | Redis + Kafka + Zookeeper | 7 / 3.4 |
+| 时序 / 搜索 | InfluxDB + Elasticsearch | 2.7 / 8.10.0 |
+| 设备接入 | .NET 8 + EMQX MQTT | .NET 8 |
+| AI 推理 | Python FastAPI + LightGBM + XGBoost | 0.115 / 4.5 / 2.1 |
+| AI Agent | GLM-4 + Function Calling + RAG + ChromaDB | - |
 
 ---
 
-## 项目结构
+## 📁 项目结构
 
 ```
 Smart-Factory-MES-System/
-├── docs/                           # 项目文档
-│   ├── DEVELOPMENT.md             # 开发指南
-│   ├── DATABASE.md                # 数据库设计
-│   └── CHANGELOG.md              # 更新日志
-├── mes-common/                     # 公共模块（实体类、工具类）
-├── mes-gateway/                   # API 网关 (9090)
-├── mes-auth/                      # 认证服务 (8081)
-│   └── src/main/java/.../
-│       ├── controller/            # REST API 控制器
-│       ├── service/               # 业务逻辑层
-│       ├── mapper/               # 数据访问层
-│       └── entity/               # 实体类
-├── mes-workorder/                 # 工单服务 (8082)
-├── mes-process/                   # 工艺服务 (8083)
-├── mes-quality/                   # 质量服务 (8084)
-├── mes-dashboard/                 # 看板服务 (8085)
-│   └── src/main/java/.../
-│       ├── controller/
-│       ├── service/
-│       │   └── impl/              # 业务逻辑实现
-│       ├── mapper/
-│       ├── websocket/             # WebSocket 处理
-│       └── config/                # 配置类
-├── mes-device-gateway/            # .NET 设备网关 (5000)
-│   └── src/MesDeviceGateway/
-│       ├── Program.cs
-│       ├── Controllers/           # MQTT/Kafka 控制器
-│       └── Services/             # 设备接入服务
-├── mes-ai-service/               # Python AI 推理服务 (8087)
-│   ├── src/
-│   │   ├── app.py               # FastAPI 主应用
-│   │   ├── router/              # API 路由（含 Agent 路由）
-│   │   ├── services/            # AI 推理 + Agent 编排服务
-│   │   └── schemas/             # Pydantic 模型
-│   ├── models/                   # ONNX 模型文件
-│   ├── knowledge/                # 知识库文档（设备手册、质检标准）
-│   ├── check_agent.py           # Agent 服务前置检查
-│   └── requirements.txt
-├── mes-frontend/                   # Vue 3 前端 (3000)
-│   ├── src/
-│   │   ├── api/                # API 请求封装
-│   │   ├── views/               # 页面组件
-│   │   ├── stores/               # Pinia 状态管理
-│   │   ├── router/              # Vue Router 配置
-│   │   ├── directives/           # 自定义指令
-│   │   └── assets/               # 静态资源
-│   └── package.json
-├── mes-device-simulator-wpf/      # WPF 设备模拟器
-├── sql/                          # 数据库脚本
-├── Makefile                      # 统一启动/构建命令
-├── docker-compose.yml             # 基础设施编排
-└── pom.xml                      # Maven 父 POM
+├── docs/                            # 项目文档（开发指南 / 数据库 / 更新日志）
+├── mes-common/                      # 公共模块（实体类、工具类、异常处理）
+├── mes-gateway/                     # API 网关 (9090) — 统一路由 / 鉴权 / 限流
+├── mes-auth/                        # 认证服务 (8081) — 登录 / JWT / RBAC 权限
+├── mes-workorder/                   # 工单服务 (8082) — 工单全生命周期
+├── mes-process/                     # 工艺服务 (8083) — 工艺模板 / 参数配置
+├── mes-quality/                     # 质量服务 (8084) — 质检记录 / 质量追溯 / SPC
+├── mes-dashboard/                   # 看板服务 (8085) — 实时数据 / WebSocket 推送
+├── mes-device-gateway/              # .NET 设备网关 (5000) — MQTT 接入 / Kafka 转发
+├── mes-ai-service/                  # Python AI 服务 (8087) — 预测 / Agent / RAG
+├── mes-frontend/                    # Vue 3 前端 (3000) — 生产看板 / 3D 数字孪生
+├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 模拟 2000+ 设备数据上报
+├── sql/                             # 数据库脚本（init + V2~V9 迁移）
+├── Makefile                         # 统一启动 / 构建命令
+└── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / Nacos）
 ```
 
 ---
 
-## 核心功能
+## 🚀 快速开始
 
-### 1. 生产工单管理
-- 工单创建、下发、执行、报工、完工
-- 工单状态流转与跟踪
-- 生产进度实时可视化
+### 环境要求
 
-### 2. 工艺参数配置
-- 工艺模板管理
-- 参数配置与版本管理
-- 实时工艺参数校验
-
-### 3. 质量检验追溯
-- 质检记录与判定
-- 正反向质量追溯
-- SPC 统计分析
-
-### 4. 设备监控报警
-- 设备状态实时监控
-- OEE 设备综合效率计算
-- 报警规则与通知
-
-### 5. AI 智能预测
-- 质量预测（准确率 95%）
-- 设备故障预警（提前 24 小时）
-- 工艺参数推荐
-- 产能预测
-
-### 6. AI Agent 生产助理
-- 自然语言→工具调用：直接通过对话查询设备、创建工单、查看库存
-- 多步推理编排：自动拆解复杂任务，按顺序调用多个 API
-- RAG 知识增强：检索设备手册、质检标准辅助决策
-- 任务闭环验证：从指令下发到结果反馈全流程可追溯
-
-### 6. 生产报表统计
-- 多维度生产报表
-- ECharts 可视化展示
-- 数据导出功能
-
----
-
-## 快速开始
-
-### 前置条件
-
-| 工具 | 版本要求 | 说明 |
-|------|----------|------|
+| 工具 | 版本 | 用途 |
+|------|------|------|
+| Docker | 24+ | 基础设施（MySQL / Redis / Kafka / Nacos） |
 | JDK | 17+ | Java 后端服务 |
-| Maven | 3.9+ | 项目构建 |
+| Maven | 3.9+ | 后端构建 |
 | Node.js | 18+ | 前端开发 |
 | Python | 3.11+ | AI 服务（可选） |
-| Docker | 24+ | 基础设施容器 |
-| .NET SDK | 8.0+ | 设备网关 |
+| .NET SDK | 8.0+ | 设备网关（可选） |
 
-> **架构说明**：Docker 仅运行基础设施（MySQL、Redis、Kafka、Zookeeper、Nacos），
-> Java 后端服务在宿主机上通过 `java -jar` 直接运行。
+> **架构说明**：Docker 仅运行基础设施，Java 后端在宿主机直接运行，便于开发调试。
 
-### 启动方式
-
-#### 方式一：一键启动（Makefile，推荐）
+### 一键启动（推荐）
 
 ```bash
-# 启动所有服务
-make all
-
-# 或先启动基础设施
+# ① 启动基础设施
 make docker
 
-# 再启动 Java 后端（自动编译）
+# ② 启动 Java 后端（自动编译）
 make backend
 
-# 最后启动 AI 服务和前端
+# ③ 启动 AI 服务与前端
 make ai
 make frontend
 ```
 
-#### 方式二：Docker 启动基础设施
+### 手动启动
 
 ```bash
-docker compose up -d
-docker compose ps
-```
-
-#### 方式三：手动启动
-
-```bash
-# 1. 编译后端
+# ① 编译后端
 mvn clean package -DskipTests
 
-# 2. 启动基础设施
+# ② 启动基础设施
 docker compose up -d
 
-# 3. 启动各个 Java 服务
+# ③ 启动 Java 服务
 java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
 java -jar mes-workorder/target/mes-workorder-1.0.0-SNAPSHOT.jar
 java -jar mes-process/target/mes-process-1.0.0-SNAPSHOT.jar
@@ -320,217 +255,83 @@ java -jar mes-quality/target/mes-quality-1.0.0-SNAPSHOT.jar
 java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
 java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
 
-# 4. 启动 AI 服务（需先停掉 InfluxDB）
-docker stop mes-influxdb
-cd mes-ai-service && pip install -r requirements.txt && python src/main.py
-
-# 5. 启动前端
+# ④ 启动前端
 cd mes-frontend && npm install && npm run dev
+```
+
+### API 快速体验
+
+```bash
+# 登录获取 Token
+curl -X POST http://localhost:8081/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+
+# 工单分页查询
+curl http://localhost:8082/workorder/page?current=1&size=10 \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
 
-## 访问地址
+## 🔑 访问地址与默认账号
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端首页 | http://localhost:3000 | Vue 3 应用 |
-| API 网关 | http://localhost:9090 | Spring Cloud Gateway（已启用） |
+| API 网关 | http://localhost:9090 | Spring Cloud Gateway |
 | 认证服务 | http://localhost:8081/doc.html | Knife4j API 文档 |
 | 工单服务 | http://localhost:8082/doc.html | - |
 | 工艺服务 | http://localhost:8083/doc.html | - |
 | 质量服务 | http://localhost:8084/doc.html | - |
 | 看板服务 | http://localhost:8085/doc.html | - |
-| AI 服务 | http://localhost:8087/docs | FastAPI API 文档 |
+| AI 服务 | http://localhost:8087/docs | FastAPI 文档 |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
-| MySQL | localhost:3306 | root/root |
+| MySQL | localhost:3306 | root / root |
 | Redis | localhost:6379 | 无密码 |
-| Nacos | http://localhost:8848/nacos | nacos/nacos |
+| Nacos | http://localhost:8848/nacos | nacos / nacos |
 
-### 默认账号
-
-| 系统 | 用户名 | 密码 |
-|------|--------|------|
-| 前端 | admin | admin123 |
-| EMQX | admin | public |
+| 系统 | 账号 | 密码 |
+|------|------|------|
+| 前端登录 | `admin` | `admin123` |
+| EMQX | `admin` | `public` |
 
 ---
 
-## API 文档
+## 📚 文档
 
-系统提供完整的 RESTful API 文档，采用 Knife4j 作为 API 文档解决方案。
-
-### 认证服务 API
-
-```bash
-# 登录
-POST /auth/login
-{
-  "username": "admin",
-  "password": "admin123"
-}
-
-# 获取用户信息
-GET /auth/userinfo
-Authorization: Bearer <token>
-
-# 获取权限列表
-GET /auth/role/permissions
-```
-
-### 工单服务 API
-
-```bash
-# 工单列表
-GET /workorder/page?current=1&size=10
-
-# 创建工单
-POST /workorder
-{
-  "workorderNo": "WO20260505001",
-  "productName": "产品A",
-  "quantity": 100
-}
-```
-
-### 设备服务 API
-
-```bash
-# 设备列表
-GET /device/page
-
-# 设备状态
-GET /device/status/{deviceId}
-
-# 设备报警
-GET /alarm/device/{deviceId}
-```
-
-完整 API 文档请访问各服务的 Knife4j 文档页面：
-- 认证服务：http://localhost:8081/doc.html
-- 工单服务：http://localhost:8082/doc.html
-- 工艺服务：http://localhost:8083/doc.html
-- 质量服务：http://localhost:8084/doc.html
-- 看板服务：http://localhost:8085/doc.html
-- AI 服务：http://localhost:8087/docs
-
----
-
-## 配置说明
-
-各服务配置使用环境变量注入，详见 `.env.example` 和各服务 `application.yml`。
-
-### WebSocket 配置
-
-看板服务支持 WebSocket 实时推送。前端通过环境变量 `VITE_WS_URL` 配置连接地址，默认 `ws://localhost:8085/ws/dashboard`。
-
----
-
-## 目录说明
-
-| 目录 | 说明 |
+| 文档 | 说明 |
 |------|------|
-| `docs/` | 项目文档目录 |
-| `mes-common/` | 公共模块，包含实体类、工具类、异常处理 |
-| `mes-gateway/` | API 网关，统一路由、限流、认证 |
-| `mes-auth/` | 认证服务，用户登录、Token 发放、权限管理 |
-| `mes-workorder/` | 工单服务，生产工单全生命周期管理 |
-| `mes-process/` | 工艺服务，工艺模板、参数配置 |
-| `mes-quality/` | 质量服务，质检记录、质量追溯 |
-| `mes-dashboard/` | 看板服务，实时数据展示、WebSocket 推送 |
-| `mes-device-gateway/` | .NET 设备网关，MQTT 接入、Kafka 转发 |
-| `mes-ai-service/` | Python AI 推理服务 |
-| `mes-frontend/` | Vue 3 前端应用 |
+| [📖 开发指南](docs/DEVELOPMENT.md) | 本地开发、环境搭建、调试技巧 |
+| [🗄️ 数据库设计](docs/DATABASE.md) | 表结构、ER 关系、迁移脚本 |
+| [📝 更新日志](docs/CHANGELOG.md) | 版本历史与变更记录 |
+| [🌍 项目介绍](docs/INTERVIEW.md) | 架构演进、AI Agent 方案、比赛复盘 |
 
 ---
 
-## 开发指南
+## 🤝 参与贡献
 
-详细开发指南请参阅：
+欢迎提交 [Issue](https://github.com/xianshi3/smart-factory-mes-system/issues) 与 [Pull Request](https://github.com/xianshi3/smart-factory-mes-system/pulls)！
 
-- [开发指南文档](./docs/DEVELOPMENT.md)
-- [数据库设计文档](./docs/DATABASE.md)
-- [更新日志](./docs/CHANGELOG.md)
+1. **Fork** 本仓库并从 `develop` 拉取分支
+2. **编码** — 遵循 [贡献指南](CONTRIBUTING.md) 与代码规范
+3. **验证** — 通过 CI 构建（后端 `mvn compile` / 前端 `npm run build`）
+4. **提交** — 发起 PR 到 `develop`，等待 Review
 
----
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/xxx`)
-3. 提交更改 (`git commit -m 'Add xxx'`)
-4. 推送到分支 (`git push origin feature/xxx`)
-5. 创建 Pull Request
+更多细节请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) · [行为准则](CODE_OF_CONDUCT.md)
 
 ---
 
-## 更新日志
+## 📄 许可证
 
-### v1.0.41 (2026-08-08)
-
-- 修复系统设置页 `saveSettings` 重复声明致 vite 构建失败
-- 修复角色管理页 `reactive` 未导入致页面运行时空白
-- 安全修复：移除登录失败日志中的明文密码泄露
-- 数据库密码安全：init.sql 伪 BCrypt hash 替换为真实 hash，V9/fix_password 明文密码统一 BCrypt 存储
-
-### v1.0.40 (2026-08-02)
-
-- 数据库 Schema 补齐：sys_user 8 缺失列 + uk_username 复合唯一键 + 种子用户 + V9 幂等迁移脚本
-- 角色/菜单/权限/系统设置/个人中心 五页面 UI 统一优化
-- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
-
-### v1.0.34 (2026-07-28)
-
-- 后端企业标准化改造：新增 Service 层（ProductionLineService / WorkstationService）
-- 统一 CRUD 模式：Controller → Service → ServiceImpl → Mapper
-- 统一逻辑删除：移除全局逻辑删除配置，使用物理删除
-- BOM 编号自动生成兜底
-- 前端 3D 数字孪生设备监控场景
-- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
-
-### v1.0.29 (2026-07-27)
-
-- 更新所有文档至最新项目状态
-- 修复 30 个问题（架构、路由、安全、配置）
-- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
-
-### v1.0.28 (2026-07-27)
-
-- 基础设施 Docker-only 运行架构（Java 服务本地直接启动）
-- 网关正式启用（`/api/**` StripPrefix=1，`/api/ai/**` StripPrefix=2）
-- 修复 Dashboard `@RequestMapping`、ProcessController 路径匹配
-- 修复 Vite 代理 `/ai` / `/dashboard`、WebSocket/AI URL 改用环境变量
-- Docker 内存限制及网络连通性优化
-- 安全修复：移除 API key、关闭堆栈泄露
-
-### v1.0.27 (2026-05-05)
-
-- 新增生产线管理功能
-- 新增工位管理功能
-- 新增基础数据控制器
-- 增强权限管理
-
-### v1.0.26 (2026-05-04)
-
-- 新增 AI 质量预测模块
-- 优化设备监控 WebSocket 推送
-- 完善 RBAC 权限控制
-- 添加亮色/暗色主题切换
-
-### v1.0.25 (2026-04-20)
-
-- 微服务架构优化
-- 集成 Knife4j API 文档
-- 添加设备模拟器
-
-### v1.0.1 (2024-01-01)
-
-- 初始版本发布
-
-完整更新日志请查看 [CHANGELOG.md](./docs/CHANGELOG.md)
+本项目基于 [MIT License](LICENSE) 开源，欢迎学习、使用与二次开发。
 
 ---
 
-<p align="center">Generated by AI Assistant</p>
+<div align="center">
+
+**如果这个项目对你有帮助，请给我们一个 ⭐️！**
+
+Made with ❤️ for the Open Source Community
+
+</div>
