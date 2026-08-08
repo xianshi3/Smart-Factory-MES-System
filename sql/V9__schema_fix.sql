@@ -79,10 +79,10 @@ WHERE username = 'admin';
 -- =====================================================
 INSERT IGNORE INTO sys_user (username, password, real_name, nickname, phone, email, employee_no, department, position, manager_id, hire_date, status, role, role_id)
 VALUES
-('zhangsan', 'admin123', '张三', '张三', '13800138001', 'zhangsan@mes.com', 'EMP-002', '生产部', '生产主管', 1, '2025-03-20', 1, 'MANAGER', 2),
-('lisi',     'admin123', '李四', '李四', '13800138002', 'lisi@mes.com', 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER', 3),
-('wangwu',   'admin123', '王五', '王五', '13800138003', 'wangwu@mes.com', 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER', 4),
-('zhaoliu',  'admin123', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', 'EMP-005', '设备动力部', '设备工程师', 1, '2025-04-15', 1, 'USER', 5);
+('zhangsan', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '张三', '张三', '13800138001', 'zhangsan@mes.com', 'EMP-002', '生产部', '生产主管', 1, '2025-03-20', 1, 'MANAGER', 2),
+('lisi',     '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '李四', '李四', '13800138002', 'lisi@mes.com', 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER', 3),
+('wangwu',   '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '王五', '王五', '13800138003', 'wangwu@mes.com', 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER', 4),
+('zhaoliu',  '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', 'EMP-005', '设备动力部', '设备工程师', 1, '2025-04-15', 1, 'USER', 5);
 
 -- =====================================================
 -- 7. 修复角色-权限关联排序
@@ -92,7 +92,7 @@ UPDATE sys_role_permission SET sort = 0 WHERE sort IS NULL;
 -- =====================================================
 -- 8. 统一所有用户密码为 admin123
 -- =====================================================
-UPDATE sys_user SET password = 'admin123' WHERE deleted = 0;
+UPDATE sys_user SET password = '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO' WHERE deleted = 0;
 
 -- =====================================================
 -- 9. 补充报警菜单入口

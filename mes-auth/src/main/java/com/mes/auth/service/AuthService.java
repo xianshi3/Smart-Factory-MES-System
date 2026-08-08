@@ -80,7 +80,7 @@ public class AuthService {
         }
 
         if (!matched) {
-            log.warn("密码验证失败 - 输入: {}, 存储: {}", inputPassword, storedPassword);
+            log.warn("密码验证失败 - 用户名: {}", dto.getUsername());
             recordLoginFail(dto.getUsername());
             throw new BizException(ErrorCode.USER_PASSWORD_ERROR);
         }

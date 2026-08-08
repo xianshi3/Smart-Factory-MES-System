@@ -45,11 +45,11 @@ CREATE TABLE `sys_user` (
 -- Insert default admin user (password: admin123, BCrypt hashed)
 INSERT INTO `sys_user` (`username`, `password`, `real_name`, `nickname`, `phone`, `email`, `avatar`, `employee_no`, `department`, `position`, `manager_id`, `hire_date`, `status`, `role`, `role_id`)
 VALUES 
-('admin', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN', 1),
-('zhangsan', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER', 2),
-('lisi', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER', 3),
-('wangwu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER', 4),
-('zhaoliu', '$2a$10$YR5xXd0mY2e7kJYNmWJHee3dG5YLWYQVdYQVdYQVdYQVdYQVdYQ', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER', 5);
+('admin', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '张伟', '管理员', '13800138000', 'admin@mes.com', NULL, 'EMP-001', '信息技术部', '系统管理员', NULL, '2025-01-15', 1, 'ADMIN', 1),
+('zhangsan', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '张三', '张三', '13800138001', 'zhangsan@mes.com', NULL, 'EMP-002', '生产部', '生产主管', NULL, '2025-03-20', 1, 'MANAGER', 2),
+('lisi', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '李四', '李四', '13800138002', 'lisi@mes.com', NULL, 'EMP-003', '生产部', '生产员工', 2, '2025-06-10', 1, 'USER', 3),
+('wangwu', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '王五', '王五', '13800138003', 'wangwu@mes.com', NULL, 'EMP-004', '质量管理部', '质检员', 2, '2025-07-01', 1, 'USER', 4),
+('zhaoliu', '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO', '赵六', '赵六', '13800138004', 'zhaoliu@mes.com', NULL, 'EMP-005', '设备动力部', '设备工程师', NULL, '2025-04-15', 1, 'USER', 5);
 
 -- Update manager relationship
 UPDATE sys_user SET manager_id = 1 WHERE username = 'zhangsan';
