@@ -53,41 +53,86 @@
 
 ### 整体架构图
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         前端展示层                                     │
-│              Vue 3 + TypeScript + Element Plus + ECharts               │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         API 网关层                                     │
-│                    Spring Cloud Gateway (9090)                         │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-          ┌───────────────┬───────────────┬───────────────┐
-          ▼               ▼               ▼               ▼
-   ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-   │ 认证服务  │    │ 工单服务  │    │ 工艺服务  │    │ 质量服务  │
-   │  8081   │    │  8082   │    │  8083   │    │  8084   │
-   └──────────┘    └──────────┘    └──────────┘    └──────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         数据存储层                                     │
-│   MySQL    │    Redis    │   InfluxDB   │  Elasticsearch  │   Kafka     │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         设备接入层                                     │
-│              .NET 8 网关 (5000) + EMQX MQTT Broker                   │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-                      ┌──────────────────────┐
-                      │   工业设备 (2000+)   │
-                      └──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph UI["🎨 前端展示层"]
+        FE["Vue 3 + TypeScript + Element Plus<br/>ECharts + Three.js (3D数字孪生)"]
+    end
+
+    subgraph GW["🚪 API 网关层"]
+        G["Spring Cloud Gateway<br/>:9090 · JWT 鉴权 · 限流"]
+    end
+
+    subgraph MS["⚙️ 微服务层"]
+        A["🔐 认证服务<br/>:8081"]
+        W["📋 工单服务<br/>:8082"]
+        P["🔧 工艺服务<br/>:8083"]
+        Q["✅ 质量服务<br/>:8084"]
+        D["📊 看板服务<br/>:8085 · WebSocket"]
+        AI["🧠 AI 推理服务<br/>:8087 · FastAPI"]
+    end
+
+    subgraph DS["💾 数据存储层"]
+        DB[("MySQL :3306")]
+        RD[("Redis :6379")]
+        IDB[("InfluxDB :8086")]
+        ES[("Elasticsearch :9200")]
+        KF["Kafka :9092"]
+    end
+
+    subgraph EDGE["📡 设备接入层"]
+        NET[" .NET 8 设备网关 :5000<br/>MQTT 订阅 · Kafka 转发 · 心跳"]
+        MQTT["EMQX MQTT Broker<br/>:1883"]
+    end
+
+    subgraph DEV["🏭 工业设备层"]
+        DEV1["CNC 数控机床"]
+        DEV2["PLC 控制器"]
+        DEV3["工业机器人"]
+    end
+
+    FE -->|HTTPS/WSS| G
+    G -->|/api/auth/**| A
+    G -->|/api/workorder/**| W
+    G -->|/api/process/**| P
+    G -->|/api/quality/**| Q
+    G -->|/api/dashboard/**| D
+    G -->|/api/ai/**| AI
+
+    A --> DB
+    W --> DB
+    P --> DB
+    Q --> DB
+    D --> DB
+    AI --> DB
+
+    A -.JWT黑名单/登录锁定.-> RD
+    W -.工单序号/锁.-> RD
+    D -.设备状态缓存.-> RD
+    D --> IDB
+    D --> ES
+    D <--> KF
+
+    AI -.AI分析历史.-> RD
+    AI --> KF
+
+    NET --> KF
+    NET --> RD
+    MQTT --> NET
+    DEV1 -->|MQTT| MQTT
+    DEV2 -->|MQTT| MQTT
+    DEV3 -->|MQTT| MQTT
+
+    classDef layer fill:#f0f6ff,stroke:#409eff,stroke-width:2px,color:#333;
+    classDef svc fill:#e8f5e9,stroke:#4caf50,stroke-width:1.5px,color:#333;
+    classDef data fill:#fff3e0,stroke:#ff9800,stroke-width:1.5px,color:#333;
+    classDef edge fill:#fce4ec,stroke:#e91e63,stroke-width:1.5px,color:#333;
+    classDef dev fill:#f3e5f5,stroke:#9c27b0,stroke-width:1.5px,color:#333;
+    class FE,G layer;
+    class A,W,P,Q,D,AI svc;
+    class DB,RD,IDB,ES,KF data;
+    class NET,MQTT edge;
+    class DEV1,DEV2,DEV3 dev;
 ```
 
 ### 技术栈
