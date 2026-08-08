@@ -1,0 +1,58 @@
+name: Bug Report
+description: 报告缺陷
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 项目版本（CHANGELOG 中的版本号或 commit hash）
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: 所属模块
+      options:
+        - 前端 (mes-frontend)
+        - 认证服务 (mes-auth)
+        - 工单服务 (mes-workorder)
+        - 工艺服务 (mes-process)
+        - 质量服务 (mes-quality)
+        - 看板服务 (mes-dashboard)
+        - 设备网关 (mes-device-gateway)
+        - AI 服务 (mes-ai-service)
+        - 数据库/脚本 (sql)
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 如何复现该问题
+      placeholder: |
+        1. 打开 xxx 页面
+        2. 点击 xxx
+        3. 出现 xxx 错误
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 错误信息、控制台输出或截图
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: 浏览器/操作系统/JDK 版本等

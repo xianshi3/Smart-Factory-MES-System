@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, master]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, master]
 
 jobs:
   build:
@@ -49,6 +49,14 @@ jobs:
           MYSQL_USERNAME: root
           MYSQL_PASSWORD: root
           LOG_LEVEL: warn
+
+      - name: Initialize Database Schema
+        run: |
+          sudo apt-get update && sudo apt-get install -y mysql-client >/dev/null 2>&1
+          for f in sql/init.sql sql/V2__add_delete_fields.sql sql/V3__init_quality.sql sql/V4__permission_enhance.sql sql/V5__alarm_event.sql sql/V5_5__fix_unique_constraint.sql sql/V6__bom_inventory.sql sql/V6__seed_data.sql sql/V7__ai_chat_history.sql sql/V8__ai_analysis_history.sql sql/V9__schema_fix.sql; do
+            mysql -h 127.0.0.1 -P 3306 -uroot -proot --default-character-set=utf8mb4 mes_db < "$f"
+          done
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "SELECT COUNT(*) AS users FROM mes_db.sys_user"
 
       - name: Lint Frontend
         run: |

@@ -32,7 +32,7 @@ Smart-Factory-MES-System/
 | 层级 | 技术选型 | 版本 |
 |------|----------|------|
 | 前端 | Vue 3 + TypeScript + Element Plus + ECharts + Three.js | Vue 3.5 |
-| 后端 | Java 17 + Spring Cloud + MyBatis-Plus | Spring Cloud 2022.0.0 |
+| 后端 | Java 17 + Spring Cloud + MyBatis-Plus | Spring Cloud 2023.0.0 |
 | 设备接入 | .NET 8 + MQTT + Kafka | .NET 8 |
 | AI服务 | Python 3.12 + FastAPI + PyMySQL + LightGBM + XGBoost | FastAPI 0.115 |
 | 基础设施 | MySQL 8.0.33 + Redis 7 + Kafka 3.4 + EMQX 5.8 | - |
