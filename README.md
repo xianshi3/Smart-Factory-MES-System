@@ -1,10 +1,12 @@
 <div align="center">
 
-# 🏭 Smart Factory MES System
+# Smart Factory MES System
 
 **开源智能工厂制造执行系统** — 面向离散制造业的工业互联网平台
 
 基于微服务架构 · 3D 数字孪生 · AI 智能助理 · 支持 2000+ 设备并发连接
+
+<img src="https://skillicons.dev/icons?i=java,spring,vue,ts,py,dotnet,docker,mysql,redis,kafka,fastapi,mqtt" alt="Tech Stack" />
 
 [![CI](https://github.com/xianshi3/smart-factory-mes-system/actions/workflows/ci.yml/badge.svg)](https://github.com/xianshi3/smart-factory-mes-system/actions)
 [![Release](https://img.shields.io/github/v/release/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/releases)
@@ -12,11 +14,11 @@
 [![Stars](https://img.shields.io/github/stars/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/stargazers)
 [![Forks](https://img.shields.io/github/forks/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/forks)
 [![Issues](https://img.shields.io/github/issues/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/issues)
-[![Java 17](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
-[![Spring Cloud 2023](https://img.shields.io/badge/Spring%20Cloud-2023-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-cloud)
-[![Vue 3](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)](https://vuejs.org/)
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776ab?style=flat-square&logo=python)](https://www.python.org/)
-[![.NET 8](https://img.shields.io/badge/.NET-8-512bd4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
+[![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-cloud)
+[![Vue](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)](https://vuejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776ab?style=flat-square&logo=python)](https://www.python.org/)
+[![.NET](https://img.shields.io/badge/.NET-8-512bd4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 
 **English** · [简体中文](#-项目简介) · [API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/smart-factory-mes-system/issues) · [Request Feature](https://github.com/xianshi3/smart-factory-mes-system/issues)
 
@@ -24,59 +26,59 @@
 
 </div>
 
-## 📑 目录
+## 目录
 
-- [✨ 项目简介](#-项目简介)
-- [🎯 核心特性](#-核心特性)
-- [🖼️ 界面预览](#️-界面预览)
-- [🏗️ 技术架构](#️-技术架构)
-- [📁 项目结构](#-项目结构)
-- [🚀 快速开始](#-快速开始)
-- [🔑 访问地址与默认账号](#-访问地址与默认账号)
-- [📚 文档](#-文档)
-- [🤝 参与贡献](#-参与贡献)
-- [📄 许可证](#-许可证)
+- [项目简介](#-项目简介)
+- [核心特性](#-核心特性)
+- [界面预览](#-界面预览)
+- [技术架构](#-技术架构)
+- [项目结构](#-项目结构)
+- [快速开始](#-快速开始)
+- [访问地址与默认账号](#-访问地址与默认账号)
+- [文档](#-文档)
+- [参与贡献](#-参与贡献)
+- [许可证](#-许可证)
 
 ---
 
-## ✨ 项目简介
+## 项目简介
 
 智能工厂制造执行系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的智能工厂数字化底座。
 
-| 🚀 2000+ | ⚡ 10000+/s | 🧩 6 大微服务 | 🎯 95% | 🤖 AI Agent |
+| 2000+ | 10000+/s | 6 大微服务 | 95% | AI Agent |
 |:---:|:---:|:---:|:---:|:---:|
 | 设备并发连接 | 数据吞吐 | 独立部署 | 质量预测准确率 | 自然语言生产助理 |
 
 ---
 
-## 🎯 核心特性
+## 核心特性
 
 | 特性 | 说明 |
 |------|------|
-| 🏗️ **微服务架构** | Spring Cloud 2023 设计 6 大核心服务，服务解耦、独立部署、水平扩展 |
-| 🧊 **3D 数字孪生** | Three.js 构建工厂车间三维场景，实时映射设备状态、动效与数据 |
-| 📡 **高并发设备接入** | MQTT 协议采集 + Kafka 消息队列，10000+ 条/秒数据吞吐 |
-| 📊 **实时数据展示** | WebSocket 毫秒级推送，InfluxDB 时序数据库存储 |
-| 🔮 **AI 智能预测** | FastAPI 推理服务，LightGBM/XGBoost 模型，支持 ONNX 部署 |
-| 💬 **AI Agent 生产助理** | GLM-4 function calling 多步推理，自然语言 → 工具调用 → 任务闭环 |
-| 🔐 **全链路权限控制** | JWT + Spring Security，RBAC 菜单级 / 按钮级权限 |
-| 📈 **SPC 统计分析** | 真实规格限 + 8 条 Nelson 判异规则 + 全过程能力指数 + 控制图 |
+| **微服务架构** | Spring Cloud 2023 设计 6 大核心服务，服务解耦、独立部署、水平扩展 |
+| **3D 数字孪生** | Three.js 构建工厂车间三维场景，实时映射设备状态、动效与数据 |
+| **高并发设备接入** | MQTT 协议采集 + Kafka 消息队列，10000+ 条/秒数据吞吐 |
+| **实时数据展示** | WebSocket 毫秒级推送，InfluxDB 时序数据库存储 |
+| **AI 智能预测** | FastAPI 推理服务，LightGBM/XGBoost 模型，支持 ONNX 部署 |
+| **AI Agent 生产助理** | GLM-4 function calling 多步推理，自然语言 → 工具调用 → 任务闭环 |
+| **全链路权限控制** | JWT + Spring Security，RBAC 菜单级 / 按钮级权限 |
+| **SPC 统计分析** | 真实规格限 + 8 条 Nelson 判异规则 + 全过程能力指数 + 控制图 |
 
 ---
 
-## 🖼️ 界面预览
+## 界面预览
 
 <div align="center">
 
-**📊 生产看板**
+**生产看板**
 
 ![生产看板](docs/screenshots/dashboard.jpg)
 
-**🧊 设备监控（3D 数字孪生）**
+**设备监控（3D 数字孪生）**
 
 ![设备监控](docs/screenshots/device-monitor.jpg)
 
-**💬 AI 生产助理**
+**AI 生产助理**
 
 ![AI 生产助理](docs/screenshots/ai-assistant.jpg)
 
@@ -84,30 +86,30 @@
 
 ---
 
-## 🏗️ 技术架构
+## 技术架构
 
 ### 整体架构图
 
 ```mermaid
 flowchart TB
-    subgraph UI["🎨 前端展示层"]
+    subgraph UI["前端展示层"]
         FE["Vue 3 + TypeScript + Element Plus<br/>ECharts + Three.js (3D数字孪生)"]
     end
 
-    subgraph GW["🚪 API 网关层"]
+    subgraph GW["API 网关层"]
         G["Spring Cloud Gateway<br/>:9090 · JWT 鉴权 · 限流"]
     end
 
-    subgraph MS["⚙️ 微服务层"]
-        A["🔐 认证服务<br/>:8081"]
-        W["📋 工单服务<br/>:8082"]
-        P["🔧 工艺服务<br/>:8083"]
-        Q["✅ 质量服务<br/>:8084"]
-        D["📊 看板服务<br/>:8085 · WebSocket"]
-        AI["🧠 AI 推理服务<br/>:8087 · FastAPI"]
+    subgraph MS["微服务层"]
+        A["认证服务<br/>:8081"]
+        W["工单服务<br/>:8082"]
+        P["工艺服务<br/>:8083"]
+        Q["质量服务<br/>:8084"]
+        D["看板服务<br/>:8085 · WebSocket"]
+        AI["AI 推理服务<br/>:8087 · FastAPI"]
     end
 
-    subgraph DS["💾 数据存储层"]
+    subgraph DS["数据存储层"]
         DB[("MySQL :3306")]
         RD[("Redis :6379")]
         IDB[("InfluxDB :8086")]
@@ -115,12 +117,12 @@ flowchart TB
         KF["Kafka :9092"]
     end
 
-    subgraph EDGE["📡 设备接入层"]
+    subgraph EDGE["设备接入层"]
         NET[" .NET 8 设备网关 :5000<br/>MQTT 订阅 · Kafka 转发 · 心跳"]
         MQTT["EMQX MQTT Broker<br/>:1883"]
     end
 
-    subgraph DEV["🏭 工业设备层"]
+    subgraph DEV["工业设备层"]
         DEV1["CNC 数控机床"]
         DEV2["PLC 控制器"]
         DEV3["工业机器人"]
@@ -186,7 +188,7 @@ flowchart TB
 
 ---
 
-## 📁 项目结构
+## 项目结构
 
 ```
 Smart-Factory-MES-System/
@@ -209,7 +211,7 @@ Smart-Factory-MES-System/
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -274,7 +276,7 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 
 ---
 
-## 🔑 访问地址与默认账号
+## 访问地址与默认账号
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
@@ -298,18 +300,18 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 
 ---
 
-## 📚 文档
+## 文档
 
 | 文档 | 说明 |
 |------|------|
-| [📖 开发指南](docs/DEVELOPMENT.md) | 本地开发、环境搭建、调试技巧 |
-| [🗄️ 数据库设计](docs/DATABASE.md) | 表结构、ER 关系、迁移脚本 |
-| [📝 更新日志](docs/CHANGELOG.md) | 版本历史与变更记录 |
-| [🌍 项目介绍](docs/INTERVIEW.md) | 架构演进、AI Agent 方案、比赛复盘 |
+| [开发指南](docs/DEVELOPMENT.md) | 本地开发、环境搭建、调试技巧 |
+| [数据库设计](docs/DATABASE.md) | 表结构、ER 关系、迁移脚本 |
+| [更新日志](docs/CHANGELOG.md) | 版本历史与变更记录 |
+| [项目介绍](docs/INTERVIEW.md) | 架构演进、AI Agent 方案、比赛复盘 |
 
 ---
 
-## 🤝 参与贡献
+## 参与贡献
 
 欢迎提交 [Issue](https://github.com/xianshi3/smart-factory-mes-system/issues) 与 [Pull Request](https://github.com/xianshi3/smart-factory-mes-system/pulls)！
 
@@ -322,7 +324,7 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 
 ---
 
-## 📄 许可证
+## 许可证
 
 本项目基于 [MIT License](LICENSE) 开源，欢迎学习、使用与二次开发。
 
@@ -330,8 +332,8 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 
 <div align="center">
 
-**如果这个项目对你有帮助，请给我们一个 ⭐️！**
+**如果这个项目对你有帮助，请给我们一个 Star！**
 
-Made with ❤️ for the Open Source Community
+Powered by Spring Cloud · Vue 3 · .NET 8 · Python
 
 </div>
