@@ -41,10 +41,11 @@
 
 ## 项目展示
 
-> 📸 截图占位：部署后可在 `http://localhost:3000` 查看实际效果
-> - **生产看板**: 设备状态实时监控、OEE 计算、WebSocket 毫秒级推送
-> - **设备监控**: 3D 数字孪生场景，实时映射设备状态与动效
-> - **AI 预测**: 质量预测、设备故障预警、工艺参数推荐
+![生产看板](docs/screenshots/dashboard.jpg)
+
+![设备监控](docs/screenshots/device-monitor.jpg)
+
+![AI 生产助理](docs/screenshots/ai-assistant.jpg)
 
 ---
 
