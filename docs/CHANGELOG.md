@@ -10,6 +10,21 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.41 (2026-08-08)
+
+### 构建与运行时修复（mes-frontend）
+
+- **系统设置页 vite 构建失败**: `SettingsView.vue` 中 `saveSettings` 被重复声明两次（主题切换保存 + 保存按钮提交各一份，UI 优化时合并遗漏），`vue-tsc` 类型检查未报错但 `vite build` 编译期直接失败 — 已删除冗余声明（保留主题切换自动保存逻辑）
+- **角色管理页运行时空白**: `RoleView.vue` 使用了 `reactive` 但 import 仅含 `ref/computed/onMounted`，setup 运行时 `ReferenceError` 导致页面空白（与 v1.0.40 BOM 页同类根因，均为 `vue-tsc` 全局类型声明漏检）— 已补全导入
+
+### 安全修复（mes-auth / sql）
+
+- **日志泄露明文密码**: `AuthService` 登录失败日志原为 `"密码验证失败 - 输入: {}, 存储: {}"`，将用户明文密码与存储密码（明文或 BCrypt）直接写入日志 — 已改为仅记录用户名
+- **init.sql 伪 BCrypt hash**: 种子用户密码 hash 为拼接的无效值，实测 `admin123` 无法通过 BCrypt 校验，全新安装将无法登录 — 已替换为真实生成的 `$2a$10$` hash 并验证匹配
+- **明文密码存储降级**: `V9__schema_fix.sql` 种子用户 INSERT 与第 8 步全量 UPDATE、`fix_password.sql` 均以明文 `admin123` 落库（依赖登录逻辑的明文兜底分支）— 已统一为 BCrypt hash，消除明文存储；AuthService 明文兜底分支保留以兼容存量库
+
+---
+
 ## v1.0.40 (2026-08-02)
 
 ### 前端 UI 全系统统一优化

@@ -39,6 +39,8 @@
 
 **索引**: `uk_username` (username, deleted), `uk_employee_no` (employee_no), `idx_role_id` (role_id)
 
+> **密码存储规范**: `password` 字段统一存储 BCrypt hash（`$2a$10$` 前缀，Spring Security `BCryptPasswordEncoder` 格式），禁止明文落库。种子数据（admin 等 5 用户，密码均为 `admin123`）的 hash 为真实可校验值。`AuthService` 保留明文比较兜底分支仅用于兼容历史明文存量库，新写入（注册/改密）一律 BCrypt 加密。
+
 ---
 
 ### 2. 角色表 sys_role

@@ -417,6 +417,19 @@ GET /alarm/device/{deviceId}
 
 ## 更新日志
 
+### v1.0.41 (2026-08-08)
+
+- 修复系统设置页 `saveSettings` 重复声明致 vite 构建失败
+- 修复角色管理页 `reactive` 未导入致页面运行时空白
+- 安全修复：移除登录失败日志中的明文密码泄露
+- 数据库密码安全：init.sql 伪 BCrypt hash 替换为真实 hash，V9/fix_password 明文密码统一 BCrypt 存储
+
+### v1.0.40 (2026-08-02)
+
+- 数据库 Schema 补齐：sys_user 8 缺失列 + uk_username 复合唯一键 + 种子用户 + V9 幂等迁移脚本
+- 角色/菜单/权限/系统设置/个人中心 五页面 UI 统一优化
+- 完整修复列表见 [CHANGELOG.md](./docs/CHANGELOG.md)
+
 ### v1.0.34 (2026-07-28)
 
 - 后端企业标准化改造：新增 Service 层（ProductionLineService / WorkstationService）
