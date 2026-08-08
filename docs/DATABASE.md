@@ -351,59 +351,70 @@
 
 ## 表关系图
 
-```
-┌─────────────┐       ┌────────────────────┐       ┌─────────────────┐
-│  sys_user  │       │  wo_work_order     │       │ proc_template   │
-├─────────────┤       ├────────────────────┤       ├─────────────────┤
-│ id (PK)    │◄──────│ create_by         │       │ id (PK)         │
-│ username   │       │ issue_by          │◄──────│ process_template_id
-│ password   │       │ work_order_id     │       │ (FK)           │
-│ role       │       └────────────────────┘       └─────────────────┘
-└──────┬──────┘                  │                        │
-       │                         │                        │
-       │                 ┌───────▼────────┐     ┌───────▼────────┐
-       │                 │ wo_work_report │     │ proc_parameter│
-       │                 ├───────────────┤     ├──────────────┤
-       └────────────────►│ operator_id  │     │ template_id │
-                       │ work_order_id│     │ (FK)       │
-                       └─────────────┘     └─────────────┘
-                              │
-                              │
-                 ┌────────────▼────────────┐
-                 │ qms_quality_record   │
-                 ├─────────────────────┤
-                 │ id (PK)            │
-                 │ work_order_id (FK) │
-                 │ sn                │
-                 │ check_type       │
-                 │ check_result    │
-                 └─────────────────┘
-                              │
-                              ▼
-                 ┌─────────────────────┐
-                 │ qms_traceability  │
-                 ├──────────────────┤
-                 │ sn (索引)       │
-                 │ work_order_id  │
-                 │ work_order_no │
-                 └──────────────────┘
+```mermaid
+erDiagram
+    sys_user ||--o{ wo_work_order : "create_by"
+    sys_user ||--o{ wo_work_report : "operator_id"
+    sys_user ||--o{ ai_chat_conversations : "user_id"
+    proc_template ||--o{ wo_work_order : "process_template_id"
+    proc_template ||--o{ proc_parameter : "template_id"
+    wo_work_order ||--o{ wo_work_report : "work_order_id"
+    wo_work_order ||--o{ qms_quality_record : "work_order_id"
+    qms_quality_record ||--o{ qms_traceability : "sn"
+    ai_chat_conversations ||--o{ ai_chat_messages : "conversation_id"
 
-       ┌────────────────────┐
-       │ai_chat_conversations│
-       ├────────────────────┤
-       │ id (PK)           │
-       │ user_id ← sys_user│
-       └────────┬───────────┘
-                │ 1:N
-       ┌────────▼───────────┐
-       │ ai_chat_messages  │
-       ├──────────────────┤
-       │ id (PK)          │
-       │ conversation_id  │
-       │ role             │
-       │ content (Markdown)│
-       │ steps (JSON)     │
-       └──────────────────┘
+    sys_user {
+        bigint id PK
+        varchar username
+        varchar real_name
+        varchar role
+    }
+    wo_work_order {
+        bigint id PK
+        varchar order_no UK
+        varchar product_name
+        int plan_quantity
+        varchar status
+        bigint create_by FK
+        bigint process_template_id FK
+    }
+    wo_work_report {
+        bigint id PK
+        bigint work_order_id FK
+        bigint operator_id FK
+        int completed_quantity
+    }
+    proc_template {
+        bigint id PK
+        varchar template_name
+    }
+    proc_parameter {
+        bigint id PK
+        bigint template_id FK
+        varchar param_name
+    }
+    qms_quality_record {
+        bigint id PK
+        bigint work_order_id FK
+        varchar sn
+        varchar check_type
+        varchar check_result
+    }
+    qms_traceability {
+        bigint id PK
+        varchar sn
+        bigint work_order_id
+    }
+    ai_chat_conversations {
+        bigint id PK
+        bigint user_id FK
+    }
+    ai_chat_messages {
+        bigint id PK
+        bigint conversation_id FK
+        varchar role
+        text content
+    }
 ```
 
 ---
