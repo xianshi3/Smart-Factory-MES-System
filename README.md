@@ -9,10 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anomalyco/opencode/issues">Issues</a> •
+  <a href="https://github.com/xianshi3/smart-factory-mes-system/issues">Issues</a> •
   <a href="#项目展示">Screenshots</a> •
   <a href="#快速开始">Getting Started</a> •
   <a href="docs/DEVELOPMENT.md">Development</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/xianshi3/smart-factory-mes-system/actions"><img src="https://github.com/xianshi3/smart-factory-mes-system/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/xianshi3/smart-factory-mes-system/releases"><img src="https://img.shields.io/github/v/release/xianshi3/smart-factory-mes-system?style=flat" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/xianshi3/smart-factory-mes-system?style=flat" alt="License"></a>
 </p>
 
 ---
@@ -23,7 +29,7 @@
 
 ### 核心特性
 
-- **微服务架构**：基于 Spring Cloud 2022 设计 6 大核心服务，实现服务解耦和独立部署
+- **微服务架构**：基于 Spring Cloud 2023 设计 6 大核心服务，实现服务解耦和独立部署
 - **数字孪生 3D 可视化**：基于 Three.js 构建工厂车间三维场景，实时映射设备状态、动效和数据
 - **高并发设备接入**：MQTT 协议采集，Kafka 消息队列实现 10000+ 条/秒数据吞吐
 - **实时数据展示**：WebSocket 毫秒级推送，InfluxDB 时序数据库存储
@@ -35,11 +41,10 @@
 
 ## 项目展示
 
-![生产看板](https://github.com/user-attachments/assets/fcf3781d-48a0-4ee8-ac48-3abf60fdca40)
-
-![设备监控](https://github.com/user-attachments/assets/0483ce1a-dcf8-4e3f-aca5-46ef77ada032)
-
-![AI预测](https://github.com/user-attachments/assets/db4d21b4-2a3f-4878-8d19-940ebb0bc94e)
+> 📸 截图占位：部署后可在 `http://localhost:3000` 查看实际效果
+> - **生产看板**: 设备状态实时监控、OEE 计算、WebSocket 毫秒级推送
+> - **设备监控**: 3D 数字孪生场景，实时映射设备状态与动效
+> - **AI 预测**: 质量预测、设备故障预警、工艺参数推荐
 
 ---
 
