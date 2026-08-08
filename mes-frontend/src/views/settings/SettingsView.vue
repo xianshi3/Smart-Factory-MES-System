@@ -407,15 +407,6 @@ const loadSettings = async () => {
   }
 }
 
-const saveSettings = async () => {
-  try {
-    await request({ url: '/auth/settings', method: 'put', data: settings })
-    ElMessage.success('设置已保存')
-  } catch {
-    ElMessage.error('保存设置失败')
-  }
-}
-
 onMounted(() => {
   loadSettings()
 })

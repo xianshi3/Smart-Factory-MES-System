@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Key, Plus, User, Lock, Edit, Delete, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import { getRoleList, getRolePermissionsTree, getRolePermissions, assignRolePermissions, createRole, updateRole, deleteRole } from '@/api/system'
