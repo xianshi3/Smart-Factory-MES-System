@@ -10,6 +10,26 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.42 (2026-08-10)
+
+### 设备数据链路完善（MQTT → Kafka → 看板全链路打通）
+
+- **docker-compose 补齐 EMQX**: 此前基础设施缺少 MQTT Broker（README 架构图有但 compose 无），MQTT 设备接入链路本地无法跑通 — 新增 `emqx/emqx:5.8.3` 服务（端口 1883 + 18083 控制台，默认 admin/public，内存限制 256M）
+- **WPF 模拟器双通道发布**: 新增 MQTT 服务器配置输入（默认 localhost:1883），连接 API 时同步连接 EMQX；模拟数据每 2 秒同时推送 HTTP（`POST /api/dashboard/device/simulate`）+ MQTT（topic `mes/device/{deviceCode}/data`，采用网关协议结构）；MQTT 连接失败不阻断，降级仅走 HTTP
+- **Kafka 数据消费者字段解析修复**: `KafkaDeviceDataConsumer` 原来只读 `params` 嵌套结构，而 .NET 网关转发的是 `data` 嵌套结构（`{deviceId, timestamp, dataType, data:{temperature, speed}}`），导致遥测数据全部被丢弃、设备状态永不更新 — 已兼容 `data`/`params` 嵌套 + 平铺三种结构，`deviceId` 缺省时回退 `deviceCode`
+- **Kafka 告警消费者新增**: `mes-alarm-event` 此前无消费者（死信 topic），网关转发的设备状态变更全部丢失 — 新增 `KafkaAlarmEventConsumer`，ALARM 状态写入 `dash_alarm_event` 并同步 `dash_device_status`；兼容多格式时间解析（epoch/ISO/DateTime）
+- **init.sql 补齐告警表**: `dash_alarm_event` 此前仅存在于 V5 迁移脚本，全新安装（CI 只执行 init.sql）后 `/alarm` 接口报表不存在 — 已补入 init.sql 并在真实 MySQL 验证全量执行通过
+
+### 文档与配置
+
+- **docker-daemon.json**: 清理 4 个已停服的国内镜像源（USTC 2024 关闭、163/百度/docker-cn 早已停服），恢复 Docker Hub 直连，修复镜像拉取失败
+- **README 全面升级**: Hero 区（居中标题 + tagline + 徽章 + skillicons 技术 logo）、目录导航、核心指标统计卡、特性表格化、界面预览分组排版、一键启动优先、文档目录表、Star 鼓励页脚 — 移除全部 emoji
+- **架构图升级为 Mermaid**: README 整体架构图（6 层 + 分层配色 + 补全看板/AI 服务与消息链路）与 DATABASE 表关系图（erDiagram）替代 ASCII 图
+- **README 截图恢复**: 三张项目截图移入仓库 `docs/screenshots/` 相对路径引用（原 user-attachments 外部链接 404）
+- **开源规范文件**: 新增 CONTRIBUTING.md / CODE_OF_CONDUCT.md / SECURITY.md / Issue 模板 / PR 模板；CI 分支修复（main→master）+ 数据库初始化验证步骤；仓库添加 10 个 topics；发布首个 Release v1.0.41
+
+---
+
 ## v1.0.41 (2026-08-08)
 
 ### 构建与运行时修复（mes-frontend）
