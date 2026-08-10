@@ -18,6 +18,7 @@ import java.util.Map;
 public class KafkaDeviceDataConsumer {
 
     private final DeviceStatusMapper deviceStatusMapper;
+    private final com.mes.dashboard.service.TelemetryService telemetryService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @KafkaListener(topics = "mes-device-data", groupId = "mes-dashboard-consumer")
@@ -41,6 +42,10 @@ public class KafkaDeviceDataConsumer {
             updateDeviceStatus(device, data);
             
             deviceStatusMapper.updateById(device);
+
+            // 遥测写入 InfluxDB（历史趋势数据源）
+            telemetryService.writeTelemetry(device);
+
             log.debug("Updated device {} status", deviceId);
             
         } catch (Exception e) {

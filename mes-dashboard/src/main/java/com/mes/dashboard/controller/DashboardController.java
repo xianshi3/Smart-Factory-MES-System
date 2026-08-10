@@ -120,6 +120,15 @@ public class DashboardController {
         return Result.ok();
     }
 
+    @Operation(summary = "设备历史遥测")
+    @GetMapping("/device/{deviceCode}/history")
+    public Result<Map<String, Object>> getDeviceHistory(
+            @PathVariable String deviceCode,
+            @RequestParam(defaultValue = "24") int hours,
+            @RequestParam(defaultValue = "60") int interval) {
+        return Result.ok(dashboardService.getDeviceHistory(deviceCode, hours, interval));
+    }
+
     @Operation(summary = "生产报表")
     @GetMapping("/report/production")
     public Result<Map<String, Object>> getProductionReport(
