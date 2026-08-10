@@ -42,8 +42,8 @@ public class DashboardServiceImpl implements DashboardService {
     private final OeeDataMapper oeeDataMapper;
     private final ProductionStatsMapper productionStatsMapper;
     private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final com.mes.dashboard.service.TelemetryService telemetryService;
+    private final ObjectMapper objectMapper;
     private InfluxDBClient influxDBClient;
 
     @Autowired
@@ -53,12 +53,14 @@ public class DashboardServiceImpl implements DashboardService {
 
     public DashboardServiceImpl(DeviceStatusMapper deviceStatusMapper, OeeDataMapper oeeDataMapper, 
                                  ProductionStatsMapper productionStatsMapper, StringRedisTemplate redisTemplate,
-                                 com.mes.dashboard.service.TelemetryService telemetryService) {
+                                 com.mes.dashboard.service.TelemetryService telemetryService,
+                                 ObjectMapper objectMapper) {
         this.deviceStatusMapper = deviceStatusMapper;
         this.oeeDataMapper = oeeDataMapper;
         this.productionStatsMapper = productionStatsMapper;
         this.redisTemplate = redisTemplate;
         this.telemetryService = telemetryService;
+        this.objectMapper = objectMapper;
     }
 
     private static final String CACHE_PREFIX = "dashboard:";

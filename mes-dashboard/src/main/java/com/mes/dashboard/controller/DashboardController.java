@@ -9,11 +9,13 @@ import com.mes.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Tag(name = "看板管理", description = "生产看板相关接口")
 @RestController
 @RequestMapping("/dashboard")
@@ -34,6 +36,24 @@ public class DashboardController {
     public Result<DeviceStatus> createDevice(@RequestBody DeviceStatus device) {
         dashboardService.createDevice(device);
         return Result.ok(device);
+    }
+
+    @Operation(summary = "批量创建设备")
+    @PostMapping("/device/batch")
+    public Result<Integer> createDevicesBatch(@RequestBody List<DeviceStatus> devices) {
+        int created = 0;
+        if (devices != null) {
+            for (DeviceStatus device : devices) {
+                try {
+                    dashboardService.createDevice(device);
+                    created++;
+                } catch (Exception e) {
+                    // 跳过已存在/异常设备，继续批量创建
+                    log.warn("Batch create skipped device {}: {}", device.getDeviceCode(), e.getMessage());
+                }
+            }
+        }
+        return Result.ok(created);
     }
 
     @Operation(summary = "删除设备")
