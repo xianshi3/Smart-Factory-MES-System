@@ -10,6 +10,39 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.43 (2026-08-10)
+
+### 设备模拟器全面升级（mes-device-simulator-wpf）
+
+- **SCADA 上位机 UI 重设计**: 深色工业控制台风格（深蓝底 #0B1120 + 数据用 Consolas 等宽字体），双通道状态指示（API/MQTT 分离显示）、设备实时列表、参数区四色滑块（温度橙/转速青/压力紫/功率绿）
+- **批量模拟**: 一键批量创建 N 台设备（`POST /api/dashboard/device/batch`），多台设备同时动态运行；修复批量模拟只有首台设备动态的 Bug（HTTP 推送原先只发首台，改为逐台推送全部设备）
+- **场景预设**: 5 种生产场景一键切换（正常运行 / 满载生产 / 高温告警 / 突发故障 / 维护停机），各场景联动参数曲线与设备状态
+- **实时曲线**: 内置 120 点滚动曲线面板，温度/转速实时绘制（不再依赖外部图表库）
+- **频率控制**: 数据推送间隔可调（0.5s ~ 5s）
+- **配置持久化**: API/MQTT 地址、设备参数、推送频率、场景选择自动保存至 `%APPDATA%/MESDeviceSimulator/config.json`，重启自动恢复
+- **设备列表复选框选控**: 每台设备可勾选"参与模拟"，模拟/推送/曲线/场景仅作用于勾选设备，未勾选时自动退化为单台模式；连接 API 后自动加载后端已有设备到本地列表；新增"清空"按钮批量下线设备
+- **自动探测**: 启动时自动探测 API 网关与 EMQX 地址（发现失败回退默认 localhost）
+- **主题切换**: 亮色/暗色双主题，默认亮色；通过 DynamicResource 重构修复主题切换颜色错乱、XamlParseException 自引用崩溃、frozen brush 只读异常、tooltip 白底白字等系列问题；新增自定义滚动条样式
+
+### 数字孪生增强（mes-frontend DigitalTwinScene.vue）
+
+- **LOD 分级渲染**: ≤12 台设备精细模型；13~40 台简化模型（约 10 个 Mesh）；>40 台极简模型（约 4 个 Mesh，隐藏标签）— 大规模设备场景帧率显著提升
+- **动态增强**: 主轴转速随实时数据联动、设备 LED 呼吸灯、塔灯颜色随状态变化；tooltip 修复（遮挡/白底白字）
+- **增量更新**: 数据刷新改为 updateNodes 增量更新而非整场景重建，配合温度趋势 sparkline 面板
+
+### 看板服务新接口（mes-dashboard）
+
+- **设备历史数据**: `GET /api/dashboard/device/{code}/history` 查询 InfluxDB 时序历史
+- **设备批量创建**: `POST /api/dashboard/device/batch` 批量注册设备
+- **InfluxDB 零配置启动**: 连接参数（URL/Token/org/bucket）固化进 application.yml 默认值，支持环境变量覆盖；修复 `LocalDateTime` 序列化（注入 Spring ObjectMapper）与 Flux 查询 pivot 报错（改行式查询）
+
+### 其他修复
+
+- **WPF 跨线程修复**: 模拟器 UI 更新统一走 Dispatcher，消除随机闪退
+- **仓库清理**: 移除 310MB+ 构建产物（Maven target / .NET bin,obj / 前端 dist / Python __pycache__）、10MB 运行日志、遗留的根目录 aedes node_modules 与 Python .venv（均已在 .gitignore 覆盖，git 仓库本身零冗余）
+
+---
+
 ## v1.0.42 (2026-08-10)
 
 ### 设备数据链路完善（MQTT → Kafka → 看板全链路打通）

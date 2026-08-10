@@ -63,6 +63,7 @@
 | **AI Agent 生产助理** | GLM-4 function calling 多步推理，自然语言 → 工具调用 → 任务闭环 |
 | **全链路权限控制** | JWT + Spring Security，RBAC 菜单级 / 按钮级权限 |
 | **SPC 统计分析** | 真实规格限 + 8 条 Nelson 判异规则 + 全过程能力指数 + 控制图 |
+| **设备模拟器** | WPF 上位机，批量模拟 + 5 种生产场景预设 + 实时曲线 + HTTP/MQTT 双通道上报 |
 
 ---
 
@@ -203,7 +204,7 @@ Smart-Factory-MES-System/
 ├── mes-device-gateway/              # .NET 设备网关 (5000) — MQTT 接入 / Kafka 转发
 ├── mes-ai-service/                  # Python AI 服务 (8087) — 预测 / Agent / RAG
 ├── mes-frontend/                    # Vue 3 前端 (3000) — 生产看板 / 3D 数字孪生
-├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 模拟 2000+ 设备数据上报
+├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 批量模拟 / 场景预设 / 双通道上报
 ├── sql/                             # 数据库脚本（init + V2~V9 迁移）
 ├── Makefile                         # 统一启动 / 构建命令
 └── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / Nacos）

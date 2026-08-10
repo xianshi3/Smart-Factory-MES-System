@@ -118,7 +118,7 @@ npm run dev
 | 看板服务 | 8085 | OEE/WebSocket |
 | AI服务 | 8087 | 质量/产量预测 |
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
-| 设备模拟器 | 8883 | 模拟2000+设备数据上报 |
+| 设备模拟器 | - | WPF 桌面客户端（HTTP 客户端 + MQTT 客户端，无监听端口） |
 | MySQL | 3306 | 数据库 |
 | Redis | 6379 | 缓存/黑名单/限流/在线心跳/分布式序号 |
 | MQTT | 1883 | 设备通信 |
@@ -265,6 +265,10 @@ npm run dev
 | GET | /devices | 设备状态 |
 | GET | /production/today | 今日统计 |
 | GET | /oee/calculate | OEE计算 |
+| GET | /device/{code}/history | 设备历史时序数据（InfluxDB） |
+| POST | /device/batch | 批量创建设备 |
+| POST | /device/simulate | 模拟数据上报（模拟器单台） |
+| DELETE | /devices/all | 清空全部设备 |
 
 ---
 
@@ -287,7 +291,7 @@ npm run dev
 | mes/device/+/status | 设备状态变更（网关转发至 Kafka `mes-alarm-event`） |
 | mes/device/+/control | 控制指令 |
 
-> **模拟器双通道**: WPF 模拟器同时走 HTTP（`POST /api/dashboard/device/simulate`）与 MQTT（`mes/device/{deviceCode}/data`）。MQTT payload 采用网关协议结构 `{timestamp, dataType, status, data:{temperature, speed, ...}}`。
+> **模拟器双通道**: WPF 模拟器同时走 HTTP（`POST /api/dashboard/device/simulate`，批量走 `/api/dashboard/device/batch`）与 MQTT（`mes/device/{deviceCode}/data`）。MQTT payload 采用网关协议结构 `{timestamp, dataType, status, data:{temperature, speed, ...}}`。
 
 ---
 
@@ -300,7 +304,7 @@ npm run dev
 5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、EMQX 使用 Docker 运行，Java 服务本地 `java -jar` 启动
 6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突。
 7. **Docker镜像拉取**：若直连 Docker Hub 超时，可配置代理（Docker Desktop → Settings → Resources → Proxies）或自建镜像加速器（daemon.json 中添加 registry-mirrors）；注意国内公共镜像源（USTC/163/百度/docker-cn）均已停服，勿再使用
-8. **设备模拟器**：连接 API 后会自动尝试连接 MQTT（默认 localhost:1883，EMQX 由 docker-compose 提供），状态栏显示"已连接 API + MQTT"即双链路就绪
+8. **设备模拟器**：启动时自动探测 API 网关与 EMQX 地址（失败回退 localhost）；连接 API 后自动加载已有设备，勾选"参与模拟"的复选框可批量选控；数据推送频率、场景、参数自动持久化到 `%APPDATA%/MESDeviceSimulator/config.json`
 
 ---
 
@@ -317,4 +321,4 @@ npm run dev
 
 ---
 
-*最后更新：2026-08-02*
+*最后更新：2026-08-10*
