@@ -371,6 +371,33 @@ CREATE TABLE `dash_device_status` (
     KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备状态表';
 
+DROP TABLE IF EXISTS `dash_alarm_event`;
+CREATE TABLE `dash_alarm_event` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `alarm_code` varchar(64) DEFAULT NULL COMMENT '告警编码',
+    `message` text COMMENT '告警消息',
+    `level` varchar(32) DEFAULT 'WARNING' COMMENT '级别: CRITICAL/WARNING/INFO',
+    `alarm_type` varchar(64) DEFAULT NULL COMMENT '告警类型',
+    `device_code` varchar(64) DEFAULT NULL COMMENT '设备编码',
+    `device_name` varchar(128) DEFAULT NULL COMMENT '设备名称',
+    `status` varchar(32) DEFAULT 'ACTIVE' COMMENT '状态: ACTIVE/ACKNOWLEDGED/RESOLVED',
+    `occurrence_time` datetime DEFAULT NULL COMMENT '发生时间',
+    `ack_time` datetime DEFAULT NULL COMMENT '确认时间',
+    `ack_user` varchar(64) DEFAULT NULL COMMENT '确认人',
+    `resolve_time` datetime DEFAULT NULL COMMENT '解决时间',
+    `resolve_user` varchar(64) DEFAULT NULL COMMENT '解决人',
+    `remarks` text COMMENT '备注',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    PRIMARY KEY (`id`),
+    KEY `idx_device_code` (`device_code`),
+    KEY `idx_status` (`status`),
+    KEY `idx_occurrence_time` (`occurrence_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警事件表';
+
 DROP TABLE IF EXISTS `dash_production_stats`;
 CREATE TABLE `dash_production_stats` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
