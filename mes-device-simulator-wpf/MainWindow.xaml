@@ -8,16 +8,16 @@
     <Window.Resources>
         <!-- ═══ 主题色资源（切换时通过代码更新） ═══ -->
         <SolidColorBrush x:Key="ThemeWindowBg" Color="#0B1220"/>
-        <SolidColorBrush x:Key="ThemeCardBg" Color="{DynamicResource ThemeCardBg}"/>
-        <SolidColorBrush x:Key="ThemePanelBg" Color="{DynamicResource ThemePanelBg}"/>
-        <SolidColorBrush x:Key="ThemeInputBg" Color="{DynamicResource ThemePanelBg}"/>
-        <SolidColorBrush x:Key="ThemeBorder" Color="{DynamicResource ThemeBorder}"/>
-        <SolidColorBrush x:Key="ThemeText" Color="{DynamicResource ThemeText}"/>
-        <SolidColorBrush x:Key="ThemeMuted" Color="{DynamicResource ThemeMuted}"/>
-        <SolidColorBrush x:Key="ThemeFaint" Color="{DynamicResource ThemeFaint}"/>
-        <SolidColorBrush x:Key="ThemeDimmer" Color="{DynamicResource ThemeDimmer}"/>
+        <SolidColorBrush x:Key="ThemeCardBg" Color="#111A2C"/>
+        <SolidColorBrush x:Key="ThemePanelBg" Color="#0F172A"/>
+        <SolidColorBrush x:Key="ThemeInputBg" Color="#0F172A"/>
+        <SolidColorBrush x:Key="ThemeBorder" Color="#1E293B"/>
+        <SolidColorBrush x:Key="ThemeText" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="ThemeMuted" Color="#64748B"/>
+        <SolidColorBrush x:Key="ThemeFaint" Color="#94A3B8"/>
+        <SolidColorBrush x:Key="ThemeDimmer" Color="#475569"/>
         <SolidColorBrush x:Key="ThemeAccent" Color="#38BDF8"/>
-        <SolidColorBrush x:Key="ThemeLogText" Color="{DynamicResource ThemeLogText}"/>
+        <SolidColorBrush x:Key="ThemeLogText" Color="#4ADE80"/>
 
         <SolidColorBrush x:Key="PrimaryBrush" Color="#38BDF8"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
