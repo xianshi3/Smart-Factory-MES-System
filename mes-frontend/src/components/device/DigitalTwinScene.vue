@@ -45,6 +45,15 @@
           <div class="panel-bar"><div :style="{ width: (parseInt(selectedDevice.utilization) || 0) + '%' }"></div></div>
           <span class="panel-bar-label">{{ selectedDevice.utilization || '0%' }}</span>
         </div>
+        <!-- 温度趋势（实时 sparkline） -->
+        <div class="panel-trend">
+          <span class="panel-trend-label">温度趋势 °C</span>
+          <svg v-if="selectedTrend && selectedTrend.length > 1" :viewBox="`0 0 ${trendW} ${trendH}`" preserveAspectRatio="none" class="panel-trend-svg">
+            <polyline :points="trendPoints(selectedTrend)" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle v-if="selectedTrend.length" :cx="lastTrendX(selectedTrend)" :cy="lastTrendY(selectedTrend)" r="3" fill="#f59e0b" />
+          </svg>
+          <span v-else class="panel-trend-empty">等待实时数据...</span>
+        </div>
         <div class="panel-actions">
           <button title="AI预测" @click="emit('action', { type:'predict', device: selectedDevice })"><Cpu /></button>
           <button title="SPC分析" @click="emit('action', { type:'spc', device: selectedDevice })"><Histogram /></button>
@@ -71,6 +80,31 @@ const emit = defineEmits<{ select: [device: any]; action: [payload: { type: stri
 const containerRef = ref<HTMLElement>()
 const ready = ref(false)
 const selectedDevice = ref<any>(null)
+
+// ===== 温度趋势（选中设备实时 sparkline） =====
+const trendW = 220
+const trendH = 36
+const trendBuffer = new Map<string, number[]>()
+const selectedTrend = computed(() => {
+  const code = selectedDevice.value?.code || selectedDevice.value?.deviceCode
+  return code ? trendBuffer.get(code) || [] : []
+})
+const trendPoints = (arr: number[]) => {
+  if (arr.length < 2) return ''
+  const min = Math.min(...arr), max = Math.max(...arr)
+  const span = max - min || 1
+  return arr.map((v, i) => {
+    const x = (i / (arr.length - 1)) * trendW
+    const y = trendH - 3 - ((v - min) / span) * (trendH - 6)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+const lastTrendX = (arr: number[]) => trendW
+const lastTrendY = (arr: number[]) => {
+  const min = Math.min(...arr), max = Math.max(...arr)
+  const span = max - min || 1
+  return trendH - 3 - ((arr[arr.length - 1] - min) / span) * (trendH - 6)
+}
 
 type SceneVars = {
   scene: THREE.Scene
@@ -670,6 +704,11 @@ function onSceneClick(e: MouseEvent) {
   if (o) {
     const dev = (o as any).userData.device
     selectedDevice.value = dev
+    // 选中时若缓冲为空，用当前温度初始化趋势
+    const code = dev?.code || dev?.deviceCode
+    if (code && !trendBuffer.get(code)?.length && Number(dev?.temperature) > 0) {
+      trendBuffer.set(code, [Number(dev.temperature)])
+    }
     emit('select', dev)
     if (selectedOutline && o instanceof THREE.Group) {
       const wp = new THREE.Vector3(); o.getWorldPosition(wp)
@@ -794,6 +833,18 @@ function updateNodes(devices: any[]) {
 
     // 状态变化时刷新标签边框色（通过 userData 记录的原始 device 对比）
     void prev
+
+    // 收集温度趋势缓冲（选中面板 sparkline 数据源）
+    const devCode = dev.code || dev.deviceCode
+    if (devCode) {
+      const t = Number(dev.temperature)
+      if (!isNaN(t) && t > 0) {
+        const buf = trendBuffer.get(devCode) || []
+        buf.push(t)
+        if (buf.length > 40) buf.shift()
+        trendBuffer.set(devCode, buf)
+      }
+    }
   })
 }
 
@@ -919,6 +970,10 @@ onBeforeUnmount(() => {
 .panel-grid span.temp-warn { color: var(--warning); }
 .panel-grid span.temp-danger { color: var(--danger); }
 .panel-bar-wrap { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.panel-trend { margin: 2px 0 8px; }
+.panel-trend-label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.panel-trend-svg { display: block; width: 100%; height: 36px; background: var(--bg-hover); border-radius: 4px; }
+.panel-trend-empty { display: block; font-size: 10px; color: var(--text-muted); opacity: .7; padding: 8px 4px; }
 .panel-bar { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
 .panel-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
 .panel-bar-label { font-size: 10px; color: var(--text-muted); font-family: monospace; min-width: 30px; text-align: right; }
