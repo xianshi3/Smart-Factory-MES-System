@@ -6,17 +6,30 @@
         MinHeight="680" MinWidth="1150"
         Background="#0B1220">
     <Window.Resources>
+        <!-- ═══ 主题色资源（切换时通过代码更新） ═══ -->
+        <SolidColorBrush x:Key="ThemeWindowBg" Color="#0B1220"/>
+        <SolidColorBrush x:Key="ThemeCardBg" Color="{DynamicResource ThemeCardBg}"/>
+        <SolidColorBrush x:Key="ThemePanelBg" Color="{DynamicResource ThemePanelBg}"/>
+        <SolidColorBrush x:Key="ThemeInputBg" Color="{DynamicResource ThemePanelBg}"/>
+        <SolidColorBrush x:Key="ThemeBorder" Color="{DynamicResource ThemeBorder}"/>
+        <SolidColorBrush x:Key="ThemeText" Color="{DynamicResource ThemeText}"/>
+        <SolidColorBrush x:Key="ThemeMuted" Color="{DynamicResource ThemeMuted}"/>
+        <SolidColorBrush x:Key="ThemeFaint" Color="{DynamicResource ThemeFaint}"/>
+        <SolidColorBrush x:Key="ThemeDimmer" Color="{DynamicResource ThemeDimmer}"/>
+        <SolidColorBrush x:Key="ThemeAccent" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="ThemeLogText" Color="{DynamicResource ThemeLogText}"/>
+
         <SolidColorBrush x:Key="PrimaryBrush" Color="#38BDF8"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
         <SolidColorBrush x:Key="DangerBrush" Color="#F87171"/>
 
         <Style x:Key="Btn" TargetType="Button">
-            <Setter Property="Background" Value="#1E293B"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeCardBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="14,7"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorder}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -25,7 +38,7 @@
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#334155"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="{DynamicResource ThemeBorder}"/></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.8"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.4"/></Trigger>
                         </ControlTemplate.Triggers>
@@ -53,26 +66,35 @@
         </Style>
 
         <Style x:Key="Input" TargetType="TextBox">
-            <Setter Property="Background" Value="#0F172A"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeInputBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="CaretBrush" Value="#38BDF8"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource ThemeAccent}"/>
         </Style>
 
         <Style x:Key="Lbl" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeMuted}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Margin" Value="0,0,0,3"/>
         </Style>
 
         <Style x:Key="PanelTitle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeFaint}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <!-- 组合框（主题化） -->
+        <Style x:Key="ComboTheme" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource ThemeInputBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorder}"/>
+            <Setter Property="Padding" Value="6,5"/>
+            <Setter Property="FontSize" Value="12"/>
         </Style>
     </Window.Resources>
 
@@ -84,7 +106,7 @@
         </Grid.RowDefinitions>
 
         <!-- ══════════ 顶部标题栏 ══════════ -->
-        <Border Grid.Row="0" x:Name="topBar" Background="#111A2C" CornerRadius="8" Padding="14,10" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+        <Border Grid.Row="0" x:Name="topBar" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="14,10" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -98,23 +120,23 @@
                         <TextBlock Text="MES" FontSize="11" FontWeight="Bold" Foreground="White"/>
                     </Border>
                     <StackPanel>
-                        <TextBlock x:Name="subtitleText" Text="设备模拟器" FontSize="17" FontWeight="Bold" Foreground="#F1F5F9"/>
-                        <TextBlock x:Name="descText" Text="SCADA 上位机风格 · 实时数据模拟" FontSize="10" Foreground="#64748B"/>
+                        <TextBlock x:Name="subtitleText" Text="设备模拟器" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource ThemeText}"/>
+                        <TextBlock x:Name="descText" Text="SCADA 上位机风格 · 实时数据模拟" FontSize="10" Foreground="{DynamicResource ThemeMuted}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- 状态指示 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
-                    <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,0,6,0">
+                    <Border Background="{DynamicResource ThemePanelBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,0,6,0">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="apiDot" Width="8" Height="8" Fill="#F87171" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="apiStatusText" Text="API 未连接" FontSize="10" Foreground="#94A3B8" FontFamily="Consolas"/>
+                            <TextBlock x:Name="apiStatusText" Text="API 未连接" FontSize="10" Foreground="{DynamicResource ThemeFaint}" FontFamily="Consolas"/>
                         </StackPanel>
                     </Border>
-                    <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,5">
+                    <Border Background="{DynamicResource ThemePanelBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="4" Padding="8,5">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="mqttDot" Width="8" Height="8" Fill="#F87171" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="mqttStatusText" Text="MQTT 未连接" FontSize="10" Foreground="#94A3B8" FontFamily="Consolas"/>
+                            <TextBlock x:Name="mqttStatusText" Text="MQTT 未连接" FontSize="10" Foreground="{DynamicResource ThemeFaint}" FontFamily="Consolas"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -139,7 +161,7 @@
                 <StackPanel Margin="0,0,8,0">
 
                     <!-- 连接配置 -->
-                    <Border x:Name="configCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="configCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <Ellipse Width="6" Height="6" Fill="#38BDF8" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -175,7 +197,7 @@
                     </Border>
 
                     <!-- 设备管理 -->
-                    <Border x:Name="paramCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="paramCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <Ellipse Width="6" Height="6" Fill="#34D399" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -204,7 +226,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Margin="0,0,6,0">
                                     <TextBlock x:Name="lblDeviceType" Text="设备类型" Style="{StaticResource Lbl}"/>
-                                    <ComboBox x:Name="cmbDeviceType" SelectedIndex="0" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" Padding="6,5" FontSize="12">
+                                    <ComboBox x:Name="cmbDeviceType" SelectedIndex="0" Background="{DynamicResource ThemePanelBg}" Foreground="{DynamicResource ThemeText}" BorderBrush="{DynamicResource ThemeBorder}" Padding="6,5" FontSize="12">
                                         <ComboBoxItem Content="CNC"/>
                                         <ComboBoxItem Content="PLC"/>
                                         <ComboBoxItem Content="机器人"/>
@@ -214,7 +236,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
                                     <TextBlock x:Name="lblStatus" Text="状态" Style="{StaticResource Lbl}"/>
-                                    <ComboBox x:Name="cmbStatus" SelectedIndex="0" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" Padding="6,5" FontSize="12" Width="96">
+                                    <ComboBox x:Name="cmbStatus" SelectedIndex="0" Background="{DynamicResource ThemePanelBg}" Foreground="{DynamicResource ThemeText}" BorderBrush="{DynamicResource ThemeBorder}" Padding="6,5" FontSize="12" Width="96">
                                         <ComboBoxItem Content="运行" Tag="ONLINE"/>
                                         <ComboBoxItem Content="离线" Tag="OFFLINE"/>
                                         <ComboBoxItem Content="报警" Tag="ALARM"/>
@@ -237,7 +259,7 @@
                     </Border>
 
                     <!-- 批量模拟 -->
-                    <Border x:Name="batchCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="batchCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <Ellipse Width="6" Height="6" Fill="#F59E0B" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -261,7 +283,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="场景预设" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbScenario" Grid.Column="1" SelectedIndex="0" Width="150" Padding="6,5" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" FontSize="12" SelectionChanged="CmbScenario_SelectionChanged">
+                                <ComboBox x:Name="cmbScenario" Grid.Column="1" SelectedIndex="0" Width="150" Padding="6,5" Background="{DynamicResource ThemePanelBg}" Foreground="{DynamicResource ThemeText}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="12" SelectionChanged="CmbScenario_SelectionChanged">
                                     <ComboBoxItem Content="正常运行" Tag="正常运行"/>
                                     <ComboBoxItem Content="满载生产" Tag="满载生产"/>
                                     <ComboBoxItem Content="高温告警" Tag="高温告警"/>
@@ -276,7 +298,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="发送频率" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbSendInterval" Grid.Column="1" SelectedIndex="1" Width="150" Padding="6,5" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" FontSize="12" SelectionChanged="CmbSendInterval_SelectionChanged">
+                                <ComboBox x:Name="cmbSendInterval" Grid.Column="1" SelectedIndex="1" Width="150" Padding="6,5" Background="{DynamicResource ThemePanelBg}" Foreground="{DynamicResource ThemeText}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="12" SelectionChanged="CmbSendInterval_SelectionChanged">
                                     <ComboBoxItem Content="0.5秒" Tag="500"/>
                                     <ComboBoxItem Content="1秒" Tag="1000"/>
                                     <ComboBoxItem Content="2秒" Tag="2000"/>
@@ -287,19 +309,19 @@
                     </Border>
 
                     <!-- 设备列表 -->
-                    <Border x:Name="deviceCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="deviceCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <Ellipse Width="6" Height="6" Fill="#8B5CF6" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="在线设备" Style="{StaticResource PanelTitle}"/>
                             </StackPanel>
-                            <Border Background="#0F172A" CornerRadius="5" Padding="4" BorderBrush="#1E293B" BorderThickness="1">
+                            <Border Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="4" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                                 <ListBox x:Name="deviceListBox" Height="110" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0" Background="Transparent">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="#E2E8F0" FontFamily="Consolas"/>
-                                                <TextBlock Text="{Binding DeviceName}" Foreground="#94A3B8" Width="64" FontSize="11"/>
+                                                <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="{DynamicResource ThemeText}" FontFamily="Consolas"/>
+                                                <TextBlock Text="{Binding DeviceName}" Foreground="{DynamicResource ThemeFaint}" Width="64" FontSize="11"/>
                                                 <TextBlock Text="{Binding Status}" Foreground="#34D399" FontSize="11" FontFamily="Consolas"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -310,14 +332,14 @@
                     </Border>
 
                     <!-- 参数控制 -->
-                    <Border x:Name="paramControlCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="paramControlCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <Ellipse Width="6" Height="6" Fill="#06B6D4" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="参数控制" Style="{StaticResource PanelTitle}"/>
                             </StackPanel>
 
-                            <Border x:Name="bgTemp" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
+                            <Border x:Name="bgTemp" Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,2">
                                         <TextBlock x:Name="lblTemp" Text="温度 °C" FontSize="11" Foreground="#F59E0B"/>
@@ -327,7 +349,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border x:Name="bgSpeed" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
+                            <Border x:Name="bgSpeed" Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,2">
                                         <TextBlock x:Name="lblSpeed" Text="转速 rpm" FontSize="11" Foreground="#06B6D4"/>
@@ -337,7 +359,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border x:Name="bgPressure" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
+                            <Border x:Name="bgPressure" Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,2">
                                         <TextBlock x:Name="lblPressure" Text="压力 MPa" FontSize="11" Foreground="#8B5CF6"/>
@@ -347,7 +369,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border x:Name="bgPower" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
+                            <Border x:Name="bgPower" Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,2">
                                         <TextBlock x:Name="lblPower" Text="功率 kW" FontSize="11" Foreground="#34D399"/>
@@ -357,13 +379,13 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border x:Name="bgAuto" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
+                            <Border x:Name="bgAuto" Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
                                 <StackPanel>
                                     <TextBlock x:Name="lblAuto" Text="自动模拟" Style="{StaticResource Lbl}" Margin="0,0,0,6"/>
                                     <WrapPanel>
-                                        <CheckBox x:Name="chkAutoTemperature" Content="温度波动" Margin="0,0,14,0" FontSize="11" Foreground="#94A3B8"/>
-                                        <CheckBox x:Name="chkAutoSpeed" Content="速度波动" Margin="0,0,14,0" FontSize="11" Foreground="#94A3B8"/>
-                                        <CheckBox x:Name="chkAutoStatus" Content="状态变化" FontSize="11" Foreground="#94A3B8"/>
+                                        <CheckBox x:Name="chkAutoTemperature" Content="温度波动" Margin="0,0,14,0" FontSize="11" Foreground="{DynamicResource ThemeFaint}"/>
+                                        <CheckBox x:Name="chkAutoSpeed" Content="速度波动" Margin="0,0,14,0" FontSize="11" Foreground="{DynamicResource ThemeFaint}"/>
+                                        <CheckBox x:Name="chkAutoStatus" Content="状态变化" FontSize="11" Foreground="{DynamicResource ThemeFaint}"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -393,34 +415,34 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border x:Name="stat1" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="0,0,4,0" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="stat1" Background="{DynamicResource ThemeCardBg}" CornerRadius="6" Padding="12,8" Margin="0,0,4,0" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <Grid>
-                            <TextBlock x:Name="lblMsgCount" Text="消息总数" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="lblMsgCount" Text="消息总数" FontSize="10" Foreground="{DynamicResource ThemeMuted}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="txtMessageCount" Text="0" FontSize="17" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Right" FontFamily="Consolas"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="stat2" Grid.Column="1" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="stat2" Grid.Column="1" Background="{DynamicResource ThemeCardBg}" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <Grid>
-                            <TextBlock x:Name="lblSimStatus" Text="模拟状态" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="lblSimStatus" Text="模拟状态" FontSize="10" Foreground="{DynamicResource ThemeMuted}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="txtSimulationStatus" Text="停止" FontSize="17" FontWeight="Bold" Foreground="#F87171" HorizontalAlignment="Right" FontFamily="Consolas"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="stat3" Grid.Column="2" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="stat3" Grid.Column="2" Background="{DynamicResource ThemeCardBg}" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <Grid>
-                            <TextBlock x:Name="lblLastSend" Text="最后发送" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="lblLastSend" Text="最后发送" FontSize="10" Foreground="{DynamicResource ThemeMuted}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="txtLastSend" Text="--:--:--" FontSize="17" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Right" FontFamily="Consolas"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="stat4" Grid.Column="3" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0,0,0" BorderBrush="#1E293B" BorderThickness="1">
+                    <Border x:Name="stat4" Grid.Column="3" Background="{DynamicResource ThemeCardBg}" CornerRadius="6" Padding="12,8" Margin="4,0,0,0" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                         <Grid>
-                            <TextBlock x:Name="lblSendRate" Text="发送速率" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="lblSendRate" Text="发送速率" FontSize="10" Foreground="{DynamicResource ThemeMuted}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="txtSendRate" Text="0/s" FontSize="17" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Right" FontFamily="Consolas"/>
                         </Grid>
                     </Border>
                 </Grid>
 
                 <!-- 实时曲线 -->
-                <Border Grid.Row="1" x:Name="chartCard" Background="#0D1425" CornerRadius="8" Padding="10" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                <Border Grid.Row="1" x:Name="chartCard" Background="{DynamicResource ThemePanelBg}" CornerRadius="8" Padding="10" Margin="0,0,0,8" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -428,31 +450,31 @@
                         </Grid.RowDefinitions>
                         <Grid Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="实时趋势" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"/>
+                                <TextBlock Text="实时趋势" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeFaint}"/>
                                 <Ellipse Width="7" Height="7" Fill="#F59E0B" Margin="14,0,4,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="温度" FontSize="10" Foreground="#F59E0B" VerticalAlignment="Center" FontFamily="Consolas"/>
                                 <Ellipse Width="7" Height="7" Fill="#06B6D4" Margin="12,0,4,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="转速" FontSize="10" Foreground="#06B6D4" VerticalAlignment="Center" FontFamily="Consolas"/>
                             </StackPanel>
-                            <TextBlock x:Name="chartStatsText" Text="" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas"/>
+                            <TextBlock x:Name="chartStatsText" Text="" FontSize="10" Foreground="{DynamicResource ThemeMuted}" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas"/>
                         </Grid>
-                        <Border Grid.Row="1" Background="#0F172A" CornerRadius="4" BorderBrush="#1E293B" BorderThickness="1">
+                        <Border Grid.Row="1" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                             <Canvas x:Name="chartCanvas" Height="120" SizeChanged="ChartCanvas_SizeChanged"/>
                         </Border>
                     </Grid>
                 </Border>
 
                 <!-- 日志 -->
-                <Border Grid.Row="2" x:Name="dataCard" Background="#111A2C" CornerRadius="8" Padding="12" BorderBrush="#1E293B" BorderThickness="1">
+                <Border Grid.Row="2" x:Name="dataCard" Background="{DynamicResource ThemeCardBg}" CornerRadius="8" Padding="12" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock x:Name="dataTitle" Text="推送日志" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="dataTitle" Text="推送日志" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeFaint}" Margin="0,0,0,8"/>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <TextBox x:Name="txtRealTimeData" IsReadOnly="True" Background="Transparent"
-                                     Foreground="#4ADE80" FontFamily="Consolas" FontSize="11"
+                                     Foreground="{DynamicResource ThemeLogText}" FontFamily="Consolas" FontSize="11"
                                      BorderThickness="0" TextWrapping="Wrap" AcceptsReturn="True"/>
                         </ScrollViewer>
                     </Grid>
@@ -461,15 +483,15 @@
         </Grid>
 
         <!-- ══════════ 底部状态栏 ══════════ -->
-        <Border Grid.Row="2" x:Name="bottomBar" Background="#111A2C" CornerRadius="6" Padding="12,7" Margin="0,8,0,0" BorderBrush="#1E293B" BorderThickness="1">
+        <Border Grid.Row="2" x:Name="bottomBar" Background="{DynamicResource ThemeCardBg}" CornerRadius="6" Padding="12,7" Margin="0,8,0,0" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="apiEndpoint" Text="http://localhost:8085/api/dashboard/device/simulate" FontSize="10" Foreground="#475569" VerticalAlignment="Center" FontFamily="Consolas"/>
-                <TextBlock x:Name="statusBar" Text="就绪" Grid.Column="2" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                <TextBlock x:Name="apiEndpoint" Text="http://localhost:8085/api/dashboard/device/simulate" FontSize="10" Foreground="{DynamicResource ThemeDimmer}" VerticalAlignment="Center" FontFamily="Consolas"/>
+                <TextBlock x:Name="statusBar" Text="就绪" Grid.Column="2" FontSize="11" Foreground="{DynamicResource ThemeFaint}" VerticalAlignment="Center"/>
             </Grid>
         </Border>
     </Grid>
