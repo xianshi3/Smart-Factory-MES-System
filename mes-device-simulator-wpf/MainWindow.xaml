@@ -77,8 +77,10 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <Ellipse x:Name="connDot" Width="8" Height="8" Fill="#EF4444" Margin="0,0,6,0"/>
-                    <TextBlock x:Name="connStatus" Text="未连接" FontSize="12" Foreground="#64748B" VerticalAlignment="Center"/>
+                    <Ellipse x:Name="apiDot" Width="8" Height="8" Fill="#EF4444" Margin="0,0,4,0"/>
+                    <TextBlock x:Name="apiStatusText" Text="API:未连" FontSize="11" Foreground="#64748B" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <Ellipse x:Name="mqttDot" Width="8" Height="8" Fill="#EF4444" Margin="0,0,4,0"/>
+                    <TextBlock x:Name="mqttStatusText" Text="MQTT:未连" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
                 </StackPanel>
                 
                 <Button Grid.Column="2" x:Name="btnTheme" Content="🌙" Style="{StaticResource Btn}" Click="BtnTheme_Click" Padding="10,6"/>
@@ -111,7 +113,7 @@
                     
                     <TextBlock Text="设备列表" FontSize="12" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
                     <Border Background="#F8FAFC" CornerRadius="6" Padding="6">
-                        <ListBox x:Name="deviceListBox" Height="100" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0">
+                        <ListBox x:Name="deviceListBox" Height="84" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
@@ -123,6 +125,43 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Border>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="64"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="批量设备数量" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="batchCountInput" Text="50" Style="{StaticResource Input}" Grid.Column="1" HorizontalContentAlignment="Center" Padding="6,5"/>
+                        <Button x:Name="btnBatchCreate" Content="批量创建" Style="{StaticResource Btn}" Grid.Column="2" Click="BtnBatchCreate_Click" Padding="10,6" Margin="6,0,0,0"/>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="场景预设" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="cmbScenario" Grid.Column="1" SelectedIndex="0" Width="150" Padding="8,5" SelectionChanged="CmbScenario_SelectionChanged">
+                            <ComboBoxItem Content="正常运行" Tag="正常运行"/>
+                            <ComboBoxItem Content="满载生产" Tag="满载生产"/>
+                            <ComboBoxItem Content="高温告警" Tag="高温告警"/>
+                            <ComboBoxItem Content="突发故障" Tag="突发故障"/>
+                            <ComboBoxItem Content="维护停机" Tag="维护停机"/>
+                        </ComboBox>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="发送频率" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="cmbSendInterval" Grid.Column="1" SelectedIndex="1" Width="150" Padding="8,5" SelectionChanged="CmbSendInterval_SelectionChanged">
+                            <ComboBoxItem Content="0.5秒" Tag="500"/>
+                            <ComboBoxItem Content="1秒" Tag="1000"/>
+                            <ComboBoxItem Content="2秒" Tag="2000"/>
+                            <ComboBoxItem Content="5秒" Tag="5000"/>
+                        </ComboBox>
+                    </Grid>
                 </StackPanel>
                 
                 <!-- 中间 -->
@@ -322,11 +361,33 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         
                         <TextBlock x:Name="dataTitle" Text="实时数据" FontSize="14" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,10"/>
                         
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <!-- 实时曲线 -->
+                        <Border Grid.Row="1" x:Name="chartCard" Background="#0F172A" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Ellipse Width="8" Height="8" Fill="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="温度" FontSize="10" Foreground="#F59E0B" Margin="0,0,14,0" VerticalAlignment="Center"/>
+                                    <Ellipse Width="8" Height="8" Fill="#06B6D4" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="转速" FontSize="10" Foreground="#06B6D4" Margin="0,0,14,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="chartStatsText" Text="" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Canvas x:Name="chartCanvas" Grid.Row="1" Height="110" Background="#1E293B" SizeChanged="ChartCanvas_SizeChanged"/>
+                            </Grid>
+                        </Border>
+                        
+                        <TextBlock Text="推送日志" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Grid.Row="2" Margin="0,0,0,6"/>
+                        
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
                             <TextBox x:Name="txtRealTimeData" IsReadOnly="True" Background="Transparent" 
                                      Foreground="#10B981" FontFamily="Consolas" FontSize="12" 
                                      BorderThickness="0" TextWrapping="Wrap" AcceptsReturn="True"/>
