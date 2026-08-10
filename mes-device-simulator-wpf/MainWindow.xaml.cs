@@ -60,6 +60,51 @@ public partial class MainWindow : Window
         _sendRateTimer.Start();
 
         ApplyLightTheme();
+
+        // 启动时自动探测 API 网关与 EMQX 地址
+        _ = AutoDetectServicesAsync();
+    }
+
+    /// <summary>
+    /// 自动探测本地已运行的服务并填入配置（API 网关 9090 &gt; 看板 8085，EMQX 1883）
+    /// </summary>
+    private async Task AutoDetectServicesAsync()
+    {
+        // API 网关优先，其次看板服务
+        foreach (var port in new[] { 9090, 8085 })
+        {
+            if (await IsPortOpenAsync("localhost", port, 800))
+            {
+                Dispatcher.Invoke(() => apiServerInput.Text = $"http://localhost:{port}");
+                break;
+            }
+        }
+
+        // EMQX MQTT Broker
+        if (await IsPortOpenAsync("localhost", 1883, 800))
+        {
+            Dispatcher.Invoke(() =>
+            {
+                mqttServerInput.Text = "localhost";
+                mqttPortInput.Text = "1883";
+            });
+        }
+    }
+
+    private static async Task<bool> IsPortOpenAsync(string host, int port, int timeoutMs)
+    {
+        try
+        {
+            using var client = new System.Net.Sockets.TcpClient();
+            var task = client.ConnectAsync(host, port);
+            var completed = await Task.WhenAny(task, Task.Delay(timeoutMs));
+            if (completed != task) return false;
+            return client.Connected;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void BtnTheme_Click(object sender, RoutedEventArgs e)
