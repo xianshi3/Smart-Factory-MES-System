@@ -32,11 +32,11 @@ public class TelemetryServiceImpl implements TelemetryService {
     private static final String BUCKET_KEY = "mes_metrics";
     private static final String ORG_KEY = "mes";
 
-    private final InfluxDBClient influxDBClient;
-
-    public TelemetryServiceImpl(InfluxDBClient influxDBClient) {
-        this.influxDBClient = influxDBClient;
-    }
+    /**
+     * InfluxDB 客户端（可选注入：未配置 INFLUXDB_URL/INFLUXDB_TOKEN 时为 null，历史遥测降级不可用但不影响启动）
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private InfluxDBClient influxDBClient;
 
     @Override
     public boolean isEnabled() {

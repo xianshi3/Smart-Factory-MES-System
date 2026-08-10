@@ -50,8 +50,10 @@ mybatis-plus:
       id-type: auto
 
 influxdb:
-  url: ${INFLUXDB_URL:}
-  token: ${INFLUXDB_TOKEN:}
+  # 设备历史遥测时序存储（默认连本机 docker-compose.dev.yml 的 InfluxDB，IDE 直接启动即可用）
+  # 如需覆盖: 设置环境变量 INFLUXDB_URL / INFLUXDB_TOKEN
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:Y2FrwpCCgedJZv_aX6mFnKMrKegGEY0kFWlEqVquhIZOX5lCO_MnqJz_vNKGTJW6q6W6cekL8BO9SS8nv-8ZmQ==}
   org: ${INFLUXDB_ORG:mes}
   bucket: ${INFLUXDB_BUCKET:mes_metrics}
 
