@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private long _lastMessageCount = 0;
     private bool _isSimulating = false;
     private bool _isConnected = false;
-    private bool _isDarkTheme = true;
+    private bool _isDarkTheme = false;
     private readonly DispatcherTimer _sendRateTimer;
 
     private IMqttClient? _mqttClient;
@@ -63,7 +63,7 @@ public partial class MainWindow : Window
         _clockTimer.Start();
         clockText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        ApplyDarkTheme();
+        ApplyLightTheme();
 
         // 恢复上次配置（API/MQTT地址、参数、频率、场景）
         LoadConfig();
@@ -120,7 +120,7 @@ public partial class MainWindow : Window
 
         if (_isDarkTheme)
         {
-            ApplyDarkTheme();
+        ApplyLightTheme();
             btnTheme.Content = "☀️ 亮色模式";
         }
         else
@@ -380,8 +380,26 @@ public partial class MainWindow : Window
                 var devices = data?.ToObject<List<DeviceStatus>>();
                 if (devices != null)
                 {
-                    deviceListBox.ItemsSource = devices;
-                    statusBar.Text = $"设备列表加载成功：{devices.Count} 台";
+                    // 同步到本地模拟列表（已有设备保留 Selected 状态，新增设备默认选中）
+                    var existingCodes = new HashSet<string>(_devices.Select(d => d.DeviceCode));
+                    foreach (var dev in devices)
+                    {
+                        if (existingCodes.Contains(dev.DeviceCode)) continue;
+                        _devices.Add(new SimulatedDevice(dev.DeviceCode, dev.DeviceName, dev.DeviceType)
+                        {
+                            Status = dev.Status,
+                            Temperature = dev.Temperature,
+                            Speed = dev.Speed,
+                            Pressure = 1.5,
+                            Power = 50,
+                            TempOffset = (_random.NextDouble() - 0.5) * 3,
+                            SpeedOffset = (_random.NextDouble() - 0.5) * 80,
+                            Selected = true,
+                            Created = true,
+                        });
+                    }
+                    RefreshDeviceListBox();
+                    statusBar.Text = $"设备列表加载成功：{devices.Count} 台（已同步到模拟列表）";
                 }
             }
         }
@@ -697,12 +715,20 @@ public partial class MainWindow : Window
         }
         else
         {
-            // 批量设备模式：每台设备独立随机游走（遵循自动波动开关）
+            // 批量设备模式：只模拟勾选的设备，每台独立随机游走
+            var activeDevices = _devices.Where(d => d.Selected).ToList();
+            if (activeDevices.Count == 0)
+            {
+                // 未勾选任何设备：退化为单台模式
+                await SendDeviceDataAsync();
+                return;
+            }
+
             bool autoTemp = chkAutoTemperature.IsChecked == true;
             bool autoSpeed = chkAutoSpeed.IsChecked == true;
             bool autoStatus = chkAutoStatus.IsChecked == true;
 
-            foreach (var dev in _devices)
+            foreach (var dev in activeDevices)
             {
                 if (autoTemp)
                 {
@@ -724,11 +750,12 @@ public partial class MainWindow : Window
                 dev.Pressure = Math.Round(1.2 + dev.Temperature / 90 * 0.8 + (_random.NextDouble() - 0.5) * 0.1, 2);
             }
 
-            await SendBatchDeviceDataAsync();
+            await SendBatchDeviceDataAsync(activeDevices);
         }
 
-        // 曲线图数据（使用当前选中设备或第一台）
-        var chartSrc = _devices.Count > 0 ? _devices[0] : null;
+        // 曲线图数据（使用当前选中设备或勾选设备中的第一台）
+        var activeForChart = _devices.Where(d => d.Selected).ToList();
+        var chartSrc = activeForChart.Count > 0 ? activeForChart[0] : _devices.FirstOrDefault();
         var chartTemp = chartSrc?.Temperature ?? _temperature;
         var chartSpeed = chartSrc?.Speed ?? _speed;
         _chartTemps.Add(chartTemp);
@@ -797,9 +824,10 @@ public partial class MainWindow : Window
     /// <summary>
     /// 批量设备模拟：全部设备 HTTP 推送（每台一条）+ MQTT 增强通道
     /// </summary>
-    private async Task SendBatchDeviceDataAsync()
+    private async Task SendBatchDeviceDataAsync(List<SimulatedDevice>? devices = null)
     {
-        if (!_isConnected || _devices.Count == 0) return;
+        var targets = devices ?? _devices.Where(d => d.Selected).ToList();
+        if (!_isConnected || targets.Count == 0) return;
 
         try
         {
@@ -808,7 +836,7 @@ public partial class MainWindow : Window
             int mqttSent = 0;
 
             // HTTP 推送全部设备（保证不依赖 MQTT 也能看到全部设备动态）
-            foreach (var dev in _devices)
+            foreach (var dev in targets)
             {
                 var deviceData = new
                 {
@@ -829,7 +857,7 @@ public partial class MainWindow : Window
             }
 
             // MQTT 推送全部设备（高吞吐增强通道）
-            foreach (var dev in _devices)
+            foreach (var dev in targets)
             {
                 if (await PublishMqttTelemetryAsync(dev.DeviceCode, dev.Status, dev.Temperature, dev.Speed))
                     mqttSent++;
@@ -840,8 +868,8 @@ public partial class MainWindow : Window
                 _messageCount += Math.Max(httpSent, mqttSent);
                 txtMessageCount.Text = _messageCount.ToString();
                 txtLastSend.Text = DateTime.Now.ToString("HH:mm:ss");
-                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {_devices.Count} 台 (HTTP {httpSent} + MQTT {mqttSent})");
-                statusBar.Text = $"批量推送 {_devices.Count} 台设备 (HTTP {httpSent})";
+                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {targets.Count} 台 (HTTP {httpSent} + MQTT {mqttSent})");
+                statusBar.Text = $"批量推送 {targets.Count} 台设备 (HTTP {httpSent})";
             }
             else
             {
@@ -1010,8 +1038,8 @@ public partial class MainWindow : Window
         sliderSpeed.Value = _speed;
         cmbStatus.SelectedIndex = _status switch { "ONLINE" => 0, "OFFLINE" => 1, "ALARM" => 2, "MAINTENANCE" => 3, _ => 0 };
 
-        // 批量设备：全部重置为场景状态
-        foreach (var dev in _devices)
+        // 勾选的设备：重置为场景状态
+        foreach (var dev in _devices.Where(d => d.Selected))
         {
             dev.Status = scenario.DefaultStatus;
             dev.Temperature = scenario.BaseTemp + dev.TempOffset;

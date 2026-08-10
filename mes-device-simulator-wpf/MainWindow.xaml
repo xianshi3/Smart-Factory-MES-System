@@ -418,17 +418,20 @@
                                         <DataTemplate>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel>
+                                                <!-- 参与模拟复选框 -->
+                                                <CheckBox IsChecked="{Binding Selected}" ToolTip="勾选后参与模拟" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="{DynamicResource ThemeText}" FontFamily="Consolas"/>
                                                         <TextBlock Text="{Binding DeviceName}" Foreground="{DynamicResource ThemeFaint}" Width="56" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                                         <TextBlock Text="{Binding Status}" Foreground="{DynamicResource ThemeAccent}" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Temperature, StringFormat={}{0:F1}°C}" FontSize="10" Foreground="#F59E0B" FontFamily="Consolas" Margin="0,0,8,0"/>
                                                     <TextBlock Text="{Binding Speed, StringFormat={}{0:F0}rpm}" FontSize="10" Foreground="#06B6D4" FontFamily="Consolas"/>
                                                 </StackPanel>

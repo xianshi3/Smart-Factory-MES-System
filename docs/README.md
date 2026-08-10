@@ -6,6 +6,7 @@
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 开发指南、技术栈、API 接口、端口说明 |
 | [DATABASE.md](./DATABASE.md) | 数据库设计文档 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本更新日志 |
+| [INTERVIEW.md](./INTERVIEW.md) | 架构演进、AI Agent 方案、比赛复盘 |
 
 ### 模块文档
 
@@ -16,4 +17,4 @@
 
 ---
 
-*最后更新: 2026-08-02*
+*最后更新: 2026-08-10*
