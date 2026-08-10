@@ -29,7 +29,10 @@ public class KafkaDeviceDataConsumer {
             
             String deviceId = (String) data.get("deviceId");
             if (deviceId == null) {
-                log.warn("Message missing deviceId");
+                deviceId = (String) data.get("deviceCode");
+            }
+            if (deviceId == null) {
+                log.warn("Message missing deviceId/deviceCode");
                 return;
             }
 
@@ -72,7 +75,21 @@ public class KafkaDeviceDataConsumer {
     private void updateDeviceStatus(DeviceStatus device, Map<String, Object> data) {
         device.setLastHeartbeat(LocalDateTime.now());
         
-        Map<String, Object> params = (Map<String, Object>) data.get("params");
+        // 兼容三种消息结构：
+        // 1) .NET 网关转发: { deviceId, timestamp, dataType, status, data: { temperature, speed } }
+        // 2) 原始协议:     { deviceId, params: { temperature, speed } }
+        // 3) 平铺结构:     { deviceCode, temperature, speed }
+        Map<String, Object> params = null;
+        Object rawParams = data.get("params");
+        if (rawParams instanceof Map) {
+            params = (Map<String, Object>) rawParams;
+        } else {
+            rawParams = data.get("data");
+            if (rawParams instanceof Map) {
+                params = (Map<String, Object>) rawParams;
+            }
+        }
+
         if (params != null) {
             if (params.containsKey("temperature")) {
                 Object temp = params.get("temperature");
@@ -85,6 +102,16 @@ public class KafkaDeviceDataConsumer {
                 if (speed instanceof Number) {
                     device.setSpeed(((Number) speed).doubleValue());
                 }
+            }
+        } else {
+            // 平铺结构兜底
+            Object temp = data.get("temperature");
+            if (temp instanceof Number) {
+                device.setTemperature(((Number) temp).doubleValue());
+            }
+            Object speed = data.get("speed");
+            if (speed instanceof Number) {
+                device.setSpeed(((Number) speed).doubleValue());
             }
         }
         

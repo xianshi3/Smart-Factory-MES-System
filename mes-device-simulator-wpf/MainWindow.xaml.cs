@@ -5,6 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MQTTnet;
+using MQTTnet.Client;
 using Newtonsoft.Json;
 
 namespace MESDeviceSimulator;
@@ -20,6 +22,9 @@ public partial class MainWindow : Window
     private bool _isConnected = false;
     private bool _isDarkTheme = false;
     private readonly DispatcherTimer _sendRateTimer;
+
+    private IMqttClient? _mqttClient;
+    private bool _mqttConnected = false;
 
     private double _temperature = 45.0;
     private double _speed = 1200;
@@ -88,6 +93,14 @@ public partial class MainWindow : Window
         apiServerInput.Background = darkCard;
         apiServerInput.Foreground = darkText;
         apiServerInput.BorderBrush = darkBorder;
+
+        lblMqttServer.Foreground = darkMuted;
+        mqttServerInput.Background = darkCard;
+        mqttServerInput.Foreground = darkText;
+        mqttServerInput.BorderBrush = darkBorder;
+        mqttPortInput.Background = darkCard;
+        mqttPortInput.Foreground = darkText;
+        mqttPortInput.BorderBrush = darkBorder;
         
         lblDeviceId.Foreground = darkMuted;
         devIdInput.Background = darkCard;
@@ -169,6 +182,14 @@ public partial class MainWindow : Window
         apiServerInput.Background = lightCard;
         apiServerInput.Foreground = lightText;
         apiServerInput.BorderBrush = lightBorder;
+
+        lblMqttServer.Foreground = lightMuted;
+        mqttServerInput.Background = lightCard;
+        mqttServerInput.Foreground = lightText;
+        mqttServerInput.BorderBrush = lightBorder;
+        mqttPortInput.Background = lightCard;
+        mqttPortInput.Foreground = lightText;
+        mqttPortInput.BorderBrush = lightBorder;
         
         lblDeviceId.Foreground = lightMuted;
         devIdInput.Background = lightCard;
@@ -250,6 +271,9 @@ public partial class MainWindow : Window
                 btnDisconnect.IsEnabled = true;
                 btnStartSimulation.IsEnabled = true;
                 LoadDeviceList();
+
+                // 连接 MQTT（失败不阻断，仅提示）
+                await ConnectMqttAsync();
             }
             else
             {
@@ -260,6 +284,90 @@ public partial class MainWindow : Window
         {
             MessageBox.Show($"连接失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             statusBar.Text = $"连接失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 连接 EMQX MQTT Broker（网关订阅 mes/device/+/data）
+    /// </summary>
+    private async Task ConnectMqttAsync()
+    {
+        try
+        {
+            var factory = new MqttFactory();
+            _mqttClient = factory.CreateMqttClient();
+
+            string host = mqttServerInput.Text.Trim();
+            int port = int.TryParse(mqttPortInput.Text.Trim(), out var p) ? p : 1883;
+            string deviceCode = devIdInput.Text.Trim();
+
+            var options = new MqttClientOptionsBuilder()
+                .WithTcpServer(host, port)
+                .WithClientId($"mes-simulator-{deviceCode}-{Guid.NewGuid().ToString("N")[..8]}")
+                .WithCleanSession()
+                .WithTimeout(TimeSpan.FromSeconds(10))
+                .Build();
+
+            _mqttClient.ConnectedAsync += args =>
+            {
+                _mqttConnected = true;
+                statusBar.Text = $"已连接 API + MQTT ({host}:{port})";
+                return Task.CompletedTask;
+            };
+            _mqttClient.DisconnectedAsync += args =>
+            {
+                _mqttConnected = false;
+                return Task.CompletedTask;
+            };
+
+            await _mqttClient.ConnectAsync(options);
+            _mqttConnected = _mqttClient.IsConnected;
+            if (_mqttConnected)
+            {
+                statusBar.Text = $"已连接 API + MQTT ({host}:{port})";
+            }
+        }
+        catch (Exception ex)
+        {
+            _mqttConnected = false;
+            statusBar.Text = $"API已连接，MQTT连接失败: {ex.Message}（模拟数据仅走HTTP）";
+        }
+    }
+
+    /// <summary>
+    /// 通过 MQTT 发布遥测数据（topic: mes/device/{deviceCode}/data）
+    /// </summary>
+    private async Task PublishMqttTelemetryAsync(string deviceCode, string status)
+    {
+        if (_mqttClient?.IsConnected != true) return;
+
+        try
+        {
+            var payload = new
+            {
+                timestamp = DateTime.UtcNow,
+                dataType = "telemetry",
+                status = status,
+                data = new
+                {
+                    temperature = Math.Round(_temperature, 2),
+                    speed = Math.Round(_speed, 2),
+                    pressure = Math.Round(_pressure, 2),
+                    power = Math.Round(_power, 2)
+                }
+            };
+
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic($"mes/device/{deviceCode}/data")
+                .WithPayload(JsonConvert.SerializeObject(payload))
+                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build();
+
+            await _mqttClient.PublishAsync(message);
+        }
+        catch (Exception ex)
+        {
+            statusBar.Text = $"MQTT发布失败: {ex.Message}";
         }
     }
 
@@ -432,7 +540,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnDisconnect_Click(object sender, RoutedEventArgs e)
+    private async void BtnDisconnect_Click(object sender, RoutedEventArgs e)
     {
         _isSimulating = false;
         _simulationTimer.Stop();
@@ -447,6 +555,22 @@ public partial class MainWindow : Window
         btnStartSimulation.IsEnabled = false;
         btnStartSimulation.Content = "开始模拟";
         txtSimulationStatus.Text = "停止";
+
+        // 断开 MQTT
+        if (_mqttClient != null)
+        {
+            try
+            {
+                if (_mqttClient.IsConnected)
+                {
+                    await _mqttClient.DisconnectAsync();
+                }
+                _mqttClient.Dispose();
+            }
+            catch { /* 忽略断开异常 */ }
+            _mqttClient = null;
+            _mqttConnected = false;
+        }
     }
 
     private void BtnStartSimulation_Click(object sender, RoutedEventArgs e)
@@ -549,6 +673,9 @@ public partial class MainWindow : Window
             {
                 AppendRealTimeData($"[ERROR] HTTP {(int)response.StatusCode}");
             }
+
+            // 双通道：同时发布 MQTT 遥测（走 EMQX → .NET网关 → Kafka → 看板）
+            await PublishMqttTelemetryAsync(deviceId, statusTag);
         }
         catch (Exception ex)
         {
