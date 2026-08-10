@@ -76,6 +76,14 @@ public class SimulatedDevice : INotifyPropertyChanged
     /// <summary>是否已在后端创建</summary>
     public bool Created { get; set; }
 
+    private bool _selected = true;
+    /// <summary>是否参与模拟（列表复选框）</summary>
+    public bool Selected
+    {
+        get => _selected;
+        set { if (_selected != value) { _selected = value; Notify(); } }
+    }
+
     public SimulatedDevice() { }
 
     public SimulatedDevice(string code, string name, string type)
