@@ -311,12 +311,15 @@ public partial class MainWindow : Window
             _mqttClient.ConnectedAsync += args =>
             {
                 _mqttConnected = true;
-                statusBar.Text = $"已连接 API + MQTT ({host}:{port})";
+                Dispatcher.Invoke(() =>
+                    statusBar.Text = $"已连接 API + MQTT ({host}:{port})");
                 return Task.CompletedTask;
             };
             _mqttClient.DisconnectedAsync += args =>
             {
                 _mqttConnected = false;
+                Dispatcher.Invoke(() =>
+                    statusBar.Text = $"MQTT 已断开，模拟数据仅走HTTP");
                 return Task.CompletedTask;
             };
 
