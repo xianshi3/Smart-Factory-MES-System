@@ -63,7 +63,7 @@ public partial class MainWindow : Window
         _clockTimer.Start();
         clockText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        ApplyDarkTheme();
+        ApplyLightTheme();
 
         // 恢复上次配置（API/MQTT地址、参数、频率、场景）
         LoadConfig();
