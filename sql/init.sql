@@ -640,6 +640,121 @@ CREATE TABLE `ai_chat_messages` (
     KEY `idx_conversation_id` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 消息记录表';
 
+-- =====================================================
+-- 9. AI Analysis History Table
+-- =====================================================
+DROP TABLE IF EXISTS `ai_analysis_history`;
+
+CREATE TABLE `ai_analysis_history` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `user_id` varchar(50) NOT NULL DEFAULT 'default' COMMENT '用户ID',
+    `device_code` varchar(50) DEFAULT NULL COMMENT '设备编码',
+    `device_name` varchar(100) DEFAULT NULL COMMENT '设备名称',
+    `analysis_type` varchar(20) NOT NULL COMMENT '分析类型: spc/energy/capacity/llm',
+    `result_data` json DEFAULT NULL COMMENT '分析结果 (JSON)',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_type` (`analysis_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 分析历史记录表';
+
+-- =====================================================
+-- 10. BOM 物料清单 + 库存管理 Tables
+-- =====================================================
+DROP TABLE IF EXISTS `inventory`;
+DROP TABLE IF EXISTS `inventory_transaction`;
+DROP TABLE IF EXISTS `bom_item`;
+DROP TABLE IF EXISTS `bom`;
+DROP TABLE IF EXISTS `material`;
+
+CREATE TABLE `material` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `material_code` varchar(50) NOT NULL COMMENT '物料编码',
+    `material_name` varchar(200) NOT NULL COMMENT '物料名称',
+    `material_type` varchar(50) NOT NULL COMMENT '物料类型: RAW/半成品/成品/辅助',
+    `unit` varchar(20) NOT NULL DEFAULT '个' COMMENT '单位',
+    `spec` varchar(200) DEFAULT NULL COMMENT '规格型号',
+    `default_price` decimal(12,2) DEFAULT '0.00' COMMENT '默认单价',
+    `min_stock` decimal(12,2) DEFAULT '0.00' COMMENT '最低库存',
+    `max_stock` decimal(12,2) DEFAULT '0.00' COMMENT '最高库存',
+    `status` varchar(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '状态: ACTIVE/INACTIVE',
+    `description` text COMMENT '物料描述',
+    `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+    `deleted_by` bigint DEFAULT NULL COMMENT '删除人ID',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_material_code` (`material_code`, `deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物料主数据表';
+
+CREATE TABLE `bom` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `bom_code` varchar(50) NOT NULL COMMENT 'BOM编号',
+    `bom_name` varchar(200) NOT NULL COMMENT 'BOM名称',
+    `product_id` bigint NOT NULL COMMENT '成品物料ID',
+    `product_quantity` decimal(12,2) NOT NULL DEFAULT '1.00' COMMENT '成品数量',
+    `version` varchar(20) NOT NULL DEFAULT 'V1.0' COMMENT '版本',
+    `status` varchar(20) NOT NULL DEFAULT 'DRAFT' COMMENT '状态: DRAFT/PUBLISHED/OBSOLETE',
+    `description` text COMMENT 'BOM描述',
+    `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` bigint DEFAULT NULL COMMENT '创建人ID',
+    `update_by` bigint DEFAULT NULL COMMENT '更新人ID',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_bom_code` (`bom_code`, `deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='BOM物料清单表';
+
+CREATE TABLE `bom_item` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `bom_id` bigint NOT NULL COMMENT 'BOM ID',
+    `material_id` bigint NOT NULL COMMENT '物料ID',
+    `quantity` decimal(12,4) NOT NULL COMMENT '用量',
+    `unit` varchar(20) DEFAULT NULL COMMENT '单位',
+    `scrap_rate` decimal(5,2) DEFAULT '0.00' COMMENT '损耗率(%)',
+    `sequence` int DEFAULT '0' COMMENT '工序顺序',
+    `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+    `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_bom_id` (`bom_id`),
+    KEY `idx_material_id` (`material_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='BOM明细表';
+
+CREATE TABLE `inventory_transaction` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `transaction_no` varchar(50) NOT NULL COMMENT '交易编号',
+    `material_id` bigint NOT NULL COMMENT '物料ID',
+    `transaction_type` varchar(30) NOT NULL COMMENT '类型: RECEIVE/ISSUE/TRANSFER/ADJUST/RETURN',
+    `quantity` decimal(12,2) NOT NULL COMMENT '数量(正:入库,负:出库)',
+    `balance_after` decimal(12,2) NOT NULL COMMENT '交易后结存',
+    `batch_no` varchar(100) DEFAULT NULL COMMENT '批次号',
+    `reference_type` varchar(50) DEFAULT NULL COMMENT '关联类型: WORK_ORDER/BOM/QC',
+    `reference_id` bigint DEFAULT NULL COMMENT '关联ID',
+    `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+    `create_by` bigint DEFAULT NULL COMMENT '创建人ID',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_material_id` (`material_id`),
+    KEY `idx_transaction_no` (`transaction_no`),
+    KEY `idx_batch_no` (`batch_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='库存交易记录表';
+
+CREATE TABLE `inventory` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `material_id` bigint NOT NULL COMMENT '物料ID',
+    `warehouse` varchar(50) DEFAULT '主仓库' COMMENT '仓库',
+    `batch_no` varchar(100) DEFAULT NULL COMMENT '批次号',
+    `quantity` decimal(12,2) NOT NULL DEFAULT '0.00' COMMENT '当前数量',
+    `locked_quantity` decimal(12,2) NOT NULL DEFAULT '0.00' COMMENT '锁定数量',
+    `available_quantity` decimal(12,2) GENERATED ALWAYS AS (quantity - locked_quantity) STORED COMMENT '可用数量',
+    `last_transaction_time` datetime DEFAULT NULL COMMENT '最后交易时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_material_warehouse` (`material_id`, `warehouse`, `batch_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='当前库存表';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
