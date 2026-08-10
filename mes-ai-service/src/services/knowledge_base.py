@@ -1,8 +1,10 @@
-"""RAG 知识库 — 设备手册 / 质检标准 / 工艺文档向量检索"""
+"""RAG 知识库 — 设备手册 / 质检标准 / 工艺文档 TF-IDF 向量检索"""
 
 import json
 import logging
+import math
 import os
+import re
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -18,19 +20,58 @@ KNOWLEDGE_DIR = Path(__file__).resolve().parent.parent.parent / "knowledge"
 
 
 def _simple_tokenize(text: str) -> List[str]:
-    import re
-    tokens = re.findall(r'[\u4e00-\u9fff\w]+', text.lower())
-    return tokens
+    """中文按词切分（二元词袋 + 单字），英文按单词"""
+    text = (text or "").lower()
+    tokens = re.findall(r'[a-z0-9]+|[\u4e00-\u9fff]', text)
+    if not tokens:
+        return []
+    # 中文相邻双字组合，增强语义
+    cjk = [t for t in tokens if re.fullmatch(r'[\u4e00-\u9fff]', t)]
+    bigrams = [cjk[i] + cjk[i + 1] for i in range(len(cjk) - 1)] if len(cjk) >= 2 else []
+    words = [t for t in tokens if not re.fullmatch(r'[\u4e00-\u9fff]', t)]
+    return words + cjk + bigrams
 
 
-def _compute_similarity(query_tokens: List[str], doc_tokens: List[str]) -> float:
-    if not query_tokens or not doc_tokens:
-        return 0.0
-    q_set = set(query_tokens)
-    d_set = set(doc_tokens)
-    intersection = q_set & d_set
-    union = q_set | d_set
-    return len(intersection) / max(len(union), 1)
+def _compute_tfidf_scores(query_tokens: List[str], doc_tokens_list: List[List[str]]) -> List[List[float]]:
+    """TF-IDF 加权相似度：query 词频 × idf，双字词权重加倍"""
+    df: Dict[str, int] = {}
+    for tokens in doc_tokens_list:
+        for t in set(tokens):
+            df[t] = df.get(t, 0) + 1
+    n = max(len(doc_tokens_list), 1)
+
+    q_counts: Dict[str, int] = {}
+    for t in query_tokens:
+        q_counts[t] = q_counts.get(t, 0) + 1
+
+    doc_scores: List[List[float]] = []
+    for tokens in doc_tokens_list:
+        counts: Dict[str, int] = {}
+        for t in tokens:
+            counts[t] = counts.get(t, 0) + 1
+        total = max(len(tokens), 1)
+        scores = []
+        for t, qf in q_counts.items():
+            if t in counts:
+                idf = math.log((n + 1) / (df.get(t, 0) + 0.5))
+                tf = counts[t] / total
+                weight = 2.0 if (len(t) == 2 and any('\u4e00' <= c <= '\u9fff' for c in t)) else 1.0
+                scores.append(qf * tf * idf * weight)
+        doc_scores.append(scores)
+    return doc_scores
+
+
+def _compute_similarity(query_tokens: List[str], doc_tokens_list: List[List[str]], title_tokens: List[List[str]]) -> List[float]:
+    """带标题重排的相关性评分"""
+    body_scores = _compute_tfidf_scores(query_tokens, doc_tokens_list)
+    title_scores = _compute_tfidf_scores(query_tokens, title_tokens)
+    results = []
+    for bs, ts in zip(body_scores, title_scores):
+        score = sum(bs)
+        if ts:
+            score += sum(ts) * 2.0  # 标题命中权重加倍
+        results.append(score)
+    return results
 
 
 DEFAULT_DOCUMENTS = [
@@ -173,73 +214,86 @@ class KnowledgeBase:
     def __init__(self, kb_dir: Optional[str] = None):
         self.documents: List[Dict] = []
         self.index: List[List[str]] = []
+        self.title_index: List[List[str]] = []
 
+        # 内置种子文档（系统默认手册/标准）
+        self.documents = list(DEFAULT_DOCUMENTS)
+
+        # 外部知识目录扩展（按 id 去重，用户自定义文档优先）
         kb_path = Path(kb_dir) if kb_dir else KNOWLEDGE_DIR
         if kb_path.exists():
             self._load_from_dir(kb_path)
-        else:
-            self.documents = list(DEFAULT_DOCUMENTS)
-
-        if not self.documents:
-            self.documents = list(DEFAULT_DOCUMENTS)
 
         self._build_index()
-        logger.info(f"知识库初始化完成，共 {len(self.documents)} 篇文档")
+        logger.info(f"知识库初始化完成，共 {len(self.documents)} 篇文档（内置 + 自定义）")
 
     def _load_from_dir(self, kb_dir: Path):
+        existing_ids = {d.get("id") for d in self.documents}
+
+        def _add(doc: Dict):
+            doc_id = doc.get("id")
+            if doc_id and doc_id in existing_ids:
+                # 自定义文档覆盖内置同名文档
+                self.documents = [d for d in self.documents if d.get("id") != doc_id]
+            self.documents.append(doc)
+            if doc_id:
+                existing_ids.add(doc_id)
+
         for fpath in kb_dir.glob("*.json"):
             try:
                 with open(fpath, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, list):
-                        self.documents.extend(data)
-                    else:
-                        self.documents.append(data)
+                        for doc in data:
+                            if isinstance(doc, dict):
+                                _add(doc)
+                    elif isinstance(data, dict):
+                        _add(data)
             except Exception as e:
                 logger.warning(f"加载知识库文件失败 {fpath}: {e}")
         for fpath in kb_dir.glob("*.txt"):
             try:
                 title = fpath.stem
-                content = fpath.read_text(encoding="utf-8")
-                self.documents.append({
+                _add({
                     "id": f"doc-{title}",
                     "title": title,
                     "category": "通用文档",
-                    "content": content,
+                    "content": fpath.read_text(encoding="utf-8"),
                 })
             except Exception as e:
                 logger.warning(f"加载知识库文件失败 {fpath}: {e}")
 
     def _build_index(self):
         self.index = []
+        self.title_index = []
         for doc in self.documents:
-            tokens = _simple_tokenize(doc.get("title", "") + " " + doc.get("content", ""))
-            self.index.append(tokens)
+            self.index.append(_simple_tokenize(doc.get("content", "")))
+            self.title_index.append(_simple_tokenize(doc.get("title", "")))
 
     def add_document(self, doc: Dict):
         self.documents.append(doc)
-        tokens = _simple_tokenize(doc.get("title", "") + " " + doc.get("content", ""))
-        self.index.append(tokens)
+        self.index.append(_simple_tokenize(doc.get("content", "")))
+        self.title_index.append(_simple_tokenize(doc.get("title", "")))
+
+    def _rank(self, query: str) -> List[tuple]:
+        query_tokens = _simple_tokenize(query)
+        scores = _compute_similarity(query_tokens, self.index, self.title_index)
+        ranked = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)
+        return [(idx, score) for idx, score in ranked if score > 0]
 
     def search(self, query: str, top_k: int = 3) -> Dict:
-        query_tokens = _simple_tokenize(query)
-        scored = []
-        for i, doc_tokens in enumerate(self.index):
-            score = _compute_similarity(query_tokens, doc_tokens)
-            scored.append((score, i))
-        scored.sort(key=lambda x: x[0], reverse=True)
+        ranked = self._rank(query)
 
         results = []
-        for score, idx in scored[:top_k]:
-            if score > 0:
-                doc = self.documents[idx]
-                results.append({
-                    "id": doc["id"],
-                    "title": doc["title"],
-                    "category": doc.get("category", ""),
-                    "content": doc["content"][:500],
-                    "score": round(score, 3),
-                })
+        for idx, score in ranked[:top_k]:
+            doc = self.documents[idx]
+            results.append({
+                "id": doc["id"],
+                "title": doc["title"],
+                "category": doc.get("category", ""),
+                "content": doc["content"][:500],
+                "score": round(score, 3),
+            })
 
         return {
             "success": True,
@@ -247,6 +301,17 @@ class KnowledgeBase:
             "results": results,
             "total": len(results),
         }
+
+    def retrieve_context(self, query: str, top_k: int = 2) -> str:
+        """将最相关文档拼接为可直接注入 LLM 的上下文文本"""
+        ranked = self._rank(query)
+        if not ranked:
+            return ""
+        parts = ["【知识库参考】"]
+        for idx, score in ranked[:top_k]:
+            doc = self.documents[idx]
+            parts.append(f"- 《{doc['title']}》({doc.get('category', '')}): {doc['content'][:400]}")
+        return "\n".join(parts)
 
     def get_all_categories(self) -> List[str]:
         cats = set()
