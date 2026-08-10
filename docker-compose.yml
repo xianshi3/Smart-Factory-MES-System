@@ -76,6 +76,23 @@ services:
     networks:
       - mes-network
 
+  emqx:
+    image: emqx/emqx:5.8.3
+    container_name: mes-emqx
+    restart: always
+    ports:
+      - "1883:1883"      # MQTT
+      - "18083:18083"    # Dashboard 控制台
+    environment:
+      EMQX_NODE_NAME: mes-emqx@127.0.0.1
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: public
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - mes-network
+
 volumes:
   mysql-data:
   redis-data:
