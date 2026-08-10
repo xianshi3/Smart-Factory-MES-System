@@ -80,7 +80,48 @@
             <el-icon v-else :size="16"><User /></el-icon>
           </div>
           <div class="msg-bubble">
+            <div v-if="msg.plan && msg.plan.length" class="msg-plan">
+              <div class="plan-label">
+                <el-icon :size="12"><List /></el-icon>
+                <span>执行计划 <em v-if="msg.intentLabel">· {{ msg.intentLabel }}</em></span>
+              </div>
+              <div v-for="p in msg.plan" :key="p.step" class="plan-item">
+                <span class="plan-num">{{ p.step }}</span>
+                <span class="plan-tool">{{ p.tool }}</span>
+                <span class="plan-purpose">{{ p.purpose }}</span>
+              </div>
+            </div>
             <div class="msg-text" v-html="renderMarkdown(msg.content)" />
+            <div v-if="msg.report" class="msg-report">
+              <div class="report-summary" v-if="msg.report.summary">{{ msg.report.summary }}</div>
+              <div v-if="msg.report.key_points?.length" class="report-section">
+                <div class="report-label">关键结论</div>
+                <ul class="report-points">
+                  <li v-for="(kp, ki) in msg.report.key_points" :key="ki">{{ kp }}</li>
+                </ul>
+              </div>
+              <div v-for="(tbl, ti) in (msg.report.tables || [])" :key="ti" class="report-section">
+                <div class="report-label">{{ tbl.title }}</div>
+                <table class="report-table">
+                  <thead>
+                    <tr><th v-for="(c, ci) in tbl.columns" :key="ci">{{ c }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in tbl.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="msg.report.recommendations?.length" class="report-section">
+                <div class="report-label">处置建议</div>
+                <ul class="report-points rec">
+                  <li v-for="(r, ri) in msg.report.recommendations" :key="ri">
+                    <el-icon :size="12"><CircleCheckFilled /></el-icon>{{ r }}
+                  </li>
+                </ul>
+              </div>
+            </div>
             <div v-if="msg.steps && msg.steps.length" class="msg-steps">
               <div class="steps-label">Agent 执行步骤</div>
               <div
@@ -175,8 +216,8 @@ import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import type { Component } from 'vue'
 import {
-  MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleClose, User,
-  DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning, Plus, WarningFilled, Refresh,
+  MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleCheckFilled, CircleClose, User,
+  DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning, Plus, WarningFilled, Refresh, List,
 } from '@element-plus/icons-vue'
 import { useAiChatStore } from '@/stores/aiChat'
 
@@ -506,6 +547,61 @@ defineExpose({ focusInput })
 }
 
 /* Steps */
+.msg-plan {
+  margin-bottom: 10px; padding: 8px 10px;
+  background: var(--bg-app, #0a0a0f); border: 1px dashed var(--border-color, #252530);
+  border-radius: var(--radius-sm, 6px);
+}
+.plan-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-muted, #505060); font-weight: 600; margin-bottom: 6px;
+}
+.plan-label em { font-style: normal; color: var(--accent, #6366f1); font-weight: 500; }
+.plan-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-secondary, #a0a0b0); padding: 2px 0;
+}
+.plan-num {
+  width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent-light, rgba(99,102,241,0.12)); color: var(--accent, #6366f1);
+  display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;
+}
+.plan-tool { color: var(--accent-secondary, #22d3ee); font-family: monospace; font-size: 10px; flex-shrink: 0; }
+.plan-purpose { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.msg-report {
+  margin-top: 10px; padding: 10px 12px;
+  background: var(--bg-app, #0a0a0f); border: 1px solid var(--border-color, #252530);
+  border-radius: var(--radius-sm, 6px);
+}
+.report-summary {
+  font-size: 12px; font-weight: 600; color: var(--text-primary, #f0f0f5);
+  margin-bottom: 8px; line-height: 1.6;
+}
+.report-section { margin-top: 6px; }
+.report-label { font-size: 11px; color: var(--text-muted, #505060); font-weight: 600; margin-bottom: 4px; }
+.report-points { margin: 0; padding-left: 0; list-style: none; }
+.report-points li {
+  font-size: 11px; color: var(--text-secondary, #a0a0b0);
+  padding: 3px 0 3px 12px; position: relative; line-height: 1.6;
+}
+.report-points li::before {
+  content: ''; position: absolute; left: 0; top: 10px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent, #6366f1);
+}
+.report-points.rec li { padding-left: 16px; display: flex; gap: 5px; align-items: flex-start; }
+.report-points.rec li::before { display: none; }
+.report-points.rec li .el-icon { color: var(--success, #10b981); margin-top: 3px; flex-shrink: 0; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.report-table th {
+  background: var(--bg-card, #12121a); color: var(--text-secondary, #a0a0b0);
+  padding: 4px 6px; text-align: left; font-weight: 600;
+  border-bottom: 1px solid var(--border-color, #252530);
+}
+.report-table td { padding: 4px 6px; border-bottom: 1px solid var(--border-light, #1f1f28); color: var(--text-primary, #f0f0f5); }
+.report-table tr:last-child td { border-bottom: none; }
+
 .msg-steps { margin-top: 10px; }
 .steps-label { font-size: 11px; color: var(--text-muted, #505060); margin-bottom: 6px; font-weight: 500; }
 .step-item { border-radius: var(--radius-sm, 6px); background: var(--bg-app, #0a0a0f); margin-bottom: 3px; cursor: pointer; transition: all 0.15s ease; border: 1px solid transparent; }
