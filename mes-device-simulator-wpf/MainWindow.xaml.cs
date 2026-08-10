@@ -205,14 +205,8 @@ public partial class MainWindow : Window
 
     private void SetBrush(string key, string hex)
     {
-        if (Resources[key] is SolidColorBrush brush)
-        {
-            brush.Color = (Color)ColorConverter.ConvertFromString(hex);
-        }
-        else
-        {
-            Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-        }
+        // 直接替换为新 brush（XAML 资源默认 frozen 只读，不能修改 Color）
+        Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
     }
 
     private async void BtnConnect_Click(object sender, RoutedEventArgs e)
