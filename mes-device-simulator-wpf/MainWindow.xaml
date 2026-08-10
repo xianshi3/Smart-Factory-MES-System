@@ -413,14 +413,26 @@
                                 <TextBlock Text="在线设备" Style="{StaticResource PanelTitle}"/>
                             </StackPanel>
                             <Border Background="{DynamicResource ThemePanelBg}" CornerRadius="5" Padding="4" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
-                                <ListBox x:Name="deviceListBox" Height="110" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0" Background="Transparent">
+                                <ListBox x:Name="deviceListBox" Height="120" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0" Background="Transparent">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="{DynamicResource ThemeText}" FontFamily="Consolas"/>
-                                                <TextBlock Text="{Binding DeviceName}" Foreground="{DynamicResource ThemeFaint}" Width="64" FontSize="11"/>
-                                                <TextBlock Text="{Binding Status}" Foreground="#34D399" FontSize="11" FontFamily="Consolas"/>
-                                            </StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="{DynamicResource ThemeText}" FontFamily="Consolas"/>
+                                                        <TextBlock Text="{Binding DeviceName}" Foreground="{DynamicResource ThemeFaint}" Width="56" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource ThemeAccent}" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Temperature, StringFormat={}{0:F1}°C}" FontSize="10" Foreground="#F59E0B" FontFamily="Consolas" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding Speed, StringFormat={}{0:F0}rpm}" FontSize="10" Foreground="#06B6D4" FontFamily="Consolas"/>
+                                                </StackPanel>
+                                            </Grid>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>

@@ -487,7 +487,22 @@ public partial class MainWindow : Window
 
             if (response.IsSuccessStatusCode)
             {
-                statusBar.Text = $"设备 {deviceCode} 创建成功";
+                // 加入本地模拟列表（参与多台动态模拟）
+                if (_devices.All(d => d.DeviceCode != deviceCode))
+                {
+                    _devices.Add(new SimulatedDevice(deviceCode, deviceName, deviceType)
+                    {
+                        Status = status,
+                        Temperature = _temperature,
+                        Speed = _speed,
+                        Pressure = _pressure,
+                        Power = _power,
+                        TempOffset = (_random.NextDouble() - 0.5) * 3,
+                        SpeedOffset = (_random.NextDouble() - 0.5) * 80,
+                    });
+                    RefreshDeviceListBox();
+                }
+                statusBar.Text = $"设备 {deviceCode} 创建成功（共 {_devices.Count} 台模拟设备）";
                 MessageBox.Show($"设备 {deviceCode} 创建成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 LoadDeviceList();
             }
@@ -682,20 +697,31 @@ public partial class MainWindow : Window
         }
         else
         {
-            // 批量设备模式：每台设备按场景随机游走
+            // 批量设备模式：每台设备独立随机游走（遵循自动波动开关）
+            bool autoTemp = chkAutoTemperature.IsChecked == true;
+            bool autoSpeed = chkAutoSpeed.IsChecked == true;
+            bool autoStatus = chkAutoStatus.IsChecked == true;
+
             foreach (var dev in _devices)
             {
-                dev.Temperature += (_random.NextDouble() - 0.5) * (scenario.TempJitter * 2);
-                dev.Temperature = Math.Max(20, Math.Min(100, dev.Temperature));
-
-                dev.Speed += (_random.NextDouble() - 0.5) * (scenario.SpeedJitter * 2);
-                dev.Speed = Math.Max(0, Math.Min(2000, dev.Speed));
-
-                if (_random.NextDouble() < scenario.AlarmRate)
+                if (autoTemp)
+                {
+                    dev.Temperature += (_random.NextDouble() - 0.5) * (scenario.TempJitter * 2);
+                    dev.Temperature = Math.Max(20, Math.Min(100, dev.Temperature));
+                }
+                if (autoSpeed)
+                {
+                    dev.Speed += (_random.NextDouble() - 0.5) * (scenario.SpeedJitter * 2);
+                    dev.Speed = Math.Max(0, Math.Min(2000, dev.Speed));
+                }
+                if (autoStatus && _random.NextDouble() < scenario.AlarmRate)
                 {
                     string[] statuses = { "ONLINE", "ONLINE", "OFFLINE", "ALARM", "MAINTENANCE" };
                     dev.Status = statuses[_random.Next(statuses.Length)];
                 }
+                // 功率随转速联动
+                dev.Power = Math.Round(dev.Speed / 20 + _random.NextDouble() * 5, 1);
+                dev.Pressure = Math.Round(1.2 + dev.Temperature / 90 * 0.8 + (_random.NextDouble() - 0.5) * 0.1, 2);
             }
 
             await SendBatchDeviceDataAsync();
