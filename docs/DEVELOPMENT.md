@@ -270,6 +270,19 @@ npm run dev
 | POST | /device/simulate | 模拟数据上报（模拟器单台） |
 | DELETE | /devices/all | 清空全部设备 |
 
+### 7.4 AI 生产助理（mes-ai-service /agent）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/agent/run | Agent 执行（四阶段编排：任务理解→计划执行→知识增强→结果交付） |
+| GET | /api/v1/agent/tools | 可用工具列表（15 个 MES 工具） |
+| POST | /api/v1/agent/kb/search | 知识库检索（TF-IDF） |
+| POST | /api/v1/agent/conversations | 新建对话 / 列表 / 详情 / 消息 / 删除 |
+| POST | /api/v1/agent/analysis | 分析历史 CRUD |
+
+> **Agent 响应结构**: `{success, content, steps(执行步骤), plan(执行计划), report(结构化交付: summary/key_points/tables/recommendations/follow_ups), intent, intent_label}`。
+> **多轮交互**: 传入 `session_id` 后，Agent 通过 Redis 记忆上轮设备焦点，指代（如"那台设备"）自动继承。
+
 ---
 
 ## 8. 消息队列
