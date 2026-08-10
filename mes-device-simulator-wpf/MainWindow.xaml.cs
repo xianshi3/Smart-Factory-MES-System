@@ -17,12 +17,13 @@ public partial class MainWindow : Window
 {
     private readonly HttpClient _httpClient = new();
     private readonly DispatcherTimer _simulationTimer;
+    private readonly DispatcherTimer _clockTimer;
     private readonly Random _random = new();
     private long _messageCount = 0;
     private long _lastMessageCount = 0;
     private bool _isSimulating = false;
     private bool _isConnected = false;
-    private bool _isDarkTheme = false;
+    private bool _isDarkTheme = true;
     private readonly DispatcherTimer _sendRateTimer;
 
     private IMqttClient? _mqttClient;
@@ -72,7 +73,13 @@ public partial class MainWindow : Window
         _sendRateTimer.Tick += SendRateTimer_Tick;
         _sendRateTimer.Start();
 
-        ApplyLightTheme();
+        // 上位机时钟
+        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _clockTimer.Tick += (_, _) => clockText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        _clockTimer.Start();
+        clockText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        ApplyDarkTheme();
 
         // 恢复上次配置（API/MQTT地址、参数、频率、场景）
         LoadConfig();
@@ -148,41 +155,43 @@ public partial class MainWindow : Window
         descText.Foreground = darkMuted;
         apiStatusText.Foreground = darkMuted;
         mqttStatusText.Foreground = darkMuted;
+        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
         
-        // Config card
+        // Cards
         configCard.Background = darkCard;
+        paramCard.Background = darkCard;
+        batchCard.Background = darkCard;
+        deviceCard.Background = darkCard;
+        paramControlCard.Background = darkCard;
         lblApiAddress.Foreground = darkMuted;
-        apiServerInput.Background = darkCard;
+        lblMqttServer.Foreground = darkMuted;
+        lblDeviceId.Foreground = darkMuted;
+        lblDeviceName.Foreground = darkMuted;
+        lblDeviceType.Foreground = darkMuted;
+        lblStatus.Foreground = darkMuted;
+        titleText.Foreground = darkText;
+
+        // Inputs
+        apiServerInput.Background = darkPanel;
         apiServerInput.Foreground = darkText;
         apiServerInput.BorderBrush = darkBorder;
-
-        lblMqttServer.Foreground = darkMuted;
-        mqttServerInput.Background = darkCard;
+        mqttServerInput.Background = darkPanel;
         mqttServerInput.Foreground = darkText;
         mqttServerInput.BorderBrush = darkBorder;
-        mqttPortInput.Background = darkCard;
+        mqttPortInput.Background = darkPanel;
         mqttPortInput.Foreground = darkText;
         mqttPortInput.BorderBrush = darkBorder;
-        
-        lblDeviceId.Foreground = darkMuted;
-        devIdInput.Background = darkCard;
+        devIdInput.Background = darkPanel;
         devIdInput.Foreground = darkText;
         devIdInput.BorderBrush = darkBorder;
-        
-        lblDeviceName.Foreground = darkMuted;
-        devNameInput.Background = darkCard;
+        devNameInput.Background = darkPanel;
         devNameInput.Foreground = darkText;
         devNameInput.BorderBrush = darkBorder;
+        batchCountInput.Background = darkPanel;
+        batchCountInput.Foreground = darkText;
+        batchCountInput.BorderBrush = darkBorder;
         
-        lblDeviceType.Foreground = darkMuted;
-        
-        // Param card
-        paramCard.Background = darkCard;
-        titleText.Foreground = darkText;
-        lblStatus.Foreground = darkMuted;
-        
-        panelBg.Background = darkPanel;
-        
+        // Param panels
         bgTemp.Background = darkPanel;
         bgSpeed.Background = darkPanel;
         bgPressure.Background = darkPanel;
@@ -199,10 +208,10 @@ public partial class MainWindow : Window
         chkAutoSpeed.Foreground = darkText;
         chkAutoStatus.Foreground = darkText;
         
-        tempValue.Foreground = darkText;
-        speedValue.Foreground = darkText;
-        pressureValue.Foreground = darkText;
-        powerValue.Foreground = darkText;
+        tempValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+        speedValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#06B6D4"));
+        pressureValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B5CF6"));
+        powerValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
         
         // Stats
         stat1.Background = darkCard;
@@ -215,14 +224,16 @@ public partial class MainWindow : Window
         lblLastSend.Foreground = darkMuted;
         lblSendRate.Foreground = darkMuted;
         
-        txtMessageCount.Foreground = darkText;
-        txtSimulationStatus.Foreground = darkText;
-        txtLastSend.Foreground = darkText;
-        txtSendRate.Foreground = darkText;
+        txtMessageCount.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
+        txtSimulationStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F87171"));
+        txtLastSend.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
+        txtSendRate.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A78BFA"));
         
-        // Data card
+        // Chart / Data
+        chartCard.Background = darkCard;
         dataCard.Background = darkCard;
         dataTitle.Foreground = darkText;
+        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4ADE80"));
         
         // Bottom
         bottomBar.Background = darkCard;
@@ -239,38 +250,39 @@ public partial class MainWindow : Window
         
         subtitleText.Foreground = lightText;
         descText.Foreground = lightMuted;
+        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9"));
         
         configCard.Background = lightCard;
+        paramCard.Background = lightCard;
+        batchCard.Background = lightCard;
+        deviceCard.Background = lightCard;
+        paramControlCard.Background = lightCard;
         lblApiAddress.Foreground = lightMuted;
+        lblMqttServer.Foreground = lightMuted;
+        lblDeviceId.Foreground = lightMuted;
+        lblDeviceName.Foreground = lightMuted;
+        lblDeviceType.Foreground = lightMuted;
+        lblStatus.Foreground = lightMuted;
+        titleText.Foreground = lightText;
+
         apiServerInput.Background = lightCard;
         apiServerInput.Foreground = lightText;
         apiServerInput.BorderBrush = lightBorder;
-
-        lblMqttServer.Foreground = lightMuted;
         mqttServerInput.Background = lightCard;
         mqttServerInput.Foreground = lightText;
         mqttServerInput.BorderBrush = lightBorder;
         mqttPortInput.Background = lightCard;
         mqttPortInput.Foreground = lightText;
         mqttPortInput.BorderBrush = lightBorder;
-        
-        lblDeviceId.Foreground = lightMuted;
         devIdInput.Background = lightCard;
         devIdInput.Foreground = lightText;
         devIdInput.BorderBrush = lightBorder;
-        
-        lblDeviceName.Foreground = lightMuted;
         devNameInput.Background = lightCard;
         devNameInput.Foreground = lightText;
         devNameInput.BorderBrush = lightBorder;
-        
-        lblDeviceType.Foreground = lightMuted;
-        
-        paramCard.Background = lightCard;
-        titleText.Foreground = lightText;
-        lblStatus.Foreground = lightMuted;
-        
-        panelBg.Background = lightPanel;
+        batchCountInput.Background = lightCard;
+        batchCountInput.Foreground = lightText;
+        batchCountInput.BorderBrush = lightBorder;
         
         bgTemp.Background = lightPanel;
         bgSpeed.Background = lightPanel;
@@ -288,10 +300,10 @@ public partial class MainWindow : Window
         chkAutoSpeed.Foreground = lightText;
         chkAutoStatus.Foreground = lightText;
         
-        tempValue.Foreground = lightText;
-        speedValue.Foreground = lightText;
-        pressureValue.Foreground = lightText;
-        powerValue.Foreground = lightText;
+        tempValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706"));
+        speedValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0891B2"));
+        pressureValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED"));
+        powerValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
         
         stat1.Background = lightCard;
         stat2.Background = lightCard;
@@ -303,13 +315,15 @@ public partial class MainWindow : Window
         lblLastSend.Foreground = lightMuted;
         lblSendRate.Foreground = lightMuted;
         
-        txtMessageCount.Foreground = lightText;
-        txtSimulationStatus.Foreground = lightText;
-        txtLastSend.Foreground = lightText;
-        txtSendRate.Foreground = lightText;
+        txtMessageCount.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+        txtSimulationStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626"));
+        txtLastSend.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
+        txtSendRate.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED"));
         
+        chartCard.Background = lightCard;
         dataCard.Background = lightCard;
         dataTitle.Foreground = lightText;
+        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
         
         bottomBar.Background = lightCard;
         apiEndpoint.Foreground = lightMuted;
@@ -481,10 +495,14 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                var devices = JsonConvert.DeserializeObject<List<DeviceStatus>>(json);
+                // 后端返回包装结构 {code, message, data:[...]}
+                var wrapper = JsonConvert.DeserializeObject<dynamic>(json);
+                var data = wrapper?.data as Newtonsoft.Json.Linq.JArray;
+                var devices = data?.ToObject<List<DeviceStatus>>();
                 if (devices != null)
                 {
                     deviceListBox.ItemsSource = devices;
+                    statusBar.Text = $"设备列表加载成功：{devices.Count} 台";
                 }
             }
         }
@@ -1015,6 +1033,8 @@ public partial class MainWindow : Window
     // ─── 场景预设 ───
     private void CmbScenario_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // XAML 初始化时 SelectedIndex="0" 会触发本事件，此时控件可能尚未全部初始化
+        if (sliderTemp == null || sliderSpeed == null || cmbStatus == null) return;
         if (cmbScenario.SelectedItem is not ComboBoxItem item || cmbScenario.SelectedIndex < 0) return;
         var name = item.Tag?.ToString() ?? "正常运行";
         var scenario = SimulationScenario.Presets.FirstOrDefault(s => s.Name == name) ?? SimulationScenario.Presets[0];

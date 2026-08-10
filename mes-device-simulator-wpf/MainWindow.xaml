@@ -1,412 +1,475 @@
 <Window x:Class="MESDeviceSimulator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MES设备模拟器" Height="720" Width="1150"
+        Title="MES设备模拟器" Height="800" Width="1360"
         WindowStartupLocation="CenterScreen"
-        Background="#F1F5F9">
+        MinHeight="680" MinWidth="1150"
+        Background="#0B1220">
     <Window.Resources>
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#3B82F6"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
-        <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
-        
-        <DropShadowEffect x:Key="Shadow" BlurRadius="12" ShadowDepth="2" Color="#000000" Opacity="0.08" Direction="270"/>
-        
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#F87171"/>
+
         <Style x:Key="Btn" TargetType="Button">
-            <Setter Property="Background" Value="#3B82F6"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.9"/></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.5"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#334155"/></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.8"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.4"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        
+
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Btn}">
+            <Setter Property="Background" Value="#0EA5E9"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#38BDF8"/>
+        </Style>
+
         <Style x:Key="BtnSuccess" TargetType="Button" BasedOn="{StaticResource Btn}">
             <Setter Property="Background" Value="#10B981"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#34D399"/>
         </Style>
-        
+
         <Style x:Key="BtnDanger" TargetType="Button" BasedOn="{StaticResource Btn}">
-            <Setter Property="Background" Value="#EF4444"/>
+            <Setter Property="Background" Value="#B91C1C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#F87171"/>
         </Style>
-        
+
         <Style x:Key="Input" TargetType="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#1E293B"/>
-            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="CaretBrush" Value="#38BDF8"/>
+        </Style>
+
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+        </Style>
+
+        <Style x:Key="PanelTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
         </Style>
     </Window.Resources>
-    
-    <Grid Margin="16">
+
+    <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
-        <!-- 顶部标题栏 -->
-        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,12" Effect="{StaticResource Shadow}">
+
+        <!-- ══════════ 顶部标题栏 ══════════ -->
+        <Border Grid.Row="0" x:Name="topBar" Background="#111A2C" CornerRadius="8" Padding="14,10" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <StackPanel Orientation="Horizontal">
-                    <Border Background="#3B82F6" CornerRadius="5" Padding="10,4" Margin="0,0,10,0">
-                        <TextBlock Text="MES" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                    </Border>
-                    <TextBlock x:Name="subtitleText" Text="设备模拟器" FontSize="20" FontWeight="SemiBold" Foreground="#1E293B" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="descText" Text="实时模拟设备数据并推送至后端" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
-                </StackPanel>
-                
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <Ellipse x:Name="apiDot" Width="8" Height="8" Fill="#EF4444" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="apiStatusText" Text="API:未连" FontSize="11" Foreground="#64748B" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                    <Ellipse x:Name="mqttDot" Width="8" Height="8" Fill="#EF4444" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="mqttStatusText" Text="MQTT:未连" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
-                </StackPanel>
-                
-                <Button Grid.Column="2" x:Name="btnTheme" Content="🌙" Style="{StaticResource Btn}" Click="BtnTheme_Click" Padding="10,6"/>
-            </Grid>
-        </Border>
-        
-        <!-- 配置卡片 -->
-        <Border Grid.Row="1" x:Name="configCard" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,12" Effect="{StaticResource Shadow}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="260"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
-                <!-- 左侧 -->
-                <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                    <TextBlock x:Name="lblApiAddress" Text="API地址" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
-                    <TextBox x:Name="apiServerInput" Text="http://localhost:8085" Style="{StaticResource Input}" Margin="0,0,0,10"/>
-                    
-                    <TextBlock x:Name="lblMqttServer" Text="MQTT服务器 (EMQX)" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="70"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="mqttServerInput" Text="localhost" Style="{StaticResource Input}" Margin="0,0,4,0"/>
-                        <TextBox x:Name="mqttPortInput" Text="1883" Style="{StaticResource Input}" Grid.Column="1" HorizontalContentAlignment="Center"/>
-                    </Grid>
-                    
-                    <TextBlock Text="设备列表" FontSize="12" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
-                    <Border Background="#F8FAFC" CornerRadius="6" Padding="6">
-                        <ListBox x:Name="deviceListBox" Height="84" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,4,0" Width="50" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceName}" Foreground="#64748B" Width="60" FontSize="11"/>
-                                        <TextBlock Text="{Binding Status}" Foreground="#10B981" FontSize="11"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+
+                <!-- Logo + 标题 -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#0EA5E9" CornerRadius="4" Padding="9,4" Margin="0,0,10,0">
+                        <TextBlock Text="MES" FontSize="11" FontWeight="Bold" Foreground="White"/>
                     </Border>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="64"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="批量设备数量" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="batchCountInput" Text="50" Style="{StaticResource Input}" Grid.Column="1" HorizontalContentAlignment="Center" Padding="6,5"/>
-                        <Button x:Name="btnBatchCreate" Content="批量创建" Style="{StaticResource Btn}" Grid.Column="2" Click="BtnBatchCreate_Click" Padding="10,6" Margin="6,0,0,0"/>
-                    </Grid>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="场景预设" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox x:Name="cmbScenario" Grid.Column="1" SelectedIndex="0" Width="150" Padding="8,5" SelectionChanged="CmbScenario_SelectionChanged">
-                            <ComboBoxItem Content="正常运行" Tag="正常运行"/>
-                            <ComboBoxItem Content="满载生产" Tag="满载生产"/>
-                            <ComboBoxItem Content="高温告警" Tag="高温告警"/>
-                            <ComboBoxItem Content="突发故障" Tag="突发故障"/>
-                            <ComboBoxItem Content="维护停机" Tag="维护停机"/>
-                        </ComboBox>
-                    </Grid>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="发送频率" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox x:Name="cmbSendInterval" Grid.Column="1" SelectedIndex="1" Width="150" Padding="8,5" SelectionChanged="CmbSendInterval_SelectionChanged">
-                            <ComboBoxItem Content="0.5秒" Tag="500"/>
-                            <ComboBoxItem Content="1秒" Tag="1000"/>
-                            <ComboBoxItem Content="2秒" Tag="2000"/>
-                            <ComboBoxItem Content="5秒" Tag="5000"/>
-                        </ComboBox>
-                    </Grid>
+                    <StackPanel>
+                        <TextBlock x:Name="subtitleText" Text="设备模拟器" FontSize="17" FontWeight="Bold" Foreground="#F1F5F9"/>
+                        <TextBlock x:Name="descText" Text="SCADA 上位机风格 · 实时数据模拟" FontSize="10" Foreground="#64748B"/>
+                    </StackPanel>
                 </StackPanel>
-                
-                <!-- 中间 -->
-                <Grid Grid.Column="1" Margin="0,0,12,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                            <TextBlock x:Name="lblDeviceId" Text="设备ID" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
-                            <TextBox x:Name="devIdInput" Text="DEV-001" Style="{StaticResource Input}"/>
+
+                <!-- 状态指示 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
+                    <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="apiDot" Width="8" Height="8" Fill="#F87171" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="apiStatusText" Text="API 未连接" FontSize="10" Foreground="#94A3B8" FontFamily="Consolas"/>
                         </StackPanel>
-                        
-                        <StackPanel Grid.Column="1" Margin="4,0">
-                            <TextBlock x:Name="lblDeviceName" Text="设备名称" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
-                            <TextBox x:Name="devNameInput" Text="CNC加工中心A1" Style="{StaticResource Input}"/>
+                    </Border>
+                    <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,5">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="mqttDot" Width="8" Height="8" Fill="#F87171" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="mqttStatusText" Text="MQTT 未连接" FontSize="10" Foreground="#94A3B8" FontFamily="Consolas"/>
                         </StackPanel>
-                        
-                        <StackPanel Grid.Column="2" Margin="4,0,0,0">
-                            <TextBlock x:Name="lblDeviceType" Text="设备类型" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
-                            <ComboBox x:Name="cmbDeviceType" SelectedIndex="0" Background="White" Padding="8,6">
-                                <ComboBoxItem Content="CNC"/>
-                                <ComboBoxItem Content="PLC"/>
-                                <ComboBoxItem Content="Robot"/>
-                                <ComboBoxItem Content="AGV"/>
-                                <ComboBoxItem Content="Sensor"/>
-                                <ComboBoxItem Content="检测设备"/>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-                    
-                    <WrapPanel Grid.Row="1">
-                        <Button x:Name="btnConnect" Content="连接" Style="{StaticResource Btn}" Click="BtnConnect_Click" Margin="0,0,4,0" Padding="12,6"/>
-                        <Button x:Name="btnDisconnect" Content="断开" Style="{StaticResource BtnDanger}" Click="BtnDisconnect_Click" IsEnabled="False" Margin="0,0,4,0" Padding="12,6"/>
-                        <Button x:Name="btnCreate" Content="创建" Style="{StaticResource Btn}" Click="BtnCreate_Click" Margin="0,0,4,0" Padding="12,6"/>
-                        <Button x:Name="btnUpdate" Content="更新" Style="{StaticResource Btn}" Click="BtnUpdate_Click" Margin="0,0,4,0" Padding="12,6"/>
-                        <Button x:Name="btnDelete" Content="删除" Style="{StaticResource BtnDanger}" Click="BtnDelete_Click" Margin="0,0,4,0" Padding="12,6"/>
-                    </WrapPanel>
-                </Grid>
-                
-                <!-- 右侧 -->
-                <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                    <Button x:Name="btnStartSimulation" Content="▶ 开始模拟" Style="{StaticResource BtnSuccess}" Click="BtnStartSimulation_Click" IsEnabled="False" Padding="18,10"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- 时间 + 主题 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="clockText" Text="--:--:--" FontSize="13" Foreground="#38BDF8" FontFamily="Consolas" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button x:Name="btnTheme" Content="🌙" Style="{StaticResource Btn}" Click="BtnTheme_Click" Padding="9,5" ToolTip="切换主题"/>
                 </StackPanel>
             </Grid>
         </Border>
-        
-        <!-- 主内容区 -->
-        <Grid Grid.Row="2">
+
+        <!-- ══════════ 主区 ══════════ -->
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="320"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            
-            <!-- 左侧参数卡片 -->
-            <Border Grid.Column="0" x:Name="paramCard" Background="White" CornerRadius="10" Padding="18" Margin="0,0,10,0" Effect="{StaticResource Shadow}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock x:Name="titleText" Text="参数配置" FontSize="16" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,14"/>
-                        
-                        <Border x:Name="panelBg" Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="0,0,0,12">
-                            <StackPanel>
-                                <TextBlock x:Name="lblStatus" Text="设备状态" FontSize="11" Foreground="#64748B" Margin="0,0,0,6"/>
-                                <ComboBox x:Name="cmbStatus" SelectedIndex="0" Background="White" Padding="8,6">
-                                    <ComboBoxItem Content="● 运行中" Tag="ONLINE"/>
-                                    <ComboBoxItem Content="○ 空闲" Tag="OFFLINE"/>
-                                    <ComboBoxItem Content="⚠ 告警" Tag="ALARM"/>
-                                    <ComboBoxItem Content="⟳ 维护" Tag="MAINTENANCE"/>
-                                </ComboBox>
+
+            <!-- ═══ 左操作面板 ═══ -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,8,0">
+
+                    <!-- 连接配置 -->
+                    <Border x:Name="configCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Ellipse Width="6" Height="6" Fill="#38BDF8" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="通信配置" Style="{StaticResource PanelTitle}"/>
                             </StackPanel>
-                        </Border>
-                        
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <Border x:Name="bgTemp" Grid.Column="0" Grid.Row="0" Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                            <TextBlock x:Name="lblApiAddress" Text="API 地址" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="apiServerInput" Text="http://localhost:8085" Style="{StaticResource Input}" Margin="0,0,0,8"/>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="64"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,6,0">
+                                    <TextBlock x:Name="lblMqttServer" Text="MQTT 服务器 (EMQX)" Style="{StaticResource Lbl}"/>
+                                    <TextBox x:Name="mqttServerInput" Text="localhost" Style="{StaticResource Input}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="端口" Style="{StaticResource Lbl}"/>
+                                    <TextBox x:Name="mqttPortInput" Text="1883" Style="{StaticResource Input}" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="btnConnect" Content="连 接" Style="{StaticResource BtnPrimary}" Click="BtnConnect_Click" Margin="0,0,4,0"/>
+                                <Button x:Name="btnDisconnect" Content="断 开" Style="{StaticResource BtnDanger}" Grid.Column="1" Click="BtnDisconnect_Click" IsEnabled="False" Margin="4,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 设备管理 -->
+                    <Border x:Name="paramCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Ellipse Width="6" Height="6" Fill="#34D399" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="titleText" Text="设备管理" Style="{StaticResource PanelTitle}"/>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,4,0">
+                                    <TextBlock x:Name="lblDeviceId" Text="设备编码" Style="{StaticResource Lbl}"/>
+                                    <TextBox x:Name="devIdInput" Text="DEV-001" Style="{StaticResource Input}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                    <TextBlock x:Name="lblDeviceName" Text="设备名称" Style="{StaticResource Lbl}"/>
+                                    <TextBox x:Name="devNameInput" Text="CNC加工中心" Style="{StaticResource Input}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,6,0">
+                                    <TextBlock x:Name="lblDeviceType" Text="设备类型" Style="{StaticResource Lbl}"/>
+                                    <ComboBox x:Name="cmbDeviceType" SelectedIndex="0" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" Padding="6,5" FontSize="12">
+                                        <ComboBoxItem Content="CNC"/>
+                                        <ComboBoxItem Content="PLC"/>
+                                        <ComboBoxItem Content="机器人"/>
+                                        <ComboBoxItem Content="检测设备"/>
+                                        <ComboBoxItem Content="输送线"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                                    <TextBlock x:Name="lblStatus" Text="状态" Style="{StaticResource Lbl}"/>
+                                    <ComboBox x:Name="cmbStatus" SelectedIndex="0" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" Padding="6,5" FontSize="12" Width="96">
+                                        <ComboBoxItem Content="运行" Tag="ONLINE"/>
+                                        <ComboBoxItem Content="离线" Tag="OFFLINE"/>
+                                        <ComboBoxItem Content="报警" Tag="ALARM"/>
+                                        <ComboBoxItem Content="维护" Tag="MAINTENANCE"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="btnCreate" Content="创建" Style="{StaticResource Btn}" Click="BtnCreate_Click" Margin="0,0,3,0"/>
+                                <Button x:Name="btnUpdate" Content="更新" Style="{StaticResource Btn}" Grid.Column="1" Click="BtnUpdate_Click" Margin="3,0"/>
+                                <Button x:Name="btnDelete" Content="删除" Style="{StaticResource BtnDanger}" Grid.Column="2" Click="BtnDelete_Click" Margin="3,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 批量模拟 -->
+                    <Border x:Name="batchCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Ellipse Width="6" Height="6" Fill="#F59E0B" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="批量模拟" Style="{StaticResource PanelTitle}"/>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="设备数量 (1-1000)" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                                <TextBox x:Name="batchCountInput" Text="50" Style="{StaticResource Input}" Grid.Column="1" HorizontalContentAlignment="Center" Margin="6,0"/>
+                                <Button x:Name="btnBatchCreate" Content="批量创建" Style="{StaticResource BtnPrimary}" Grid.Column="2" Click="BtnBatchCreate_Click" Padding="10,6"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="场景预设" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbScenario" Grid.Column="1" SelectedIndex="0" Width="150" Padding="6,5" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" FontSize="12" SelectionChanged="CmbScenario_SelectionChanged">
+                                    <ComboBoxItem Content="正常运行" Tag="正常运行"/>
+                                    <ComboBoxItem Content="满载生产" Tag="满载生产"/>
+                                    <ComboBoxItem Content="高温告警" Tag="高温告警"/>
+                                    <ComboBoxItem Content="突发故障" Tag="突发故障"/>
+                                    <ComboBoxItem Content="维护停机" Tag="维护停机"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="发送频率" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbSendInterval" Grid.Column="1" SelectedIndex="1" Width="150" Padding="6,5" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" FontSize="12" SelectionChanged="CmbSendInterval_SelectionChanged">
+                                    <ComboBoxItem Content="0.5秒" Tag="500"/>
+                                    <ComboBoxItem Content="1秒" Tag="1000"/>
+                                    <ComboBoxItem Content="2秒" Tag="2000"/>
+                                    <ComboBoxItem Content="5秒" Tag="5000"/>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 设备列表 -->
+                    <Border x:Name="deviceCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Ellipse Width="6" Height="6" Fill="#8B5CF6" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="在线设备" Style="{StaticResource PanelTitle}"/>
+                            </StackPanel>
+                            <Border Background="#0F172A" CornerRadius="5" Padding="4" BorderBrush="#1E293B" BorderThickness="1">
+                                <ListBox x:Name="deviceListBox" Height="110" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0" Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding DeviceCode}" FontWeight="SemiBold" Margin="0,0,6,0" Width="56" FontSize="11" Foreground="#E2E8F0" FontFamily="Consolas"/>
+                                                <TextBlock Text="{Binding DeviceName}" Foreground="#94A3B8" Width="64" FontSize="11"/>
+                                                <TextBlock Text="{Binding Status}" Foreground="#34D399" FontSize="11" FontFamily="Consolas"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 参数控制 -->
+                    <Border x:Name="paramControlCard" Background="#111A2C" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Ellipse Width="6" Height="6" Fill="#06B6D4" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="参数控制" Style="{StaticResource PanelTitle}"/>
+                            </StackPanel>
+
+                            <Border x:Name="bgTemp" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock x:Name="lblTemp" Text="温度 °C" FontSize="12" Foreground="#64748B"/>
-                                        <TextBlock x:Name="tempValue" Text="45" FontSize="20" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Right"/>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock x:Name="lblTemp" Text="温度 °C" FontSize="11" Foreground="#F59E0B"/>
+                                        <TextBlock x:Name="tempValue" Text="45.0" FontSize="16" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Right" FontFamily="Consolas"/>
                                     </Grid>
                                     <Slider x:Name="sliderTemp" Minimum="20" Maximum="100" Value="45" ValueChanged="SliderTemp_ValueChanged"/>
                                 </StackPanel>
                             </Border>
-                            
-                            <Border x:Name="bgSpeed" Grid.Column="2" Grid.Row="0" Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+
+                            <Border x:Name="bgSpeed" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock x:Name="lblSpeed" Text="速度 RPM" FontSize="12" Foreground="#64748B"/>
-                                        <TextBlock x:Name="speedValue" Text="1200" FontSize="20" FontWeight="Bold" Foreground="#06B6D4" HorizontalAlignment="Right"/>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock x:Name="lblSpeed" Text="转速 rpm" FontSize="11" Foreground="#06B6D4"/>
+                                        <TextBlock x:Name="speedValue" Text="1200" FontSize="16" FontWeight="Bold" Foreground="#06B6D4" HorizontalAlignment="Right" FontFamily="Consolas"/>
                                     </Grid>
                                     <Slider x:Name="sliderSpeed" Minimum="0" Maximum="2000" Value="1200" ValueChanged="SliderSpeed_ValueChanged"/>
                                 </StackPanel>
                             </Border>
-                            
-                            <Border x:Name="bgPressure" Grid.Column="0" Grid.Row="1" Background="#F1F5F9" CornerRadius="8" Padding="12">
+
+                            <Border x:Name="bgPressure" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,6">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock x:Name="lblPressure" Text="压力 MPa" FontSize="12" Foreground="#64748B"/>
-                                        <TextBlock x:Name="pressureValue" Text="1.5" FontSize="20" FontWeight="Bold" Foreground="#8B5CF6" HorizontalAlignment="Right"/>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock x:Name="lblPressure" Text="压力 MPa" FontSize="11" Foreground="#8B5CF6"/>
+                                        <TextBlock x:Name="pressureValue" Text="1.50" FontSize="16" FontWeight="Bold" Foreground="#8B5CF6" HorizontalAlignment="Right" FontFamily="Consolas"/>
                                     </Grid>
                                     <Slider x:Name="sliderPressure" Minimum="0" Maximum="3" Value="1.5" ValueChanged="SliderPressure_ValueChanged"/>
                                 </StackPanel>
                             </Border>
-                            
-                            <Border x:Name="bgPower" Grid.Column="2" Grid.Row="1" Background="#F1F5F9" CornerRadius="8" Padding="12">
+
+                            <Border x:Name="bgPower" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock x:Name="lblPower" Text="功率 kW" FontSize="12" Foreground="#64748B"/>
-                                        <TextBlock x:Name="powerValue" Text="50" FontSize="20" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Right"/>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock x:Name="lblPower" Text="功率 kW" FontSize="11" Foreground="#34D399"/>
+                                        <TextBlock x:Name="powerValue" Text="50" FontSize="16" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Right" FontFamily="Consolas"/>
                                     </Grid>
                                     <Slider x:Name="sliderPower" Minimum="0" Maximum="100" Value="50" ValueChanged="SliderPower_ValueChanged"/>
                                 </StackPanel>
                             </Border>
-                        </Grid>
-                        
-                        <Border x:Name="bgAuto" Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="0,0,0,12">
-                            <StackPanel>
-                                <TextBlock x:Name="lblAuto" Text="自动模拟" FontSize="12" Foreground="#64748B" Margin="0,0,0,8"/>
-                                <WrapPanel>
-                                    <CheckBox x:Name="chkAutoTemperature" Content="温度波动" Margin="0,0,12,0" FontSize="12"/>
-                                    <CheckBox x:Name="chkAutoSpeed" Content="速度波动" Margin="0,0,12,0" FontSize="12"/>
-                                    <CheckBox x:Name="chkAutoStatus" Content="状态变化" FontSize="12"/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
-                        
-                        <Button x:Name="btnApplyParams" Content="应用参数" Style="{StaticResource Btn}" Click="BtnApplyParams_Click" Padding="16,10"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-            
-            <!-- 右侧 -->
+
+                            <Border x:Name="bgAuto" Background="#0F172A" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <TextBlock x:Name="lblAuto" Text="自动模拟" Style="{StaticResource Lbl}" Margin="0,0,0,6"/>
+                                    <WrapPanel>
+                                        <CheckBox x:Name="chkAutoTemperature" Content="温度波动" Margin="0,0,14,0" FontSize="11" Foreground="#94A3B8"/>
+                                        <CheckBox x:Name="chkAutoSpeed" Content="速度波动" Margin="0,0,14,0" FontSize="11" Foreground="#94A3B8"/>
+                                        <CheckBox x:Name="chkAutoStatus" Content="状态变化" FontSize="11" Foreground="#94A3B8"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Button x:Name="btnApplyParams" Content="应用参数" Style="{StaticResource Btn}" Click="BtnApplyParams_Click" Margin="0,0,0,8"/>
+                            <Button x:Name="btnStartSimulation" Content="▶ 开始模拟" Style="{StaticResource BtnSuccess}" Click="BtnStartSimulation_Click" IsEnabled="False" Padding="18,11" FontSize="13"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ═══ 右侧监控区 ═══ -->
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
-                <!-- 统计卡片 -->
-                <Grid Grid.Row="0" Margin="0,0,0,10">
+
+                <!-- 统计 -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    
-                    <Border x:Name="stat1" Grid.Column="0" Background="White" CornerRadius="8" Padding="12" Margin="0,0,4,0">
-                        <StackPanel>
-                            <TextBlock x:Name="lblMsgCount" Text="消息数" FontSize="10" Foreground="#64748B"/>
-                            <TextBlock x:Name="txtMessageCount" Text="0" FontSize="20" FontWeight="SemiBold" Foreground="#1E293B"/>
-                        </StackPanel>
+
+                    <Border x:Name="stat1" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="0,0,4,0" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <TextBlock x:Name="lblMsgCount" Text="消息总数" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="txtMessageCount" Text="0" FontSize="17" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                        </Grid>
                     </Border>
-                    
-                    <Border x:Name="stat2" Grid.Column="1" Background="White" CornerRadius="8" Padding="12" Margin="4,0">
-                        <StackPanel>
-                            <TextBlock x:Name="lblSimStatus" Text="状态" FontSize="10" Foreground="#64748B"/>
-                            <TextBlock x:Name="txtSimulationStatus" Text="停止" FontSize="20" FontWeight="SemiBold" Foreground="#EF4444"/>
-                        </StackPanel>
+                    <Border x:Name="stat2" Grid.Column="1" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <TextBlock x:Name="lblSimStatus" Text="模拟状态" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="txtSimulationStatus" Text="停止" FontSize="17" FontWeight="Bold" Foreground="#F87171" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                        </Grid>
                     </Border>
-                    
-                    <Border x:Name="stat3" Grid.Column="2" Background="White" CornerRadius="8" Padding="12" Margin="4,0">
-                        <StackPanel>
-                            <TextBlock x:Name="lblLastSend" Text="最后发送" FontSize="10" Foreground="#64748B"/>
-                            <TextBlock x:Name="txtLastSend" Text="--" FontSize="20" FontWeight="SemiBold" Foreground="#10B981"/>
-                        </StackPanel>
+                    <Border x:Name="stat3" Grid.Column="2" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <TextBlock x:Name="lblLastSend" Text="最后发送" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="txtLastSend" Text="--:--:--" FontSize="17" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                        </Grid>
                     </Border>
-                    
-                    <Border x:Name="stat4" Grid.Column="3" Background="White" CornerRadius="8" Padding="12" Margin="4,0,0,0">
-                        <StackPanel>
-                            <TextBlock x:Name="lblSendRate" Text="发送速率" FontSize="10" Foreground="#64748B"/>
-                            <TextBlock x:Name="txtSendRate" Text="0/s" FontSize="20" FontWeight="SemiBold" Foreground="#3B82F6"/>
-                        </StackPanel>
+                    <Border x:Name="stat4" Grid.Column="3" Background="#111A2C" CornerRadius="6" Padding="12,8" Margin="4,0,0,0" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <TextBlock x:Name="lblSendRate" Text="发送速率" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="txtSendRate" Text="0/s" FontSize="17" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                        </Grid>
                     </Border>
                 </Grid>
-                
-                <!-- 实时数据 -->
-                <Border Grid.Row="1" x:Name="dataCard" Background="White" CornerRadius="10" Padding="14" Effect="{StaticResource Shadow}">
+
+                <!-- 实时曲线 -->
+                <Border Grid.Row="1" x:Name="chartCard" Background="#0D1425" CornerRadius="8" Padding="10" Margin="0,0,0,8" BorderBrush="#1E293B" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="实时趋势" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"/>
+                                <Ellipse Width="7" Height="7" Fill="#F59E0B" Margin="14,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="温度" FontSize="10" Foreground="#F59E0B" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                <Ellipse Width="7" Height="7" Fill="#06B6D4" Margin="12,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="转速" FontSize="10" Foreground="#06B6D4" VerticalAlignment="Center" FontFamily="Consolas"/>
+                            </StackPanel>
+                            <TextBlock x:Name="chartStatsText" Text="" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas"/>
+                        </Grid>
+                        <Border Grid.Row="1" Background="#0F172A" CornerRadius="4" BorderBrush="#1E293B" BorderThickness="1">
+                            <Canvas x:Name="chartCanvas" Height="120" SizeChanged="ChartCanvas_SizeChanged"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- 日志 -->
+                <Border Grid.Row="2" x:Name="dataCard" Background="#111A2C" CornerRadius="8" Padding="12" BorderBrush="#1E293B" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        
-                        <TextBlock x:Name="dataTitle" Text="实时数据" FontSize="14" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,10"/>
-                        
-                        <!-- 实时曲线 -->
-                        <Border Grid.Row="1" x:Name="chartCard" Background="#0F172A" CornerRadius="8" Padding="10" Margin="0,0,0,10">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <Ellipse Width="8" Height="8" Fill="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="温度" FontSize="10" Foreground="#F59E0B" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                    <Ellipse Width="8" Height="8" Fill="#06B6D4" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="转速" FontSize="10" Foreground="#06B6D4" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="chartStatsText" Text="" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <Canvas x:Name="chartCanvas" Grid.Row="1" Height="110" Background="#1E293B" SizeChanged="ChartCanvas_SizeChanged"/>
-                            </Grid>
-                        </Border>
-                        
-                        <TextBlock Text="推送日志" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Grid.Row="2" Margin="0,0,0,6"/>
-                        
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-                            <TextBox x:Name="txtRealTimeData" IsReadOnly="True" Background="Transparent" 
-                                     Foreground="#10B981" FontFamily="Consolas" FontSize="12" 
+                        <TextBlock x:Name="dataTitle" Text="推送日志" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <TextBox x:Name="txtRealTimeData" IsReadOnly="True" Background="Transparent"
+                                     Foreground="#4ADE80" FontFamily="Consolas" FontSize="11"
                                      BorderThickness="0" TextWrapping="Wrap" AcceptsReturn="True"/>
                         </ScrollViewer>
                     </Grid>
                 </Border>
             </Grid>
         </Grid>
-        
-        <!-- 底部栏 -->
-        <Border Grid.Row="3" x:Name="bottomBar" Background="White" CornerRadius="8" Padding="12" Margin="0,10,0,0">
+
+        <!-- ══════════ 底部状态栏 ══════════ -->
+        <Border Grid.Row="2" x:Name="bottomBar" Background="#111A2C" CornerRadius="6" Padding="12,7" Margin="0,8,0,0" BorderBrush="#1E293B" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
-                <TextBlock x:Name="apiEndpoint" Text="http://localhost:8085/api/dashboard/device/simulate" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
-                <TextBlock x:Name="statusBar" Text="就绪" Grid.Column="1" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
+                <TextBlock x:Name="apiEndpoint" Text="http://localhost:8085/api/dashboard/device/simulate" FontSize="10" Foreground="#475569" VerticalAlignment="Center" FontFamily="Consolas"/>
+                <TextBlock x:Name="statusBar" Text="就绪" Grid.Column="2" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
             </Grid>
         </Border>
     </Grid>
