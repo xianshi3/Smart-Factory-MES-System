@@ -229,13 +229,14 @@ Smart-Factory-MES-System/
 ### 一键启动（推荐）
 
 ```bash
-# ① 启动基础设施
+# ① 启动基础设施（MySQL / Redis / Kafka / EMQX）
 make docker
 
 # ② 启动 Java 后端（自动编译）
 make backend
 
-# ③ 启动 AI 服务与前端
+# ③ 启动 .NET 设备网关 + AI 服务 + 前端
+make dotnet-gateway
 make ai
 make frontend
 ```
@@ -246,7 +247,7 @@ make frontend
 # ① 编译后端
 mvn clean package -DskipTests
 
-# ② 启动基础设施
+# ② 启动基础设施（含 EMQX MQTT Broker）
 docker compose up -d
 
 # ③ 启动 Java 服务
@@ -257,7 +258,10 @@ java -jar mes-quality/target/mes-quality-1.0.0-SNAPSHOT.jar
 java -jar mes-dashboard/target/mes-dashboard-1.0.0-SNAPSHOT.jar
 java -jar mes-gateway/target/mes-gateway-1.0.0-SNAPSHOT.jar
 
-# ④ 启动前端
+# ④ 启动 .NET 设备网关（MQTT → Kafka 转发）
+cd mes-device-gateway/src/MesDeviceGateway && dotnet run
+
+# ⑤ 启动前端
 cd mes-frontend && npm install && npm run dev
 ```
 

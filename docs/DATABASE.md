@@ -450,6 +450,39 @@ erDiagram
 | ai_chat_messages | idx_conversation_id | conversation_id |
 | ai_analysis_history | idx_user_id | user_id |
 | ai_analysis_history | idx_type | analysis_type |
+| dash_alarm_event | idx_device_code | device_code |
+| dash_alarm_event | idx_status | status |
+| dash_alarm_event | idx_occurrence_time | occurrence_time |
+
+---
+
+### 12. 告警事件表 dash_alarm_event
+
+设备告警事件记录，由 .NET 网关状态变更消息经 Kafka `mes-alarm-event` 消费写入（`KafkaAlarmEventConsumer`），也可通过 `/alarm` REST API 手动创建。
+
+| 字段 | 类型 | 说明 | 约束 |
+|------|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| alarm_code | varchar(64) | 告警编码 | |
+| message | text | 告警消息 | |
+| level | varchar(32) | 级别: CRITICAL/WARNING/INFO | DEFAULT 'WARNING' |
+| alarm_type | varchar(64) | 告警类型 | |
+| device_code | varchar(64) | 设备编码 | INDEX |
+| device_name | varchar(128) | 设备名称 | |
+| status | varchar(32) | 状态: ACTIVE/ACKNOWLEDGED/RESOLVED | DEFAULT 'ACTIVE' |
+| occurrence_time | datetime | 发生时间 | INDEX |
+| ack_time | datetime | 确认时间 | |
+| ack_user | varchar(64) | 确认人 | |
+| resolve_time | datetime | 解决时间 | |
+| resolve_user | varchar(64) | 解决人 | |
+| remarks | text | 备注 | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+
+**数据链路**: MQTT `mes/device/{id}/status` → .NET 网关 → Kafka `mes-alarm-event` → `KafkaAlarmEventConsumer` → 本表 + 同步 `dash_device_status.status`
 
 ---
 

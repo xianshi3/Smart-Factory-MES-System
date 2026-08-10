@@ -283,9 +283,11 @@ npm run dev
 
 | 主题 | 说明 |
 |------|------|
-| mes/device/+/data | 设备数据 |
-| mes/device/+/status | 设备状态 |
+| mes/device/+/data | 设备数据（遥测） |
+| mes/device/+/status | 设备状态变更（网关转发至 Kafka `mes-alarm-event`） |
 | mes/device/+/control | 控制指令 |
+
+> **模拟器双通道**: WPF 模拟器同时走 HTTP（`POST /api/dashboard/device/simulate`）与 MQTT（`mes/device/{deviceCode}/data`）。MQTT payload 采用网关协议结构 `{timestamp, dataType, status, data:{temperature, speed, ...}}`。
 
 ---
 
@@ -295,9 +297,10 @@ npm run dev
 2. **Docker命令**：Windows使用 `docker compose`（空格）
 3. **前端账号**：admin / admin123
 4. **AI模型**：示例模型，需真实数据训练后替换
-5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、Nacos 使用 Docker 运行，Java 服务本地 `java -jar` 启动
+5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、EMQX 使用 Docker 运行，Java 服务本地 `java -jar` 启动
 6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突。
-7. **Docker镜像拉取**：如果 Docker 代理无法拉取镜像，需配置镜像加速器（daemon.json 中添加 registry-mirrors）
+7. **Docker镜像拉取**：若直连 Docker Hub 超时，可配置代理（Docker Desktop → Settings → Resources → Proxies）或自建镜像加速器（daemon.json 中添加 registry-mirrors）；注意国内公共镜像源（USTC/163/百度/docker-cn）均已停服，勿再使用
+8. **设备模拟器**：连接 API 后会自动尝试连接 MQTT（默认 localhost:1883，EMQX 由 docker-compose 提供），状态栏显示"已连接 API + MQTT"即双链路就绪
 
 ---
 
