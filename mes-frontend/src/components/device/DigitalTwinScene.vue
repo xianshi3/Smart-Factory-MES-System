@@ -587,6 +587,109 @@ function makeOutline(color: number): THREE.Group {
   return g
 }
 
+// ══════════════════════════════════════════
+// 【简化模型】— 中量设备（13~40台）：机身+玻璃+主轴+塔灯+LED，约10个Mesh
+// ══════════════════════════════════════════
+function buildMachineSimple(device: any): THREE.Group {
+  const st = ST(device.status)
+  const c = CLR[st] || 0x6366f1
+  const g = GLW[st] || 0x0
+  const root = new THREE.Group()
+
+  // 机身（两段）
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.9, 2.0), mat(0x8a8a8a, 0.4, 0.6)))
+  root.children[root.children.length - 1].position.y = 1.0
+  // 顶部装饰
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 1.2), mat(c, 0.3, 0.8, g, 0.15)))
+  root.children[root.children.length - 1].position.y = 2.0
+  // 前玻璃
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 0.02),
+    new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, opacity: 0.35, roughness: 0.1, depthWrite: false })))
+  root.children[root.children.length - 1].position.set(0.05, 1.2, 1.01)
+  // 底座
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 1.6), mat(0x505050, 0.7, 0.7)))
+  root.children[root.children.length - 1].position.y = 0.07
+
+  // 主轴（旋转动画）
+  const spindle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.11, 0.3, 12),
+    mat(c, 0.06, 0.98, g, 0.25)
+  )
+  spindle.position.set(0.05, 0.8, 0.15); root.add(spindle)
+
+  // 塔灯（红黄绿）+ LED
+  const tower = new THREE.Group()
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x666666, 0.3, 0.8)))
+  tower.children[0].position.y = 2.02
+  const towerLights: THREE.Mesh[] = []
+  ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
+      new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.25, roughness: 0.3 }))
+    seg.position.y = 1.94 + ti * 0.045; tower.add(seg); towerLights.push(seg)
+  })
+  const led = new THREE.Mesh(
+    new THREE.SphereGeometry(0.04, 6, 6),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
+  )
+  led.position.y = 2.1; tower.add(led)
+  tower.position.set(-0.6, 0, 0.6); root.add(tower)
+
+  root.userData = { device, spindle, led, label: null, towerLights }
+  return root
+}
+
+// ══════════════════════════════════════════
+// 【极简模型】— 大量设备（>40台）：机身+主轴+LED，约4个Mesh（无标签）
+// ══════════════════════════════════════════
+function buildMachineMinimal(device: any): THREE.Group {
+  const st = ST(device.status)
+  const c = CLR[st] || 0x6366f1
+  const root = new THREE.Group()
+
+  // 单一机身（含主体色条）
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.8, 1.9), mat(0x8a8a8a, 0.45, 0.55)))
+  root.children[root.children.length - 1].position.y = 0.95
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 1.1), mat(c, 0.3, 0.8))
+  body.position.y = 1.9; root.add(body)
+
+  // 主轴（旋转动画）
+  const spindle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 0.1, 0.25, 8),
+    mat(c, 0.1, 0.9)
+  )
+  spindle.position.set(0.05, 0.75, 0.15); root.add(spindle)
+
+  // LED 状态球
+  const led = new THREE.Mesh(
+    new THREE.SphereGeometry(0.04, 6, 6),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
+  )
+  led.position.set(-0.6, 2.1, 0.6); root.add(led)
+
+  root.userData = { device, spindle, led, label: null, towerLights: null }
+  return root
+}
+
+/**
+ * 按设备数量调节渲染质量：
+ * ≤12  全特效（阴影+2x分辨率）
+ * 13~40 关闭阴影，降低分辨率
+ * >40  关闭阴影 + 1x分辨率 + 关闭抗锯齿重绘
+ */
+function applyQualityByCount(count: number) {
+  if (!S) return
+  const full = count <= 12
+  const medium = count <= 40
+  S.webgl.shadowMap.enabled = full
+  S.webgl.setPixelRatio(Math.min(window.devicePixelRatio, full ? 2 : medium ? 1.5 : 1))
+  S.scene.traverse(c => {
+    if (c instanceof THREE.Mesh) {
+      c.castShadow = full && (c as any).userData?.castShadowBase !== false
+      c.receiveShadow = full
+    }
+  })
+}
+
 // ─── init scene ───
 function init() {
   if (!containerRef.value) return
@@ -644,6 +747,9 @@ function refresh(devices: any[]) {
   const count = devices?.length || 0
   if (!count) return
 
+  // 按设备数量调节渲染质量（LOD）
+  applyQualityByCount(count)
+
   // rebuild factory for device count if bounds changed
   const bounds = calcGridBounds(count)
   if (bounds.halfW !== lastGridHW || bounds.halfD !== lastGridHD) {
@@ -658,7 +764,8 @@ function refresh(devices: any[]) {
   deviceNodes = []
   const { ox, oz } = bounds
   devices.forEach((d: any, i: number) => {
-    const root = buildMachine(d)
+    // LOD：≤12 精细 / 13~40 简化 / >40 极简（无标签）
+    const root = count > 40 ? buildMachineMinimal(d) : count > 12 ? buildMachineSimple(d) : buildMachine(d)
     const x = ox + (i % GRID_COLS) * SX
     const z = oz + Math.floor(i / GRID_COLS) * SZ
     root.position.set(x, 0, z)
