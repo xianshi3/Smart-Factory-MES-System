@@ -795,7 +795,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 批量设备模拟：全部设备 MQTT 推送 + 首台 HTTP（避免大量 HTTP 请求）
+    /// 批量设备模拟：全部设备 HTTP 推送（每台一条）+ MQTT 增强通道
     /// </summary>
     private async Task SendBatchDeviceDataAsync()
     {
@@ -804,40 +804,48 @@ public partial class MainWindow : Window
         try
         {
             string apiBase = apiServerInput.Text.TrimEnd('/');
-            int sent = 0;
+            int httpSent = 0;
+            int mqttSent = 0;
 
-            // MQTT 推送全部设备（高吞吐链路）
+            // HTTP 推送全部设备（保证不依赖 MQTT 也能看到全部设备动态）
+            foreach (var dev in _devices)
+            {
+                var deviceData = new
+                {
+                    deviceCode = dev.DeviceCode,
+                    deviceName = dev.DeviceName,
+                    deviceType = dev.DeviceType,
+                    status = dev.Status,
+                    temperature = Math.Round(dev.Temperature, 2),
+                    speed = Math.Round(dev.Speed, 2),
+                    lastHeartbeat = DateTime.UtcNow
+                };
+                try
+                {
+                    var resp = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
+                    if (resp.IsSuccessStatusCode) httpSent++;
+                }
+                catch { /* 单台失败不中断 */ }
+            }
+
+            // MQTT 推送全部设备（高吞吐增强通道）
             foreach (var dev in _devices)
             {
                 if (await PublishMqttTelemetryAsync(dev.DeviceCode, dev.Status, dev.Temperature, dev.Speed))
-                    sent++;
+                    mqttSent++;
             }
 
-            // 首台设备同时走 HTTP（演示数据链路兜底）
-            var first = _devices[0];
-            var deviceData = new
+            if (httpSent > 0 || mqttSent > 0)
             {
-                deviceCode = first.DeviceCode,
-                deviceName = first.DeviceName,
-                deviceType = first.DeviceType,
-                status = first.Status,
-                temperature = Math.Round(first.Temperature, 2),
-                speed = Math.Round(first.Speed, 2),
-                lastHeartbeat = DateTime.UtcNow
-            };
-            var response = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _messageCount += sent + 1;
+                _messageCount += Math.Max(httpSent, mqttSent);
                 txtMessageCount.Text = _messageCount.ToString();
                 txtLastSend.Text = DateTime.Now.ToString("HH:mm:ss");
-                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {_devices.Count} 台设备 (MQTT {sent}+HTTP 1)");
-                statusBar.Text = $"批量推送 {_devices.Count} 台设备";
+                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {_devices.Count} 台 (HTTP {httpSent} + MQTT {mqttSent})");
+                statusBar.Text = $"批量推送 {_devices.Count} 台设备 (HTTP {httpSent})";
             }
             else
             {
-                AppendRealTimeData($"[ERROR] HTTP {(int)response.StatusCode}");
+                AppendRealTimeData($"[ERROR] 批量推送全部失败");
             }
         }
         catch (Exception ex)
@@ -918,8 +926,9 @@ public partial class MainWindow : Window
             }
             else
             {
-                statusBar.Text = $"批量创建失败: HTTP {(int)response.StatusCode}";
-                _devices.Clear();
+                statusBar.Text = $"批量创建失败: HTTP {(int)response.StatusCode}（本地 {_devices.Count} 台已保留）";
+                AppendRealTimeData($"[ERROR] 批量创建失败 HTTP {(int)response.StatusCode}");
+                RefreshDeviceListBox();
             }
         }
         catch (Exception ex)
