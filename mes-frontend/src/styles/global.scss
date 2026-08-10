@@ -238,6 +238,18 @@ html, body {
   background: var(--bg-card) !important;
   border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-lg) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Tooltip：浅色背景 + 深色文字（修复白底白字空白） */
+.el-popper.is-dark {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-popper.is-dark .el-popper__content {
+  color: var(--text-primary) !important;
 }
 
 .el-popper__arrow::before {
