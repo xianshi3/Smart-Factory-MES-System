@@ -49,6 +49,12 @@ mybatis-plus:
     db-config:
       id-type: auto
 
+influxdb:
+  url: ${INFLUXDB_URL:}
+  token: ${INFLUXDB_TOKEN:}
+  org: ${INFLUXDB_ORG:mes}
+  bucket: ${INFLUXDB_BUCKET:mes_metrics}
+
 knife4j:
   enable: true
   setting:

@@ -43,6 +43,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProductionStatsMapper productionStatsMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final com.mes.dashboard.service.TelemetryService telemetryService;
     private InfluxDBClient influxDBClient;
 
     @Autowired
@@ -51,11 +52,13 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     public DashboardServiceImpl(DeviceStatusMapper deviceStatusMapper, OeeDataMapper oeeDataMapper, 
-                                 ProductionStatsMapper productionStatsMapper, StringRedisTemplate redisTemplate) {
+                                 ProductionStatsMapper productionStatsMapper, StringRedisTemplate redisTemplate,
+                                 com.mes.dashboard.service.TelemetryService telemetryService) {
         this.deviceStatusMapper = deviceStatusMapper;
         this.oeeDataMapper = oeeDataMapper;
         this.productionStatsMapper = productionStatsMapper;
         this.redisTemplate = redisTemplate;
+        this.telemetryService = telemetryService;
     }
 
     private static final String CACHE_PREFIX = "dashboard:";
@@ -218,6 +221,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         String realtimeKey = CACHE_PREFIX + "device:" + data.getDeviceCode();
         redisTemplate.opsForValue().set(realtimeKey, toJson(data), CACHE_TTL);
+
+        // 遥测写入 InfluxDB（历史趋势数据源）
+        telemetryService.writeTelemetry(data);
     }
 
     @Override
@@ -342,6 +348,11 @@ public class DashboardServiceImpl implements DashboardService {
         report.put("totalDays", stats.size());
         
         return report;
+    }
+
+    @Override
+    public Map<String, Object> getDeviceHistory(String deviceCode, int hours, int interval) {
+        return telemetryService.getDeviceHistory(deviceCode, hours, interval);
     }
 
     private double round2(double value) {

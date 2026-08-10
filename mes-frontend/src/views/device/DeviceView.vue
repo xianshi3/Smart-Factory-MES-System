@@ -76,25 +76,27 @@
       <div v-if="viewMode === 'list'" class="dt-list-wrap">
         <div v-if="filteredDevices.length === 0" class="dt-empty"><el-empty description="暂无设备数据" :image-size="80" /></div>
         <div v-else class="dt-list-grid">
-          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" @click="handleDetail(d)">
+          <div v-for="(d,i) in pagedDevices" :key="d.id || i" class="dc-card" :class="{ 'dc-card--live': d.status === 'running' }" @click="handleDetail(d)">
             <div class="dc-card-top">
               <div class="dc-card-info">
                 <span class="dc-card-name">{{ d.name }}</span>
                 <span class="dc-card-code">{{ d.code }}</span>
               </div>
-              <span class="status-tag" :class="'status-tag--' + d.status">{{ getStatusText(d.status) }}</span>
+              <div class="dc-card-top-right">
+                <span class="status-tag" :class="'status-tag--' + d.status"><i class="dc-status-dot" :class="'dc-status-dot--' + d.status"></i>{{ getStatusText(d.status) }}</span>
+              </div>
             </div>
             <div class="dc-card-metrics">
               <div class="dc-metric">
-                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70 }">{{ fmtTemp(d.temperature) }}</span>
+                <span class="dc-m-val" :class="{ warn: d.temperature > 55, hot: d.temperature > 70, 'dc-flash': d.tempFlash }">{{ fmtTemp(d.temperature) }}</span>
                 <span class="dc-m-unit">°C 温度</span>
               </div>
               <div class="dc-metric">
-                <span class="dc-m-val">{{ d.speed || 0 }}</span>
+                <span class="dc-m-val" :class="{ 'dc-flash': d.speedFlash }">{{ d.speed || 0 }}</span>
                 <span class="dc-m-unit">rpm 转速</span>
               </div>
               <div class="dc-metric">
-                <span class="dc-m-val">{{ d.power ?? '--' }}</span>
+                <span class="dc-m-val" :class="{ 'dc-flash': d.powerFlash }">{{ d.power ?? '--' }}</span>
                 <span class="dc-m-unit">kW 功率</span>
               </div>
               <div class="dc-metric">
@@ -108,6 +110,14 @@
                 <span class="dc-progress-value">{{ d.utilization || '0%' }}</span>
               </div>
               <div class="dc-progress-bar"><div class="dc-progress-fill" :style="{ width: (parseInt(d.utilization)||0)+'%' }"></div></div>
+            </div>
+            <div class="dc-card-spark">
+              <span class="dc-spark-label">温度趋势</span>
+              <svg v-if="d.spark && d.spark.length > 1" :viewBox="`0 0 ${sparkW} ${sparkH}`" preserveAspectRatio="none" class="dc-spark-svg">
+                <polyline :points="sparkPoints(d.spark)" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span v-else class="dc-spark-empty">等待数据...</span>
+              <span class="dc-spark-time"><el-icon size="11"><Timer /></el-icon> {{ d.heartbeatText || '--' }}</span>
             </div>
             <div class="dc-card-foot" @click.stop>
               <el-tooltip v-if="d.status==='running'" content="停止设备" placement="top">
@@ -142,7 +152,7 @@
     </div>
 
     <!-- DIALOGS -->
-    <el-dialog v-model="detailVisible" title="设备详情" width="620px" destroy-on-close>
+    <el-dialog v-model="detailVisible" title="设备详情" width="860px" destroy-on-close class="device-detail-dlg" :close-on-click-modal="false">
       <div v-if="detailData" class="dt-dlg-det">
         <div class="dt-dlg-det-head">
           <div class="dt-dlg-det-avatar"><el-icon size="26"><Monitor /></el-icon></div>
@@ -150,13 +160,57 @@
           <el-tag :type="getStatusType(detailData.status)" size="large">{{ getStatusText(detailData.status) }}</el-tag>
         </div>
         <div class="dt-dlg-det-kpis">
-          <div v-for="kv in [['利用率',detailData.utilization+'%'],['温度',fmtTemp(detailData.temperature)+'°C'],['功率',detailData.power+'kW'],['OEE',(detailData.efficiency||0)+'%']]" :key="kv[0]" class="dt-dlg-det-kpi">
+          <div v-for="kv in [['利用率', detailData.utilization + '%'], ['温度', fmtTemp(detailData.temperature) + '°C'], ['功率', detailData.power + 'kW'], ['OEE', (detailData.efficiency || 0) + '%']]" :key="kv[0]" class="dt-dlg-det-kpi">
             <strong>{{ kv[1] }}</strong><span>{{ kv[0] }}</span>
           </div>
         </div>
-        <div v-if="detailData.status==='running'" class="dt-dlg-ai-badge">
-          <el-icon><CircleCheck /></el-icon> 设备运行正常 · 预测未来24小时内无需维护 · 置信度95%
+
+        <!-- 历史使用情况 -->
+        <div class="dt-dlg-section">
+          <div class="dt-dlg-sec-head">
+            <span class="dt-dlg-sec-title"><el-icon><TrendCharts /></el-icon> 历史使用情况</span>
+            <div class="dt-dlg-range">
+              <button v-for="r in historyRanges" :key="r.hours" :class="{ on: historyHours === r.hours }" @click="switchHistoryRange(r.hours)">{{ r.label }}</button>
+              <el-button size="small" text :icon="Refresh" @click="loadDeviceHistory(true)">刷新</el-button>
+            </div>
+          </div>
+
+          <div v-if="historyLoading" class="dt-dlg-hist-loading"><el-icon class="is-loading"><Loading /></el-icon> 加载历史数据...</div>
+          <div v-else-if="!historyEnabled" class="dt-dlg-hist-empty">
+            <el-empty description="InfluxDB 未配置，无法加载历史遥测（设置 INFLUXDB_URL/INFLUXDB_TOKEN 环境变量）" :image-size="70" />
+          </div>
+          <div v-else-if="!historyOption.series?.length" class="dt-dlg-hist-empty">
+            <el-empty description="暂无历史数据（启动设备模拟后自动采集）" :image-size="70" />
+          </div>
+          <template v-else>
+            <div class="dt-dlg-chart-row">
+              <div class="dt-dlg-chart">
+                <em>温度趋势 °C</em>
+                <v-chart :option="tempTrendOption" autoresize style="height:150px" />
+              </div>
+              <div class="dt-dlg-chart">
+                <em>转速趋势 rpm</em>
+                <v-chart :option="speedTrendOption" autoresize style="height:150px" />
+              </div>
+            </div>
+            <div class="dt-dlg-chart-row">
+              <div class="dt-dlg-chart">
+                <em>功率趋势 kW</em>
+                <v-chart :option="powerTrendOption" autoresize style="height:140px" />
+              </div>
+              <div class="dt-dlg-chart">
+                <em>历史状态分布</em>
+                <v-chart :option="statusDistOption" autoresize style="height:140px" />
+              </div>
+            </div>
+            <div class="dt-dlg-hist-stats">
+              <div v-for="s in historyStats" :key="s.label" class="dt-dlg-hist-stat">
+                <strong>{{ s.value }}</strong><span>{{ s.label }}</span>
+              </div>
+            </div>
+          </template>
         </div>
+
         <div class="dt-dlg-ai-btns">
           <el-button type="warning" @click="handlePredict(detailData)"><el-icon><Cpu /></el-icon> 故障预测</el-button>
           <el-button @click="handleCardAI(detailData, 'spc')"><el-icon><Histogram /></el-icon> SPC分析</el-button>
@@ -420,14 +474,14 @@
 import { ref, computed, onMounted, watch, onUnmounted, reactive, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getDeviceStatus } from '@/api/dashboard'
+import { getDeviceStatus, getDeviceHistory } from '@/api/dashboard'
 import { getAlarmDevices, predictDeviceFault, predictCapacity, analyzeSPC, llmChat, optimizeEnergy, startDevice, stopDevice } from '@/api/services'
 import { listAnalyses, saveAnalysis, deleteAnalysis } from '@/api/agent'
 import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
- VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft } from '@element-plus/icons-vue'
+ VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft, Timer } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
 import { marked } from 'marked'
 marked.setOptions({ breaks: true, gfm: true })
@@ -475,6 +529,68 @@ const filterChips = [
 const utilizationOption = ref({})
 const statusOption = ref({})
 
+// ===== 实时动态辅助（闪烁 / sparkline / 心跳） =====
+const sparkW = 130
+const sparkH = 22
+const sparkBuffer = new Map<string, number[]>()
+const prevValues = new Map<string, { t: number, s: number, p: number }>()
+
+const sparkPoints = (arr: number[]) => {
+  if (arr.length < 2) return ''
+  const min = Math.min(...arr), max = Math.max(...arr)
+  const span = max - min || 1
+  return arr.map((v, i) => {
+    const x = (i / (arr.length - 1)) * sparkW
+    const y = sparkH - 2 - ((v - min) / span) * (sparkH - 4)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+
+const heartbeatText = (lastHeartbeat?: string) => {
+  if (!lastHeartbeat) return '--'
+  try {
+    const diff = Date.now() - new Date(lastHeartbeat).getTime()
+    if (diff < 0) return '刚刚'
+    if (diff < 10000) return '刚刚'
+    if (diff < 60000) return Math.floor(diff / 1000) + 's前'
+    return Math.floor(diff / 60000) + 'm前'
+  } catch { return '--' }
+}
+
+const applyLiveFx = (devices: any[]) => {
+  const now = Date.now()
+  devices.forEach(d => {
+    // 心跳相对时间
+    d.heartbeatText = heartbeatText(d.heartbeatRaw ?? d.lastHeartbeat)
+    // 数值闪烁：与上次取值比较
+    const prev = prevValues.get(d.code)
+    if (prev) {
+      d.tempFlash = Math.abs((d.temperature ?? 0) - prev.t) > 0.05
+      d.speedFlash = Math.abs((d.speed ?? 0) - prev.s) > 0.5
+      d.powerFlash = Math.abs((d.power ?? 0) - prev.p) > 0.05
+    } else {
+      d.tempFlash = d.speedFlash = d.powerFlash = false
+    }
+    prevValues.set(d.code, { t: d.temperature ?? 0, s: d.speed ?? 0, p: d.power ?? 0 })
+    // sparkline 滚动缓冲（最多 24 点）
+    const buf = sparkBuffer.get(d.code) ?? []
+    const tv = d.temperature ?? 0
+    if (buf.length === 0 || buf[buf.length - 1] !== tv) {
+      buf.push(tv)
+      if (buf.length > 24) buf.shift()
+      sparkBuffer.set(d.code, buf)
+    }
+    d.spark = [...buf]
+    d._ts = now
+  })
+  return devices
+}
+
+const clearLiveFx = () => {
+  sparkBuffer.clear()
+  prevValues.clear()
+}
+
 const filteredDevices = computed(() => {
   let result = deviceList.value
   if (searchKeyword.value) {
@@ -516,7 +632,9 @@ const fetchDeviceData = async () => {
       temperature: item.temperature ?? null,
       speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
       efficiency: item.efficiency ?? 0,
+      heartbeatRaw: item.lastHeartbeat,
     }))
+    applyLiveFx(deviceList.value)
 
     let alarms: any[] = []
     if (Array.isArray(alarmRes)) alarms = alarmRes
@@ -566,6 +684,126 @@ const handle3DAction = (payload: { type: string; device: any }) => {
   else { openAiDialog(payload.type) }
 }
 const refresh = () => { fetchDeviceData() }
+
+// ===== 设备历史使用情况 =====
+const historyRanges = [
+  { hours: 6, label: '6小时' },
+  { hours: 24, label: '24小时' },
+  { hours: 72, label: '3天' },
+  { hours: 168, label: '7天' },
+]
+const historyHours = ref(24)
+const historyLoading = ref(false)
+const historyEnabled = ref(true)
+const historyData = ref<any>({ times: [], temperature: [], speed: [], pressure: [], power: [] })
+const historyRefreshTimer = ref<number | null>(null)
+
+const tempTrendOption = ref({})
+const speedTrendOption = ref({})
+const powerTrendOption = ref({})
+const statusDistOption = ref({})
+const historyOption = tempTrendOption
+const historyStats = ref<any[]>([])
+
+const fmtAxisTime = (t: string) => t // 后端已格式化 HH:mm
+
+const loadDeviceHistory = async (force = false) => {
+  if (!detailData.value?.code) return
+  historyLoading.value = true
+  try {
+    const res = await getDeviceHistory(detailData.value.code, historyHours.value, historyHours.value > 24 ? 600 : 60)
+    const raw: any = res?.data ?? res
+    const d = raw?.data ?? raw ?? {}
+    historyData.value = d
+    historyEnabled.value = d.enabled !== false
+    if (!d.times?.length) { historyLoading.value = false; return }
+    buildHistoryCharts()
+  } catch (e) {
+    historyEnabled.value = false
+    historyData.value = { times: [], temperature: [], speed: [], pressure: [], power: [] }
+    console.error('[History]', e)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+const switchHistoryRange = (hours: number) => {
+  historyHours.value = hours
+  loadDeviceHistory()
+}
+
+const buildHistoryCharts = () => {
+  const d = historyData.value
+  const isDark = themeStore.isDark
+  const tc = isDark ? '#aaa' : '#666'
+  const grid = { left: 40, right: 16, top: 24, bottom: 22 }
+  const tooltip = { trigger: 'axis' as const }
+  const line = (name: string, color: string, data: number[], area = false) => ({
+    name, type: 'line' as const, smooth: true, symbol: 'none', data,
+    lineStyle: { width: 2, color },
+    itemStyle: { color },
+    areaStyle: area ? { opacity: 0.12, color } : undefined,
+  })
+
+  tempTrendOption.value = {
+    ...chartTheme.value, tooltip, grid,
+    xAxis: { type: 'category', data: d.times, axisLabel: { color: tc, fontSize: 10 } },
+    yAxis: { type: 'value', scale: true, axisLabel: { color: tc, fontSize: 10 } },
+    series: [line('温度', '#f59e0b', d.temperature, true)],
+  }
+  speedTrendOption.value = {
+    ...chartTheme.value, tooltip, grid,
+    xAxis: { type: 'category', data: d.times, axisLabel: { color: tc, fontSize: 10 } },
+    yAxis: { type: 'value', scale: true, axisLabel: { color: tc, fontSize: 10 } },
+    series: [line('转速', '#06b6d4', d.speed, true)],
+  }
+  powerTrendOption.value = {
+    ...chartTheme.value, tooltip, grid,
+    xAxis: { type: 'category', data: d.times, axisLabel: { color: tc, fontSize: 10 } },
+    yAxis: { type: 'value', scale: true, axisLabel: { color: tc, fontSize: 10 } },
+    series: [line('功率', '#8b5cf6', d.power, true)],
+  }
+
+  const nums = (arr: number[]) => arr.map((v: any) => Number(v) || 0)
+  const temp = nums(d.temperature)
+  const speed = nums(d.speed)
+  const avg = (a: number[]) => a.length ? (a.reduce((s, v) => s + v, 0) / a.length).toFixed(1) : '--'
+  const max = (a: number[]) => a.length ? Math.max(...a).toFixed(1) : '--'
+  const cur = (a: number[]) => a.length ? a[a.length - 1].toFixed(1) : '--'
+  const avgUti = speed.length ? Math.round(nums(d.speed).filter(s => s > 0).length / speed.length * 100) + '%' : '--'
+
+  historyStats.value = [
+    { label: '平均温度', value: avg(temp) + '°C' },
+    { label: '最高温度', value: max(temp) + '°C' },
+    { label: '平均转速', value: avg(speed) },
+    { label: '运行占比', value: avgUti },
+  ]
+
+  // 状态分布：以"有遥测=运行"估算 + 当前状态
+  const running = nums(d.speed).filter(s => s > 0).length
+  const idle = nums(d.speed).length - running
+  const st: any[] = []
+  if (running > 0) st.push({ value: running, name: '运行中', itemStyle: { color: '#34c759' } })
+  if (idle > 0) st.push({ value: idle, name: '空闲', itemStyle: { color: '#8e8e93' } })
+  statusDistOption.value = {
+    ...chartTheme.value, tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie', radius: ['42%', '68%'], center: ['50%', '50%'],
+      label: { color: tc, fontSize: 10 },
+      data: st.length ? st : [{ value: 1, name: '暂无数据', itemStyle: { color: '#d1d5db' } }],
+    }],
+  }
+}
+
+watch(detailVisible, (v) => {
+  if (v) {
+    loadDeviceHistory()
+    historyRefreshTimer.value = window.setInterval(() => { if (detailVisible.value) loadDeviceHistory() }, 30000)
+  } else {
+    if (historyRefreshTimer.value) { clearInterval(historyRefreshTimer.value); historyRefreshTimer.value = null }
+  }
+})
+
 async function loadAnalysisHistory(deviceCode?: string) {
   try {
     const userStore = useUserStore()
@@ -805,7 +1043,9 @@ onMounted(() => {
         temperature: item.temperature ?? null,
         speed: item.speed ?? 0, power: item.speed && item.speed > 0 ? Math.round(item.speed * 0.02 + 5) : 0,
         efficiency: item.efficiency ?? 0,
+        heartbeatRaw: item.lastHeartbeat,
       }))
+      applyLiveFx(deviceList.value)
       updateCharts()
     }
   })
@@ -915,12 +1155,52 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dc-m-val.hot { color: var(--danger); }
 .dc-m-unit { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-.dc-card-progress { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.dc-card-progress { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .dc-progress-info { display: flex; justify-content: space-between; align-items: center; }
 .dc-progress-label { font-size: 12px; color: var(--text-muted); }
 .dc-progress-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .dc-progress-bar { height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
 .dc-progress-fill { height: 100%; background: var(--gradient-primary); border-radius: 3px; transition: width .3s ease; min-width: 2px; }
+
+/* ===== 实时动态 ===== */
+.dc-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.dc-status-dot--running { background: #34c759; animation: dcPulse 1.6s ease-out infinite; }
+.dc-status-dot--fault { background: #ff3b30; animation: dcPulse 1s ease-out infinite; }
+.dc-status-dot--maintenance { background: #ff9500; }
+.dc-status-dot--idle { background: #8e8e93; }
+@keyframes dcPulse {
+  0% { box-shadow: 0 0 0 0 rgba(52,199,89,.55); }
+  70% { box-shadow: 0 0 0 6px rgba(52,199,89,0); }
+  100% { box-shadow: 0 0 0 0 rgba(52,199,89,0); }
+}
+.dc-status-dot--fault { animation-name: dcPulseRed; }
+@keyframes dcPulseRed {
+  0% { box-shadow: 0 0 0 0 rgba(255,59,48,.5); }
+  70% { box-shadow: 0 0 0 6px rgba(255,59,48,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); }
+}
+.dc-flash { animation: dcFlash .9s ease; }
+@keyframes dcFlash {
+  0% { color: var(--accent); transform: scale(1.12); }
+  100% { color: var(--text-primary); transform: scale(1); }
+}
+.dc-m-val.warn.dc-flash { animation-name: dcFlashWarn; }
+@keyframes dcFlashWarn {
+  0% { color: var(--warning); transform: scale(1.12); }
+  100% { color: var(--warning); transform: scale(1); }
+}
+.dc-m-val.hot.dc-flash { animation-name: dcFlashHot; }
+@keyframes dcFlashHot {
+  0% { color: var(--danger); transform: scale(1.15); }
+  100% { color: var(--danger); transform: scale(1); }
+}
+.dc-card-spark { display: flex; align-items: center; gap: 8px; padding: 4px 2px 10px; }
+.dc-spark-label { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+.dc-spark-svg { flex: 1; height: 22px; display: block; }
+.dc-spark-empty { flex: 1; font-size: 10px; color: var(--text-muted); opacity: .6; }
+.dc-spark-time { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+.dc-card-top-right { display: flex; align-items: center; gap: 6px; }
+.dc-card--live { border-color: var(--accent-light); }
 
 .dc-card-foot {
   display: flex;
@@ -945,6 +1225,26 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 .dt-dlg-det-kpi span { font-size: 11px; color: var(--text-muted); }
 .dt-dlg-ai-badge { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: linear-gradient(135deg, var(--success-light), transparent); border: 1px solid var(--success); border-radius: 8px; margin-bottom: 14px; font-size: 13px; color: var(--success); }
 .dt-dlg-ai-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Device History Section */
+.dt-dlg-section { margin: 14px 0; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+.dt-dlg-sec-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-hover); border-bottom: 1px solid var(--border-color); }
+.dt-dlg-sec-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.dt-dlg-range { display: flex; align-items: center; gap: 2px; }
+.dt-dlg-range button { border: none; background: transparent; font-size: 11px; color: var(--text-muted); padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+.dt-dlg-range button.on { background: var(--accent); color: #fff; font-weight: 600; }
+.dt-dlg-hist-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 30px; color: var(--text-muted); font-size: 13px; }
+.dt-dlg-hist-empty { padding: 10px; }
+.dt-dlg-chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-color); }
+.dt-dlg-chart { background: var(--bg-card); padding: 8px 10px; }
+.dt-dlg-chart em { display: block; font-style: normal; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+.dt-dlg-hist-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border-color); background: var(--bg-hover); }
+.dt-dlg-hist-stat { padding: 8px 12px; text-align: center; border-right: 1px solid var(--border-color); }
+.dt-dlg-hist-stat:last-child { border-right: none; }
+.dt-dlg-hist-stat strong { display: block; font-size: 15px; color: var(--accent); }
+.dt-dlg-hist-stat span { font-size: 11px; color: var(--text-muted); }
+.device-detail-dlg { max-width: 900px; }
+
 
 .dt-loading { text-align: center; padding: 40px; color: var(--text-muted); }
 
