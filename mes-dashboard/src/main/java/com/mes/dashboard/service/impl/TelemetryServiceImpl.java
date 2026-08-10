@@ -30,12 +30,13 @@ public class TelemetryServiceImpl implements TelemetryService {
 
     private static final String MEASUREMENT = "device_telemetry";
     private static final String BUCKET_KEY = "mes_metrics";
+    private static final String ORG_KEY = "mes";
 
-    private final InfluxDBClient influxDBClient;
-
-    public TelemetryServiceImpl(InfluxDBClient influxDBClient) {
-        this.influxDBClient = influxDBClient;
-    }
+    /**
+     * InfluxDB 客户端（可选注入：未配置 INFLUXDB_URL/INFLUXDB_TOKEN 时为 null，历史遥测降级不可用但不影响启动）
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private InfluxDBClient influxDBClient;
 
     @Override
     public boolean isEnabled() {
@@ -68,7 +69,7 @@ public class TelemetryServiceImpl implements TelemetryService {
                     escapeTag(deviceCode),
                     status == null ? "UNKNOWN" : status,
                     temperature, speed, pressure, power);
-            writeApi.writeRecord(BUCKET_KEY, "mes", WritePrecision.S, line);
+            writeApi.writeRecord(BUCKET_KEY, ORG_KEY, WritePrecision.S, line);
         } catch (Exception e) {
             log.debug("Write telemetry to InfluxDB failed: {}", e.getMessage());
         }
@@ -91,17 +92,33 @@ public class TelemetryServiceImpl implements TelemetryService {
         try {
             int safeHours = Math.max(1, Math.min(hours, 168));
             int safeInterval = Math.max(10, Math.min(interval, 3600));
+            // 行式查询（不 pivot，避免客户端类型解析问题），Java 端按 _field 分组
             String flux = String.format(
                     "from(bucket: \"%s\") " +
                     "|> range(start: -%dh) " +
                     "|> filter(fn: (r) => r._measurement == \"%s\" and r.device_code == \"%s\") " +
                     "|> filter(fn: (r) => r._field == \"temperature\" or r._field == \"speed\" or r._field == \"pressure\" or r._field == \"power\") " +
-                    "|> aggregateWindow(every: %ds, fn: mean, createEmpty: false) " +
-                    "|> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
-                    BUCKET_KEY, MEASUREMENT, escapeTag(deviceCode), safeInterval);
+                    "|> aggregateWindow(every: %ds, fn: mean, createEmpty: false)",
+                    BUCKET_KEY, safeHours, MEASUREMENT, escapeTag(deviceCode), safeInterval);
 
             QueryApi queryApi = influxDBClient.getQueryApi();
-            List<FluxTable> tables = queryApi.query(flux);
+            List<FluxTable> tables = queryApi.query(flux, ORG_KEY);
+
+            // 按时间轴聚合：time -> field -> value
+            Map<Long, Map<String, Double>> series = new java.util.TreeMap<>();
+
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
+                    Instant time = record.getTime();
+                    if (time == null) continue;
+                    String field = record.getField();
+                    if (field == null) continue;
+                    Object value = record.getValue();
+                    if (!(value instanceof Number)) continue;
+                    series.computeIfAbsent(time.toEpochMilli(), k -> new HashMap<>())
+                            .put(field, ((Number) value).doubleValue());
+                }
+            }
 
             List<String> times = new ArrayList<>();
             List<Double> temperatures = new ArrayList<>();
@@ -109,18 +126,15 @@ public class TelemetryServiceImpl implements TelemetryService {
             List<Double> pressures = new ArrayList<>();
             List<Double> powers = new ArrayList<>();
 
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd HH:mm");
 
-            for (FluxTable table : tables) {
-                for (FluxRecord record : table.getRecords()) {
-                    Instant time = record.getTime();
-                    if (time == null) continue;
-                    times.add(OffsetDateTime.ofInstant(time, ZoneOffset.ofHours(8)).format(fmt));
-                    temperatures.add(num(record.getValueByKey("temperature")));
-                    speeds.add(num(record.getValueByKey("speed")));
-                    pressures.add(num(record.getValueByKey("pressure")));
-                    powers.add(num(record.getValueByKey("power")));
-                }
+            for (Map.Entry<Long, Map<String, Double>> entry : series.entrySet()) {
+                Map<String, Double> row = entry.getValue();
+                times.add(OffsetDateTime.ofInstant(Instant.ofEpochMilli(entry.getKey()), ZoneOffset.ofHours(8)).format(fmt));
+                temperatures.add(row.getOrDefault("temperature", 0d));
+                speeds.add(row.getOrDefault("speed", 0d));
+                pressures.add(row.getOrDefault("pressure", 0d));
+                powers.add(row.getOrDefault("power", 0d));
             }
 
             result.put("times", times);
