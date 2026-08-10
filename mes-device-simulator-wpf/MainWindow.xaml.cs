@@ -46,22 +46,6 @@ public partial class MainWindow : Window
     private double _power = 50;
     private string _status = "ONLINE";
 
-    // Light theme colors
-    private readonly SolidColorBrush lightBg = new((Color)ColorConverter.ConvertFromString("#F8FAFC"));
-    private readonly SolidColorBrush lightCard = new((Color)ColorConverter.ConvertFromString("#FFFFFF"));
-    private readonly SolidColorBrush lightPanel = new((Color)ColorConverter.ConvertFromString("#F1F5F9"));
-    private readonly SolidColorBrush lightText = new((Color)ColorConverter.ConvertFromString("#1E293B"));
-    private readonly SolidColorBrush lightMuted = new((Color)ColorConverter.ConvertFromString("#64748B"));
-    private readonly SolidColorBrush lightBorder = new((Color)ColorConverter.ConvertFromString("#E2E8F0"));
-
-    // Dark theme colors
-    private readonly SolidColorBrush darkBg = new((Color)ColorConverter.ConvertFromString("#0F172A"));
-    private readonly SolidColorBrush darkCard = new((Color)ColorConverter.ConvertFromString("#1E293B"));
-    private readonly SolidColorBrush darkPanel = new((Color)ColorConverter.ConvertFromString("#334155"));
-    private readonly SolidColorBrush darkText = new((Color)ColorConverter.ConvertFromString("#F1F5F9"));
-    private readonly SolidColorBrush darkMuted = new((Color)ColorConverter.ConvertFromString("#94A3B8"));
-    private readonly SolidColorBrush darkBorder = new((Color)ColorConverter.ConvertFromString("#475569"));
-
     public MainWindow()
     {
         InitializeComponent();
@@ -148,186 +132,87 @@ public partial class MainWindow : Window
 
     private void ApplyDarkTheme()
     {
-        Background = darkBg;
-        
-        // Top
-        subtitleText.Foreground = darkText;
-        descText.Foreground = darkMuted;
-        apiStatusText.Foreground = darkMuted;
-        mqttStatusText.Foreground = darkMuted;
-        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
-        
-        // Cards
-        configCard.Background = darkCard;
-        paramCard.Background = darkCard;
-        batchCard.Background = darkCard;
-        deviceCard.Background = darkCard;
-        paramControlCard.Background = darkCard;
-        lblApiAddress.Foreground = darkMuted;
-        lblMqttServer.Foreground = darkMuted;
-        lblDeviceId.Foreground = darkMuted;
-        lblDeviceName.Foreground = darkMuted;
-        lblDeviceType.Foreground = darkMuted;
-        lblStatus.Foreground = darkMuted;
-        titleText.Foreground = darkText;
-
-        // Inputs
-        apiServerInput.Background = darkPanel;
-        apiServerInput.Foreground = darkText;
-        apiServerInput.BorderBrush = darkBorder;
-        mqttServerInput.Background = darkPanel;
-        mqttServerInput.Foreground = darkText;
-        mqttServerInput.BorderBrush = darkBorder;
-        mqttPortInput.Background = darkPanel;
-        mqttPortInput.Foreground = darkText;
-        mqttPortInput.BorderBrush = darkBorder;
-        devIdInput.Background = darkPanel;
-        devIdInput.Foreground = darkText;
-        devIdInput.BorderBrush = darkBorder;
-        devNameInput.Background = darkPanel;
-        devNameInput.Foreground = darkText;
-        devNameInput.BorderBrush = darkBorder;
-        batchCountInput.Background = darkPanel;
-        batchCountInput.Foreground = darkText;
-        batchCountInput.BorderBrush = darkBorder;
-        
-        // Param panels
-        bgTemp.Background = darkPanel;
-        bgSpeed.Background = darkPanel;
-        bgPressure.Background = darkPanel;
-        bgPower.Background = darkPanel;
-        bgAuto.Background = darkPanel;
-        
-        lblTemp.Foreground = darkMuted;
-        lblSpeed.Foreground = darkMuted;
-        lblPressure.Foreground = darkMuted;
-        lblPower.Foreground = darkMuted;
-        lblAuto.Foreground = darkMuted;
-        
-        chkAutoTemperature.Foreground = darkText;
-        chkAutoSpeed.Foreground = darkText;
-        chkAutoStatus.Foreground = darkText;
-        
+        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0B1220"));
+        SetThemeColors(
+            windowBg: "#0B1220",
+            cardBg: "#111A2C",
+            panelBg: "#0F172A",
+            inputBg: "#0F172A",
+            border: "#1E293B",
+            text: "#E2E8F0",
+            muted: "#64748B",
+            faint: "#94A3B8",
+            dimmer: "#475569",
+            accent: "#38BDF8",
+            logText: "#4ADE80");
+        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4ADE80"));
         tempValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
         speedValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#06B6D4"));
         pressureValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B5CF6"));
         powerValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
-        
-        // Stats
-        stat1.Background = darkCard;
-        stat2.Background = darkCard;
-        stat3.Background = darkCard;
-        stat4.Background = darkCard;
-        
-        lblMsgCount.Foreground = darkMuted;
-        lblSimStatus.Foreground = darkMuted;
-        lblLastSend.Foreground = darkMuted;
-        lblSendRate.Foreground = darkMuted;
-        
         txtMessageCount.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
         txtSimulationStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F87171"));
         txtLastSend.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
         txtSendRate.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A78BFA"));
-        
-        // Chart / Data
-        chartCard.Background = darkCard;
-        dataCard.Background = darkCard;
-        dataTitle.Foreground = darkText;
-        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4ADE80"));
-        
-        // Bottom
-        bottomBar.Background = darkCard;
-        apiEndpoint.Foreground = darkMuted;
-        statusBar.Foreground = darkMuted;
+        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
     }
 
     private void ApplyLightTheme()
     {
-        Background = lightBg;
-        
-        apiStatusText.Foreground = lightMuted;
-        mqttStatusText.Foreground = lightMuted;
-        
-        subtitleText.Foreground = lightText;
-        descText.Foreground = lightMuted;
-        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9"));
-        
-        configCard.Background = lightCard;
-        paramCard.Background = lightCard;
-        batchCard.Background = lightCard;
-        deviceCard.Background = lightCard;
-        paramControlCard.Background = lightCard;
-        lblApiAddress.Foreground = lightMuted;
-        lblMqttServer.Foreground = lightMuted;
-        lblDeviceId.Foreground = lightMuted;
-        lblDeviceName.Foreground = lightMuted;
-        lblDeviceType.Foreground = lightMuted;
-        lblStatus.Foreground = lightMuted;
-        titleText.Foreground = lightText;
-
-        apiServerInput.Background = lightCard;
-        apiServerInput.Foreground = lightText;
-        apiServerInput.BorderBrush = lightBorder;
-        mqttServerInput.Background = lightCard;
-        mqttServerInput.Foreground = lightText;
-        mqttServerInput.BorderBrush = lightBorder;
-        mqttPortInput.Background = lightCard;
-        mqttPortInput.Foreground = lightText;
-        mqttPortInput.BorderBrush = lightBorder;
-        devIdInput.Background = lightCard;
-        devIdInput.Foreground = lightText;
-        devIdInput.BorderBrush = lightBorder;
-        devNameInput.Background = lightCard;
-        devNameInput.Foreground = lightText;
-        devNameInput.BorderBrush = lightBorder;
-        batchCountInput.Background = lightCard;
-        batchCountInput.Foreground = lightText;
-        batchCountInput.BorderBrush = lightBorder;
-        
-        bgTemp.Background = lightPanel;
-        bgSpeed.Background = lightPanel;
-        bgPressure.Background = lightPanel;
-        bgPower.Background = lightPanel;
-        bgAuto.Background = lightPanel;
-        
-        lblTemp.Foreground = lightMuted;
-        lblSpeed.Foreground = lightMuted;
-        lblPressure.Foreground = lightMuted;
-        lblPower.Foreground = lightMuted;
-        lblAuto.Foreground = lightMuted;
-        
-        chkAutoTemperature.Foreground = lightText;
-        chkAutoSpeed.Foreground = lightText;
-        chkAutoStatus.Foreground = lightText;
-        
+        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9"));
+        SetThemeColors(
+            windowBg: "#F1F5F9",
+            cardBg: "#FFFFFF",
+            panelBg: "#F8FAFC",
+            inputBg: "#FFFFFF",
+            border: "#E2E8F0",
+            text: "#1E293B",
+            muted: "#64748B",
+            faint: "#94A3B8",
+            dimmer: "#94A3B8",
+            accent: "#0EA5E9",
+            logText: "#059669");
+        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
         tempValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706"));
         speedValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0891B2"));
         pressureValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED"));
         powerValue.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
-        
-        stat1.Background = lightCard;
-        stat2.Background = lightCard;
-        stat3.Background = lightCard;
-        stat4.Background = lightCard;
-        
-        lblMsgCount.Foreground = lightMuted;
-        lblSimStatus.Foreground = lightMuted;
-        lblLastSend.Foreground = lightMuted;
-        lblSendRate.Foreground = lightMuted;
-        
         txtMessageCount.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
         txtSimulationStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626"));
         txtLastSend.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
         txtSendRate.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED"));
-        
-        chartCard.Background = lightCard;
-        dataCard.Background = lightCard;
-        dataTitle.Foreground = lightText;
-        txtRealTimeData.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
-        
-        bottomBar.Background = lightCard;
-        apiEndpoint.Foreground = lightMuted;
-        statusBar.Foreground = lightMuted;
+        clockText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9"));
+    }
+
+    /// <summary>
+    /// 更新主题色资源（DynamicResource 全局生效）
+    /// </summary>
+    private void SetThemeColors(string windowBg, string cardBg, string panelBg, string inputBg,
+        string border, string text, string muted, string faint, string dimmer, string accent, string logText)
+    {
+        SetBrush("ThemeWindowBg", windowBg);
+        SetBrush("ThemeCardBg", cardBg);
+        SetBrush("ThemePanelBg", panelBg);
+        SetBrush("ThemeInputBg", inputBg);
+        SetBrush("ThemeBorder", border);
+        SetBrush("ThemeText", text);
+        SetBrush("ThemeMuted", muted);
+        SetBrush("ThemeFaint", faint);
+        SetBrush("ThemeDimmer", dimmer);
+        SetBrush("ThemeAccent", accent);
+        SetBrush("ThemeLogText", logText);
+    }
+
+    private void SetBrush(string key, string hex)
+    {
+        if (Resources[key] is SolidColorBrush brush)
+        {
+            brush.Color = (Color)ColorConverter.ConvertFromString(hex);
+        }
+        else
+        {
+            Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+        }
     }
 
     private async void BtnConnect_Click(object sender, RoutedEventArgs e)
