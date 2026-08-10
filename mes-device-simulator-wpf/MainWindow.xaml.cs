@@ -487,7 +487,22 @@ public partial class MainWindow : Window
 
             if (response.IsSuccessStatusCode)
             {
-                statusBar.Text = $"设备 {deviceCode} 创建成功";
+                // 加入本地模拟列表（参与多台动态模拟）
+                if (_devices.All(d => d.DeviceCode != deviceCode))
+                {
+                    _devices.Add(new SimulatedDevice(deviceCode, deviceName, deviceType)
+                    {
+                        Status = status,
+                        Temperature = _temperature,
+                        Speed = _speed,
+                        Pressure = _pressure,
+                        Power = _power,
+                        TempOffset = (_random.NextDouble() - 0.5) * 3,
+                        SpeedOffset = (_random.NextDouble() - 0.5) * 80,
+                    });
+                    RefreshDeviceListBox();
+                }
+                statusBar.Text = $"设备 {deviceCode} 创建成功（共 {_devices.Count} 台模拟设备）";
                 MessageBox.Show($"设备 {deviceCode} 创建成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 LoadDeviceList();
             }
@@ -516,13 +531,17 @@ public partial class MainWindow : Window
             var result = MessageBox.Show($"确定要删除设备 {devIdInput.Text} 吗?", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result != MessageBoxResult.Yes) return;
 
+            string code = devIdInput.Text.Trim();
             string apiBase = apiServerInput.Text.TrimEnd('/');
-            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/device/" + devIdInput.Text.Trim());
+            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/device/" + code);
 
             if (response.IsSuccessStatusCode)
             {
-                statusBar.Text = $"设备 {devIdInput.Text} 删除成功";
-                MessageBox.Show($"设备 {devIdInput.Text} 删除成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 同步移除本地模拟设备
+                _devices.RemoveAll(d => d.DeviceCode == code);
+                RefreshDeviceListBox();
+                statusBar.Text = $"设备 {code} 删除成功（剩余 {_devices.Count} 台）";
+                MessageBox.Show($"设备 {code} 删除成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 LoadDeviceList();
             }
             else
@@ -534,6 +553,50 @@ public partial class MainWindow : Window
         {
             MessageBox.Show($"删除设备失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             statusBar.Text = $"删除设备失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 清空全部设备（后端 + 本地模拟列表）
+    /// </summary>
+    private async void BtnDeleteAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isConnected)
+        {
+            MessageBox.Show("请先连接API", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show("确定要清空全部设备吗？", "确认清空", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            _isSimulating = false;
+            _simulationTimer.Stop();
+            btnStartSimulation.Content = "开始模拟";
+            txtSimulationStatus.Text = "停止";
+
+            string apiBase = apiServerInput.Text.TrimEnd('/');
+            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/devices/all");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _devices.Clear();
+                RefreshDeviceListBox();
+                statusBar.Text = "已清空全部设备";
+                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 清空全部设备");
+                LoadDeviceList();
+            }
+            else
+            {
+                throw new HttpRequestException($"HTTP {(int)response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"清空设备失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            statusBar.Text = $"清空设备失败: {ex.Message}";
         }
     }
 
@@ -634,20 +697,31 @@ public partial class MainWindow : Window
         }
         else
         {
-            // 批量设备模式：每台设备按场景随机游走
+            // 批量设备模式：每台设备独立随机游走（遵循自动波动开关）
+            bool autoTemp = chkAutoTemperature.IsChecked == true;
+            bool autoSpeed = chkAutoSpeed.IsChecked == true;
+            bool autoStatus = chkAutoStatus.IsChecked == true;
+
             foreach (var dev in _devices)
             {
-                dev.Temperature += (_random.NextDouble() - 0.5) * (scenario.TempJitter * 2);
-                dev.Temperature = Math.Max(20, Math.Min(100, dev.Temperature));
-
-                dev.Speed += (_random.NextDouble() - 0.5) * (scenario.SpeedJitter * 2);
-                dev.Speed = Math.Max(0, Math.Min(2000, dev.Speed));
-
-                if (_random.NextDouble() < scenario.AlarmRate)
+                if (autoTemp)
+                {
+                    dev.Temperature += (_random.NextDouble() - 0.5) * (scenario.TempJitter * 2);
+                    dev.Temperature = Math.Max(20, Math.Min(100, dev.Temperature));
+                }
+                if (autoSpeed)
+                {
+                    dev.Speed += (_random.NextDouble() - 0.5) * (scenario.SpeedJitter * 2);
+                    dev.Speed = Math.Max(0, Math.Min(2000, dev.Speed));
+                }
+                if (autoStatus && _random.NextDouble() < scenario.AlarmRate)
                 {
                     string[] statuses = { "ONLINE", "ONLINE", "OFFLINE", "ALARM", "MAINTENANCE" };
                     dev.Status = statuses[_random.Next(statuses.Length)];
                 }
+                // 功率随转速联动
+                dev.Power = Math.Round(dev.Speed / 20 + _random.NextDouble() * 5, 1);
+                dev.Pressure = Math.Round(1.2 + dev.Temperature / 90 * 0.8 + (_random.NextDouble() - 0.5) * 0.1, 2);
             }
 
             await SendBatchDeviceDataAsync();
@@ -721,7 +795,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 批量设备模拟：全部设备 MQTT 推送 + 首台 HTTP（避免大量 HTTP 请求）
+    /// 批量设备模拟：全部设备 HTTP 推送（每台一条）+ MQTT 增强通道
     /// </summary>
     private async Task SendBatchDeviceDataAsync()
     {
@@ -730,40 +804,48 @@ public partial class MainWindow : Window
         try
         {
             string apiBase = apiServerInput.Text.TrimEnd('/');
-            int sent = 0;
+            int httpSent = 0;
+            int mqttSent = 0;
 
-            // MQTT 推送全部设备（高吞吐链路）
+            // HTTP 推送全部设备（保证不依赖 MQTT 也能看到全部设备动态）
+            foreach (var dev in _devices)
+            {
+                var deviceData = new
+                {
+                    deviceCode = dev.DeviceCode,
+                    deviceName = dev.DeviceName,
+                    deviceType = dev.DeviceType,
+                    status = dev.Status,
+                    temperature = Math.Round(dev.Temperature, 2),
+                    speed = Math.Round(dev.Speed, 2),
+                    lastHeartbeat = DateTime.UtcNow
+                };
+                try
+                {
+                    var resp = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
+                    if (resp.IsSuccessStatusCode) httpSent++;
+                }
+                catch { /* 单台失败不中断 */ }
+            }
+
+            // MQTT 推送全部设备（高吞吐增强通道）
             foreach (var dev in _devices)
             {
                 if (await PublishMqttTelemetryAsync(dev.DeviceCode, dev.Status, dev.Temperature, dev.Speed))
-                    sent++;
+                    mqttSent++;
             }
 
-            // 首台设备同时走 HTTP（演示数据链路兜底）
-            var first = _devices[0];
-            var deviceData = new
+            if (httpSent > 0 || mqttSent > 0)
             {
-                deviceCode = first.DeviceCode,
-                deviceName = first.DeviceName,
-                deviceType = first.DeviceType,
-                status = first.Status,
-                temperature = Math.Round(first.Temperature, 2),
-                speed = Math.Round(first.Speed, 2),
-                lastHeartbeat = DateTime.UtcNow
-            };
-            var response = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _messageCount += sent + 1;
+                _messageCount += Math.Max(httpSent, mqttSent);
                 txtMessageCount.Text = _messageCount.ToString();
                 txtLastSend.Text = DateTime.Now.ToString("HH:mm:ss");
-                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {_devices.Count} 台设备 (MQTT {sent}+HTTP 1)");
-                statusBar.Text = $"批量推送 {_devices.Count} 台设备";
+                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 批量推送 {_devices.Count} 台 (HTTP {httpSent} + MQTT {mqttSent})");
+                statusBar.Text = $"批量推送 {_devices.Count} 台设备 (HTTP {httpSent})";
             }
             else
             {
-                AppendRealTimeData($"[ERROR] HTTP {(int)response.StatusCode}");
+                AppendRealTimeData($"[ERROR] 批量推送全部失败");
             }
         }
         catch (Exception ex)
@@ -844,8 +926,9 @@ public partial class MainWindow : Window
             }
             else
             {
-                statusBar.Text = $"批量创建失败: HTTP {(int)response.StatusCode}";
-                _devices.Clear();
+                statusBar.Text = $"批量创建失败: HTTP {(int)response.StatusCode}（本地 {_devices.Count} 台已保留）";
+                AppendRealTimeData($"[ERROR] 批量创建失败 HTTP {(int)response.StatusCode}");
+                RefreshDeviceListBox();
             }
         }
         catch (Exception ex)
