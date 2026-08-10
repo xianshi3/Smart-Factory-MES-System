@@ -516,13 +516,17 @@ public partial class MainWindow : Window
             var result = MessageBox.Show($"确定要删除设备 {devIdInput.Text} 吗?", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result != MessageBoxResult.Yes) return;
 
+            string code = devIdInput.Text.Trim();
             string apiBase = apiServerInput.Text.TrimEnd('/');
-            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/device/" + devIdInput.Text.Trim());
+            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/device/" + code);
 
             if (response.IsSuccessStatusCode)
             {
-                statusBar.Text = $"设备 {devIdInput.Text} 删除成功";
-                MessageBox.Show($"设备 {devIdInput.Text} 删除成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 同步移除本地模拟设备
+                _devices.RemoveAll(d => d.DeviceCode == code);
+                RefreshDeviceListBox();
+                statusBar.Text = $"设备 {code} 删除成功（剩余 {_devices.Count} 台）";
+                MessageBox.Show($"设备 {code} 删除成功", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 LoadDeviceList();
             }
             else
@@ -534,6 +538,50 @@ public partial class MainWindow : Window
         {
             MessageBox.Show($"删除设备失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             statusBar.Text = $"删除设备失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 清空全部设备（后端 + 本地模拟列表）
+    /// </summary>
+    private async void BtnDeleteAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isConnected)
+        {
+            MessageBox.Show("请先连接API", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show("确定要清空全部设备吗？", "确认清空", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            _isSimulating = false;
+            _simulationTimer.Stop();
+            btnStartSimulation.Content = "开始模拟";
+            txtSimulationStatus.Text = "停止";
+
+            string apiBase = apiServerInput.Text.TrimEnd('/');
+            var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/devices/all");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _devices.Clear();
+                RefreshDeviceListBox();
+                statusBar.Text = "已清空全部设备";
+                AppendRealTimeData($"[{DateTime.Now:HH:mm:ss}] 清空全部设备");
+                LoadDeviceList();
+            }
+            else
+            {
+                throw new HttpRequestException($"HTTP {(int)response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"清空设备失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            statusBar.Text = $"清空设备失败: {ex.Message}";
         }
     }
 
