@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private long _lastMessageCount = 0;
     private bool _isSimulating = false;
     private bool _isConnected = false;
-    private bool _isDarkTheme = true;
+    private bool _isDarkTheme = false;
     private readonly DispatcherTimer _sendRateTimer;
 
     private IMqttClient? _mqttClient;
@@ -120,7 +120,7 @@ public partial class MainWindow : Window
 
         if (_isDarkTheme)
         {
-            ApplyDarkTheme();
+        ApplyLightTheme();
             btnTheme.Content = "☀️ 亮色模式";
         }
         else
