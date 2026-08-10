@@ -99,6 +99,16 @@
                     <TextBlock x:Name="lblApiAddress" Text="API地址" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
                     <TextBox x:Name="apiServerInput" Text="http://localhost:8085" Style="{StaticResource Input}" Margin="0,0,0,10"/>
                     
+                    <TextBlock x:Name="lblMqttServer" Text="MQTT服务器 (EMQX)" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="70"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="mqttServerInput" Text="localhost" Style="{StaticResource Input}" Margin="0,0,4,0"/>
+                        <TextBox x:Name="mqttPortInput" Text="1883" Style="{StaticResource Input}" Grid.Column="1" HorizontalContentAlignment="Center"/>
+                    </Grid>
+                    
                     <TextBlock Text="设备列表" FontSize="12" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
                     <Border Background="#F8FAFC" CornerRadius="6" Padding="6">
                         <ListBox x:Name="deviceListBox" Height="100" SelectionChanged="DeviceListBox_SelectionChanged" BorderThickness="0">
