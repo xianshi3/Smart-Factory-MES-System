@@ -197,10 +197,10 @@ Smart-Factory-MES-System/
 ├── mes-common/                      # 公共模块（实体类、工具类、异常处理）
 ├── mes-gateway/                     # API 网关 (9090) — 统一路由 / 鉴权 / 限流
 ├── mes-auth/                        # 认证服务 (8081) — 登录 / JWT / RBAC 权限
-├── mes-workorder/                   # 工单服务 (8082) — 工单全生命周期
-├── mes-process/                     # 工艺服务 (8083) — 工艺模板 / 参数配置
-├── mes-quality/                     # 质量服务 (8084) — 质检记录 / 质量追溯 / SPC
-├── mes-dashboard/                   # 看板服务 (8085) — 实时数据 / WebSocket 推送
+├── mes-workorder/                   # 工单服务 (8082) — 工单全生命周期 / 关闭闭环 / 报工
+├── mes-process/                     # 工艺服务 (8083) — 工艺模板 / 参数配置 / 工序步骤 / 参数校验
+├── mes-quality/                     # 质量服务 (8084) — 质检记录 / 待检判定 / 质量追溯 / SPC
+├── mes-dashboard/                   # 看板服务 (8085) — 实时数据 / WebSocket / 生产报表 / OEE
 ├── mes-device-gateway/              # .NET 设备网关 (5000) — MQTT 接入 / Kafka 转发
 ├── mes-ai-service/                  # Python AI 服务 (8087) — 预测 / Agent / RAG
 ├── mes-frontend/                    # Vue 3 前端 (3000) — 生产看板 / 3D 数字孪生

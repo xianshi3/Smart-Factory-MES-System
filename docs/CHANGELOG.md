@@ -10,6 +10,46 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.45 (2026-08-11)
+
+### 四大业务模块企业级完整化（工单 / 工艺 / 质量 / 生产报表）
+
+#### 工单管理（mes-workorder + WorkOrderView.vue）
+
+- **工单关闭闭环**: 新增 `POST /workorder/{id}/close`，非 CLOSED/PENDING_QC 状态可关闭；关闭后不可再报工
+- **编辑能力扩展**: `UpdateWorkOrderDTO` 新增产品名称/型号、计划数量、工位、工艺模板、计划开始/结束时间字段，仅 CREATED 状态可编辑业务信息
+- **前端重写**: 卡片点击开详情弹窗（10+ 字段含工位/模板名称解析）、编辑模式、动态下拉（工位列表 + 工艺模板分页查询）、关闭按钮、筛选支持 PENDING_QC、报工校验（良品+不良=报工量）、清理调试日志
+
+#### 工艺管理（mes-process + ProcessView.vue）
+
+- **工序步骤管理**: 新增 `proc_step` 表 + `ProcessStep` 实体/`ProcessStepMapper`；模板详情 VO（`TemplateDetailVO` = 模板 + 参数 + 工序）聚合查询
+- **模板复制**: `POST /template/{id}/copy` 一键复制为草稿副本，级联复制参数与工序步骤，编码自动加 "-副本"
+- **参数/工序 CRUD**: 全套 `GET/POST/PUT/DELETE` 端点（按模板/按参数ID/按步骤ID），发布（PUBLISHED）后禁止修改，`assertTemplateEditable` 统一拦截
+- **前端重写**: 详情弹窗（参数表格 + 工序步骤表格，草稿可增删改）、参数校验弹窗（逐参数输入值 → 通过/失败明细）、复制按钮、状态筛选（草稿/已发布）挂载查询
+
+#### 质量管理（mes-quality + QualityView.vue）
+
+- **追溯契约修复**: `forwardTrace` 返回体重写为 `TraceDetailVO`（sn/工单ID/工单号/质检结果/时间 + `steps[]` 工序链路），新增 `TraceStepVO`（工序/物料批次/设备/操作员/参数快照/时间）；修复此前返回数组而前端按单对象渲染导致的追溯永远空数据
+- **不合格闭环**: 新增 PENDING（待检）状态流程 —— 新建待检记录 → 质检员执行「合格」/「不合格」（不合格原因必填，`POST /record/{id}/fail` 前端接线）
+- **前端升级**: 卡片操作区分「追溯 / 合格 / 不合格 / 删除」，追溯弹窗时间线展示完整工序链路（操作员/物料批次/设备/参数快照）
+
+#### 生产报表（mes-dashboard + ReportView.vue）
+
+- **OEE 显示修复**: `dash_production_stats` 各率字段存 0-1 小数，旧实现直接输出导致前端显示 `0.9%`；现统一转换为百分数
+- **OEE 分解**: 报表新增可用率 A / 性能率 P / 质量率 Q 逐日与平均值，前端新增 OEE 分解卡片（三色进度条）与明细表 A/P/Q 列
+- **统计维度**: `GET /report/production` 新增 `dimension` 参数（day 按日 / workstation 按工位 / workOrder 按工单），按日统计自动补全无数据日期
+- **趋势可视化**: 产量/良品柱状图叠加 OEE 与良品率双折线（双 Y 轴 + 图例）
+- **明细分页**: 表格本地分页（10/20/50），CSV 导出补齐维度/OEE 分解列
+
+### 其他修复
+
+- **JWT 过期 401**: `GlobalExceptionHandler` 新增 `ExpiredJwtException`/`JwtException` 处理，过期返回 401「登录已过期」而非 500（需重启各服务生效）
+- **AI 服务代理修复**: `tools.py` 设置 `trust_env=False`，消除系统代理（Clash）导致访问 localhost 后端 502 的问题
+- **前端会话竞态修复**: 路由守卫 `beforeEach` 内 `await getUserInfo()` 后再渲染，修复 AI 聊天记录因 userId 竞态写入 `default` 导致历史丢失
+- **init.sql 补齐**: 新增 `proc_step` 表定义
+
+---
+
 ## v1.0.44 (2026-08-10)
 
 ### AI 生产助理智能体能力全面完善（mes-ai-service + mes-frontend）

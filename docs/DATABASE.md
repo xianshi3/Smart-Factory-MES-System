@@ -231,6 +231,28 @@
 
 ---
 
+### 9.1 工艺工序步骤表 proc_step
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| template_id | bigint | 模板ID | NOT NULL |
+| step_no | int | 工序序号 | NOT NULL, DEFAULT 1 |
+| step_name | varchar(100) | 工序名称 | NOT NULL |
+| step_desc | varchar(500) | 工序描述 | |
+| duration_min | int | 标准工时(分钟) | |
+| sequence | int | 执行顺序 | NOT NULL, DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+
+**索引**:
+- `idx_template_id` (template_id)
+
+**说明**: 工艺模板的工序步骤清单，按 `sequence` 升序排列；模板复制（`POST /process/template/{id}/copy`）时级联复制；仅 DRAFT 状态模板可增删改（`assertTemplateEditable` 拦截）
+
+---
+
 ### 10. 质检记录表 qms_quality_record
 
 | 字段 | 类型 | 说明 | 约束 |
@@ -358,6 +380,7 @@ erDiagram
     sys_user ||--o{ ai_chat_conversations : "user_id"
     proc_template ||--o{ wo_work_order : "process_template_id"
     proc_template ||--o{ proc_parameter : "template_id"
+    proc_template ||--o{ proc_step : "template_id"
     wo_work_order ||--o{ wo_work_report : "work_order_id"
     wo_work_order ||--o{ qms_quality_record : "work_order_id"
     qms_quality_record ||--o{ qms_traceability : "sn"
@@ -392,6 +415,11 @@ erDiagram
         bigint id PK
         bigint template_id FK
         varchar param_name
+    }
+    proc_step {
+        bigint id PK
+        bigint template_id FK
+        varchar step_name
     }
     qms_quality_record {
         bigint id PK
@@ -438,6 +466,7 @@ erDiagram
 | wo_work_report | idx_report_time | report_time |
 | proc_template | uk_template_code | template_code |
 | proc_parameter | idx_template_id | template_id |
+| proc_step | idx_template_id | template_id |
 | qms_quality_record | idx_work_order_id | work_order_id |
 | qms_quality_record | idx_sn | sn |
 | qms_quality_record | idx_check_type | check_type |
@@ -497,6 +526,7 @@ erDiagram
 | wo_work_report | ≥5 |
 | proc_template | ≥3 |
 | proc_parameter | ≥15 |
+| proc_step | ≥0 |
 | qms_quality_record | 11 |
 | qms_traceability | ≥4 |
 | mes_workstation | ≥5 |
