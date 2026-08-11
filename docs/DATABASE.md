@@ -231,6 +231,28 @@
 
 ---
 
+### 9.1 工艺工序步骤表 proc_step
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| template_id | bigint | 模板ID | NOT NULL |
+| step_no | int | 工序序号 | NOT NULL, DEFAULT 1 |
+| step_name | varchar(100) | 工序名称 | NOT NULL |
+| step_desc | varchar(500) | 工序描述 | |
+| duration_min | int | 标准工时(分钟) | |
+| sequence | int | 执行顺序 | NOT NULL, DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+
+**索引**:
+- `idx_template_id` (template_id)
+
+**说明**: 工艺模板的工序步骤清单，按 `sequence` 升序排列；模板复制（`POST /process/template/{id}/copy`）时级联复制；仅 DRAFT 状态模板可增删改（`assertTemplateEditable` 拦截）
+
+---
+
 ### 10. 质检记录表 qms_quality_record
 
 | 字段 | 类型 | 说明 | 约束 |
@@ -351,59 +373,76 @@
 
 ## 表关系图
 
-```
-┌─────────────┐       ┌────────────────────┐       ┌─────────────────┐
-│  sys_user  │       │  wo_work_order     │       │ proc_template   │
-├─────────────┤       ├────────────────────┤       ├─────────────────┤
-│ id (PK)    │◄──────│ create_by         │       │ id (PK)         │
-│ username   │       │ issue_by          │◄──────│ process_template_id
-│ password   │       │ work_order_id     │       │ (FK)           │
-│ role       │       └────────────────────┘       └─────────────────┘
-└──────┬──────┘                  │                        │
-       │                         │                        │
-       │                 ┌───────▼────────┐     ┌───────▼────────┐
-       │                 │ wo_work_report │     │ proc_parameter│
-       │                 ├───────────────┤     ├──────────────┤
-       └────────────────►│ operator_id  │     │ template_id │
-                       │ work_order_id│     │ (FK)       │
-                       └─────────────┘     └─────────────┘
-                              │
-                              │
-                 ┌────────────▼────────────┐
-                 │ qms_quality_record   │
-                 ├─────────────────────┤
-                 │ id (PK)            │
-                 │ work_order_id (FK) │
-                 │ sn                │
-                 │ check_type       │
-                 │ check_result    │
-                 └─────────────────┘
-                              │
-                              ▼
-                 ┌─────────────────────┐
-                 │ qms_traceability  │
-                 ├──────────────────┤
-                 │ sn (索引)       │
-                 │ work_order_id  │
-                 │ work_order_no │
-                 └──────────────────┘
+```mermaid
+erDiagram
+    sys_user ||--o{ wo_work_order : "create_by"
+    sys_user ||--o{ wo_work_report : "operator_id"
+    sys_user ||--o{ ai_chat_conversations : "user_id"
+    proc_template ||--o{ wo_work_order : "process_template_id"
+    proc_template ||--o{ proc_parameter : "template_id"
+    proc_template ||--o{ proc_step : "template_id"
+    wo_work_order ||--o{ wo_work_report : "work_order_id"
+    wo_work_order ||--o{ qms_quality_record : "work_order_id"
+    qms_quality_record ||--o{ qms_traceability : "sn"
+    ai_chat_conversations ||--o{ ai_chat_messages : "conversation_id"
 
-       ┌────────────────────┐
-       │ai_chat_conversations│
-       ├────────────────────┤
-       │ id (PK)           │
-       │ user_id ← sys_user│
-       └────────┬───────────┘
-                │ 1:N
-       ┌────────▼───────────┐
-       │ ai_chat_messages  │
-       ├──────────────────┤
-       │ id (PK)          │
-       │ conversation_id  │
-       │ role             │
-       │ content (Markdown)│
-       │ steps (JSON)     │
-       └──────────────────┘
+    sys_user {
+        bigint id PK
+        varchar username
+        varchar real_name
+        varchar role
+    }
+    wo_work_order {
+        bigint id PK
+        varchar order_no UK
+        varchar product_name
+        int plan_quantity
+        varchar status
+        bigint create_by FK
+        bigint process_template_id FK
+    }
+    wo_work_report {
+        bigint id PK
+        bigint work_order_id FK
+        bigint operator_id FK
+        int completed_quantity
+    }
+    proc_template {
+        bigint id PK
+        varchar template_name
+    }
+    proc_parameter {
+        bigint id PK
+        bigint template_id FK
+        varchar param_name
+    }
+    proc_step {
+        bigint id PK
+        bigint template_id FK
+        varchar step_name
+    }
+    qms_quality_record {
+        bigint id PK
+        bigint work_order_id FK
+        varchar sn
+        varchar check_type
+        varchar check_result
+    }
+    qms_traceability {
+        bigint id PK
+        varchar sn
+        bigint work_order_id
+    }
+    ai_chat_conversations {
+        bigint id PK
+        bigint user_id FK
+    }
+    ai_chat_messages {
+        bigint id PK
+        bigint conversation_id FK
+        varchar role
+        text content
+    }
 ```
 
 ---
@@ -427,6 +466,7 @@
 | wo_work_report | idx_report_time | report_time |
 | proc_template | uk_template_code | template_code |
 | proc_parameter | idx_template_id | template_id |
+| proc_step | idx_template_id | template_id |
 | qms_quality_record | idx_work_order_id | work_order_id |
 | qms_quality_record | idx_sn | sn |
 | qms_quality_record | idx_check_type | check_type |
@@ -439,6 +479,39 @@
 | ai_chat_messages | idx_conversation_id | conversation_id |
 | ai_analysis_history | idx_user_id | user_id |
 | ai_analysis_history | idx_type | analysis_type |
+| dash_alarm_event | idx_device_code | device_code |
+| dash_alarm_event | idx_status | status |
+| dash_alarm_event | idx_occurrence_time | occurrence_time |
+
+---
+
+### 12. 告警事件表 dash_alarm_event
+
+设备告警事件记录，由 .NET 网关状态变更消息经 Kafka `mes-alarm-event` 消费写入（`KafkaAlarmEventConsumer`），也可通过 `/alarm` REST API 手动创建。
+
+| 字段 | 类型 | 说明 | 约束 |
+|------|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| alarm_code | varchar(64) | 告警编码 | |
+| message | text | 告警消息 | |
+| level | varchar(32) | 级别: CRITICAL/WARNING/INFO | DEFAULT 'WARNING' |
+| alarm_type | varchar(64) | 告警类型 | |
+| device_code | varchar(64) | 设备编码 | INDEX |
+| device_name | varchar(128) | 设备名称 | |
+| status | varchar(32) | 状态: ACTIVE/ACKNOWLEDGED/RESOLVED | DEFAULT 'ACTIVE' |
+| occurrence_time | datetime | 发生时间 | INDEX |
+| ack_time | datetime | 确认时间 | |
+| ack_user | varchar(64) | 确认人 | |
+| resolve_time | datetime | 解决时间 | |
+| resolve_user | varchar(64) | 解决人 | |
+| remarks | text | 备注 | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+| deleted_time | datetime | 删除时间 | |
+| deleted_by | bigint | 删除人ID | |
+
+**数据链路**: MQTT `mes/device/{id}/status` → .NET 网关 → Kafka `mes-alarm-event` → `KafkaAlarmEventConsumer` → 本表 + 同步 `dash_device_status.status`
 
 ---
 
@@ -453,6 +526,7 @@
 | wo_work_report | ≥5 |
 | proc_template | ≥3 |
 | proc_parameter | ≥15 |
+| proc_step | ≥0 |
 | qms_quality_record | 11 |
 | qms_traceability | ≥4 |
 | mes_workstation | ≥5 |

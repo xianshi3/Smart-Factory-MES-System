@@ -85,7 +85,17 @@ public interface DashboardService {
      * 获取生产报表
      * @param startDate 开始日期
      * @param endDate 结束日期
+     * @param dimension 统计维度: day/workstation/workOrder
      * @return 报表数据
      */
-    Map<String, Object> getProductionReport(String startDate, String endDate);
+    Map<String, Object> getProductionReport(String startDate, String endDate, String dimension);
+
+    /**
+     * 获取设备历史遥测（InfluxDB 时序）
+     * @param deviceCode 设备编码
+     * @param hours 回溯小时数
+     * @param interval 聚合间隔（秒）
+     * @return 时间序列 {times, temperature, speed, pressure, power, enabled}
+     */
+    Map<String, Object> getDeviceHistory(String deviceCode, int hours, int interval);
 }

@@ -2,6 +2,7 @@ package com.mes.quality.service;
 
 import com.mes.common.result.PageResult;
 import com.mes.quality.dto.CreateQualityRecordDTO;
+import com.mes.quality.dto.TraceDetailVO;
 import com.mes.quality.entity.QualityRecord;
 import com.mes.quality.entity.Traceability;
 
@@ -49,11 +50,11 @@ public interface QualityService {
     QualityRecord getDetail(Long id);
 
     /**
-     * 正向追溯 - SN->工单->工艺->物料
+     * 正向追溯 - SN->工单->工艺链路->质量结果
      * @param sn 产品序列号
-     * @return 追溯记录列表
+     * @return 追溯详情（含工序链路）
      */
-    List<Traceability> forwardTrace(String sn);
+    TraceDetailVO forwardTrace(String sn);
 
     /**
      * 反向追溯 - 工单->所有SN记录

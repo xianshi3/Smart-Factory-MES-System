@@ -118,7 +118,7 @@ npm run dev
 | 看板服务 | 8085 | OEE/WebSocket |
 | AI服务 | 8087 | 质量/产量预测 |
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
-| 设备模拟器 | 8883 | 模拟2000+设备数据上报 |
+| 设备模拟器 | - | WPF 桌面客户端（HTTP 客户端 + MQTT 客户端，无监听端口） |
 | MySQL | 3306 | 数据库 |
 | Redis | 6379 | 缓存/黑名单/限流/在线心跳/分布式序号 |
 | MQTT | 1883 | 设备通信 |
@@ -265,6 +265,23 @@ npm run dev
 | GET | /devices | 设备状态 |
 | GET | /production/today | 今日统计 |
 | GET | /oee/calculate | OEE计算 |
+| GET | /device/{code}/history | 设备历史时序数据（InfluxDB） |
+| POST | /device/batch | 批量创建设备 |
+| POST | /device/simulate | 模拟数据上报（模拟器单台） |
+| DELETE | /devices/all | 清空全部设备 |
+
+### 7.4 AI 生产助理（mes-ai-service /agent）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/agent/run | Agent 执行（四阶段编排：任务理解→计划执行→知识增强→结果交付） |
+| GET | /api/v1/agent/tools | 可用工具列表（15 个 MES 工具） |
+| POST | /api/v1/agent/kb/search | 知识库检索（TF-IDF） |
+| POST | /api/v1/agent/conversations | 新建对话 / 列表 / 详情 / 消息 / 删除 |
+| POST | /api/v1/agent/analysis | 分析历史 CRUD |
+
+> **Agent 响应结构**: `{success, content, steps(执行步骤), plan(执行计划), report(结构化交付: summary/key_points/tables/recommendations/follow_ups), intent, intent_label}`。
+> **多轮交互**: 传入 `session_id` 后，Agent 通过 Redis 记忆上轮设备焦点，指代（如"那台设备"）自动继承。
 
 ---
 
@@ -283,9 +300,11 @@ npm run dev
 
 | 主题 | 说明 |
 |------|------|
-| mes/device/+/data | 设备数据 |
-| mes/device/+/status | 设备状态 |
+| mes/device/+/data | 设备数据（遥测） |
+| mes/device/+/status | 设备状态变更（网关转发至 Kafka `mes-alarm-event`） |
 | mes/device/+/control | 控制指令 |
+
+> **模拟器双通道**: WPF 模拟器同时走 HTTP（`POST /api/dashboard/device/simulate`，批量走 `/api/dashboard/device/batch`）与 MQTT（`mes/device/{deviceCode}/data`）。MQTT payload 采用网关协议结构 `{timestamp, dataType, status, data:{temperature, speed, ...}}`。
 
 ---
 
@@ -295,9 +314,10 @@ npm run dev
 2. **Docker命令**：Windows使用 `docker compose`（空格）
 3. **前端账号**：admin / admin123
 4. **AI模型**：示例模型，需真实数据训练后替换
-5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、Nacos 使用 Docker 运行，Java 服务本地 `java -jar` 启动
+5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、EMQX 使用 Docker 运行，Java 服务本地 `java -jar` 启动
 6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突。
-7. **Docker镜像拉取**：如果 Docker 代理无法拉取镜像，需配置镜像加速器（daemon.json 中添加 registry-mirrors）
+7. **Docker镜像拉取**：若直连 Docker Hub 超时，可配置代理（Docker Desktop → Settings → Resources → Proxies）或自建镜像加速器（daemon.json 中添加 registry-mirrors）；注意国内公共镜像源（USTC/163/百度/docker-cn）均已停服，勿再使用
+8. **设备模拟器**：启动时自动探测 API 网关与 EMQX 地址（失败回退 localhost）；连接 API 后自动加载已有设备，勾选"参与模拟"的复选框可批量选控；数据推送频率、场景、参数自动持久化到 `%APPDATA%/MESDeviceSimulator/config.json`
 
 ---
 
@@ -314,4 +334,4 @@ npm run dev
 
 ---
 
-*最后更新：2026-08-02*
+*最后更新：2026-08-10*

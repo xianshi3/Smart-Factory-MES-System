@@ -159,11 +159,11 @@ def _add_message_sync(conv_id: str, role: str, content: str, steps: Optional[lis
         "INSERT INTO ai_chat_messages (conversation_id, role, content, steps) VALUES (%s, %s, %s, %s)",
         (conv_id, role, content, steps_json),
     )
+    msg_id = cur.lastrowid
     cur.execute(
         "UPDATE ai_chat_conversations SET update_time = NOW() WHERE id = %s",
         (conv_id,),
     )
-    msg_id = cur.lastrowid
     cur.execute(
         "SELECT id, conversation_id, role, content, steps, create_time FROM ai_chat_messages WHERE id = %s",
         (msg_id,),

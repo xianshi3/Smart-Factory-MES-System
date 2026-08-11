@@ -5,6 +5,8 @@ import {
   type ConversationDetail,
   type ConversationMessage,
   type AgentStep,
+  type AgentPlanStep,
+  type AgentReport,
   listConversations,
   getConversation,
   createConversation,
@@ -31,6 +33,9 @@ export const useAiChatStore = defineStore('aiChat', () => {
     role: 'user' | 'assistant'
     content: string
     steps?: (AgentStep & { expanded?: boolean })[]
+    plan?: AgentPlanStep[]
+    report?: AgentReport | null
+    intentLabel?: string
     timestamp: Date
     saved: boolean
   }
@@ -145,6 +150,9 @@ export const useAiChatStore = defineStore('aiChat', () => {
         role: 'assistant',
         content: res.success ? (res.content || '已完成') : ('执行失败：' + (res.content || '未知错误')),
         steps: (res.steps || []).map(s => ({ ...s, expanded: false })),
+        plan: res.plan || [],
+        report: res.report || null,
+        intentLabel: res.intent_label || undefined,
         timestamp: new Date(res.timestamp),
         saved: false,
       }

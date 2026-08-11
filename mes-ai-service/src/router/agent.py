@@ -49,11 +49,32 @@ class AgentStep(BaseModel):
     result: Dict[str, Any] = Field(default_factory=dict, description="工具执行结果")
 
 
+class AgentPlanStep(BaseModel):
+    """执行计划步骤"""
+    step: int = Field(0, description="步骤序号")
+    tool: str = Field("", description="建议工具")
+    args: Dict[str, Any] = Field(default_factory=dict, description="建议参数")
+    purpose: str = Field("", description="步骤目的")
+
+
+class AgentReport(BaseModel):
+    """结构化交付报告"""
+    summary: str = Field("", description="执行结果摘要")
+    key_points: List[str] = Field(default_factory=list, description="关键结论")
+    tables: List[Dict[str, Any]] = Field(default_factory=list, description="数据表格")
+    recommendations: List[str] = Field(default_factory=list, description="处置建议")
+    follow_ups: List[str] = Field(default_factory=list, description="后续追问")
+
+
 class AgentResponse(BaseModel):
     """Agent 响应模型"""
     success: bool = Field(..., description="是否成功")
     content: Optional[str] = Field(None, description="回复内容")
     steps: List[AgentStep] = Field(default_factory=list, description="执行步骤")
+    plan: List[AgentPlanStep] = Field(default_factory=list, description="执行计划")
+    report: Optional[AgentReport] = Field(None, description="结构化交付报告")
+    intent: Optional[str] = Field(None, description="识别到的任务意图")
+    intent_label: Optional[str] = Field(None, description="意图中文名")
     session_id: Optional[str] = Field(None, description="会话ID")
     timestamp: datetime = Field(..., description="时间戳")
 
@@ -90,10 +111,30 @@ async def run_agent(request: AgentRequest):
         for s in result.get("steps", []):
             steps.append(AgentStep(tool=s.get("tool", ""), args=s.get("args", {}), result=s.get("result", {})))
 
+        plan = []
+        for p in result.get("plan", []):
+            plan.append(AgentPlanStep(step=p.get("step", 0), tool=p.get("tool", ""),
+                                      args=p.get("args", {}), purpose=p.get("purpose", "")))
+
+        report = None
+        if result.get("report"):
+            r = result["report"]
+            report = AgentReport(
+                summary=r.get("summary", ""),
+                key_points=r.get("key_points", []),
+                tables=r.get("tables", []),
+                recommendations=r.get("recommendations", []),
+                follow_ups=r.get("follow_ups", []),
+            )
+
         return AgentResponse(
             success=result.get("success", False),
             content=result.get("content"),
             steps=steps,
+            plan=plan,
+            report=report,
+            intent=result.get("intent"),
+            intent_label=result.get("intent_label"),
             session_id=request.session_id,
             timestamp=datetime.utcnow(),
         )

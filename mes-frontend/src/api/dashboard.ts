@@ -8,6 +8,10 @@ export function getDeviceStatus() {
   return request({ url: '/dashboard/devices', method: 'get' })
 }
 
+export function getDeviceHistory(deviceCode: string, hours = 24, interval = 60) {
+  return request({ url: `/dashboard/device/${deviceCode}/history`, method: 'get', params: { hours, interval } })
+}
+
 export function createDevice(data: any) {
   return request({ url: '/dashboard/device', method: 'post', data })
 }

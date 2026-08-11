@@ -28,6 +28,10 @@ export function completeWorkOrder(id: number) {
   return request({ url: `/workorder/${id}/complete`, method: 'post' })
 }
 
+export function closeWorkOrder(id: number) {
+  return request({ url: `/workorder/${id}/close`, method: 'post' })
+}
+
 export function submitReport(data: any) {
   return request({ url: '/workorder/report', method: 'post', data })
 }
@@ -42,6 +46,46 @@ export function getTemplatePage(params: any) {
 
 export function getTemplateDetail(id: number) {
   return request({ url: `/process/template/${id}`, method: 'get' })
+}
+
+export function getTemplateDetailInfo(id: number) {
+  return request({ url: `/process/template/${id}/detail`, method: 'get' })
+}
+
+export function copyTemplate(id: number) {
+  return request({ url: `/process/template/${id}/copy`, method: 'post' })
+}
+
+export function getTemplateParameters(id: number) {
+  return request({ url: `/process/template/${id}/parameters`, method: 'get' })
+}
+
+export function addTemplateParameter(id: number, data: any) {
+  return request({ url: `/process/template/${id}/parameters`, method: 'post', data })
+}
+
+export function updateTemplateParameter(paramId: number, data: any) {
+  return request({ url: `/process/template/parameters/${paramId}`, method: 'put', data })
+}
+
+export function deleteTemplateParameter(paramId: number) {
+  return request({ url: `/process/template/parameters/${paramId}`, method: 'delete' })
+}
+
+export function getTemplateSteps(id: number) {
+  return request({ url: `/process/template/${id}/steps`, method: 'get' })
+}
+
+export function addTemplateStep(id: number, data: any) {
+  return request({ url: `/process/template/${id}/steps`, method: 'post', data })
+}
+
+export function updateTemplateStep(stepId: number, data: any) {
+  return request({ url: `/process/template/steps/${stepId}`, method: 'put', data })
+}
+
+export function deleteTemplateStep(stepId: number) {
+  return request({ url: `/process/template/steps/${stepId}`, method: 'delete' })
 }
 
 export function createTemplate(data: any) {
@@ -74,6 +118,10 @@ export function createQualityRecord(data: any) {
 
 export function passQuality(id: number) {
   return request({ url: `/quality/record/${id}/pass`, method: 'post' })
+}
+
+export function failQuality(id: number, reason: string) {
+  return request({ url: `/quality/record/${id}/fail`, method: 'post', params: { reason } })
 }
 
 export function deleteQualityRecord(id: string | number) {

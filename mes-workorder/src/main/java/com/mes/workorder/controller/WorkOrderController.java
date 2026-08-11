@@ -72,6 +72,13 @@ public class WorkOrderController {
         return Result.ok();
     }
 
+    @PostMapping("/{id}/close")
+    @Operation(summary = "关闭工单")
+    public Result<Void> close(@PathVariable Long id) {
+        workOrderService.close(id);
+        return Result.ok();
+    }
+
     @PostMapping("/report")
     @Operation(summary = "提交报工")
     public Result<WorkReport> submitReport(@Valid @RequestBody SubmitReportDTO dto,

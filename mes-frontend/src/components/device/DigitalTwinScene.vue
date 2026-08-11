@@ -45,6 +45,15 @@
           <div class="panel-bar"><div :style="{ width: (parseInt(selectedDevice.utilization) || 0) + '%' }"></div></div>
           <span class="panel-bar-label">{{ selectedDevice.utilization || '0%' }}</span>
         </div>
+        <!-- 温度趋势（实时 sparkline） -->
+        <div class="panel-trend">
+          <span class="panel-trend-label">温度趋势 °C</span>
+          <svg v-if="selectedTrend && selectedTrend.length > 1" :viewBox="`0 0 ${trendW} ${trendH}`" preserveAspectRatio="none" class="panel-trend-svg">
+            <polyline :points="trendPoints(selectedTrend)" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle v-if="selectedTrend.length" :cx="lastTrendX(selectedTrend)" :cy="lastTrendY(selectedTrend)" r="3" fill="#f59e0b" />
+          </svg>
+          <span v-else class="panel-trend-empty">等待实时数据...</span>
+        </div>
         <div class="panel-actions">
           <button title="AI预测" @click="emit('action', { type:'predict', device: selectedDevice })"><Cpu /></button>
           <button title="SPC分析" @click="emit('action', { type:'spc', device: selectedDevice })"><Histogram /></button>
@@ -72,6 +81,31 @@ const containerRef = ref<HTMLElement>()
 const ready = ref(false)
 const selectedDevice = ref<any>(null)
 
+// ===== 温度趋势（选中设备实时 sparkline） =====
+const trendW = 220
+const trendH = 36
+const trendBuffer = new Map<string, number[]>()
+const selectedTrend = computed(() => {
+  const code = selectedDevice.value?.code || selectedDevice.value?.deviceCode
+  return code ? trendBuffer.get(code) || [] : []
+})
+const trendPoints = (arr: number[]) => {
+  if (arr.length < 2) return ''
+  const min = Math.min(...arr), max = Math.max(...arr)
+  const span = max - min || 1
+  return arr.map((v, i) => {
+    const x = (i / (arr.length - 1)) * trendW
+    const y = trendH - 3 - ((v - min) / span) * (trendH - 6)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+const lastTrendX = (arr: number[]) => trendW
+const lastTrendY = (arr: number[]) => {
+  const min = Math.min(...arr), max = Math.max(...arr)
+  const span = max - min || 1
+  return trendH - 3 - ((arr[arr.length - 1] - min) / span) * (trendH - 6)
+}
+
 type SceneVars = {
   scene: THREE.Scene
   camera: THREE.PerspectiveCamera
@@ -85,7 +119,7 @@ type SceneVars = {
 }
 
 let S: SceneVars
-let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null }[] = []
+let deviceNodes: { root: THREE.Group; spindle?: THREE.Mesh | null; led: THREE.Mesh | null; label?: CSS2DObject | null; towerLights?: THREE.Mesh[] }[] = []
 let selectedOutline: THREE.Group | null = null
 let hoverOutline: THREE.Group | null = null
 let factoryGroup = new THREE.Group()
@@ -523,7 +557,7 @@ function buildMachine(device: any): THREE.Group {
   })
 
   // ══════════════════════════════════════════
-  // 【数据标签】— 设备名称+状态
+  // 【数据标签】— 设备名称+状态（updateNode 会实时刷新数值）
   // ══════════════════════════════════════════
   const devName = device.name || device.deviceName || device.deviceCode || '设备'
   const dataDiv = labelHtml(
@@ -532,7 +566,13 @@ function buildMachine(device: any): THREE.Group {
   )
   dataDiv.position.set(0, 2.3, 0); root.add(dataDiv)
 
-  root.userData = { device, spindle, led }
+  // 记录塔灯三色灯（红/黄/绿），供故障闪烁动画使用
+  const towerLights: THREE.Mesh[] = []
+  tower.children.forEach((ch, i) => {
+    if (i >= 2 && ch instanceof THREE.Mesh) towerLights.push(ch)
+  })
+
+  root.userData = { device, spindle, led, label: dataDiv }
   return root
 }
 
@@ -545,6 +585,109 @@ function makeOutline(color: number): THREE.Group {
   g.add(mesh)
   g.visible = false
   return g
+}
+
+// ══════════════════════════════════════════
+// 【简化模型】— 中量设备（13~40台）：机身+玻璃+主轴+塔灯+LED，约10个Mesh
+// ══════════════════════════════════════════
+function buildMachineSimple(device: any): THREE.Group {
+  const st = ST(device.status)
+  const c = CLR[st] || 0x6366f1
+  const g = GLW[st] || 0x0
+  const root = new THREE.Group()
+
+  // 机身（两段）
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.9, 2.0), mat(0x8a8a8a, 0.4, 0.6)))
+  root.children[root.children.length - 1].position.y = 1.0
+  // 顶部装饰
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 1.2), mat(c, 0.3, 0.8, g, 0.15)))
+  root.children[root.children.length - 1].position.y = 2.0
+  // 前玻璃
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 0.02),
+    new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, opacity: 0.35, roughness: 0.1, depthWrite: false })))
+  root.children[root.children.length - 1].position.set(0.05, 1.2, 1.01)
+  // 底座
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 1.6), mat(0x505050, 0.7, 0.7)))
+  root.children[root.children.length - 1].position.y = 0.07
+
+  // 主轴（旋转动画）
+  const spindle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.11, 0.3, 12),
+    mat(c, 0.06, 0.98, g, 0.25)
+  )
+  spindle.position.set(0.05, 0.8, 0.15); root.add(spindle)
+
+  // 塔灯（红黄绿）+ LED
+  const tower = new THREE.Group()
+  tower.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), mat(0x666666, 0.3, 0.8)))
+  tower.children[0].position.y = 2.02
+  const towerLights: THREE.Mesh[] = []
+  ;[0xff4444, 0xffcc00, 0x44cc44].forEach((tc, ti) => {
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.036, 8),
+      new THREE.MeshStandardMaterial({ color: tc, emissive: tc, emissiveIntensity: 0.25, roughness: 0.3 }))
+    seg.position.y = 1.94 + ti * 0.045; tower.add(seg); towerLights.push(seg)
+  })
+  const led = new THREE.Mesh(
+    new THREE.SphereGeometry(0.04, 6, 6),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
+  )
+  led.position.y = 2.1; tower.add(led)
+  tower.position.set(-0.6, 0, 0.6); root.add(tower)
+
+  root.userData = { device, spindle, led, label: null, towerLights }
+  return root
+}
+
+// ══════════════════════════════════════════
+// 【极简模型】— 大量设备（>40台）：机身+主轴+LED，约4个Mesh（无标签）
+// ══════════════════════════════════════════
+function buildMachineMinimal(device: any): THREE.Group {
+  const st = ST(device.status)
+  const c = CLR[st] || 0x6366f1
+  const root = new THREE.Group()
+
+  // 单一机身（含主体色条）
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.8, 1.9), mat(0x8a8a8a, 0.45, 0.55)))
+  root.children[root.children.length - 1].position.y = 0.95
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 1.1), mat(c, 0.3, 0.8))
+  body.position.y = 1.9; root.add(body)
+
+  // 主轴（旋转动画）
+  const spindle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 0.1, 0.25, 8),
+    mat(c, 0.1, 0.9)
+  )
+  spindle.position.set(0.05, 0.75, 0.15); root.add(spindle)
+
+  // LED 状态球
+  const led = new THREE.Mesh(
+    new THREE.SphereGeometry(0.04, 6, 6),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.0 })
+  )
+  led.position.set(-0.6, 2.1, 0.6); root.add(led)
+
+  root.userData = { device, spindle, led, label: null, towerLights: null }
+  return root
+}
+
+/**
+ * 按设备数量调节渲染质量：
+ * ≤12  全特效（阴影+2x分辨率）
+ * 13~40 关闭阴影，降低分辨率
+ * >40  关闭阴影 + 1x分辨率 + 关闭抗锯齿重绘
+ */
+function applyQualityByCount(count: number) {
+  if (!S) return
+  const full = count <= 12
+  const medium = count <= 40
+  S.webgl.shadowMap.enabled = full
+  S.webgl.setPixelRatio(Math.min(window.devicePixelRatio, full ? 2 : medium ? 1.5 : 1))
+  S.scene.traverse(c => {
+    if (c instanceof THREE.Mesh) {
+      c.castShadow = full && (c as any).userData?.castShadowBase !== false
+      c.receiveShadow = full
+    }
+  })
 }
 
 // ─── init scene ───
@@ -604,6 +747,9 @@ function refresh(devices: any[]) {
   const count = devices?.length || 0
   if (!count) return
 
+  // 按设备数量调节渲染质量（LOD）
+  applyQualityByCount(count)
+
   // rebuild factory for device count if bounds changed
   const bounds = calcGridBounds(count)
   if (bounds.halfW !== lastGridHW || bounds.halfD !== lastGridHD) {
@@ -618,7 +764,8 @@ function refresh(devices: any[]) {
   deviceNodes = []
   const { ox, oz } = bounds
   devices.forEach((d: any, i: number) => {
-    const root = buildMachine(d)
+    // LOD：≤12 精细 / 13~40 简化 / >40 极简（无标签）
+    const root = count > 40 ? buildMachineMinimal(d) : count > 12 ? buildMachineSimple(d) : buildMachine(d)
     const x = ox + (i % GRID_COLS) * SX
     const z = oz + Math.floor(i / GRID_COLS) * SZ
     root.position.set(x, 0, z)
@@ -626,7 +773,9 @@ function refresh(devices: any[]) {
 
     const spindle = (root.userData as any).spindle as THREE.Mesh | undefined
     const led = (root.userData as any).led as THREE.Mesh | undefined
-    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null })
+    const label = (root.userData as any).label as CSS2DObject | undefined
+    const towerLights = (root.userData as any).towerLights as THREE.Mesh[] | undefined
+    deviceNodes.push({ root, spindle: spindle ?? null, led: led ?? null, label: label ?? null, towerLights: towerLights ?? [] })
   })
 }
 
@@ -662,6 +811,11 @@ function onSceneClick(e: MouseEvent) {
   if (o) {
     const dev = (o as any).userData.device
     selectedDevice.value = dev
+    // 选中时若缓冲为空，用当前温度初始化趋势
+    const code = dev?.code || dev?.deviceCode
+    if (code && !trendBuffer.get(code)?.length && Number(dev?.temperature) > 0) {
+      trendBuffer.set(code, [Number(dev.temperature)])
+    }
     emit('select', dev)
     if (selectedOutline && o instanceof THREE.Group) {
       const wp = new THREE.Vector3(); o.getWorldPosition(wp)
@@ -697,32 +851,108 @@ function flyToView(key: string) {
 }
 
 // ─── animate loop ───
+let animTime = 0
 function animate() {
   S.animId = requestAnimationFrame(animate)
   const dt = Math.min(S.clock.getDelta(), 0.1)
+  animTime += dt
   S.controls.update()
 
   deviceNodes.forEach(n => {
     const dev = (n.root.userData as any).device as any | undefined
     if (!dev) return
     const st = ST(dev.status)
+    const temp = Number(dev.temperature) || 0
+    const speed = Number(dev.speed) || 0
 
-    // spindle rotation (running = fast, others = slow/stop)
+    // spindle rotation: 转速与真实 speed 联动（运行中越转越快，故障/离线停止）
     if (n.spindle) {
-      const speed = st === 'ONLINE' ? 8 : st === 'MAINTENANCE' ? 1.5 : 0.2
-      n.spindle.rotation.y += dt * speed
+      let rotSpeed = 0.2
+      if (st === 'ONLINE') rotSpeed = speed > 0 ? 2 + speed / 150 : 6
+      else if (st === 'MAINTENANCE') rotSpeed = 1.5
+      n.spindle.rotation.y += dt * rotSpeed
     }
 
-    // LED static glow
+    // LED: 呼吸光效（sin 波），温度越高越亮
     if (n.led) {
       const mat = n.led.material as THREE.MeshStandardMaterial
-      const st2 = ST(dev.status)
-      mat.emissiveIntensity = st2 === 'FAULT' ? 1.0 : st2 === 'ONLINE' ? 0.7 : 0.3
+      const breathe = 0.85 + Math.sin(animTime * 3 + n.root.position.x) * 0.15
+      if (st === 'FAULT') mat.emissiveIntensity = 1.0 + Math.sin(animTime * 6) * 0.3
+      else if (st === 'ONLINE') mat.emissiveIntensity = (0.6 + temp / 160) * breathe
+      else mat.emissiveIntensity = 0.3
+    }
+
+    // 塔灯：故障红灯闪烁 / 运行绿灯亮 / 维护黄灯亮
+    if (n.towerLights?.length) {
+      const [red, yellow, green] = n.towerLights
+      const flash = Math.sin(animTime * 6) > 0 ? 1 : 0.12
+      if (red) (red.material as THREE.MeshStandardMaterial).emissiveIntensity = st === 'FAULT' ? flash : 0.06
+      if (yellow) (yellow.material as THREE.MeshStandardMaterial).emissiveIntensity = st === 'MAINTENANCE' ? 1 : 0.06
+      if (green) (green.material as THREE.MeshStandardMaterial).emissiveIntensity = st === 'ONLINE' ? 0.9 + Math.sin(animTime * 2) * 0.1 : 0.06
     }
   })
 
   S.webgl.render(S.scene, S.camera)
   S.lbl.render(S.scene, S.camera)
+}
+
+/**
+ * 增量更新设备数据（不重建模型，避免闪烁）：
+ * 更新 userData 引用、CSS2D 标签数值、LED 状态色
+ */
+function updateNodes(devices: any[]) {
+  if (!S || !devices?.length) return
+  deviceNodes.forEach((n, i) => {
+    const dev = devices[i]
+    if (!dev) return
+    const prev = (n.root.userData as any).device
+    n.root.userData.device = dev
+
+    // LED 状态色随状态变化
+    const st = ST(dev.status)
+    if (n.led) {
+      const mat = n.led.material as THREE.MeshStandardMaterial
+      const c = CLR[st] || 0x6366f1
+      mat.color.setHex(c); mat.emissive.setHex(c)
+    }
+
+    // CSS2D 标签实时刷新：名称 + 状态 + 温度 + 转速
+    if (n.label) {
+      const c = CLR[st] || 0x6366f1
+      const hex = c.toString(16).padStart(6, '0')
+      const name = dev.name || dev.deviceName || dev.deviceCode || '设备'
+      const temp = dev.temperature != null ? Number(dev.temperature).toFixed(1) : '--'
+      const speed = dev.speed ?? '--'
+      const el = (n.label as any).element as HTMLElement
+      if (el) {
+        el.innerHTML = `<b>${name}</b><br><span style="color:#${hex}">●</span> ${TXT[st] || ''} · ${temp}°C · ${speed}rpm`
+      }
+    }
+
+    // 同步选中面板（按 code 匹配最新数据，保持面板数值实时刷新）
+    if (selectedDevice.value) {
+      const cur = selectedDevice.value.code || selectedDevice.value.deviceCode
+      const next = dev.code || dev.deviceCode
+      if (cur === next) {
+        selectedDevice.value = dev
+      }
+    }
+
+    // 状态变化时刷新标签边框色（通过 userData 记录的原始 device 对比）
+    void prev
+
+    // 收集温度趋势缓冲（选中面板 sparkline 数据源）
+    const devCode = dev.code || dev.deviceCode
+    if (devCode) {
+      const t = Number(dev.temperature)
+      if (!isNaN(t) && t > 0) {
+        const buf = trendBuffer.get(devCode) || []
+        buf.push(t)
+        if (buf.length > 40) buf.shift()
+        trendBuffer.set(devCode, buf)
+      }
+    }
+  })
 }
 
 let resizeObserver: ResizeObserver | null = null
@@ -748,8 +978,15 @@ watch(() => themeStore.isDark, (dark) => {
 })
 
 watch(() => props.devices, v => {
-  if (v?.length) { lastDeviceCount = v.length; refresh(v) }
-})
+  if (!v?.length) return
+  lastDeviceCount = v.length
+  if (S && deviceNodes.length === v.length) {
+    // 数量相同 → 增量更新（不重建模型，保持动画连续）
+    updateNodes(v)
+  } else {
+    refresh(v)
+  }
+}, { deep: true })
 
 onMounted(() => {
   init()
@@ -840,6 +1077,10 @@ onBeforeUnmount(() => {
 .panel-grid span.temp-warn { color: var(--warning); }
 .panel-grid span.temp-danger { color: var(--danger); }
 .panel-bar-wrap { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.panel-trend { margin: 2px 0 8px; }
+.panel-trend-label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.panel-trend-svg { display: block; width: 100%; height: 36px; background: var(--bg-hover); border-radius: 4px; }
+.panel-trend-empty { display: block; font-size: 10px; color: var(--text-muted); opacity: .7; padding: 8px 4px; }
 .panel-bar { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
 .panel-bar div { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s; min-width: 2px; }
 .panel-bar-label { font-size: 10px; color: var(--text-muted); font-family: monospace; min-width: 30px; text-align: right; }

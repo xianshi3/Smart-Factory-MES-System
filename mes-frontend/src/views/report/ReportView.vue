@@ -30,6 +30,11 @@
         value-format="YYYY-MM-DD"
         class="date-picker"
       />
+      <el-select v-model="searchForm.dimension" class="dimension-select">
+        <el-option label="按日统计" value="day" />
+        <el-option label="按工位" value="workstation" />
+        <el-option label="按工单" value="workOrder" />
+      </el-select>
       <el-button type="primary" @click="loadData">
         <el-icon><Search /></el-icon>
         查询
@@ -54,11 +59,11 @@
         <div class="card-header">
           <span class="card-title">
             <el-icon><TrendCharts /></el-icon>
-            日产量趋势
+            产量与良品率趋势
           </span>
         </div>
         <div class="chart-container">
-          <v-chart :option="outputChart" autoresize style="height: 280px" />
+          <v-chart :option="outputChart" autoresize style="height: 300px" />
         </div>
       </div>
       <div class="chart-card chart-side">
@@ -69,7 +74,28 @@
           </span>
         </div>
         <div class="chart-container">
-          <v-chart :option="qualityGauge" autoresize style="height: 280px" />
+          <v-chart :option="qualityGauge" autoresize style="height: 300px" />
+        </div>
+      </div>
+    </div>
+
+    <div class="oee-card">
+      <div class="card-header">
+        <span class="card-title">
+          <el-icon><PieChart /></el-icon>
+          OEE 分解（可用率 × 性能率 × 质量率）
+        </span>
+        <span class="oee-total">综合OEE：<b :class="getOeeClass(oeeSummary.avgOee)">{{ oeeSummary.avgOee.toFixed(1) }}%</b></span>
+      </div>
+      <div class="oee-bars">
+        <div v-for="item in oeeItems" :key="item.label" class="oee-item">
+          <div class="oee-item-header">
+            <span class="oee-item-label">{{ item.label }}</span>
+            <span class="oee-item-value" :class="getOeeClass(item.value)">{{ item.value.toFixed(1) }}%</span>
+          </div>
+          <div class="oee-track">
+            <div class="oee-fill" :class="getOeeClass(item.value)" :style="{ width: Math.min(item.value, 100) + '%' }"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -80,37 +106,52 @@
           <el-icon><List /></el-icon>
           生产明细
         </span>
-        <span class="data-count">共 {{ tableData.length }} 条记录</span>
+        <span class="data-count">共 {{ totalRows }} 条记录</span>
       </div>
       
       <div class="table-wrapper">
         <el-table 
           v-loading="loading" 
-          :data="tableData"
+          :data="pagedData"
           stripe
           class="modern-table"
         >
-          <el-table-column prop="date" label="日期" min-width="120" align="center">
+          <el-table-column :prop="searchForm.dimension === 'day' ? 'date' : 'date'" label="统计维度" min-width="120" align="center">
             <template #default="{ row }">
               <span class="date-cell">{{ row.date }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="output" label="产量" min-width="100" align="center">
+          <el-table-column prop="output" label="产量" min-width="90" align="center">
             <template #default="{ row }">
               <span class="number-cell primary">{{ row.output || 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="qualified" label="良品数" min-width="100" align="center">
+          <el-table-column prop="qualified" label="良品数" min-width="90" align="center">
             <template #default="{ row }">
               <span class="number-cell success">{{ row.qualified || 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="不良数" min-width="100" align="center">
+          <el-table-column prop="defective" label="不良数" min-width="90" align="center">
             <template #default="{ row }">
-              <span class="number-cell danger">{{ (row.output || 0) - (row.qualified || 0) }}</span>
+              <span class="number-cell danger">{{ row.defective || 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="oee" label="OEE" min-width="100" align="center">
+          <el-table-column label="可用率A" min-width="90" align="center">
+            <template #default="{ row }">
+              <span class="number-cell" :class="getOeeClass(row.availability)">{{ row.availability ? row.availability.toFixed(1) + '%' : '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="性能率P" min-width="90" align="center">
+            <template #default="{ row }">
+              <span class="number-cell" :class="getOeeClass(row.performance)">{{ row.performance ? row.performance.toFixed(1) + '%' : '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="质量率Q" min-width="90" align="center">
+            <template #default="{ row }">
+              <span class="number-cell" :class="getOeeClass(row.quality)">{{ row.quality ? row.quality.toFixed(1) + '%' : '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="oee" label="OEE" min-width="90" align="center">
             <template #default="{ row }">
               <span class="number-cell" :class="getOeeClass(row.oee)">
                 {{ row.oee ? row.oee.toFixed(1) + '%' : '-' }}
@@ -131,27 +172,51 @@
       </div>
       
       <el-empty v-if="!loading && tableData.length === 0" description="暂无生产数据" />
+      
+      <div class="pagination-wrapper" v-if="tableData.length > 0">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.size"
+          :total="tableData.length"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
 import { useChartTheme } from '@/composables/useChartTheme'
-import { DataAnalysis, Download, Refresh, TrendCharts, List, Search, Odometer } from '@element-plus/icons-vue'
+import { DataAnalysis, Download, Refresh, TrendCharts, List, Search, Odometer, PieChart } from '@element-plus/icons-vue'
 
 const chartTheme = useChartTheme()
 const loading = ref(false)
 const tableData = ref<any[]>([])
-const searchForm = reactive({ dateRange: [] as string[] })
+const searchForm = reactive({ dateRange: [] as string[], dimension: 'day' })
+const pagination = reactive({ page: 1, size: 10 })
+
+const pagedData = computed(() => {
+  const start = (pagination.page - 1) * pagination.size
+  return tableData.value.slice(start, start + pagination.size)
+})
+const totalRows = computed(() => tableData.value.length)
+
+const oeeSummary = reactive({ avgOee: 0, avgAvailability: 0, avgPerformance: 0, avgQuality: 0 })
+const oeeItems = computed(() => [
+  { label: '可用率 (Availability)', value: oeeSummary.avgAvailability },
+  { label: '性能率 (Performance)', value: oeeSummary.avgPerformance },
+  { label: '质量率 (Quality)', value: oeeSummary.avgQuality }
+])
 
 const stats = ref([
   { label: '总产量', value: 0, icon: 'Coin', theme: 'primary' },
   { label: '良品数', value: 0, icon: 'CircleCheck', theme: 'success' },
   { label: '不良数', value: 0, icon: 'Warning', theme: 'danger' },
-  { label: '平均OEE', value: '0%', icon: 'Odometer', theme: 'info' }
+  { label: '平均OEE', value: '0.0%', icon: 'Odometer', theme: 'info' }
 ])
 
 const outputChart = ref({})
@@ -170,17 +235,17 @@ const getRateClass = (row: any) => {
   return 'low'
 }
 
-const getOeeClass = (oee: number) => {
-  if (!oee) return ''
-  if (oee >= 85) return 'high'
-  if (oee >= 70) return 'medium'
+const getOeeClass = (value: number) => {
+  if (!value || value === 0) return ''
+  if (value >= 85) return 'high'
+  if (value >= 70) return 'medium'
   return 'low'
 }
 
 const loadData = async () => {
   loading.value = true
   try {
-    const params: any = {}
+    const params: any = { dimension: searchForm.dimension }
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       params.startDate = searchForm.dateRange[0]
       params.endDate = searchForm.dateRange[1]
@@ -191,11 +256,17 @@ const loadData = async () => {
     stats.value = [
       { label: '总产量', value: data.totalOutput || 0, icon: 'Coin', theme: 'primary' },
       { label: '良品数', value: data.totalQualified || 0, icon: 'CircleCheck', theme: 'success' },
-      { label: '不良数', value: (data.totalOutput || 0) - (data.totalQualified || 0), icon: 'Warning', theme: 'danger' },
+      { label: '不良数', value: data.totalDefective ?? ((data.totalOutput || 0) - (data.totalQualified || 0)), icon: 'Warning', theme: 'danger' },
       { label: '平均OEE', value: (data.avgOee || 0).toFixed(1) + '%', icon: 'Odometer', theme: 'info' }
     ]
     
+    oeeSummary.avgOee = data.avgOee || 0
+    oeeSummary.avgAvailability = data.avgAvailability || 0
+    oeeSummary.avgPerformance = data.avgPerformance || 0
+    oeeSummary.avgQuality = data.avgQuality || 0
+    
     tableData.value = data.dailyData || []
+    pagination.page = 1
     updateChart()
   } catch (error) {
     console.error('Failed to load report:', error)
@@ -219,24 +290,33 @@ const updateChart = () => {
       textStyle: { color: textColor },
       axisPointer: { type: 'shadow' }
     },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    legend: { data: ['产量', '良品', 'OEE', '良品率'], textStyle: { color: textColor, fontSize: 12 }, top: 0 },
+    grid: { left: '3%', right: '5%', bottom: '3%', top: '14%', containLabel: true },
     xAxis: { 
       type: 'category', 
       data: tableData.value.map(d => d.date),
       axisLine: { lineStyle: { color: lineColor } },
       axisLabel: { color: textColor, fontSize: 12 }
     },
-    yAxis: { 
-      type: 'value',
-      axisLine: { lineStyle: { color: lineColor } },
-      axisLabel: { color: textColor },
-      splitLine: { lineStyle: { color: splitLineColor } }
-    },
+    yAxis: [
+      { 
+        type: 'value', name: '数量',
+        axisLine: { lineStyle: { color: lineColor } },
+        axisLabel: { color: textColor },
+        splitLine: { lineStyle: { color: splitLineColor } }
+      },
+      {
+        type: 'value', name: '比率(%)', min: 0, max: 100,
+        axisLine: { show: false },
+        axisLabel: { color: textColor, formatter: '{value}%' },
+        splitLine: { show: false }
+      }
+    ],
     series: [
       {
         name: '产量',
         type: 'bar',
-        barWidth: '35%',
+        barWidth: '20%',
         data: tableData.value.map(d => d.output),
         itemStyle: { 
           color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#6366f1' }, { offset: 1, color: '#8b5cf6' }] },
@@ -246,12 +326,32 @@ const updateChart = () => {
       {
         name: '良品',
         type: 'bar',
-        barWidth: '35%',
+        barWidth: '20%',
         data: tableData.value.map(d => d.qualified),
         itemStyle: { 
           color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#34d399' }] },
           borderRadius: [4, 4, 0, 0]
         }
+      },
+      {
+        name: 'OEE',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        data: tableData.value.map(d => d.oee),
+        itemStyle: { color: '#f59e0b' },
+        lineStyle: { width: 2 },
+        symbolSize: 5
+      },
+      {
+        name: '良品率',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        data: tableData.value.map(d => d.output ? (d.qualified / d.output * 100) : null),
+        itemStyle: { color: '#3b82f6' },
+        lineStyle: { width: 2, type: 'dashed' },
+        symbolSize: 5
       }
     ]
   }
@@ -260,9 +360,7 @@ const updateChart = () => {
   const total = tableData.value.reduce((s, d) => s + (d.output || 0), 0)
   const qualified = tableData.value.reduce((s, d) => s + (d.qualified || 0), 0)
   const rate = total ? Math.round((qualified / total) * 100) : 0
-  const avgOee = tableData.value.length
-    ? Math.round(tableData.value.reduce((s, d) => s + (d.oee || 0), 0) / tableData.value.length)
-    : 0
+  const avgOee = Math.round(oeeSummary.avgOee || 0)
   const gaugeCommon = {
     pointer: { length: '55%', width: 4 },
     axisLine: { lineStyle: { width: 10 } },
@@ -295,6 +393,7 @@ const updateChart = () => {
 
 const handleReset = () => {
   searchForm.dateRange = []
+  searchForm.dimension = 'day'
   loadData()
 }
 
@@ -303,8 +402,19 @@ const handleExport = () => {
     ElMessage.warning('无数据可导出')
     return
   }
-  const headers = Object.keys(tableData.value[0] || {})
-  const csv = [headers.join(','), ...tableData.value.map(r => headers.map(h => `"${String(r[h] || '')}"`).join(','))].join('\n')
+  const headers = ['统计维度', '产量', '良品数', '不良数', '可用率A(%)', '性能率P(%)', '质量率Q(%)', 'OEE(%)', '良品率(%)']
+  const rows = tableData.value.map(r => [
+    r.date,
+    r.output || 0,
+    r.qualified || 0,
+    r.defective || 0,
+    r.availability?.toFixed(1) ?? '',
+    r.performance?.toFixed(1) ?? '',
+    r.quality?.toFixed(1) ?? '',
+    r.oee?.toFixed(1) ?? '',
+    r.output ? ((r.qualified / r.output) * 100).toFixed(1) : ''
+  ])
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v)}"`).join(','))].join('\n')
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -339,6 +449,8 @@ onMounted(() => { loadData() })
 .date-picker {
   width: 280px;
 }
+
+.dimension-select { width: 140px; }
 
 .stats-row {
   display: grid;
@@ -389,13 +501,16 @@ onMounted(() => { loadData() })
   margin-bottom: 20px;
 }
 
-.chart-card {
+.chart-card,
+.oee-card {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
   animation: fadeIn 0.5s ease 0.2s both;
 }
+
+.oee-card { margin-bottom: 20px; }
 
 .card-header { margin-bottom: 16px; }
 
@@ -409,6 +524,38 @@ onMounted(() => { loadData() })
 }
 
 .card-title .el-icon { color: var(--accent); }
+
+.oee-total { font-size: 13px; color: var(--text-muted); }
+.oee-total b { font-size: 15px; margin-left: 4px; }
+
+.oee-bars { display: flex; flex-direction: column; gap: 14px; }
+
+.oee-item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.oee-item-label { color: var(--text-secondary); }
+.oee-item-value { font-weight: 600; }
+
+.oee-track {
+  height: 10px;
+  background: var(--border-color);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.oee-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+.oee-fill.high { background: linear-gradient(90deg, #10b981, #34d399); }
+.oee-fill.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.oee-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
 
 .table-section {
   background: var(--bg-card);
@@ -522,8 +669,15 @@ onMounted(() => { loadData() })
 .rate-text.medium { color: var(--warning); }
 .rate-text.low { color: var(--danger); }
 
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 html.light .stat-card,
 html.light .chart-card,
+html.light .oee-card,
 html.light .table-section {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }

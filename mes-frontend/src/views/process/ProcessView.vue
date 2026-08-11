@@ -63,10 +63,21 @@
             {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
           </span>
           <div class="card-actions" @click.stop>
-            <el-button v-if="row.status === 'DRAFT'" type="warning" size="small" link @click="handleEdit(row)">编辑</el-button>
-            <el-button type="success" size="small" link @click="handleParamCheck(row)">参数校验</el-button>
-            <el-button v-if="row.status === 'DRAFT'" type="success" size="small" link @click="handlePublish(row)">发布</el-button>
-            <el-button v-if="row.status === 'DRAFT'" type="danger" size="small" link @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" link @click="handleDetail(row)">详情</el-button>
+            <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
+              <el-button size="small" link>
+                <el-icon><MoreFilled /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="copy">复制为草稿</el-dropdown-item>
+                  <el-dropdown-item command="check">参数校验</el-dropdown-item>
+                  <el-dropdown-item v-if="row.status === 'DRAFT'" command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item v-if="row.status === 'DRAFT'" command="publish">发布</el-dropdown-item>
+                  <el-dropdown-item v-if="row.status === 'DRAFT'" command="delete" divided :class="'danger-item'">删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </div>
@@ -113,37 +124,144 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" title="模板详情" width="480px">
+    <el-dialog v-model="detailVisible" title="模板详情" width="760px">
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="模板名称">{{ detailData.templateName }}</el-descriptions-item>
-        <el-descriptions-item label="版本">v{{ detailData.version }}</el-descriptions-item>
-        <el-descriptions-item label="模板编码">{{ detailData.templateCode }}</el-descriptions-item>
+        <el-descriptions-item label="模板名称">{{ detail.template?.templateName }}</el-descriptions-item>
+        <el-descriptions-item label="版本">v{{ detail.template?.version }}</el-descriptions-item>
+        <el-descriptions-item label="模板编码">{{ detail.template?.templateCode }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <span :class="['status-tag', detailData.status === 'PUBLISHED' ? 'status-tag--success' : 'status-tag--info']">
-            {{ detailData.status === 'PUBLISHED' ? '已发布' : '草稿' }}
+          <span :class="['status-tag', detail.template?.status === 'PUBLISHED' ? 'status-tag--success' : 'status-tag--info']">
+            {{ detail.template?.status === 'PUBLISHED' ? '已发布' : '草稿' }}
           </span>
         </el-descriptions-item>
-        <el-descriptions-item label="产品型号" :span="2">{{ detailData.productModel || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="描述" :span="2">{{ detailData.description || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="产品型号" :span="2">{{ detail.template?.productModel || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="描述" :span="2">{{ detail.template?.description || '-' }}</el-descriptions-item>
       </el-descriptions>
+
+      <div class="detail-section">
+        <div class="section-title">
+          <span>工艺参数（{{ detail.parameters?.length || 0 }}）</span>
+          <el-button v-if="detailEditable" size="small" type="primary" link @click="openParamDialog(null)">+ 新增参数</el-button>
+        </div>
+        <el-table :data="detail.parameters || []" size="small" border>
+          <el-table-column prop="paramCode" label="参数编码" width="120" />
+          <el-table-column prop="paramName" label="参数名称" width="120" />
+          <el-table-column prop="paramValue" label="默认值" width="90" />
+          <el-table-column label="范围" min-width="120">
+            <template #default="{ row }">{{ row.minValue ?? '-' }} ~ {{ row.maxValue ?? '-' }} {{ row.unit || '' }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="110" v-if="detailEditable">
+            <template #default="{ row }">
+              <el-button size="small" link type="primary" @click="openParamDialog(row)">编辑</el-button>
+              <el-button size="small" link type="danger" @click="handleDeleteParam(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-if="!detail.parameters?.length" class="section-empty">暂无参数配置</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-title">
+          <span>工序步骤（{{ detail.steps?.length || 0 }}）</span>
+          <el-button v-if="detailEditable" size="small" type="primary" link @click="openStepDialog(null)">+ 新增工序</el-button>
+        </div>
+        <el-table :data="detail.steps || []" size="small" border>
+          <el-table-column prop="sequence" label="顺序" width="60" />
+          <el-table-column prop="stepNo" label="序号" width="60" />
+          <el-table-column prop="stepName" label="工序名称" width="140" />
+          <el-table-column prop="stepDesc" label="描述" min-width="160" />
+          <el-table-column prop="durationMin" label="工时(分)" width="80" />
+          <el-table-column label="操作" width="110" v-if="detailEditable">
+            <template #default="{ row }">
+              <el-button size="small" link type="primary" @click="openStepDialog(row)">编辑</el-button>
+              <el-button size="small" link type="danger" @click="handleDeleteStep(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-if="!detail.steps?.length" class="section-empty">暂无工序步骤</div>
+      </div>
+
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="paramDialogVisible" :title="paramForm.id ? '编辑参数' : '新增参数'" width="460px">
+      <el-form :model="paramForm" label-width="80px">
+        <el-form-item label="参数名称"><el-input v-model="paramForm.paramName" placeholder="如: 主轴转速" /></el-form-item>
+        <el-form-item label="参数编码"><el-input v-model="paramForm.paramCode" placeholder="如: SPINDLE_SPEED" /></el-form-item>
+        <el-form-item label="默认值"><el-input v-model="paramForm.paramValue" placeholder="可选" /></el-form-item>
+        <el-form-item label="下限"><el-input-number v-model="paramForm.minValue" style="width: 100%" /></el-form-item>
+        <el-form-item label="上限"><el-input-number v-model="paramForm.maxValue" style="width: 100%" /></el-form-item>
+        <el-form-item label="单位"><el-input v-model="paramForm.unit" placeholder="如: rpm / ℃ / mm" /></el-form-item>
+        <el-form-item label="排序"><el-input-number v-model="paramForm.sortOrder" :min="1" style="width: 100%" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="paramDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitParam">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="stepDialogVisible" :title="stepForm.id ? '编辑工序' : '新增工序'" width="460px">
+      <el-form :model="stepForm" label-width="80px">
+        <el-form-item label="工序名称"><el-input v-model="stepForm.stepName" placeholder="如: 粗加工" /></el-form-item>
+        <el-form-item label="工序序号"><el-input-number v-model="stepForm.stepNo" :min="1" style="width: 100%" /></el-form-item>
+        <el-form-item label="执行顺序"><el-input-number v-model="stepForm.sequence" :min="1" style="width: 100%" /></el-form-item>
+        <el-form-item label="工时(分)"><el-input-number v-model="stepForm.durationMin" :min="0" style="width: 100%" /></el-form-item>
+        <el-form-item label="描述"><el-input v-model="stepForm.stepDesc" type="textarea" :rows="2" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="stepDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitStep">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="checkVisible" title="参数校验" width="560px">
+      <el-form :model="checkForm" label-width="140px" v-if="checkParams.length">
+        <el-form-item v-for="p in checkParams" :key="p.paramCode" :label="`${p.paramName} (${p.unit || '无量纲'})`">
+          <el-input-number v-model="checkForm[p.paramCode]" :min="0" style="width: 100%" />
+          <div class="form-hint" v-if="p.minValue != null || p.maxValue != null">范围: {{ p.minValue ?? '-' }} ~ {{ p.maxValue ?? '-' }}</div>
+        </el-form-item>
+      </el-form>
+      <div v-if="checkResult" class="check-result">
+        <div class="check-result-title">
+          <el-icon :class="checkResult.passed ? 'check-ok' : 'check-fail'">
+            <CircleCheck v-if="checkResult.passed" /><WarningFilled v-else />
+          </el-icon>
+          <span>{{ checkResult.passed ? '校验通过' : '校验不通过' }}</span>
+        </div>
+        <ul v-if="checkResult.errors?.length">
+          <li v-for="(err, i) in checkResult.errors" :key="i" class="check-err">{{ err }}</li>
+        </ul>
+        <ul v-else>
+          <li v-for="(d, i) in checkResult.details" :key="i" class="check-detail">{{ d }}</li>
+        </ul>
+      </div>
+      <template #footer>
+        <el-button @click="checkVisible = false">关闭</el-button>
+        <el-button type="primary" @click="handleDoCheck">开始校验</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTemplatePage, createTemplate, updateTemplate, publishTemplate, deleteTemplate, checkParameters } from '@/api/services'
-import { Setting, Plus, Search, Box, Clock } from '@element-plus/icons-vue'
+import {
+  getTemplatePage, createTemplate, updateTemplate, publishTemplate, deleteTemplate,
+  getTemplateDetailInfo, copyTemplate,
+  addTemplateParameter, updateTemplateParameter, deleteTemplateParameter,
+  addTemplateStep, updateTemplateStep, deleteTemplateStep,
+  checkParameters,
+} from '@/api/services'
+import { Setting, Plus, Search, Box, Clock, CircleCheck, WarningFilled, MoreFilled } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建模板')
 const detailVisible = ref(false)
-const detailData = ref<any>({})
+const detail = ref<any>({})
 const tableData = ref<any[]>([])
 
 const searchForm = reactive({ keyword: '', status: '' })
@@ -165,11 +283,34 @@ const rules = {
   productModel: [{ required: true, message: '请输入产品型号', trigger: 'blur' }]
 }
 
+// ===== 参数管理 =====
+const paramDialogVisible = ref(false)
+const paramForm = reactive({
+  id: null as number | null,
+  paramName: '', paramCode: '', paramValue: '',
+  minValue: null as number | null, maxValue: null as number | null,
+  unit: '', sortOrder: 1,
+})
+
+// ===== 工序步骤管理 =====
+const stepDialogVisible = ref(false)
+const stepForm = reactive({
+  id: null as number | null,
+  stepName: '', stepNo: 1, sequence: 1, durationMin: null as number | null, stepDesc: ''
+})
+
+// ===== 参数校验 =====
+const checkVisible = ref(false)
+const checkParams = ref<any[]>([])
+const checkForm = reactive<any>({})
+const checkResult = ref<any>(null)
+
+const detailEditable = computed(() => detail.value?.template?.status === 'DRAFT')
+
 const loadData = async () => {
   loading.value = true
   try {
     const res = await getTemplatePage({ current: pagination.page, size: pagination.size, status: searchForm.status, keyword: searchForm.keyword })
-    console.log('[Process] loadData res:', res)
     tableData.value = res?.data?.records || []
     pagination.total = res?.data?.total || 0
   } catch (error) { console.error('Failed to load:', error) }
@@ -201,20 +342,122 @@ const handleSubmit = async () => {
   } catch (error: any) { ElMessage.error(error?.message || '操作失败') }
 }
 
+const handleDetail = async (row: any) => {
+  try {
+    const res = await getTemplateDetailInfo(row.id)
+    detail.value = res?.data || {}
+  } catch {
+    detail.value = { template: row, parameters: [], steps: [] }
+  }
+  detailVisible.value = true
+}
+
+const handleCopy = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`复制模板 "${row.templateName}" 为新草稿？`, '复制模板', { type: 'info' })
+    await copyTemplate(row.id)
+    ElMessage.success('复制成功，已生成草稿副本')
+    loadData()
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '复制失败') }
+}
+
 const handlePublish = async (row: any) => {
-  try { await publishTemplate(row.id); ElMessage.success('发布成功'); loadData() }
-  catch (e: any) { ElMessage.error(e?.message || '发布失败') }
+  try {
+    await ElMessageBox.confirm(`确定发布模板 "${row.templateName}" 吗？发布后不可修改`, '发布确认', { type: 'warning' })
+    await publishTemplate(row.id); ElMessage.success('发布成功'); loadData()
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '发布失败') }
 }
 
 const handleParamCheck = async (row: any) => {
+  checkParams.value = []
+  Object.keys(checkForm).forEach(k => delete checkForm[k])
+  checkResult.value = null
   try {
-    // 不传 paramValues 时后端回退用模板默认值校验
-    const res = await checkParameters({ templateId: row.id, paramValues: {} })
-    const data = res?.data
-    ElMessage.success(typeof data === 'string' ? data : '参数校验通过')
+    const params = await getTemplateParameters(row.id)
+    const list = params?.data || []
+    if (!list.length) {
+      ElMessage.warning('该模板未配置工艺参数，请先添加参数')
+      return
+    }
+    checkParams.value = list
+    checkVisible.value = true
   } catch (e: any) {
-    ElMessage.warning(e?.message || '参数校验不通过，请检查参数配置')
+    ElMessage.error(e?.message || '加载参数失败')
   }
+}
+
+const handleDoCheck = async () => {
+  try {
+    const res = await checkParameters({ templateId: checkParams.value[0]?.templateId, paramValues: checkForm })
+    const data = res?.data
+    if (res?.code === 200 || typeof data === 'string') {
+      checkResult.value = { passed: true, errors: [], details: checkParams.value.map(p => `${p.paramName}: ${checkForm[p.paramCode] ?? p.paramValue ?? '-'} ${p.unit || ''}（范围 ${p.minValue ?? '-'}~${p.maxValue ?? '-'}）`) }
+    }
+  } catch (e: any) {
+    checkResult.value = { passed: false, errors: [(e?.message || '校验不通过').replace(/^[^:]+:\s*/, '')], details: [] }
+  }
+}
+
+const openParamDialog = (row: any) => {
+  if (row) {
+    Object.assign(paramForm, { id: row.id, paramName: row.paramName, paramCode: row.paramCode, paramValue: row.paramValue ?? '', minValue: row.minValue, maxValue: row.maxValue, unit: row.unit ?? '', sortOrder: row.sortOrder ?? 1 })
+  } else {
+    Object.assign(paramForm, { id: null, paramName: '', paramCode: '', paramValue: '', minValue: null, maxValue: null, unit: '', sortOrder: (detail.value?.parameters?.length || 0) + 1 })
+  }
+  paramDialogVisible.value = true
+}
+
+const handleSubmitParam = async () => {
+  const tplId = detail.value.template?.id
+  try {
+    if (paramForm.id) { await updateTemplateParameter(paramForm.id, paramForm) }
+    else { await addTemplateParameter(tplId, paramForm) }
+    ElMessage.success(paramForm.id ? '参数已更新' : '参数已添加')
+    paramDialogVisible.value = false
+    const res = await getTemplateDetailInfo(tplId)
+    detail.value = res?.data || {}
+  } catch (e: any) { ElMessage.error(e?.message || '保存参数失败') }
+}
+
+const handleDeleteParam = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`删除参数 "${row.paramName}"？`, '删除确认', { type: 'warning' })
+    await deleteTemplateParameter(row.id)
+    ElMessage.success('参数已删除')
+    const res = await getTemplateDetailInfo(detail.value.template?.id)
+    detail.value = res?.data || {}
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '删除失败') }
+}
+
+const openStepDialog = (row: any) => {
+  if (row) {
+    Object.assign(stepForm, { id: row.id, stepName: row.stepName, stepNo: row.stepNo, sequence: row.sequence, durationMin: row.durationMin, stepDesc: row.stepDesc ?? '' })
+  } else {
+    Object.assign(stepForm, { id: null, stepName: '', stepNo: (detail.value?.steps?.length || 0) + 1, sequence: (detail.value?.steps?.length || 0) + 1, durationMin: null, stepDesc: '' })
+  }
+  stepDialogVisible.value = true
+}
+
+const handleSubmitStep = async () => {
+  const tplId = detail.value.template?.id
+  try {
+    if (stepForm.id) { await updateTemplateStep(stepForm.id, stepForm) }
+    else { await addTemplateStep(tplId, stepForm) }
+    ElMessage.success(stepForm.id ? '工序已更新' : '工序已添加')
+    stepDialogVisible.value = false
+    const res = await getTemplateDetailInfo(tplId)
+    detail.value = res?.data || {}
+  } catch (e: any) { ElMessage.error(e?.message || '保存工序失败') }
+}
+
+const handleDeleteStep = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`删除工序 "${row.stepName}"？`, '删除确认', { type: 'warning' })
+    await deleteTemplateStep(row.id)
+    ElMessage.success('工序已删除')
+    const res = await getTemplateDetailInfo(detail.value.template?.id)
+    detail.value = res?.data || {}
+  } catch (e: any) { if (e !== 'cancel') ElMessage.error(e?.message || '删除失败') }
 }
 
 const handleDelete = (row: any) => {
@@ -223,6 +466,14 @@ const handleDelete = (row: any) => {
       try { await deleteTemplate(row.id); ElMessage.success('删除成功'); loadData() }
       catch (e: any) { ElMessage.error(e?.message || '删除失败') }
     }).catch(() => {})
+}
+
+const handleCommand = (cmd: string, row: any) => {
+  if (cmd === 'edit') handleEdit(row)
+  else if (cmd === 'copy') handleCopy(row)
+  else if (cmd === 'check') handleParamCheck(row)
+  else if (cmd === 'publish') handlePublish(row)
+  else if (cmd === 'delete') handleDelete(row)
 }
 
 onMounted(() => { loadData() })
@@ -263,6 +514,10 @@ onMounted(() => { loadData() })
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 .status-dot--success { background: var(--success); box-shadow: 0 0 6px var(--success); }
 .status-dot--info { background: var(--info); }
+
+.status-tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+.status-tag--success { color: var(--success); background: rgba(52, 199, 123, 0.12); }
+.status-tag--info { color: var(--info); background: rgba(90, 100, 255, 0.12); }
 
 .template-version {
   font-size: 11px;
@@ -316,4 +571,18 @@ onMounted(() => { loadData() })
   padding-top: 12px;
   border-top: 1px solid var(--border-light);
 }
+
+.card-actions { display: flex; align-items: center; gap: 2px; }
+.card-actions :deep(.danger-item) { color: var(--danger); }
+.detail-section { margin-top: 20px; }
+.section-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 10px; }
+.section-empty { text-align: center; color: var(--text-muted); padding: 16px 0; border: 1px dashed var(--border-light); border-radius: 6px; font-size: 13px; }
+.form-hint { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.check-result { margin-top: 12px; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); }
+.check-result-title { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 8px; }
+.check-ok { color: var(--success); font-size: 18px; }
+.check-fail { color: var(--danger); font-size: 18px; }
+.check-err { color: var(--danger); font-size: 13px; line-height: 1.8; }
+.check-detail { color: var(--text-secondary); font-size: 13px; line-height: 1.8; }
+
 </style>

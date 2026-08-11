@@ -3,6 +3,7 @@ package com.mes.quality.controller;
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
 import com.mes.quality.dto.CreateQualityRecordDTO;
+import com.mes.quality.dto.TraceDetailVO;
 import com.mes.quality.dto.TraceQueryDTO;
 import com.mes.quality.entity.QualityRecord;
 import com.mes.quality.entity.Traceability;
@@ -88,13 +89,13 @@ public class QualityController {
     }
 
     /**
-     * 正向追溯 - SN->工单->工艺->物料
+     * 正向追溯 - SN->工单->工艺链路->质量结果
      * @param sn 产品序列号
-     * @return 追溯记录列表
+     * @return 追溯详情（含工序链路）
      */
     @GetMapping("/trace/forward")
     @Operation(summary = "正向追溯 - SN->工单->工艺->物料")
-    public Result<List<Traceability>> forwardTrace(@RequestParam String sn) {
+    public Result<TraceDetailVO> forwardTrace(@RequestParam String sn) {
         return Result.ok(qualityService.forwardTrace(sn));
     }
 

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mes.common.result.PageResult;
 import com.mes.quality.dto.CreateQualityRecordDTO;
+import com.mes.quality.dto.TraceDetailVO;
+import com.mes.quality.dto.TraceStepVO;
 import com.mes.quality.entity.QualityRecord;
 import com.mes.quality.entity.Traceability;
 import com.mes.quality.mapper.QualityRecordMapper;
@@ -15,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 质量管理服务实现类
@@ -129,15 +133,53 @@ public class QualityServiceImpl implements QualityService {
     }
 
     /**
-     * 正向追溯 - SN->工单->工艺->物料
+     * 正向追溯 - SN->工单->工艺链路->质量结果
      * @param sn 产品序列号
-     * @return 追溯记录列表
+     * @return 追溯详情（含工序链路）
      */
     @Override
-    public List<Traceability> forwardTrace(String sn) {
+    public TraceDetailVO forwardTrace(String sn) {
         List<Traceability> traceList = traceabilityMapper.selectBySn(sn);
-        log.info("正向追溯查询完成, sn={}, count={}", sn, traceList.size());
-        return traceList;
+
+        TraceDetailVO vo = new TraceDetailVO();
+        vo.setSn(sn);
+        vo.setWorkOrderId(traceList.isEmpty() ? null : traceList.get(0).getWorkOrderId());
+
+        // 最新质检记录作为质量结果来源（回退链路节点结果）
+        QualityRecord latest = qualityRecordMapper.selectOne(
+                new LambdaQueryWrapper<QualityRecord>()
+                        .eq(QualityRecord::getSn, sn)
+                        .eq(QualityRecord::getDeleted, 0)
+                        .orderByDesc(QualityRecord::getCreateTime)
+                        .last("LIMIT 1"));
+        if (latest != null) {
+            vo.setWorkOrderId(latest.getWorkOrderId());
+            vo.setWorkOrderCode(latest.getWorkOrderNo());
+            vo.setQualityResult(latest.getCheckResult());
+            vo.setQualityTime(latest.getCheckTime());
+        } else if (!traceList.isEmpty()) {
+            vo.setQualityResult(traceList.get(traceList.size() - 1).getQualityResult());
+            vo.setQualityTime(traceList.get(traceList.size() - 1).getCreateTime());
+        }
+
+        if (traceList.isEmpty()) {
+            vo.setSteps(new ArrayList<>());
+        } else {
+            vo.setSteps(traceList.stream().map(t -> {
+                TraceStepVO step = new TraceStepVO();
+                step.setId(t.getId());
+                step.setProcessStep(t.getProcessStep());
+                step.setMaterialBatchNo(t.getMaterialBatchNo());
+                step.setEquipmentId(t.getEquipmentId());
+                step.setOperatorId(t.getOperatorId());
+                step.setParamSnapshot(t.getParamSnapshot());
+                step.setCreateTime(t.getCreateTime());
+                return step;
+            }).collect(Collectors.toList()));
+        }
+
+        log.info("正向追溯查询完成, sn={}, steps={}", sn, vo.getSteps().size());
+        return vo;
     }
 
     /**

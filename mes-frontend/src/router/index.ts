@@ -117,7 +117,7 @@ const router = createRouter({
 /**
  * Route navigation guard - check authentication before each route
  */
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   NProgress.start()
   const userStore = useUserStore()
   
@@ -133,6 +133,16 @@ router.beforeEach((to, from, next) => {
   if (!userStore.token) {
     next('/login')
     return
+  }
+
+  if (!userStore.userInfo) {
+    try {
+      await userStore.getUserInfo()
+    } catch (e) {
+      userStore.logout()
+      next('/login')
+      return
+    }
   }
   
   next()

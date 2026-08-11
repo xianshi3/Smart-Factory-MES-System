@@ -1,5 +1,6 @@
 """MES 工具定义层 — 将后端 API 封装为 LLM 可调用的 Tool"""
 
+import asyncio
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -11,6 +12,53 @@ logger = logging.getLogger(__name__)
 
 MES_BASE_URL = "http://localhost:8085"
 AUTH_BASE_URL = "http://localhost:8081"
+
+_HTTP_TIMEOUT = 8.0
+
+
+# 工具元数据：分类 / 超时 / 失败时是否建议知识库兜底
+TOOL_META: Dict[str, Dict[str, Any]] = {
+    "list_devices": {"category": "设备", "kb_fallback": False},
+    "get_device_detail": {"category": "设备", "kb_fallback": False},
+    "get_device_digital_twin": {"category": "数字孪生", "kb_fallback": False},
+    "get_all_device_health": {"category": "数字孪生", "kb_fallback": False},
+    "get_device_alarms": {"category": "数字孪生", "kb_fallback": True},
+    "get_device_trend": {"category": "数字孪生", "kb_fallback": True},
+    "list_work_orders": {"category": "工单", "kb_fallback": False},
+    "get_work_order_detail": {"category": "工单", "kb_fallback": False},
+    "create_work_order": {"category": "工单", "kb_fallback": False},
+    "list_production_lines": {"category": "生产", "kb_fallback": False},
+    "list_workstations": {"category": "生产", "kb_fallback": False},
+    "list_boms": {"category": "物料", "kb_fallback": False},
+    "list_materials": {"category": "物料", "kb_fallback": False},
+    "get_inventory": {"category": "物料", "kb_fallback": False},
+    "query_device_docs": {"category": "知识库", "kb_fallback": False},
+}
+
+
+def _safe_request(method: str, url: str, **kwargs) -> Dict[str, Any]:
+    """统一 HTTP 调用 — 超时与错误规范化，绝不抛异常到编排层"""
+    kwargs.setdefault("timeout", _HTTP_TIMEOUT)
+    try:
+        with httpx.Client(trust_env=False) as client:
+            resp = client.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return {"success": True, "data": resp.json()}
+    except Exception as e:
+        logger.warning(f"工具请求失败 {method} {url}: {e}")
+        return {"success": False, "error": f"后端服务不可用或响应异常: {e}", "data": None}
+
+
+async def _safe_request_async(method: str, url: str, **kwargs) -> Dict[str, Any]:
+    kwargs.setdefault("timeout", _HTTP_TIMEOUT)
+    try:
+        async with httpx.AsyncClient(trust_env=False) as client:
+            resp = await client.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return {"success": True, "data": resp.json()}
+    except Exception as e:
+        logger.warning(f"工具请求失败 {method} {url}: {e}")
+        return {"success": False, "error": f"后端服务不可用或响应异常: {e}", "data": None}
 
 
 TOOL_DEFINITIONS = [
@@ -56,6 +104,23 @@ TOOL_DEFINITIONS = [
                         "description": "工单状态筛选（可选）",
                     }
                 },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_work_order_detail",
+            "description": "获取指定工单的详细信息（产品、数量、进度、状态流转）",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "order_no": {
+                        "type": "string",
+                        "description": "工单编号，如 WO20260810001",
+                    }
+                },
+                "required": ["order_no"],
             },
         },
     },
@@ -230,91 +295,95 @@ TOOL_DEFINITIONS = [
 
 
 async def call_list_devices(headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/devices", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "devices": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/devices", headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "devices": result["data"].get("data", [])}
 
 
 async def call_get_device_detail(device_code: str, headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/devices", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        devices = data.get("data", [])
-        if isinstance(devices, list):
-            for d in devices:
-                if d.get("deviceCode") == device_code or d.get("deviceName") == device_code:
-                    return {"success": True, "device": d}
-        return {"success": False, "error": f"设备 {device_code} 未找到"}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/devices", headers=headers or {})
+    if not result["success"]:
+        return result
+    devices = result["data"].get("data", [])
+    if isinstance(devices, list):
+        for d in devices:
+            if d.get("deviceCode") == device_code or d.get("deviceName") == device_code:
+                return {"success": True, "device": d}
+    return {"success": False, "error": f"设备 {device_code} 未找到"}
 
 
 async def call_list_work_orders(status: Optional[str] = None, headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url="http://localhost:8082", timeout=10) as client:
-        params = {}
-        if status:
-            params["status"] = status
-        resp = await client.get("/workorder/page", params=params, headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "work_orders": data.get("data", {}).get("records", [])}
+    result = await _safe_request_async("GET", "http://localhost:8082/workorder/page",
+                                       params={"status": status} if status else {}, headers=headers or {})
+    if not result["success"]:
+        return result
+    data = result["data"]
+    return {"success": True, "work_orders": data.get("data", {}).get("records", [])}
+
+
+async def call_get_work_order_detail(order_no: str, headers: Optional[Dict] = None) -> Dict:
+    result = await _safe_request_async("GET", "http://localhost:8082/workorder/page",
+                                       params={"orderNo": order_no}, headers=headers or {})
+    if not result["success"]:
+        return result
+    data = result["data"]
+    records = data.get("data", {}).get("records", [])
+    if isinstance(records, list):
+        for wo in records:
+            if wo.get("orderNo") == order_no:
+                return {"success": True, "work_order": wo}
+    return {"success": False, "error": f"工单 {order_no} 未找到"}
 
 
 async def call_create_work_order(product_name: str, quantity: int,
                                   priority: str = "MEDIUM",
                                   headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url="http://localhost:8082", timeout=10) as client:
-        payload = {
-            "productName": product_name,
-            "quantity": quantity,
-            "priority": priority,
-        }
-        resp = await client.post("/workorder", json=payload, headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "work_order": data.get("data", {}), "message": f"工单创建成功"}
+    result = await _safe_request_async("POST", "http://localhost:8082/workorder", json={
+        "productName": product_name,
+        "quantity": quantity,
+        "priority": priority,
+    }, headers=headers or {})
+    if not result["success"]:
+        return result
+    data = result["data"]
+    return {"success": True, "work_order": data.get("data", {}), "message": f"工单创建成功"}
 
 
 async def call_list_production_lines(headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/production-line/list", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "production_lines": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/production-line/list", headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "production_lines": result["data"].get("data", [])}
 
 
 async def call_list_workstations(headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/workstation/list", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "workstations": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/workstation/list", headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "workstations": result["data"].get("data", [])}
 
 
 async def call_list_boms(headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/bom/list", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "boms": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/bom/list", headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "boms": result["data"].get("data", [])}
 
 
 async def call_list_materials(headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/material/list", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "materials": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/material/list", headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "materials": result["data"].get("data", [])}
 
 
 async def call_get_inventory(material_id: int, headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get(f"/dashboard/inventory/list", params={"materialId": material_id},
-                                 headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return {"success": True, "inventory": data.get("data", [])}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/inventory/list",
+                                       params={"materialId": material_id}, headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "inventory": result["data"].get("data", [])}
 
 
 # ======== 数字孪生工具实现 ========
@@ -347,11 +416,11 @@ def _compute_health_score(device: dict) -> dict:
 
 
 async def _get_all_devices(headers: Optional[Dict] = None) -> list:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/devices", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("data", []) if isinstance(data.get("data"), list) else []
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/devices", headers=headers or {})
+    if not result["success"]:
+        return []
+    data = result["data"].get("data")
+    return data if isinstance(data, list) else []
 
 
 async def call_get_device_digital_twin(device_code: str, headers: Optional[Dict] = None) -> Dict:
@@ -412,19 +481,18 @@ async def call_get_all_device_health(headers: Optional[Dict] = None) -> Dict:
 
 
 async def call_get_device_alarms(device_code: str, headers: Optional[Dict] = None) -> Dict:
-    async with httpx.AsyncClient(base_url=MES_BASE_URL, timeout=10) as client:
-        resp = await client.get("/dashboard/alarm/list", headers=headers or {})
-        resp.raise_for_status()
-        data = resp.json()
-        all_alarms = data.get("data", [])
-        if isinstance(all_alarms, dict):
-            all_alarms = all_alarms.get("records", [])
-        device_alarms = [
-            a for a in all_alarms
-            if a.get("deviceCode") == device_code or a.get("deviceName") == device_code
-        ]
-        return {"success": True, "device_code": device_code, "alarms_count": len(device_alarms),
-                "alarms": device_alarms[-10:]}
+    result = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/alarm/list", headers=headers or {})
+    if not result["success"]:
+        return result
+    all_alarms = result["data"].get("data", [])
+    if isinstance(all_alarms, dict):
+        all_alarms = all_alarms.get("records", [])
+    device_alarms = [
+        a for a in all_alarms
+        if a.get("deviceCode") == device_code or a.get("deviceName") == device_code
+    ]
+    return {"success": True, "device_code": device_code, "alarms_count": len(device_alarms),
+            "alarms": device_alarms[-10:]}
 
 
 async def call_get_device_trend(device_code: str, headers: Optional[Dict] = None) -> Dict:
@@ -454,6 +522,7 @@ TOOL_DISPATCH = {
     "list_devices": call_list_devices,
     "get_device_detail": call_get_device_detail,
     "list_work_orders": call_list_work_orders,
+    "get_work_order_detail": call_get_work_order_detail,
     "create_work_order": call_create_work_order,
     "list_production_lines": call_list_production_lines,
     "list_workstations": call_list_workstations,
@@ -465,3 +534,31 @@ TOOL_DISPATCH = {
     "get_device_alarms": call_get_device_alarms,
     "get_device_trend": call_get_device_trend,
 }
+
+
+async def execute_tool(func_name: str, args: Dict[str, Any], headers: Optional[Dict] = None) -> Dict[str, Any]:
+    """统一工具执行器 — 超时保护 + 参数校验 + 错误规范化
+
+    返回结构统一为 {success, data..., error?}，异常绝不会向上抛出。
+    """
+    if func_name == "query_device_docs":
+        # 知识库工具由调用方（AgentService）注入 KnowledgeBase 实例执行
+        raise ValueError("query_device_docs 需由 AgentService 通过 KnowledgeBase 执行")
+
+    handler = TOOL_DISPATCH.get(func_name)
+    if handler is None:
+        return {"success": False, "error": f"未知工具: {func_name}"}
+
+    try:
+        if headers:
+            args = {**args, "headers": headers}
+        result = await asyncio.wait_for(handler(**args), timeout=_HTTP_TIMEOUT + 5)
+        if not isinstance(result, dict):
+            return {"success": False, "error": f"工具 {func_name} 返回类型异常"}
+        result.setdefault("success", True)
+        return result
+    except asyncio.TimeoutError:
+        return {"success": False, "error": f"工具 {func_name} 执行超时"}
+    except Exception as e:
+        logger.error(f"工具 {func_name} 执行失败: {e}")
+        return {"success": False, "error": f"工具 {func_name} 执行失败: {e}"}

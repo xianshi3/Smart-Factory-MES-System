@@ -26,8 +26,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * 看板管理服务实现类
@@ -42,7 +45,8 @@ public class DashboardServiceImpl implements DashboardService {
     private final OeeDataMapper oeeDataMapper;
     private final ProductionStatsMapper productionStatsMapper;
     private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final com.mes.dashboard.service.TelemetryService telemetryService;
+    private final ObjectMapper objectMapper;
     private InfluxDBClient influxDBClient;
 
     @Autowired
@@ -51,11 +55,15 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     public DashboardServiceImpl(DeviceStatusMapper deviceStatusMapper, OeeDataMapper oeeDataMapper, 
-                                 ProductionStatsMapper productionStatsMapper, StringRedisTemplate redisTemplate) {
+                                 ProductionStatsMapper productionStatsMapper, StringRedisTemplate redisTemplate,
+                                 com.mes.dashboard.service.TelemetryService telemetryService,
+                                 ObjectMapper objectMapper) {
         this.deviceStatusMapper = deviceStatusMapper;
         this.oeeDataMapper = oeeDataMapper;
         this.productionStatsMapper = productionStatsMapper;
         this.redisTemplate = redisTemplate;
+        this.telemetryService = telemetryService;
+        this.objectMapper = objectMapper;
     }
 
     private static final String CACHE_PREFIX = "dashboard:";
@@ -218,6 +226,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         String realtimeKey = CACHE_PREFIX + "device:" + data.getDeviceCode();
         redisTemplate.opsForValue().set(realtimeKey, toJson(data), CACHE_TTL);
+
+        // 遥测写入 InfluxDB（历史趋势数据源）
+        telemetryService.writeTelemetry(data);
     }
 
     @Override
@@ -307,9 +318,9 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public Map<String, Object> getProductionReport(String startDate, String endDate) {
+    public Map<String, Object> getProductionReport(String startDate, String endDate, String dimension) {
         Map<String, Object> report = new HashMap<>();
-        
+
         LambdaQueryWrapper<ProductionStats> query = new LambdaQueryWrapper<>();
         if (startDate != null && !startDate.isEmpty()) {
             query.ge(ProductionStats::getStatDate, startDate);
@@ -318,30 +329,108 @@ public class DashboardServiceImpl implements DashboardService {
             query.le(ProductionStats::getStatDate, endDate);
         }
         query.orderByDesc(ProductionStats::getStatDate);
-        
+
         List<ProductionStats> stats = productionStatsMapper.selectList(query);
-        
-        int totalOutput = stats.stream().mapToInt(s -> s.getCompletedQuantity() != null ? s.getCompletedQuantity() : 0).sum();
-        int totalQualified = stats.stream().mapToInt(s -> s.getQualifiedQuantity() != null ? s.getQualifiedQuantity() : 0).sum();
-        double avgOee = stats.stream().filter(s -> s.getOeeRate() != null).mapToDouble(s -> s.getOeeRate()).average().orElse(0.0);
-        
-        List<Map<String, Object>> dailyData = stats.stream().map(s -> {
-            Map<String, Object> day = new HashMap<>();
-            day.put("date", s.getStatDate());
-            day.put("output", s.getCompletedQuantity());
-            day.put("qualified", s.getQualifiedQuantity());
-            day.put("oee", s.getOeeRate());
-            return day;
-        }).toList();
-        
+
+        // 维度: day(按日) / workstation(按工位) / workOrder(按工单)
+        String dim = dimension != null && !dimension.isEmpty() ? dimension : "day";
+        List<Map<String, Object>> dailyData = new ArrayList<>();
+
+        if ("workstation".equals(dim)) {
+            Map<Long, List<ProductionStats>> groups = stats.stream()
+                    .collect(Collectors.groupingBy(s -> s.getWorkstationId() != null ? s.getWorkstationId() : 0L,
+                            TreeMap::new, Collectors.toList()));
+            groups.forEach((wsId, list) -> {
+                Map<String, Object> row = new HashMap<>();
+                row.put("key", wsId);
+                row.put("date", "工位-" + wsId);
+                row.put("output", sumInt(list, ProductionStats::getCompletedQuantity));
+                row.put("qualified", sumInt(list, ProductionStats::getQualifiedQuantity));
+                row.put("defective", sumInt(list, ProductionStats::getDefectiveQuantity));
+                row.put("oee", round2(avgRate(list, ProductionStats::getOeeRate) * 100));
+                row.put("availability", round2(avgRate(list, ProductionStats::getAvailabilityRate) * 100));
+                row.put("performance", round2(avgRate(list, ProductionStats::getPerformanceRate) * 100));
+                row.put("quality", round2(avgRate(list, ProductionStats::getQualityRate) * 100));
+                dailyData.add(row);
+            });
+        } else if ("workOrder".equals(dim)) {
+            Map<Long, List<ProductionStats>> groups = stats.stream()
+                    .collect(Collectors.groupingBy(s -> s.getWorkOrderId() != null ? s.getWorkOrderId() : 0L,
+                            TreeMap::new, Collectors.toList()));
+            groups.forEach((woId, list) -> {
+                Map<String, Object> row = new HashMap<>();
+                row.put("key", woId);
+                row.put("date", "工单-" + woId);
+                row.put("output", sumInt(list, ProductionStats::getCompletedQuantity));
+                row.put("qualified", sumInt(list, ProductionStats::getQualifiedQuantity));
+                row.put("defective", sumInt(list, ProductionStats::getDefectiveQuantity));
+                row.put("oee", round2(avgRate(list, ProductionStats::getOeeRate) * 100));
+                row.put("availability", round2(avgRate(list, ProductionStats::getAvailabilityRate) * 100));
+                row.put("performance", round2(avgRate(list, ProductionStats::getPerformanceRate) * 100));
+                row.put("quality", round2(avgRate(list, ProductionStats::getQualityRate) * 100));
+                dailyData.add(row);
+            });
+        } else {
+            // 按日聚合，区间内无数据日期补零
+            LocalDate start = startDate != null && !startDate.isEmpty()
+                    ? LocalDate.parse(startDate) : LocalDate.now().minusDays(6);
+            LocalDate end = endDate != null && !endDate.isEmpty()
+                    ? LocalDate.parse(endDate) : LocalDate.now();
+            if (end.isBefore(start)) {
+                LocalDate tmp = start;
+                start = end;
+                end = tmp;
+            }
+            Map<String, List<ProductionStats>> groups = stats.stream()
+                    .collect(Collectors.groupingBy(s -> s.getStatDate() != null ? s.getStatDate() : "", LinkedHashMap::new, Collectors.toList()));
+            for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+                String dateStr = d.format(DateTimeFormatter.ISO_LOCAL_DATE);
+                List<ProductionStats> list = groups.getOrDefault(dateStr, new ArrayList<>());
+                Map<String, Object> row = new HashMap<>();
+                row.put("key", dateStr);
+                row.put("date", dateStr);
+                row.put("output", sumInt(list, ProductionStats::getCompletedQuantity));
+                row.put("qualified", sumInt(list, ProductionStats::getQualifiedQuantity));
+                row.put("defective", sumInt(list, ProductionStats::getDefectiveQuantity));
+                row.put("oee", round2(avgRate(list, ProductionStats::getOeeRate) * 100));
+                row.put("availability", round2(avgRate(list, ProductionStats::getAvailabilityRate) * 100));
+                row.put("performance", round2(avgRate(list, ProductionStats::getPerformanceRate) * 100));
+                row.put("quality", round2(avgRate(list, ProductionStats::getQualityRate) * 100));
+                dailyData.add(row);
+            }
+        }
+
+        int totalOutput = dailyData.stream().mapToInt(r -> (Integer) r.get("output")).sum();
+        int totalQualified = dailyData.stream().mapToInt(r -> (Integer) r.get("qualified")).sum();
+        int totalDefective = dailyData.stream().mapToInt(r -> (Integer) r.get("defective")).sum();
+        double avgOee = dailyData.stream().filter(r -> ((Double) r.get("oee")) != 0).mapToDouble(r -> (Double) r.get("oee")).average().orElse(0.0);
+
+        report.put("dimension", dim);
         report.put("totalOutput", totalOutput);
         report.put("totalQualified", totalQualified);
+        report.put("totalDefective", totalDefective);
         report.put("qualifyRate", totalOutput > 0 ? round2((double) totalQualified / totalOutput * 100) : 0);
-        report.put("avgOee", round2(avgOee * 100));
+        report.put("avgOee", round2(avgOee));
+        report.put("avgAvailability", round2(dailyData.stream().filter(r -> ((Double) r.get("availability")) != 0).mapToDouble(r -> (Double) r.get("availability")).average().orElse(0.0)));
+        report.put("avgPerformance", round2(dailyData.stream().filter(r -> ((Double) r.get("performance")) != 0).mapToDouble(r -> (Double) r.get("performance")).average().orElse(0.0)));
+        report.put("avgQuality", round2(dailyData.stream().filter(r -> ((Double) r.get("quality")) != 0).mapToDouble(r -> (Double) r.get("quality")).average().orElse(0.0)));
         report.put("dailyData", dailyData);
-        report.put("totalDays", stats.size());
-        
+        report.put("totalDays", dailyData.size());
+
         return report;
+    }
+
+    private int sumInt(List<ProductionStats> list, java.util.function.Function<ProductionStats, Integer> getter) {
+        return list.stream().mapToInt(s -> getter.apply(s) != null ? getter.apply(s) : 0).sum();
+    }
+
+    private double avgRate(List<ProductionStats> list, java.util.function.Function<ProductionStats, Double> getter) {
+        return list.stream().filter(s -> getter.apply(s) != null).mapToDouble(getter::apply).average().orElse(0.0);
+    }
+
+    @Override
+    public Map<String, Object> getDeviceHistory(String deviceCode, int hours, int interval) {
+        return telemetryService.getDeviceHistory(deviceCode, hours, interval);
     }
 
     private double round2(double value) {

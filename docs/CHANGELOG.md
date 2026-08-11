@@ -10,6 +10,118 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.45 (2026-08-11)
+
+### 四大业务模块企业级完整化（工单 / 工艺 / 质量 / 生产报表）
+
+#### 工单管理（mes-workorder + WorkOrderView.vue）
+
+- **工单关闭闭环**: 新增 `POST /workorder/{id}/close`，非 CLOSED/PENDING_QC 状态可关闭；关闭后不可再报工
+- **编辑能力扩展**: `UpdateWorkOrderDTO` 新增产品名称/型号、计划数量、工位、工艺模板、计划开始/结束时间字段，仅 CREATED 状态可编辑业务信息
+- **前端重写**: 卡片点击开详情弹窗（10+ 字段含工位/模板名称解析）、编辑模式、动态下拉（工位列表 + 工艺模板分页查询）、关闭按钮、筛选支持 PENDING_QC、报工校验（良品+不良=报工量）、清理调试日志
+
+#### 工艺管理（mes-process + ProcessView.vue）
+
+- **工序步骤管理**: 新增 `proc_step` 表 + `ProcessStep` 实体/`ProcessStepMapper`；模板详情 VO（`TemplateDetailVO` = 模板 + 参数 + 工序）聚合查询
+- **模板复制**: `POST /template/{id}/copy` 一键复制为草稿副本，级联复制参数与工序步骤，编码自动加 "-副本"
+- **参数/工序 CRUD**: 全套 `GET/POST/PUT/DELETE` 端点（按模板/按参数ID/按步骤ID），发布（PUBLISHED）后禁止修改，`assertTemplateEditable` 统一拦截
+- **前端重写**: 详情弹窗（参数表格 + 工序步骤表格，草稿可增删改）、参数校验弹窗（逐参数输入值 → 通过/失败明细）、复制按钮、状态筛选（草稿/已发布）挂载查询
+
+#### 质量管理（mes-quality + QualityView.vue）
+
+- **追溯契约修复**: `forwardTrace` 返回体重写为 `TraceDetailVO`（sn/工单ID/工单号/质检结果/时间 + `steps[]` 工序链路），新增 `TraceStepVO`（工序/物料批次/设备/操作员/参数快照/时间）；修复此前返回数组而前端按单对象渲染导致的追溯永远空数据
+- **不合格闭环**: 新增 PENDING（待检）状态流程 —— 新建待检记录 → 质检员执行「合格」/「不合格」（不合格原因必填，`POST /record/{id}/fail` 前端接线）
+- **前端升级**: 卡片操作区分「追溯 / 合格 / 不合格 / 删除」，追溯弹窗时间线展示完整工序链路（操作员/物料批次/设备/参数快照）
+
+#### 生产报表（mes-dashboard + ReportView.vue）
+
+- **OEE 显示修复**: `dash_production_stats` 各率字段存 0-1 小数，旧实现直接输出导致前端显示 `0.9%`；现统一转换为百分数
+- **OEE 分解**: 报表新增可用率 A / 性能率 P / 质量率 Q 逐日与平均值，前端新增 OEE 分解卡片（三色进度条）与明细表 A/P/Q 列
+- **统计维度**: `GET /report/production` 新增 `dimension` 参数（day 按日 / workstation 按工位 / workOrder 按工单），按日统计自动补全无数据日期
+- **趋势可视化**: 产量/良品柱状图叠加 OEE 与良品率双折线（双 Y 轴 + 图例）
+- **明细分页**: 表格本地分页（10/20/50），CSV 导出补齐维度/OEE 分解列
+
+### 其他修复
+
+- **JWT 过期 401**: `GlobalExceptionHandler` 新增 `ExpiredJwtException`/`JwtException` 处理，过期返回 401「登录已过期」而非 500（需重启各服务生效）
+- **AI 服务代理修复**: `tools.py` 设置 `trust_env=False`，消除系统代理（Clash）导致访问 localhost 后端 502 的问题
+- **前端会话竞态修复**: 路由守卫 `beforeEach` 内 `await getUserInfo()` 后再渲染，修复 AI 聊天记录因 userId 竞态写入 `default` 导致历史丢失
+- **init.sql 补齐**: 新增 `proc_step` 表定义
+
+---
+
+## v1.0.44 (2026-08-10)
+
+### AI 生产助理智能体能力全面完善（mes-ai-service + mes-frontend）
+
+- **任务理解**: 新增 `task_planner.py` — 规则+实体抽取的意图识别（设备监控/健康总览/告警诊断/工单/知识/分析/库存/闲聊 8 类），自动提取设备编码等实体并生成分步执行计划；强信号关键词优先判定，解决"温度过高怎么处理"误判为设备监控的问题
+- **流程编排**: `agent_service.py` 重构为四阶段流水线（任务理解 → 计划执行 → 知识增强 → 结果交付）；执行计划注入 system 上下文指导工具调用；非可重复工具去重，防止 LLM 重复调用同一工具
+- **工具调用**: `tools.py` 新增统一执行器 `execute_tool`（超时保护 + 错误规范化 + 绝不向上抛异常）；15 个工具全部改为容错请求（后端宕机返回结构化错误而非 500）；新增 `get_work_order_detail` 工单详情工具；新增 TOOL_META 元数据（分类/知识兜底标记）
+- **知识增强**: `knowledge_base.py` 检索升级 — Jaccard → TF-IDF（中文双字词加权 + 标题命中重排），内置 6 篇种子文档 + `knowledge/` 目录自定义文档按 id 去重合并；新增 `retrieve_context()` 上下文注入，知识类任务预注入、设备诊断工具失败自动知识库兜底
+- **多轮交互**: 会话焦点记忆（Redis `agent:focus:{session_id}`，TTL 30 分钟），"那台设备现在温度多少"自动继承上轮设备编码
+- **结果交付**: 新增 `report_builder.py` — LLM 生成结构化交付报告（summary/关键结论/数据表格/处置建议/后续追问），JSON 解析失败自动规则兜底（从执行步骤提取关键信息）
+- **API 扩展**: `/agent/run` 响应新增 `plan`（执行计划）、`report`（结构化交付）、`intent`/`intent_label`（意图）字段，向后兼容
+- **前端升级**: AI 助手消息新增"执行计划"展示（序号/工具/目的）与"交付报告"卡片（摘要/关键结论/数据表格/处置建议）
+
+### 其他
+
+- 修复 AI 会话保存 500（`lastrowid` 在 UPDATE 后被 PyMySQL 重置为 0，改为 INSERT 后立即读取）
+
+---
+
+## v1.0.43 (2026-08-10)
+
+### 设备模拟器全面升级（mes-device-simulator-wpf）
+
+- **SCADA 上位机 UI 重设计**: 深色工业控制台风格（深蓝底 #0B1120 + 数据用 Consolas 等宽字体），双通道状态指示（API/MQTT 分离显示）、设备实时列表、参数区四色滑块（温度橙/转速青/压力紫/功率绿）
+- **批量模拟**: 一键批量创建 N 台设备（`POST /api/dashboard/device/batch`），多台设备同时动态运行；修复批量模拟只有首台设备动态的 Bug（HTTP 推送原先只发首台，改为逐台推送全部设备）
+- **场景预设**: 5 种生产场景一键切换（正常运行 / 满载生产 / 高温告警 / 突发故障 / 维护停机），各场景联动参数曲线与设备状态
+- **实时曲线**: 内置 120 点滚动曲线面板，温度/转速实时绘制（不再依赖外部图表库）
+- **频率控制**: 数据推送间隔可调（0.5s ~ 5s）
+- **配置持久化**: API/MQTT 地址、设备参数、推送频率、场景选择自动保存至 `%APPDATA%/MESDeviceSimulator/config.json`，重启自动恢复
+- **设备列表复选框选控**: 每台设备可勾选"参与模拟"，模拟/推送/曲线/场景仅作用于勾选设备，未勾选时自动退化为单台模式；连接 API 后自动加载后端已有设备到本地列表；新增"清空"按钮批量下线设备
+- **自动探测**: 启动时自动探测 API 网关与 EMQX 地址（发现失败回退默认 localhost）
+- **主题切换**: 亮色/暗色双主题，默认亮色；通过 DynamicResource 重构修复主题切换颜色错乱、XamlParseException 自引用崩溃、frozen brush 只读异常、tooltip 白底白字等系列问题；新增自定义滚动条样式
+
+### 数字孪生增强（mes-frontend DigitalTwinScene.vue）
+
+- **LOD 分级渲染**: ≤12 台设备精细模型；13~40 台简化模型（约 10 个 Mesh）；>40 台极简模型（约 4 个 Mesh，隐藏标签）— 大规模设备场景帧率显著提升
+- **动态增强**: 主轴转速随实时数据联动、设备 LED 呼吸灯、塔灯颜色随状态变化；tooltip 修复（遮挡/白底白字）
+- **增量更新**: 数据刷新改为 updateNodes 增量更新而非整场景重建，配合温度趋势 sparkline 面板
+
+### 看板服务新接口（mes-dashboard）
+
+- **设备历史数据**: `GET /api/dashboard/device/{code}/history` 查询 InfluxDB 时序历史
+- **设备批量创建**: `POST /api/dashboard/device/batch` 批量注册设备
+- **InfluxDB 零配置启动**: 连接参数（URL/Token/org/bucket）固化进 application.yml 默认值，支持环境变量覆盖；修复 `LocalDateTime` 序列化（注入 Spring ObjectMapper）与 Flux 查询 pivot 报错（改行式查询）
+
+### 其他修复
+
+- **WPF 跨线程修复**: 模拟器 UI 更新统一走 Dispatcher，消除随机闪退
+- **仓库清理**: 移除 310MB+ 构建产物（Maven target / .NET bin,obj / 前端 dist / Python __pycache__）、10MB 运行日志、遗留的根目录 aedes node_modules 与 Python .venv（均已在 .gitignore 覆盖，git 仓库本身零冗余）
+
+---
+
+## v1.0.42 (2026-08-10)
+
+### 设备数据链路完善（MQTT → Kafka → 看板全链路打通）
+
+- **docker-compose 补齐 EMQX**: 此前基础设施缺少 MQTT Broker（README 架构图有但 compose 无），MQTT 设备接入链路本地无法跑通 — 新增 `emqx/emqx:5.8.3` 服务（端口 1883 + 18083 控制台，默认 admin/public，内存限制 256M）
+- **WPF 模拟器双通道发布**: 新增 MQTT 服务器配置输入（默认 localhost:1883），连接 API 时同步连接 EMQX；模拟数据每 2 秒同时推送 HTTP（`POST /api/dashboard/device/simulate`）+ MQTT（topic `mes/device/{deviceCode}/data`，采用网关协议结构）；MQTT 连接失败不阻断，降级仅走 HTTP
+- **Kafka 数据消费者字段解析修复**: `KafkaDeviceDataConsumer` 原来只读 `params` 嵌套结构，而 .NET 网关转发的是 `data` 嵌套结构（`{deviceId, timestamp, dataType, data:{temperature, speed}}`），导致遥测数据全部被丢弃、设备状态永不更新 — 已兼容 `data`/`params` 嵌套 + 平铺三种结构，`deviceId` 缺省时回退 `deviceCode`
+- **Kafka 告警消费者新增**: `mes-alarm-event` 此前无消费者（死信 topic），网关转发的设备状态变更全部丢失 — 新增 `KafkaAlarmEventConsumer`，ALARM 状态写入 `dash_alarm_event` 并同步 `dash_device_status`；兼容多格式时间解析（epoch/ISO/DateTime）
+- **init.sql 补齐告警表**: `dash_alarm_event` 此前仅存在于 V5 迁移脚本，全新安装（CI 只执行 init.sql）后 `/alarm` 接口报表不存在 — 已补入 init.sql 并在真实 MySQL 验证全量执行通过
+
+### 文档与配置
+
+- **docker-daemon.json**: 清理 4 个已停服的国内镜像源（USTC 2024 关闭、163/百度/docker-cn 早已停服），恢复 Docker Hub 直连，修复镜像拉取失败
+- **README 全面升级**: Hero 区（居中标题 + tagline + 徽章 + skillicons 技术 logo）、目录导航、核心指标统计卡、特性表格化、界面预览分组排版、一键启动优先、文档目录表、Star 鼓励页脚 — 移除全部 emoji
+- **架构图升级为 Mermaid**: README 整体架构图（6 层 + 分层配色 + 补全看板/AI 服务与消息链路）与 DATABASE 表关系图（erDiagram）替代 ASCII 图
+- **README 截图恢复**: 三张项目截图移入仓库 `docs/screenshots/` 相对路径引用（原 user-attachments 外部链接 404）
+- **开源规范文件**: 新增 CONTRIBUTING.md / CODE_OF_CONDUCT.md / SECURITY.md / Issue 模板 / PR 模板；CI 分支修复（main→master）+ 数据库初始化验证步骤；仓库添加 10 个 topics；发布首个 Release v1.0.41
+
+---
+
 ## v1.0.41 (2026-08-08)
 
 ### 构建与运行时修复（mes-frontend）

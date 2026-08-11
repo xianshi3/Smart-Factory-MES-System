@@ -11,10 +11,29 @@ export interface AgentStep {
   result: Record<string, any>
 }
 
+export interface AgentPlanStep {
+  step: number
+  tool: string
+  args: Record<string, any>
+  purpose: string
+}
+
+export interface AgentReport {
+  summary: string
+  key_points: string[]
+  tables: { title: string; columns: string[]; rows: any[][] }[]
+  recommendations: string[]
+  follow_ups: string[]
+}
+
 export interface AgentResponse {
   success: boolean
   content: string | null
   steps: AgentStep[]
+  plan: AgentPlanStep[]
+  report: AgentReport | null
+  intent: string | null
+  intent_label: string | null
   session_id: string | null
   timestamp: string
 }
@@ -58,7 +77,6 @@ export interface ConversationMessage {
   steps: AgentStep[]
   created_at: string
 }
-
 export interface ConversationDetail {
   id: string
   user_id: string

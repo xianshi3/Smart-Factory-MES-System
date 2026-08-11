@@ -9,11 +9,13 @@ import com.mes.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Tag(name = "看板管理", description = "生产看板相关接口")
 @RestController
 @RequestMapping("/dashboard")
@@ -34,6 +36,24 @@ public class DashboardController {
     public Result<DeviceStatus> createDevice(@RequestBody DeviceStatus device) {
         dashboardService.createDevice(device);
         return Result.ok(device);
+    }
+
+    @Operation(summary = "批量创建设备")
+    @PostMapping("/device/batch")
+    public Result<Integer> createDevicesBatch(@RequestBody List<DeviceStatus> devices) {
+        int created = 0;
+        if (devices != null) {
+            for (DeviceStatus device : devices) {
+                try {
+                    dashboardService.createDevice(device);
+                    created++;
+                } catch (Exception e) {
+                    // 跳过已存在/异常设备，继续批量创建
+                    log.warn("Batch create skipped device {}: {}", device.getDeviceCode(), e.getMessage());
+                }
+            }
+        }
+        return Result.ok(created);
     }
 
     @Operation(summary = "删除设备")
@@ -120,11 +140,21 @@ public class DashboardController {
         return Result.ok();
     }
 
+    @Operation(summary = "设备历史遥测")
+    @GetMapping("/device/{deviceCode}/history")
+    public Result<Map<String, Object>> getDeviceHistory(
+            @PathVariable String deviceCode,
+            @RequestParam(defaultValue = "24") int hours,
+            @RequestParam(defaultValue = "60") int interval) {
+        return Result.ok(dashboardService.getDeviceHistory(deviceCode, hours, interval));
+    }
+
     @Operation(summary = "生产报表")
     @GetMapping("/report/production")
     public Result<Map<String, Object>> getProductionReport(
             @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
-        return Result.ok(dashboardService.getProductionReport(startDate, endDate));
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "day") String dimension) {
+        return Result.ok(dashboardService.getProductionReport(startDate, endDate, dimension));
     }
 }
