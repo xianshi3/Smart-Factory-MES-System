@@ -115,6 +115,26 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理JWT过期异常
+     */
+    @ExceptionHandler(io.jsonwebtoken.ExpiredJwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleExpiredJwt(io.jsonwebtoken.ExpiredJwtException e) {
+        log.warn("登录已过期: {}", e.getMessage());
+        return Result.fail(401, "登录已过期，请重新登录");
+    }
+
+    /**
+     * 处理JWT无效异常（签名错误/格式非法等）
+     */
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleJwtException(io.jsonwebtoken.JwtException e) {
+        log.warn("登录凭证无效: {}", e.getMessage());
+        return Result.fail(401, "登录凭证无效，请重新登录");
+    }
+
+    /**
      * 处理数据库唯一约束冲突
      */
     @ExceptionHandler(DuplicateKeyException.class)

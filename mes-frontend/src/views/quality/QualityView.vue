@@ -75,8 +75,9 @@
             {{ resultConfig[row.checkResult]?.text || row.checkResult }}
           </span>
           <div class="card-actions" @click.stop>
-            <el-button type="primary" size="small" link @click="handleDetail(row)">详情</el-button>
+            <el-button type="primary" size="small" link @click="handleDetail(row)">追溯</el-button>
             <el-button v-if="row.checkResult === 'PENDING'" type="success" size="small" link @click="handlePass(row)">合格</el-button>
+            <el-button v-if="row.checkResult === 'PENDING'" type="danger" size="small" link @click="handleFail(row)">不合格</el-button>
             <el-button v-if="canDelete(row)" type="danger" size="small" link @click="handleDelete(row)">删除</el-button>
           </div>
         </div>
@@ -113,6 +114,7 @@
         </el-form-item>
         <el-form-item label="检验结果">
           <el-select v-model="createForm.checkResult" placeholder="请选择" style="width: 100%">
+            <el-option label="待检" value="PENDING" />
             <el-option label="合格" value="PASSED" />
             <el-option label="不合格" value="FAILED" />
             <el-option label="返工" value="REWORK" />
@@ -128,29 +130,44 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="traceVisible" title="质量追溯" width="600px">
+    <el-dialog v-model="traceVisible" title="质量追溯" width="680px">
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="产品SN">{{ traceData.sn }}</el-descriptions-item>
-        <el-descriptions-item label="工单编号">{{ traceData.workOrderCode }}</el-descriptions-item>
+        <el-descriptions-item label="产品SN">{{ traceData.sn || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="工单编号">{{ traceData.workOrderCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="质检结果">
-          <span :class="['status-tag', `status-tag--${resultConfig[traceData.qualityResultCode]?.tag}`]">
-            {{ traceData.qualityResult }}
+          <span v-if="traceData.qualityResult" :class="['status-tag', `status-tag--${resultConfig[traceData.qualityResult]?.tag}`]">
+            {{ resultConfig[traceData.qualityResult]?.text || traceData.qualityResult }}
           </span>
+          <span v-else>-</span>
         </el-descriptions-item>
-        <el-descriptions-item label="质检时间">{{ traceData.qualityTime }}</el-descriptions-item>
+        <el-descriptions-item label="质检时间">{{ traceData.qualityTime?.substring(0, 16) || '-' }}</el-descriptions-item>
       </el-descriptions>
-      <el-divider>生产工序</el-divider>
+      <el-divider>生产工序链路（{{ traceData.steps?.length || 0 }}）</el-divider>
       <div class="timeline-wrap">
         <el-timeline v-if="traceData.steps?.length">
-          <el-timeline-item v-for="(step, i) in traceData.steps" :key="i" :timestamp="step.time" placement="top">
-            <div class="step-name">{{ step.name }}</div>
-            <div class="step-operator">操作员：{{ step.operator || '未知' }}</div>
+          <el-timeline-item v-for="(step, i) in traceData.steps" :key="i" :timestamp="step.createTime?.substring(0, 16) || '-'" placement="top">
+            <div class="step-name">{{ step.processStep || '工序 ' + (i + 1) }}</div>
+            <div class="step-operator">操作员ID：{{ step.operatorId ?? '-' }}　物料批次：{{ step.materialBatchNo || '-' }}　设备ID：{{ step.equipmentId ?? '-' }}</div>
+            <div v-if="step.paramSnapshot" class="step-param">参数快照：{{ step.paramSnapshot }}</div>
           </el-timeline-item>
         </el-timeline>
-        <el-empty v-else description="暂无工序信息" :image-size="60" />
+        <el-empty v-else description="暂无追溯数据（该SN未产生工艺链路记录）" :image-size="60" />
       </div>
       <template #footer>
         <el-button @click="traceVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="failVisible" title="质检不通过" width="440px">
+      <el-form label-width="80px">
+        <el-form-item label="产品SN">{{ failTarget?.sn }}</el-form-item>
+        <el-form-item label="不合格原因" required>
+          <el-input v-model="failReason" type="textarea" :rows="3" placeholder="请填写不合格原因（必填）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="failVisible = false">取消</el-button>
+        <el-button type="danger" :loading="failLoading" @click="submitFail">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -159,13 +176,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getQualityPage, passQuality, deleteQualityRecord, createQualityRecord, forwardTrace } from '@/api/services'
+import { getQualityPage, passQuality, failQuality, deleteQualityRecord, createQualityRecord, forwardTrace } from '@/api/services'
 import { CircleCheck, Plus, Search, Document, Grid, Clock } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const createLoading = ref(false)
+const failLoading = ref(false)
 const createVisible = ref(false)
 const traceVisible = ref(false)
+const failVisible = ref(false)
+const failTarget = ref<any>(null)
+const failReason = ref('')
 const tableData = ref<any[]>([])
 
 const searchForm = reactive({ sn: '', result: '' })
@@ -173,7 +194,7 @@ const pagination = reactive({ page: 1, size: 12, total: 0 })
 
 const createForm = reactive({ sn: '', checkType: '', checkResult: '', defectDesc: '' })
 
-const traceData = ref<any>({ sn: '', workOrderCode: '', qualityResult: '', qualityResultCode: '', qualityTime: '', steps: [] })
+const traceData = ref<any>({ sn: '', workOrderCode: '', qualityResult: '', qualityTime: '', steps: [] })
 
 const resultConfig: Record<string, { tag: string; text: string }> = {
   PASSED: { tag: 'success', text: '合格' },
@@ -203,6 +224,8 @@ const handleCreate = () => {
 
 const submitCreate = async () => {
   if (!createForm.sn) { ElMessage.warning('请输入产品序列号'); return }
+  if (!createForm.checkType) { ElMessage.warning('请选择检验类型'); return }
+  if (!createForm.checkResult) { ElMessage.warning('请选择检验结果'); return }
   createLoading.value = true
   try {
     await createQualityRecord(createForm)
@@ -220,9 +243,8 @@ const handleDetail = async (row: any) => {
     traceData.value = {
       sn: d.sn || row.sn,
       workOrderCode: d.workOrderCode || row.workOrderNo || '-',
-      qualityResult: resultConfig[d.qualityResult]?.text || resultConfig[row.checkResult]?.text || '-',
-      qualityResultCode: d.qualityResult || row.checkResult,
-      qualityTime: d.qualityTime || row.checkTime || '-',
+      qualityResult: d.qualityResult || row.checkResult || '',
+      qualityTime: d.qualityTime || row.checkTime || '',
       steps: d.steps || []
     }
     traceVisible.value = true
@@ -232,6 +254,24 @@ const handleDetail = async (row: any) => {
 const handlePass = async (row: any) => {
   try { await passQuality(row.id); ElMessage.success('已标记为合格'); loadData() }
   catch { ElMessage.error('操作失败') }
+}
+
+const handleFail = (row: any) => {
+  failTarget.value = row
+  failReason.value = ''
+  failVisible.value = true
+}
+
+const submitFail = async () => {
+  if (!failReason.value.trim()) { ElMessage.warning('请填写不合格原因'); return }
+  failLoading.value = true
+  try {
+    await failQuality(failTarget.value.id, failReason.value.trim())
+    ElMessage.success('已标记为不合格')
+    failVisible.value = false
+    loadData()
+  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+  finally { failLoading.value = false }
 }
 
 const handleDelete = (row: any) => {
@@ -327,7 +367,13 @@ onMounted(() => { loadData() })
 
 .timeline-wrap { max-height: 250px; overflow-y: auto }
 .step-name { font-weight: 500; color: var(--text-primary); }
-.step-operator { font-size: 12px; color: var(--text-muted); }
+.step-operator { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.step-param { font-size: 12px; color: var(--accent); font-family: monospace; margin-top: 2px; word-break: break-all; }
+.status-tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+.status-tag--success { color: var(--success); background: rgba(52, 199, 123, 0.12); }
+.status-tag--danger { color: var(--danger); background: rgba(255, 86, 48, 0.12); }
+.status-tag--warning { color: var(--warning); background: rgba(255, 183, 64, 0.12); }
+.status-tag--info { color: var(--info); background: rgba(90, 100, 255, 0.12); }
 
 html.light .page-title h1 { color: var(--text-primary); }
 html.light .filter-bar { background: var(--bg-card); box-shadow: var(--shadow-sm); }

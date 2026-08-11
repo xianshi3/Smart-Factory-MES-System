@@ -153,7 +153,8 @@ public class DashboardController {
     @GetMapping("/report/production")
     public Result<Map<String, Object>> getProductionReport(
             @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
-        return Result.ok(dashboardService.getProductionReport(startDate, endDate));
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "day") String dimension) {
+        return Result.ok(dashboardService.getProductionReport(startDate, endDate, dimension));
     }
 }

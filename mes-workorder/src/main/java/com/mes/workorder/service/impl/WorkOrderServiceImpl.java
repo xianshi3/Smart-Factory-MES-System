@@ -104,8 +104,24 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void close(Long id) {
+        WorkOrder wo = getByIdOrThrow(id);
+        transitionStatus(wo, WorkOrderStatusEnum.CLOSED);
+        updateById(wo);
+        log.info("工单关闭: id={}, orderNo={}", id, wo.getOrderNo());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long id, UpdateWorkOrderDTO dto) {
         WorkOrder wo = getByIdOrThrow(id);
+        boolean editing = dto.getProductName() != null || dto.getProductModel() != null
+                || dto.getPlanQuantity() != null || dto.getWorkstationId() != null
+                || dto.getProcessTemplateId() != null || dto.getPlannedStartTime() != null
+                || dto.getPlannedEndTime() != null;
+        if (editing && !WorkOrderStatusEnum.CREATED.getCode().equals(wo.getStatus())) {
+            throw new BizException(ErrorCode.WORKORDER_STATUS_ERROR.getCode(), "仅已创建的工单可以编辑业务信息");
+        }
         if (dto.getStatus() != null) {
             WorkOrderStatusEnum target = WorkOrderStatusEnum.valueOf(dto.getStatus());
             transitionStatus(wo, target);
@@ -115,6 +131,27 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         }
         if (dto.getRemark() != null) {
             wo.setRemark(dto.getRemark());
+        }
+        if (dto.getProductName() != null) {
+            wo.setProductName(dto.getProductName());
+        }
+        if (dto.getProductModel() != null) {
+            wo.setProductModel(dto.getProductModel());
+        }
+        if (dto.getPlanQuantity() != null) {
+            wo.setPlanQuantity(dto.getPlanQuantity());
+        }
+        if (dto.getWorkstationId() != null) {
+            wo.setWorkstationId(dto.getWorkstationId());
+        }
+        if (dto.getProcessTemplateId() != null) {
+            wo.setProcessTemplateId(dto.getProcessTemplateId());
+        }
+        if (dto.getPlannedStartTime() != null) {
+            wo.setPlannedStartTime(dto.getPlannedStartTime());
+        }
+        if (dto.getPlannedEndTime() != null) {
+            wo.setPlannedEndTime(dto.getPlannedEndTime());
         }
         updateById(wo);
     }

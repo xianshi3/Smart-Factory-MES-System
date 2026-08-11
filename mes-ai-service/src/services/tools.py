@@ -40,7 +40,7 @@ def _safe_request(method: str, url: str, **kwargs) -> Dict[str, Any]:
     """统一 HTTP 调用 — 超时与错误规范化，绝不抛异常到编排层"""
     kwargs.setdefault("timeout", _HTTP_TIMEOUT)
     try:
-        with httpx.Client() as client:
+        with httpx.Client(trust_env=False) as client:
             resp = client.request(method, url, **kwargs)
             resp.raise_for_status()
             return {"success": True, "data": resp.json()}
@@ -52,7 +52,7 @@ def _safe_request(method: str, url: str, **kwargs) -> Dict[str, Any]:
 async def _safe_request_async(method: str, url: str, **kwargs) -> Dict[str, Any]:
     kwargs.setdefault("timeout", _HTTP_TIMEOUT)
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(trust_env=False) as client:
             resp = await client.request(method, url, **kwargs)
             resp.raise_for_status()
             return {"success": True, "data": resp.json()}

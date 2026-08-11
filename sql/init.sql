@@ -300,6 +300,22 @@ CREATE TABLE `proc_parameter` (
     KEY `idx_template_id` (`template_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工艺参数表';
 
+DROP TABLE IF EXISTS `proc_step`;
+CREATE TABLE `proc_step` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `template_id` bigint NOT NULL COMMENT '模板ID',
+    `step_no` int NOT NULL DEFAULT '1' COMMENT '工序序号',
+    `step_name` varchar(100) NOT NULL COMMENT '工序名称',
+    `step_desc` varchar(500) DEFAULT NULL COMMENT '工序描述',
+    `duration_min` int DEFAULT NULL COMMENT '标准工时(分钟)',
+    `sequence` int NOT NULL DEFAULT '1' COMMENT '执行顺序',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int DEFAULT '0' COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_template_id` (`template_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工艺工序步骤表';
+
 -- =====================================================
 -- 4. Quality Module (qms_quality_record, qms_traceability)
 -- =====================================================

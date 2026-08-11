@@ -7,9 +7,14 @@ import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
 import com.mes.process.dto.CreateTemplateDTO;
 import com.mes.process.dto.ParameterCheckDTO;
+import com.mes.process.dto.ParameterDTO;
+import com.mes.process.dto.StepDTO;
+import com.mes.process.dto.TemplateDetailVO;
 import com.mes.process.entity.ProcessParameter;
+import com.mes.process.entity.ProcessStep;
 import com.mes.process.entity.ProcessTemplate;
 import com.mes.process.mapper.ProcessParameterMapper;
+import com.mes.process.mapper.ProcessStepMapper;
 import com.mes.process.mapper.ProcessTemplateMapper;
 import com.mes.process.service.ProcessTemplateService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +42,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
 
     private final ProcessTemplateMapper processTemplateMapper;
     private final ProcessParameterMapper processParameterMapper;
+    private final ProcessStepMapper processStepMapper;
     private final StringRedisTemplate stringRedisTemplate;
 
     private static final String TEMPLATE_CACHE_PREFIX = "mes:process:template:";
@@ -97,6 +103,28 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     @Override
     public ProcessTemplate getById(Long id) {
         return processTemplateMapper.selectById(id);
+    }
+
+    /**
+     * 查询模板详情（含参数与工序步骤）
+     */
+    @Override
+    public TemplateDetailVO getDetail(Long id) {
+        ProcessTemplate template = processTemplateMapper.selectById(id);
+        if (template == null) {
+            throw new RuntimeException("工艺模板不存在: " + id);
+        }
+        TemplateDetailVO vo = new TemplateDetailVO();
+        vo.setTemplate(template);
+        vo.setParameters(processParameterMapper.selectList(
+                new LambdaQueryWrapper<ProcessParameter>()
+                        .eq(ProcessParameter::getTemplateId, id)
+                        .orderByAsc(ProcessParameter::getSortOrder)));
+        vo.setSteps(processStepMapper.selectList(
+                new LambdaQueryWrapper<ProcessStep>()
+                        .eq(ProcessStep::getTemplateId, id)
+                        .orderByAsc(ProcessStep::getSequence)));
+        return vo;
     }
 
     /**
@@ -173,6 +201,48 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     }
 
     /**
+     * 复制工艺模板（含参数与工序步骤）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long copy(Long id) {
+        ProcessTemplate template = processTemplateMapper.selectById(id);
+        if (template == null) {
+            throw new RuntimeException("工艺模板不存在: " + id);
+        }
+        ProcessTemplate copy = new ProcessTemplate();
+        copy.setDeleted(0);
+        copy.setTemplateName(template.getTemplateName() + "-副本");
+        copy.setTemplateCode(template.getTemplateCode() + "-COPY-" + System.currentTimeMillis() % 10000);
+        copy.setProductModel(template.getProductModel());
+        copy.setDescription(template.getDescription());
+        copy.setStatus("DRAFT");
+        processTemplateMapper.insert(copy);
+        Long newId = copy.getId();
+
+        List<ProcessParameter> params = processParameterMapper.selectList(
+                new LambdaQueryWrapper<ProcessParameter>().eq(ProcessParameter::getTemplateId, id));
+        for (int i = 0; i < params.size(); i++) {
+            ProcessParameter p = params.get(i);
+            p.setId(null);
+            p.setTemplateId(newId);
+            p.setSortOrder(p.getSortOrder() != null ? p.getSortOrder() : i + 1);
+            processParameterMapper.insert(p);
+        }
+
+        List<ProcessStep> steps = processStepMapper.selectList(
+                new LambdaQueryWrapper<ProcessStep>().eq(ProcessStep::getTemplateId, id));
+        for (ProcessStep s : steps) {
+            s.setId(null);
+            s.setTemplateId(newId);
+            processStepMapper.insert(s);
+        }
+
+        log.info("复制工艺模板成功: {} -> {}", id, newId);
+        return newId;
+    }
+
+    /**
      * 校验参数
      * @param dto 参数校验DTO
      * @return 校验结果
@@ -226,20 +296,22 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
      * 分页查询模板
      * @param current 当前页
      * @param size 每页大小
+     * @param status 状态筛选
      * @param keyword 关键字
      * @return 分页结果
      */
     @Override
-    public PageResult<ProcessTemplate> queryPage(int current, int size, String keyword) {
+    public PageResult<ProcessTemplate> queryPage(int current, int size, String status, String keyword) {
         Page<ProcessTemplate> page = new Page<>(current, size);
         LambdaQueryWrapper<ProcessTemplate> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProcessTemplate::getDeleted, 0);
+        if (status != null && !status.trim().isEmpty()) {
+            wrapper.eq(ProcessTemplate::getStatus, status);
+        }
         if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.like(ProcessTemplate::getTemplateName, keyword)
-                   .or()
-                   .like(ProcessTemplate::getTemplateCode, keyword)
-                   .or()
-                   .like(ProcessTemplate::getProductModel, keyword);
+            wrapper.and(w -> w.like(ProcessTemplate::getTemplateName, keyword)
+                    .or().like(ProcessTemplate::getTemplateCode, keyword)
+                    .or().like(ProcessTemplate::getProductModel, keyword));
         }
         wrapper.orderByDesc(ProcessTemplate::getCreateTime);
         Page<ProcessTemplate> resultPage = processTemplateMapper.selectPage(page, wrapper);
@@ -269,10 +341,143 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
                 .eq(ProcessParameter::getTemplateId, id)
         );
 
+        // 物理删除工序步骤
+        processStepMapper.delete(
+            new LambdaQueryWrapper<ProcessStep>()
+                .eq(ProcessStep::getTemplateId, id)
+        );
+
         // 物理删除模板
         processTemplateMapper.deleteById(id);
 
         log.info("删除工艺模板成功: id={}", id);
         return Result.ok();
+    }
+
+    // ==================== 工艺参数管理 ====================
+
+    @Override
+    public List<ProcessParameter> listParameters(Long templateId) {
+        return processParameterMapper.selectList(
+                new LambdaQueryWrapper<ProcessParameter>()
+                        .eq(ProcessParameter::getTemplateId, templateId)
+                        .orderByAsc(ProcessParameter::getSortOrder));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long addParameter(ParameterDTO dto) {
+        assertTemplateEditable(dto.getTemplateId());
+        ProcessParameter param = new ProcessParameter();
+        param.setTemplateId(dto.getTemplateId());
+        param.setParamName(dto.getParamName());
+        param.setParamCode(dto.getParamCode());
+        param.setParamValue(dto.getParamValue());
+        param.setMinValue(dto.getMinValue());
+        param.setMaxValue(dto.getMaxValue());
+        param.setUnit(dto.getUnit());
+        param.setSortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : 1);
+        processParameterMapper.insert(param);
+        return param.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateParameter(Long paramId, ParameterDTO dto) {
+        ProcessParameter param = processParameterMapper.selectById(paramId);
+        if (param == null) {
+            throw new RuntimeException("工艺参数不存在: " + paramId);
+        }
+        assertTemplateEditable(param.getTemplateId());
+        param.setParamName(dto.getParamName());
+        param.setParamCode(dto.getParamCode());
+        param.setParamValue(dto.getParamValue());
+        param.setMinValue(dto.getMinValue());
+        param.setMaxValue(dto.getMaxValue());
+        param.setUnit(dto.getUnit());
+        if (dto.getSortOrder() != null) {
+            param.setSortOrder(dto.getSortOrder());
+        }
+        processParameterMapper.updateById(param);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteParameter(Long paramId) {
+        ProcessParameter param = processParameterMapper.selectById(paramId);
+        if (param == null) {
+            throw new RuntimeException("工艺参数不存在: " + paramId);
+        }
+        assertTemplateEditable(param.getTemplateId());
+        processParameterMapper.deleteById(paramId);
+    }
+
+    // ==================== 工序步骤管理 ====================
+
+    @Override
+    public List<ProcessStep> listSteps(Long templateId) {
+        return processStepMapper.selectList(
+                new LambdaQueryWrapper<ProcessStep>()
+                        .eq(ProcessStep::getTemplateId, templateId)
+                        .orderByAsc(ProcessStep::getSequence));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long addStep(StepDTO dto) {
+        assertTemplateEditable(dto.getTemplateId());
+        ProcessStep step = new ProcessStep();
+        step.setTemplateId(dto.getTemplateId());
+        step.setStepNo(dto.getStepNo());
+        step.setStepName(dto.getStepName());
+        step.setStepDesc(dto.getStepDesc());
+        step.setDurationMin(dto.getDurationMin());
+        step.setSequence(dto.getSequence());
+        if (step.getSequence() == null) {
+            Long maxSeq = processStepMapper.selectCount(
+                    new LambdaQueryWrapper<ProcessStep>().eq(ProcessStep::getTemplateId, dto.getTemplateId()));
+            step.setSequence(maxSeq == null ? 1 : maxSeq.intValue() + 1);
+        }
+        processStepMapper.insert(step);
+        return step.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStep(Long stepId, StepDTO dto) {
+        ProcessStep step = processStepMapper.selectById(stepId);
+        if (step == null) {
+            throw new RuntimeException("工序步骤不存在: " + stepId);
+        }
+        assertTemplateEditable(step.getTemplateId());
+        step.setStepNo(dto.getStepNo());
+        step.setStepName(dto.getStepName());
+        step.setStepDesc(dto.getStepDesc());
+        step.setDurationMin(dto.getDurationMin());
+        if (dto.getSequence() != null) {
+            step.setSequence(dto.getSequence());
+        }
+        processStepMapper.updateById(step);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteStep(Long stepId) {
+        ProcessStep step = processStepMapper.selectById(stepId);
+        if (step == null) {
+            throw new RuntimeException("工序步骤不存在: " + stepId);
+        }
+        assertTemplateEditable(step.getTemplateId());
+        processStepMapper.deleteById(stepId);
+    }
+
+    private void assertTemplateEditable(Long templateId) {
+        ProcessTemplate template = processTemplateMapper.selectById(templateId);
+        if (template == null) {
+            throw new RuntimeException("工艺模板不存在: " + templateId);
+        }
+        if ("PUBLISHED".equals(template.getStatus())) {
+            throw new RuntimeException("已发布的模板不能修改，请复制为草稿后编辑");
+        }
     }
 }
