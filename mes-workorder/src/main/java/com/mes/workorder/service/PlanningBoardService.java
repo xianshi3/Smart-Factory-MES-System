@@ -59,4 +59,9 @@ public interface PlanningBoardService {
      * 下发排产（标记RELEASED）
      */
     int release(Long workOrderId);
+
+    /**
+     * 清空变更日志（仅审计记录，不影响排产与撤销）
+     */
+    void clearLogs();
 }

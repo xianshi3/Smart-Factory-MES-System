@@ -270,3 +270,7 @@ export function unfreezePlanning(data: { workstationId?: string | number; workOr
 export function releasePlanning(workOrderId: string | number) {
   return request({ url: '/workorder/planning/release', method: 'post', params: { workOrderId } })
 }
+
+export function clearPlanningLogs() {
+  return request({ url: '/workorder/planning/logs', method: 'delete' })
+}

@@ -137,4 +137,16 @@ public class PlanningBoardController {
             return Result.fail(e.getMessage());
         }
     }
+
+    @DeleteMapping("/logs")
+    @Operation(summary = "清空变更日志（仅审计记录，不影响排产与撤销）")
+    public Result<Void> clearLogs() {
+        try {
+            planningBoardService.clearLogs();
+            return Result.ok();
+        } catch (Exception e) {
+            log.error("清空变更日志失败", e);
+            return Result.fail("清空变更日志失败: " + e.getMessage());
+        }
+    }
 }

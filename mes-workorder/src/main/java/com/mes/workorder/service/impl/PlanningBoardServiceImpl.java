@@ -751,6 +751,11 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
         return cnt;
     }
 
+    @Override
+    public void clearLogs() {
+        scheduleLogMapper.delete(new LambdaQueryWrapper<ScheduleLog>());
+    }
+
     // ==================== 内部工具 ====================
 
     private List<ScheduleItem> resolveTargets(PlanningFreezeRequestDTO dto) {

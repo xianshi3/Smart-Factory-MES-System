@@ -7,14 +7,6 @@
         <span class="sub-title">工序级排产 · 自动排程 · 冲突检测 · 冻结下发</span>
       </div>
       <div class="header-right">
-        <div class="legend-group">
-          <span v-for="lg in legendItems" :key="lg.key" class="legend-item">
-            <i class="legend-dot" :style="{ background: lg.color }"></i>{{ lg.label }}
-          </span>
-          <span class="legend-item"><i class="legend-dot" style="background:#e6a23c"></i>冻结</span>
-          <span class="legend-item"><i class="legend-dot" style="background:#722ed1"></i>已下发</span>
-        </div>
-        <span class="header-divider"></span>
         <el-select v-model="granularity" size="small" style="width: 88px">
           <el-option label="日粒度" value="day" />
           <el-option label="小时粒度" value="hour" />
@@ -37,8 +29,16 @@
       </div>
     </div>
 
-    <!-- 操作栏 -->
+    <!-- 操作栏：图例 + 排程操作 + 缩放 + 统计 -->
     <div class="action-bar">
+      <div class="legend-group">
+        <span v-for="lg in legendItems" :key="lg.key" class="legend-item">
+          <i class="legend-dot" :style="{ background: lg.color }"></i>{{ lg.label }}
+        </span>
+        <span class="legend-item"><i class="legend-dot" style="background:#e6a23c"></i>冻结</span>
+        <span class="legend-item"><i class="legend-dot" style="background:#722ed1"></i>已下发</span>
+      </div>
+      <span class="bar-divider"></span>
       <el-button type="success" size="small" plain @click="doAutoPlan(true)">
         <el-icon><MagicStick /></el-icon>&nbsp;自动排程
       </el-button>
@@ -59,9 +59,20 @@
         <el-icon><Clock /></el-icon>
         窗口工时 {{ fmtWorkHours(workMinutes) }} · {{ shiftText }}
       </span>
-      <el-badge v-if="conflicts.length" :value="conflicts.length" class="conflict-badge">
-        <el-tag type="danger" size="small" effect="light">时间冲突</el-tag>
-      </el-badge>
+    </div>
+
+    <!-- KPI 指标卡 -->
+    <div class="kpi-row">
+      <div class="kpi-card" v-for="k in kpiItems" :key="k.key">
+        <div class="kpi-icon" :style="{ background: k.bg, color: k.color }">
+          <el-icon><component :is="k.icon" /></el-icon>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ k.value }}</span>
+          <span class="kpi-label">{{ k.label }}</span>
+          <span class="kpi-sub">{{ k.sub }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="board-layout">
@@ -94,12 +105,23 @@
                 >
                   <span class="gantt-day-label">{{ cell.label }}</span>
                 </div>
+                <div v-if="nowFrac >= 0" class="now-head-tag" :style="{ left: (4 + nowFrac * ganttTotalPx) + 'px' }">现在</div>
               </div>
             </div>
           </div>
 
-          <!-- 拖拽落点幽灵（绝对定位，跟随鼠标所在行与时间） -->
-          <div v-if="dragGhost" class="drag-ghost" :style="ghostStyle"></div>
+          <!-- 拖拽落点幽灵（fixed 视口定位，跟随鼠标所在行与时间） -->
+          <div v-if="dragGhost" class="drag-ghost" :class="{ 'ghost-conflict': ghostConflicting }" :style="ghostStyle"></div>
+          <!-- 拖拽信息跟随卡片（固定宽度，完整显示工单/时间/目标） -->
+          <div v-if="dragState" class="drag-tip-card" :class="{ 'tip-conflict': ghostConflicting }" :style="dragTipStyle">
+            <div class="tip-card-title">{{ dragTipTitle }}</div>
+            <div class="tip-card-time">
+              <el-icon :size="12"><Clock /></el-icon>
+              <span>{{ dragTipTime }}</span>
+            </div>
+            <div class="tip-card-status">{{ dragTipStatus }} · 目标：{{ dragTipWsName }}</div>
+            <div v-if="dragHitBound" class="tip-card-bound">已抵相邻工序边界，无法继续</div>
+          </div>
           <!-- 待排产池 -->
           <div class="machine-row pending-row">
             <div class="gantt-row-label" @contextmenu.prevent="openRowCtx($event, null, null)">
@@ -111,19 +133,23 @@
             <div class="gantt-track pool-track" ref="poolRef" :style="{ width: ganttTotalPx + 'px' }" :class="{ 'drop-target': dragState && dragOverPool }">
               <div class="gantt-gridline">
                 <div v-for="cell in headCells" :key="cell.key" class="grid-col" :class="{ weekend: cell.shaded }" :style="{ width: cell.widthPx + 'px' }"></div>
+                <div v-if="nowFrac >= 0" class="now-line" :style="{ left: (nowFrac * ganttTotalPx + 4) + 'px' }"></div>
               </div>
+              <transition name="hint-pop">
+                <div v-if="dragState && dragOverPool" class="pool-hint"><el-icon><component :is="'Back'" /></el-icon>松手移回待排产池并取消排产</div>
+              </transition>
               <div class="pending-list">
                 <div
-                  v-for="t in unassigned"
+                  v-for="t in sortedUnassigned"
                   :key="t.id"
                   class="pending-card"
-                  :class="[('pri-' + (t.priority || 'MEDIUM').toLowerCase()), { 'card-selected': selectedTask?.id === t.id && !t.scheduleId }]"
+                  :class="[('pri-' + (t.priority || 'MEDIUM').toLowerCase()), { 'card-selected': selectedTask?.id === t.id && !t.scheduleId, 'is-dragging': dragState?.task?.id === t.id }]"
                   @mousedown="onCardDown($event, t)"
                   @click.stop="selectTask(t, null)"
                 >
                   <span class="pc-no">{{ t.orderNo }}</span>
                   <span class="pc-name">{{ t.productName }}</span>
-                  <span class="pc-qty">{{ t.planQuantity }} 件 · {{ priLabel(t.priority) }}</span>
+                  <span class="pc-qty">{{ t.planQuantity }} 件 · {{ priLabel(t.priority) }}<template v-if="t.durationMin"> · {{ t.durationMin }}min</template></span>
                 </div>
                 <div v-if="!unassigned.length" class="pool-empty">暂无待排产工单，可取消排产拖回</div>
               </div>
@@ -159,6 +185,8 @@
             >
               <div class="gantt-gridline">
                 <div v-for="cell in headCells" :key="cell.key" class="grid-col" :class="{ weekend: cell.shaded }" :style="{ width: cell.widthPx + 'px' }"></div>
+                <div v-if="nowFrac >= 0" class="now-line" :style="{ left: (nowFrac * ganttTotalPx + 4) + 'px' }"></div>
+                <div v-if="dragState && dragTargetWsId === eq.id" class="drag-line" :style="{ left: dragLineLeft + 'px' }"></div>
               </div>
 
               <!-- 按工单分组泳道 -->
@@ -170,25 +198,46 @@
                   <span v-if="lane.status === 'FROZEN'" class="lane-badge frozen">已冻结</span>
                   <span v-if="lane.status === 'RELEASED'" class="lane-badge released">已下发</span>
                   <span v-if="lane.planStatus === 'DELAYED'" class="lane-badge delayed">延误</span>
+                  <span class="lane-dur">{{ laneDur(lane) }}</span>
                 </div>
                 <div class="lane-bars">
-                  <div
+                  <el-tooltip
                     v-for="t in lane.steps"
                     :key="t.scheduleId"
-                    class="gantt-bar"
-                    :class="[
-                      'st-' + t.planStatus.toLowerCase(),
-                      { 'bar-conflict': conflictStepIds.has(t.scheduleId), 'bar-selected': selectedTask?.scheduleId === t.scheduleId }
-                    ]"
-                    :style="barStyle(t)"
-                    @mousedown="onBarDown($event, t, eq)"
-                    @click.stop
-                    @contextmenu.prevent="openBarCtx($event, t, eq)"
+                    placement="top"
+                    :show-after="200"
+                    :hide-after="0"
+                    effect="dark"
+                    :disabled="!!dragState"
+                    popper-class="bar-tip"
                   >
-                    <i v-if="barResizable(t)" class="resize-h left" @mousedown.stop="onResizeDown($event, t, eq, 'l')"></i>
-                    <span class="bar-label">{{ barDisplay(t) }}</span>
-                    <i v-if="barResizable(t)" class="resize-h" @mousedown.stop="onResizeDown($event, t, eq, 'r')"></i>
-                  </div>
+                    <template #content>
+                      <div class="bar-tip-body">
+                        <div class="tip-title">{{ t.orderNo }}<span v-if="t.stepNo"> · {{ t.stepName }}</span></div>
+                        <div class="tip-row">状态：{{ statusLabel(t.planStatus) }}<span v-if="t.scheduleStatus === 'FROZEN'">（已冻结）</span><span v-else-if="t.scheduleStatus === 'RELEASED'">（已下发）</span></div>
+                        <div class="tip-row">设备：{{ equipmentOf(t)?.workstationName || '未分配' }}</div>
+                        <div class="tip-row">计划：{{ fmtTime(t.plannedStartTime) }} ~ {{ fmtTime(t.plannedEndTime) }}</div>
+                        <div class="tip-row">工时：{{ t.durationMin }} 分钟<span v-if="t.bottleneck"> · ⚡ 瓶颈</span></div>
+                        <div class="tip-row">数量：{{ t.planQuantity }}<span v-if="t.progress"> · 进度 {{ t.progress }}%</span></div>
+                      </div>
+                    </template>
+                    <div
+                      class="gantt-bar"
+                      :class="[
+                        'st-' + t.planStatus.toLowerCase(),
+                        { 'bar-conflict': conflictStepIds.has(t.scheduleId), 'bar-selected': selectedTask?.scheduleId === t.scheduleId, 'is-dragging': dragState?.task?.scheduleId === t.scheduleId }
+                      ]"
+                      :style="barStyle(t)"
+                      @mousedown="onBarDown($event, t, eq)"
+                      @dblclick.stop="openAdjustDialog(t, false)"
+                      @click.stop
+                      @contextmenu.prevent="openBarCtx($event, t, eq)"
+                    >
+                      <i v-if="barResizable(t)" class="resize-h left" @mousedown.stop="onResizeDown($event, t, eq, 'l')"></i>
+                      <span class="bar-label">{{ barDisplay(t) }}</span>
+                      <i v-if="barResizable(t)" class="resize-h" @mousedown.stop="onResizeDown($event, t, eq, 'r')"></i>
+                    </div>
+                  </el-tooltip>
                 </div>
               </div>
 
@@ -237,12 +286,22 @@
                 </el-descriptions>
 
                 <div class="step-list-title">该工单工序（{{ orderSteps(selectedTask.id).length }}）</div>
-                <div v-for="st in orderSteps(selectedTask.id)" :key="st.scheduleId" class="step-item" @click="selectTask(st, equipmentOf(st))">
-                  <span class="step-dot" :style="{ background: laneColor(st.id) }"></span>
-                  <span class="step-name">{{ st.stepNo ? '工序' + st.stepNo + ' ' + st.stepName : '整单' }}</span>
-                  <span class="step-dev">{{ equipmentOf(st)?.workstationName || '未分配' }}</span>
-                  <span class="step-time">{{ fmtShort(st.plannedStartTime) }}~{{ fmtShort(st.plannedEndTime) }}</span>
-                </div>
+                <el-timeline class="step-timeline">
+                  <el-timeline-item
+                    v-for="st in orderSteps(selectedTask.id)"
+                    :key="st.scheduleId"
+                    :timestamp="fmtShort(st.plannedStartTime) + ' ~ ' + fmtShort(st.plannedEndTime)"
+                    placement="top"
+                    :color="st.scheduleStatus === 'FROZEN' ? '#f59e0b' : st.scheduleStatus === 'RELEASED' ? '#8b5cf6' : '#6366f1'"
+                  >
+                    <div class="step-item" @click="selectTask(st, equipmentOf(st))">
+                      <span class="step-name">{{ st.stepNo ? '工序' + st.stepNo + ' ' + st.stepName : '整单' }}</span>
+                      <span class="step-status" :class="'st-' + st.planStatus.toLowerCase()">{{ statusLabel(st.planStatus) }}</span>
+                      <span class="step-dev">{{ equipmentOf(st)?.workstationName || '未分配' }}</span>
+                      <span v-if="st.durationMin" class="step-dur">{{ st.durationMin }}min</span>
+                    </div>
+                  </el-timeline-item>
+                </el-timeline>
 
                 <div class="detail-actions">
                   <el-button size="small" type="primary" plain @click="openAdjustDialog(selectedTask, false)">调整时间</el-button>
@@ -256,6 +315,12 @@
           </el-tab-pane>
 
           <el-tab-pane label="变更日志" name="logs">
+            <div class="log-toolbar">
+              <span class="log-count">共 {{ logs.length }} 条</span>
+              <el-button size="small" type="danger" plain @click="doClearLogs">
+                <el-icon><Delete /></el-icon>&nbsp;清空日志
+              </el-button>
+            </div>
             <div class="log-list">
               <div v-for="lg in logs" :key="lg.id" class="log-item">
                 <span class="log-action" :class="logClass(lg.action)">{{ logActionLabel(lg.action) }}</span>
@@ -346,7 +411,8 @@ import {
   undoPlanning,
   freezePlanning,
   unfreezePlanning,
-  releasePlanning
+  releasePlanning,
+  clearPlanningLogs
 } from '@/api/services'
 
 interface Task {
@@ -426,7 +492,7 @@ const workMinutes = ref(0)
 
 const selectedTask = ref<Task | null>(null)
 const selectedOrderId = ref<number | null>(null)
-let selectedOrderKey: number | null = null
+let selectedOrderKey: string | null = null
 const sideTab = ref('detail')
 const granularity = ref<'day' | 'hour'>('day')
 const autoRefresh = ref(false)
@@ -451,7 +517,11 @@ const ganttTotalPx = computed(() => {
 const dragState = ref<DragState | null>(null)
 const dragTargetWsId = ref<string | null>(null)
 const dragOverPool = ref(false)
-const dragGhost = ref<{ top: number; left: number; width: number } | null>(null)
+/** 拖拽光标在目标行内的 x（px），用于吸附指示线 */
+const dragLineLeft = ref(0)
+/** resize 时是否已被相邻工序边界钳制 */
+const dragHitBound = ref(false)
+const dragGhost = ref<{ rect: { top: number; left: number; width: number }; startMs: number; endMs: number; wsId: string } | null>(null)
 const poolRef = ref<HTMLElement | null>(null)
 const bodyRef = ref<HTMLElement | null>(null)
 
@@ -462,7 +532,7 @@ const ctxMenu = ref<{ x: number; y: number; task: Task | null; eq: EqGroup | nul
 const adjustVisible = ref(false)
 const adjustTask = ref<Task | null>(null)
 const adjustWhole = ref(false)
-const adjustForm = ref<{ targetWorkstationId: number | null; newStart: string; newEnd: string; force: boolean }>({
+const adjustForm = ref<{ targetWorkstationId: string | number | null; newStart: string; newEnd: string; force: boolean }>({
   targetWorkstationId: null,
   newStart: '',
   newEnd: '',
@@ -471,11 +541,32 @@ const adjustForm = ref<{ targetWorkstationId: number | null; newStart: string; n
 
 const legendItems = [
   { key: 'PENDING', label: '待排产', color: '#909399' },
-  { key: 'READY', label: '已排产', color: '#409eff' },
-  { key: 'RUNNING', label: '运行中', color: '#2f9e69' },
+  { key: 'READY', label: '已排产', color: '#409eff' },  { key: 'RUNNING', label: '运行中', color: '#2f9e69' },
   { key: 'COMPLETED', label: '已完成', color: '#a8c5a8' },
   { key: 'DELAYED', label: '延误', color: '#f56c6c' }
 ]
+
+// ==================== KPI 统计 ====================
+const kpiItems = computed(() => {
+  const allTasks = equipment.value.flatMap(eq => eq.tasks)
+  const orderIds = new Set<string>()
+  allTasks.forEach(t => orderIds.add(t.id))
+  unassigned.value.forEach(t => orderIds.add(t.id))
+  const totalOrders = orderIds.size
+  const scheduledOrders = new Set(allTasks.map(t => t.id)).size
+  const totalSteps = allTasks.length
+  const avgLoad = equipment.value.length
+    ? Math.round(equipment.value.reduce((s, e) => s + (e.loadRate || 0), 0) / equipment.value.length)
+    : 0
+  const bottlenecks = equipment.value.filter(e => e.bottleneck).length
+  return [
+    { key: 'orders', icon: 'Document', label: '排产工单', value: `${totalOrders}`, sub: `${scheduledOrders} 已排 / ${unassigned.value.length} 待排`, bg: 'var(--accent-light)', color: 'var(--accent)' },
+    { key: 'steps', icon: 'Operation', label: '工序排产', value: `${totalSteps}`, sub: `${equipment.value.length} 台设备`, bg: 'var(--info-light)', color: 'var(--info)' },
+    { key: 'load', icon: 'DataLine', label: '平均负载', value: `${avgLoad}%`, sub: `瓶颈设备 ${bottlenecks} 台`, bg: avgLoad >= 85 ? 'var(--danger-light)' : avgLoad >= 60 ? 'var(--warning-light)' : 'var(--success-light)', color: avgLoad >= 85 ? 'var(--danger)' : avgLoad >= 60 ? 'var(--warning)' : 'var(--success)' },
+    { key: 'conflicts', icon: 'Warning', label: '时间冲突', value: `${conflicts.value.length}`, sub: conflicts.value.length ? '需处理' : '排产健康', bg: 'var(--danger-light)', color: 'var(--danger)' },
+    { key: 'hours', icon: 'Clock', label: '窗口工时', value: fmtWorkHours(workMinutes), sub: shiftText.value, bg: 'var(--success-light)', color: 'var(--success)' }
+  ]
+})
 
 // ==================== 数据加载 ====================
 let autoZoomed = false
@@ -652,6 +743,13 @@ const zoomReset = () => { zoomLevel.value = 1 }
 
 const cellPct = computed(() => (headCells.value.length ? 100 / headCells.value.length : 100))
 
+/** 当前时刻在窗口内的横向比例（0~1，窗口外为 -1） */
+const nowFrac = computed(() => {
+  const now = Date.now()
+  if (now < wsStartMs.value || now > wsEndMs.value) return -1
+  return (now - wsStartMs.value) / totalMs.value
+})
+
 // ==================== 工单泳道 ====================
 const orderLanes = (eq: EqGroup) => {
   const map = new Map<number, { lane: any; steps: Task[] }>()
@@ -687,6 +785,23 @@ const laneColor = (id: number) => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360
   return `hsl(${h}, 60%, 48%)`
 }
+
+/** 泳道总工时（小时，保留 1 位小数） */
+const laneDur = (lane: any) => {
+  const mins = lane.steps.reduce((sum: number, t: Task) => sum + (parseDT(t.plannedEndTime) - parseDT(t.plannedStartTime)), 0)
+  return Number.isFinite(mins) && mins > 0 ? (mins / 60000).toFixed(1) + 'h' : ''
+}
+
+/** 待排产池：高优先级在前，同级按数量/时间稳定排序 */
+const sortedUnassigned = computed(() =>
+  [...unassigned.value].sort((a, b) => {
+    const p = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+    const pa = p[(a.priority || 'MEDIUM') as keyof typeof p]
+    const pb = p[(b.priority || 'MEDIUM') as keyof typeof p]
+    if (pa !== pb) return pa - pb
+    return String(a.orderNo).localeCompare(String(b.orderNo))
+  })
+)
 
 const barColor = (t: Task) => {
   // 基于工单ID生成稳定色相，饱和度/亮度适配主题（CSS变量不可用于hsl的calc内，用固定但主题友好的值）
@@ -744,17 +859,15 @@ const barStyle = (t: Task) => {
   return { left: leftPx + 'px', width: widthPx + 'px', minWidth: minPx + 'px', background: barColor(t) }
 }
 
-/** 条宽足够时才显示 resize 手柄（避免窄条手柄占满无法拖拽） */
+/** 条宽足够时才显示 resize 手柄（避免窄条手柄占满无法拖拽；已完成工序不可调） */
 const barResizable = (t: Task) => {
+  if (t.planStatus === 'COMPLETED') return false
   if (!t.plannedStartTime || !t.plannedEndTime) return false
   const s = parseDT(t.plannedStartTime)
   const e = parseDT(t.plannedEndTime)
   if (isNaN(s) || isNaN(e)) return false
   return (e - s) / totalMs.value * ganttTotalPx.value >= 56
 }
-
-const barTitle = (t: Task) =>
-  `${t.orderNo} · ${t.stepName || '整单'}（${t.durationMin}min）&#10;计划 ${fmtTime(t.plannedStartTime)} ~ ${fmtTime(t.plannedEndTime)}&#10;状态：${statusLabel(t.planStatus)}${t.scheduleStatus === 'FROZEN' ? '（已冻结）' : ''}${t.scheduleStatus === 'RELEASED' ? '（已下发）' : ''}`
 
 const conflictStepIds = computed(() => new Set(conflicts.value.flatMap(c => [c.scheduleAId, c.scheduleBId] as number[])))
 
@@ -764,23 +877,97 @@ const snapTime = (ms: number) => {
   return Math.max(wsStartMs.value, Math.min(wsEndMs.value - SNAP_MS, snapped))
 }
 
-/** 计算落点幽灵的像素位置（相对 gantt-body），跟随目标行+时间 */
-const ghostRect = (startMs: number, durMs: number, wsId: string, minW: number) => {
-  const body = bodyRef.value
+/** 计算落点幽灵的像素位置（视口坐标，fixed 定位，滚动/裁剪不失效），附时间元数据用于冲突/标签 */
+const ghostRect = (startMs: number, durMs: number, wsId: string, minW: number, mouseY?: number) => {
   const target = trackEls().find(el => String(el.dataset.wsId) === wsId)
-  if (!body || !target) return null
-  const br = body.getBoundingClientRect()
+  if (!target) return null
   const tr = target.getBoundingClientRect()
-  const contentW = Math.max(1, tr.width - 8)
+  const contentW = Math.max(1, ganttTotalPx.value)
   const frac = Math.max(0, Math.min(1, (startMs - wsStartMs.value) / totalMs.value))
-  const left = (tr.left - br.left) + 4 + frac * contentW
+  const left = tr.left + 4 + frac * contentW
   const width = Math.max(durMs / totalMs.value * contentW, minW, 12)
-  return { top: tr.top - br.top + 6, left, width }
+  // 垂直跟随鼠标所在位置（26px 条高居中），避免指示在行顶与鼠标错位；越界钳制在行内
+  const BAR_H = 26
+  const top = mouseY != null
+    ? Math.min(Math.max(mouseY - BAR_H / 2, tr.top + 4), tr.bottom - BAR_H - 4)
+    : tr.top + 6
+  return {
+    rect: { top, left, width },
+    startMs,
+    endMs: startMs + durMs,
+    wsId
+  }
 }
 
 const ghostStyle = computed(() => {
   const g = dragGhost.value
-  return g ? { top: g.top + 'px', left: g.left + 'px', width: g.width + 'px' } : {}
+  return g ? { top: g.rect.top + 'px', left: g.rect.left + 'px', width: g.rect.width + 'px' } : {}
+})
+
+/** 幽灵时间标签（MM-DD HH:mm ~ HH:mm） */
+const ghostTimeLabel = computed(() => {
+  const g = dragGhost.value
+  if (!g) return ''
+  const f = (ms: number) => {
+    const d = new Date(ms)
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+  return `${f(g.startMs)} ~ ${f(g.endMs)}`
+})
+
+// ==================== 拖拽信息卡片 ====================
+const dragTip = ref<{ x: number; y: number } | null>(null)
+const dragTipStyle = computed(() => {
+  if (!dragTip.value) return {}
+  const w = 220
+  const x = Math.min(dragTip.value.x + 18, window.innerWidth - w - 8)
+  const y = Math.min(dragTip.value.y + 18, window.innerHeight - 108)
+  return { left: x + 'px', top: y + 'px' }
+})
+const dragTipTitle = computed(() => {
+  const t = dragState.value?.task
+  if (!t) return ''
+  return t.stepNo ? `${t.orderNo} · ${t.stepName}` : t.orderNo
+})
+const dragTipTime = computed(() => {
+  const t = dragState.value?.task
+  if (!t) return ''
+  if (dragState.value?.type === 'pool') return `预计 8 小时 · ${ghostTimeLabel.value}`
+  return ghostTimeLabel.value || (t.plannedStartTime ? `${fmtShort(t.plannedStartTime)} ~ ${fmtShort(t.plannedEndTime)}` : '')
+})
+const dragTipStatus = computed(() => {
+  const t = dragState.value?.task
+  if (!t) return ''
+  if (dragState.value?.type === 'pool') return unassigned.value.some(x => x.id === t.id) ? '待排产' : ''
+  return t.scheduleStatus === 'FROZEN' ? '已冻结' : t.scheduleStatus === 'RELEASED' ? '已下发' : statusLabel(t.planStatus)
+})
+const dragTipWsName = computed(() => {
+  if (dragOverPool.value) return '待排产池（取消排产）'
+  const wsId = dragGhost.value?.wsId ?? dragTargetWsId.value
+  const eq = equipment.value.find(x => x.id === wsId)
+  return eq ? `${eq.workstationName} ${eq.workstationCode}` : '—'
+})
+
+/** 检查某设备时段 [startMs,endMs) 是否与已有排产重叠（可排除自身工序） */
+const checkOverlap = (wsId: string, startMs: number, endMs: number, excludeScheduleId?: string) => {
+  const eq = equipment.value.find(x => x.id === wsId)
+  if (!eq) return false
+  return eq.tasks.some(x => {
+    if (excludeScheduleId && x.scheduleId === excludeScheduleId) return false
+    const s = parseDT(x.plannedStartTime)
+    const e = parseDT(x.plannedEndTime)
+    return !isNaN(s) && !isNaN(e) && s < endMs && e > startMs
+  })
+}
+
+/** 幽灵落点与目标行已有工序时间重叠 → 冲突（排除自身） */
+const ghostConflicting = computed(() => {
+  const g = dragGhost.value
+  const ds = dragState.value
+  if (!g || !ds) return false
+  if (g.startMs >= g.endMs) return false
+  return checkOverlap(g.wsId, g.startMs, g.endMs, ds.task.scheduleId)
 })
 
 const fmtDateTime = (d: Date) => {
@@ -805,6 +992,10 @@ const onBarDown = (e: MouseEvent, t: Task, eq: EqGroup) => {
 const onResizeDown = (e: MouseEvent, t: Task, eq: EqGroup, dir: 'l' | 'r') => {
   e.stopPropagation()
   e.preventDefault()
+  if (t.planStatus === 'COMPLETED') {
+    ElMessage.warning('已完成工序不可调整工时')
+    return
+  }
   if (t.scheduleStatus === 'FROZEN') {
     ElMessage.warning('该排产已冻结，请先解冻')
     return
@@ -849,6 +1040,85 @@ const hitTargetRow = (e: MouseEvent): string | null => {
   return null
 }
 
+/** 同设备上其他工序的相邻边界：dir 'r' 返回最早下一道开始时间，dir 'l' 返回最晚前一道结束时间 */
+const resizeBoundary = (t: Task, eq: EqGroup, dir: 'r' | 'l'): number | null => {
+  const myStart = parseDT(t.plannedStartTime)
+  const myEnd = parseDT(t.plannedEndTime)
+  const others = eq.tasks.filter(x => x.scheduleId !== t.scheduleId)
+  if (dir === 'r') {
+    let minStart = Infinity
+    for (const o of others) {
+      const s = parseDT(o.plannedStartTime)
+      if (!isNaN(s) && s > myStart) minStart = Math.min(minStart, s)
+    }
+    return minStart === Infinity ? null : minStart
+  }
+  let maxEnd = -Infinity
+  for (const o of others) {
+    const e = parseDT(o.plannedEndTime)
+    if (!isNaN(e) && e < myEnd) maxEnd = Math.max(maxEnd, e)
+  }
+  return maxEnd === -Infinity ? null : maxEnd
+}
+
+/** 计算 resize 的新起止（动态钳制到相邻工序边界，保证不覆盖其他排产） */
+const calcResize = (ds: DragState, dir: 'r' | 'l', deltaMs: number) => {
+  const MIN_DUR = 30 * 60 * 1000
+  const eq = equipment.value.find(x => x.id === ds.originWsId)
+  let newStartMs = ds.startMs
+  let newEndMs = ds.endMs
+  let hitBound = false
+  if (dir === 'r') {
+    let end = snapTime(ds.endMs + deltaMs)
+    const bound = eq ? resizeBoundary(ds.task, eq, 'r') : null
+    if (bound !== null && end > bound) { end = bound; hitBound = true }
+    // 若与下一道工序间距不足最小工时，保持原长（告知边界已到）
+    if (end - ds.startMs < MIN_DUR) { end = ds.endMs; hitBound = false }
+    newEndMs = end
+  } else {
+    let start = snapTime(ds.startMs + deltaMs)
+    const bound = eq ? resizeBoundary(ds.task, eq, 'l') : null
+    if (bound !== null && start < bound) { start = bound; hitBound = true }
+    if (ds.endMs - start < MIN_DUR) { start = ds.startMs; hitBound = false }
+    newStartMs = start
+  }
+  return { newStartMs, newEndMs, hitBound }
+}
+
+/** 拖拽时靠近平板边缘自动滚动（rAF 循环），保证可拖到远处行/时间 */
+let edgeScrollRaf: number | null = null
+const stopEdgeScroll = () => {
+  if (edgeScrollRaf !== null) {
+    cancelAnimationFrame(edgeScrollRaf)
+    edgeScrollRaf = null
+  }
+}
+const startEdgeScroll = (e: MouseEvent) => {
+  const body = bodyRef.value
+  if (!body || !dragState.value) return
+  const EDGE = 44
+  const STEP = 14
+  const tick = () => {
+    const ds = dragState.value
+    const el = bodyRef.value
+    if (!ds || !el) return
+    const br = el.getBoundingClientRect()
+    let moved = false
+    if (e.clientY < br.top + EDGE) { el.scrollTop -= STEP; moved = true }
+    else if (e.clientY > br.bottom - EDGE) { el.scrollTop += STEP; moved = true }
+    if (e.clientX < br.left + EDGE) { el.scrollLeft -= STEP; moved = true }
+    else if (e.clientX > br.right - EDGE) { el.scrollLeft += STEP; moved = true }
+    if (moved) {
+      // 滚动后刷新幽灵/目标行；onDragMove 内部会重启边缘滚动循环（保持单一 rAF 链）
+      onDragMove(e)
+    } else {
+      edgeScrollRaf = null
+    }
+  }
+  stopEdgeScroll()
+  edgeScrollRaf = requestAnimationFrame(tick)
+}
+
 /** 更新鼠标位置：目标行高亮 + 幽灵条跟随（位移 < 5px 视为点击，不触发拖拽视觉） */
 const onDragMove = (e: MouseEvent) => {
   const ds = dragState.value
@@ -859,6 +1129,8 @@ const onDragMove = (e: MouseEvent) => {
     return
   }
   document.body.style.cursor = 'grabbing'
+  startEdgeScroll(e)
+  dragTip.value = { x: e.clientX, y: e.clientY }
   const deltaMs = deltaFromEvent(e, ds.startClientX)
 
   // 命中目标行（非track区域时保持上次目标，避免幽灵跳回首行）
@@ -866,6 +1138,8 @@ const onDragMove = (e: MouseEvent) => {
   if (hit) {
     dragTargetWsId.value = hit
   }
+  const lineEl = trackEls().find(el => String(el.dataset.wsId) === dragTargetWsId.value)
+  if (lineEl) dragLineLeft.value = e.clientX - (lineEl.getBoundingClientRect().left + 4)
   dragOverPool.value = !!poolRef.value && (() => {
     const r = poolRef.value.getBoundingClientRect()
     return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
@@ -878,23 +1152,23 @@ const onDragMove = (e: MouseEvent) => {
     const newStart = isNaN(mouseMs)
       ? snapTime(ds.startMs + deltaMs)
       : snapTime(mouseMs - ds.grabOffsetMs)
-    dragGhost.value = ghostRect(newStart, durMs, targetWs, 0)
+    dragGhost.value = ghostRect(newStart, durMs, targetWs, 0, e.clientY)
   } else if (ds.type === 'pool') {
     const durMs = 480 * 60 * 1000
     if (dragTargetWsId.value !== null) {
       const tMs = snapTime(mouseTimeInTrack(e, dragTargetWsId.value))
-      dragGhost.value = ghostRect(tMs, durMs, dragTargetWsId.value, 0)
+      dragGhost.value = ghostRect(tMs, durMs, dragTargetWsId.value, 0, e.clientY)
     } else {
       dragGhost.value = null
     }
   } else if (ds.type === 'resize-r') {
-    const newEnd = snapTime(ds.endMs + deltaMs)
-    const dur = Math.max(30 * 60 * 1000, newEnd - ds.startMs)
-    dragGhost.value = ghostRect(ds.startMs, dur, ds.originWsId!, 0)
+    const r = calcResize(ds, 'r', deltaMs)
+    dragHitBound.value = r.hitBound
+    dragGhost.value = ghostRect(r.newStartMs, r.newEndMs - r.newStartMs, ds.originWsId!, 0)
   } else if (ds.type === 'resize-l') {
-    const newStart = snapTime(ds.startMs + deltaMs)
-    const dur = Math.max(30 * 60 * 1000, ds.endMs - newStart)
-    dragGhost.value = ghostRect(newStart, dur, ds.originWsId!, 0)
+    const r = calcResize(ds, 'l', deltaMs)
+    dragHitBound.value = r.hitBound
+    dragGhost.value = ghostRect(r.newStartMs, r.newEndMs - r.newStartMs, ds.originWsId!, 0)
   }
 }
 
@@ -920,8 +1194,10 @@ const applyMoveLocally = (t: Task, targetWsId: string, newStartMs: number, newEn
 const onDragEnd = async (e: MouseEvent) => {
   const ds = dragState.value
   if (!ds) return
+  stopEdgeScroll()
   dragState.value = null
   dragGhost.value = null
+  dragTip.value = null
   document.body.style.cursor = ''
   // 纯点击（无位移）只做选中，不发请求不刷新
   if (Math.abs(e.clientX - ds.startClientX) < 4) return
@@ -943,6 +1219,11 @@ const onDragEnd = async (e: MouseEvent) => {
         ? snapTime(ds.startMs + deltaMs)
         : snapTime(mouseMs - ds.grabOffsetMs)
       if (targetWs === ds.originWsId && newStartMs === ds.startMs) return
+      // 碰撞拦截：落点与目标行已有排产重叠时阻止（避免覆盖）
+      if (checkOverlap(targetWs, newStartMs, newStartMs + (ds.endMs - ds.startMs), t.scheduleId)) {
+        ElMessage.warning('落点与其他工序时间重叠，请选择空闲时段；如需强制重叠请用「调整时间」并勾选强制保存')
+        return
+      }
       const newStart = fmtDateTime(new Date(newStartMs))
       // 乐观更新：先本地移动，失败再回滚
       applyMoveLocally(t, targetWs!, newStartMs)
@@ -961,17 +1242,21 @@ const onDragEnd = async (e: MouseEvent) => {
     } else if (ds.type === 'pool') {
       if (dragTargetWsId.value !== null) {
         const newStartMs = snapTime(mouseTimeInTrack(e, dragTargetWsId.value))
+        const dur = Math.max((t.durationMin || 480) * 60000, 30 * 60 * 1000)
+        if (checkOverlap(dragTargetWsId.value, newStartMs, newStartMs + dur)) {
+          ElMessage.warning('该时段与已有排产重叠，请选择空闲时段；如需强制重叠请用「调整时间」并勾选强制保存')
+          return
+        }
         const newStart = fmtDateTime(new Date(newStartMs))
         await movePlanningTask({ workOrderId: t.id, targetWorkstationId: dragTargetWsId.value, newStart })
         ElMessage.success('排产成功')
         await loadBoard()
       }
     } else if (ds.type === 'resize-r') {
-      const deltaMs = deltaFromEvent(e, ds.startClientX)
-      const newEndMs = snapTime(ds.endMs + deltaMs)
-      if (newEndMs === ds.endMs) return
-      const newEnd = fmtDateTime(new Date(newEndMs))
-      applyMoveLocally(t, ds.originWsId!, ds.startMs, newEndMs)
+      const r = calcResize(ds, 'r', deltaFromEvent(e, ds.startClientX))
+      if (r.newEndMs === ds.endMs) return
+      const newEnd = fmtDateTime(new Date(r.newEndMs))
+      applyMoveLocally(t, ds.originWsId!, ds.startMs, r.newEndMs)
       try {
         await movePlanningTask({
           scheduleId: t.scheduleId,
@@ -979,17 +1264,16 @@ const onDragEnd = async (e: MouseEvent) => {
           targetWorkstationId: ds.originWsId!,
           newEnd
         })
-        ElMessage.success('已拉伸工时')
+        ElMessage.success(r.hitBound ? '已拉伸至相邻工序边界' : '已拉伸工时')
       } catch (err) {
         await loadBoard()
         ElMessage.error(String(err?.response?.data?.msg || err?.response?.data?.message || err?.message || '保存失败'))
       }
     } else if (ds.type === 'resize-l') {
-      const deltaMs = deltaFromEvent(e, ds.startClientX)
-      const newStartMs = snapTime(ds.startMs + deltaMs)
-      if (newStartMs === ds.startMs) return
-      const newStart = fmtDateTime(new Date(newStartMs))
-      applyMoveLocally(t, ds.originWsId!, newStartMs, ds.endMs)
+      const r = calcResize(ds, 'l', deltaFromEvent(e, ds.startClientX))
+      if (r.newStartMs === ds.startMs) return
+      const newStart = fmtDateTime(new Date(r.newStartMs))
+      applyMoveLocally(t, ds.originWsId!, r.newStartMs, ds.endMs)
       try {
         await movePlanningTask({
           scheduleId: t.scheduleId,
@@ -998,7 +1282,7 @@ const onDragEnd = async (e: MouseEvent) => {
           newStart,
           newEnd: fmtDateTime(new Date(ds.endMs))
         })
-        ElMessage.success('已调整起点')
+        ElMessage.success(r.hitBound ? '已拉伸至相邻工序边界' : '已调整起点')
       } catch (err) {
         await loadBoard()
         ElMessage.error(String(err?.response?.data?.msg || err?.response?.data?.message || err?.message || '保存失败'))
@@ -1015,6 +1299,7 @@ const onDragEnd = async (e: MouseEvent) => {
   } finally {
     dragTargetWsId.value = null
     dragOverPool.value = false
+    dragHitBound.value = false
   }
 }
 
@@ -1026,6 +1311,9 @@ const onKeyDown = (e: KeyboardEvent) => {
 }
 
 const onDragCancel = () => {
+  stopEdgeScroll()
+  dragTip.value = null
+  dragHitBound.value = false
   if (dragState.value) {
     dragState.value = null
     dragGhost.value = null
@@ -1108,6 +1396,21 @@ const doRelease = async (workOrderId: number) => {
   }
 }
 
+const doClearLogs = async () => {
+  try {
+    await ElMessageBox.confirm('将清空全部变更日志（仅审计记录，不影响排产与撤销功能），确定继续？', '清空日志', { type: 'warning', confirmButtonText: '清空', cancelButtonText: '取消' })
+  } catch {
+    return
+  }
+  try {
+    await clearPlanningLogs()
+    ElMessage.success('变更日志已清空')
+    await loadBoard()
+  } catch (err: any) {
+    ElMessage.error('清空失败: ' + (err?.response?.data?.msg || err?.message))
+  }
+}
+
 const doUnassign = async (workOrderId: number) => {
   try {
     await unassignPlanningOrder(workOrderId)
@@ -1119,13 +1422,23 @@ const doUnassign = async (workOrderId: number) => {
   }
 }
 
+/** 打开右键菜单并做视口边界修正（菜单约 200×280） */
+const showCtx = (e: MouseEvent, task: Task | null, eq: EqGroup | null) => {
+  ctxMenu.value = {
+    x: Math.max(4, Math.min(e.clientX, window.innerWidth - 204)),
+    y: Math.max(4, Math.min(e.clientY, window.innerHeight - 284)),
+    task,
+    eq
+  }
+}
+
 const openBarCtx = (e: MouseEvent, t: Task, eq: EqGroup) => {
   selectTask(t, eq)
-  ctxMenu.value = { x: e.clientX, y: e.clientY, task: t, eq: null }
+  showCtx(e, t, null)
 }
 
 const openRowCtx = (e: MouseEvent, eq: EqGroup | null, _task: Task | null) => {
-  ctxMenu.value = { x: e.clientX, y: e.clientY, task: null, eq }
+  showCtx(e, null, eq)
 }
 
 const openAdjustDialog = (t: Task, whole: boolean) => {
@@ -1167,7 +1480,7 @@ const submitAdjust = async () => {
 // ==================== 展示工具 ====================
 const equipmentOf = (t: Task) => equipment.value.find(eq => eq.id === t.workstationId) || null
 
-const orderSteps = (workOrderId: number) => {
+const orderSteps = (workOrderId: string | number) => {
   const steps: Task[] = []
   for (const eq of equipment.value) {
     for (const t of eq.tasks) {
@@ -1252,6 +1565,11 @@ const preventNativeDrag = (e: Event) => {
   if (dragState.value) e.preventDefault()
 }
 
+/** 点击任意处关闭右键菜单 */
+const onDocClick = () => {
+  ctxMenu.value = null
+}
+
 onMounted(() => {
   const today = new Date()
   const start = new Date(today)
@@ -1265,14 +1583,17 @@ onMounted(() => {
   document.addEventListener('mouseup', onDragEnd)
   document.addEventListener('keydown', onKeyDown)
   document.addEventListener('dragstart', preventNativeDrag)
+  document.addEventListener('click', onDocClick)
 })
 
 onUnmounted(() => {
+  stopEdgeScroll()
   if (pollTimer) clearInterval(pollTimer)
   document.removeEventListener('mousemove', onDragMove)
   document.removeEventListener('mouseup', onDragEnd)
   document.removeEventListener('keydown', onKeyDown)
   document.removeEventListener('dragstart', preventNativeDrag)
+  document.removeEventListener('click', onDocClick)
 })
 
 watch(autoRefresh, setupPolling)
@@ -1280,10 +1601,13 @@ watch(autoRefresh, setupPolling)
 
 <style scoped lang="scss">
 .planning-page {
-  padding: 16px 20px;
+  height: calc(100vh - 146px);
+  min-height: 560px;
+  overflow: hidden;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
   min-width: 1200px;
 
   /* 看板主体禁用文本选中 */
@@ -1305,16 +1629,17 @@ watch(autoRefresh, setupPolling)
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 10px 16px;
+    padding: 6px 14px;
     box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
     transition: background var(--transition-normal), border-color var(--transition-normal);
 
     .header-left {
       display: flex;
       align-items: baseline;
-      gap: 12px;
+      gap: 10px;
       h2 {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 600;
         color: var(--text-primary);
         margin: 0;
@@ -1324,36 +1649,18 @@ watch(autoRefresh, setupPolling)
         &::before {
           content: '';
           width: 4px;
-          height: 16px;
+          height: 14px;
           border-radius: 2px;
           background: var(--gradient-primary);
         }
       }
-      .sub-title { font-size: 12px; color: var(--text-tertiary); }
+      .sub-title { font-size: 11px; color: var(--text-tertiary); }
     }
     .header-right {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      .legend-group {
-        display: flex;
-        gap: 8px;
-        margin-right: 4px;
-        .legend-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11px;
-          color: var(--text-secondary);
-          .legend-dot { width: 8px; height: 8px; border-radius: 3px; }
-        }
-      }
-      .header-divider {
-        width: 1px;
-        height: 18px;
-        background: var(--border-color);
-      }
     }
   }
 
@@ -1365,9 +1672,31 @@ watch(autoRefresh, setupPolling)
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 8px 14px;
+    padding: 5px 10px;
     box-shadow: var(--shadow-sm);
     transition: background var(--transition-normal), border-color var(--transition-normal);
+    flex-shrink: 0;
+
+    .legend-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        .legend-dot { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+      }
+    }
+    .bar-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border-color);
+      margin: 0 2px;
+    }
 
     .action-spacer { flex: 1; }
     .zoom-group {
@@ -1401,19 +1730,78 @@ watch(autoRefresh, setupPolling)
     .conflict-badge { margin-left: 8px; }
   }
 
+  /* ===== KPI 指标卡 ===== */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+
+    .kpi-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-fast);
+
+      &:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+      .kpi-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex: none;
+      }
+      .kpi-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        .kpi-value {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--text-primary);
+          font-family: 'Consolas', monospace;
+          line-height: 1.3;
+        }
+        .kpi-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          margin-top: 1px;
+        }
+        .kpi-sub {
+          font-size: 10px;
+          color: var(--text-secondary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+  }
+
   /* ===== 布局 ===== */
   .board-layout {
     display: flex;
     gap: 14px;
     align-items: stretch;
+    flex: 1;
+    min-height: 0;
 
     .gantt-area {
       flex: 1;
       min-width: 0;
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 240px);
-      min-height: 380px;
+      height: 100%;
+      min-height: 0;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
@@ -1423,15 +1811,15 @@ watch(autoRefresh, setupPolling)
     }
 
     .side-panel {
-      flex: 0 0 340px;
+      flex: 0 0 360px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-sm);
       overflow: hidden;
       padding: 0 14px 14px;
-      height: calc(100vh - 240px);
-      min-height: 380px;
+      height: 100%;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       transition: background var(--transition-normal), border-color var(--transition-normal);
@@ -1494,19 +1882,33 @@ watch(autoRefresh, setupPolling)
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 10px;
+          padding: 6px 10px;
           border-radius: var(--radius-sm);
           cursor: pointer;
           font-size: 12px;
           border: 1px solid var(--border-light);
           background: var(--bg-hover);
-          margin-bottom: 6px;
           transition: all var(--transition-fast);
           &:hover { border-color: var(--accent); background: var(--accent-light); }
-          .step-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
           .step-name { font-weight: 600; white-space: nowrap; color: var(--text-primary); }
+          .step-status {
+            font-size: 10px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 8px;
+            &.st-pending { color: var(--text-tertiary); background: var(--bg-hover); }
+            &.st-ready { color: var(--accent); background: var(--accent-light); }
+            &.st-running { color: var(--success); background: var(--success-light); }
+            &.st-completed { color: var(--text-tertiary); background: var(--bg-hover); }
+            &.st-delayed { color: var(--danger); background: var(--danger-light); }
+          }
           .step-dev { color: var(--text-tertiary); margin-left: auto; }
-          .step-time { color: var(--text-tertiary); font-size: 11px; }
+          .step-dur { color: var(--text-tertiary); font-size: 11px; font-family: 'Consolas', monospace; }
+        }
+        .step-timeline {
+          padding-left: 4px;
+          :deep(.el-timeline-item__timestamp) { color: var(--text-tertiary); font-size: 11px; padding-bottom: 2px; }
+          :deep(.el-timeline-item__content) { padding-bottom: 8px; }
         }
 
         .detail-actions {
@@ -1515,6 +1917,15 @@ watch(autoRefresh, setupPolling)
           gap: 6px;
           margin-top: 14px;
         }
+      }
+
+      .log-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px 8px;
+        border-bottom: 1px solid var(--border-light);
+        .log-count { font-size: 12px; color: var(--text-tertiary); }
       }
 
       .log-list {
@@ -1587,11 +1998,14 @@ watch(autoRefresh, setupPolling)
       flex: 0 0 auto;
       display: flex;
       flex-direction: column;
+      /* 与下方 track 内格子同起点（track padding-left 4px） */
+      padding: 0 4px;
     }
 
     .gantt-timeline {
       display: flex;
       &.month-row { border-bottom: 1px solid var(--border-light); }
+      &.day-row { position: relative; }
     }
 
     .gantt-month-cell {
@@ -1625,6 +2039,23 @@ watch(autoRefresh, setupPolling)
         border-radius: 6px;
         background: var(--bg-hover);
       }
+    }
+
+    .now-head-tag {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--danger);
+      padding: 1px 6px;
+      border-radius: 8px;
+      z-index: 3;
+      line-height: 15px;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
     }
   }
 
@@ -1742,12 +2173,57 @@ watch(autoRefresh, setupPolling)
 
         .gantt-gridline {
           position: absolute;
-          inset: 0;
+          /* 与 bar/表头同基准（track padding 4px） */
+          top: 0;
+          bottom: 0;
+          left: 4px;
+          right: 4px;
           display: flex;
           pointer-events: none;
           .grid-col {
             border-left: 1px dashed var(--border-light);
             &.weekend { background: var(--warning-light); opacity: 0.5; }
+          }
+          .now-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--danger);
+            opacity: 0.75;
+            z-index: 2;
+            box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 50%;
+              transform: translateX(-50%);
+              border: 4px solid transparent;
+              border-top-color: var(--danger);
+            }
+          }
+          .drag-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: var(--accent);
+            opacity: 0.9;
+            z-index: 3;
+            box-shadow: 0 0 6px rgba(99, 102, 241, 0.6);
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 7px;
+              height: 7px;
+              border-radius: 50%;
+              background: var(--accent);
+              box-shadow: 0 0 6px rgba(99, 102, 241, 0.8);
+            }
           }
         }
 
@@ -1787,6 +2263,15 @@ watch(autoRefresh, setupPolling)
               &.frozen { background: var(--warning); }
               &.released { background: #8b5cf6; }
               &.delayed { background: var(--danger); }
+            }
+            .lane-dur {
+              font-size: 10px;
+              font-family: 'Consolas', monospace;
+              color: var(--text-tertiary);
+              background: var(--bg-hover);
+              border: 1px solid var(--border-light);
+              padding: 0 5px;
+              border-radius: 7px;
             }
           }
 
@@ -1901,17 +2386,116 @@ watch(autoRefresh, setupPolling)
           }
         }
 
-        .drag-ghost {
-          position: absolute;
-          top: 0;
-          height: 26px;
-          border-radius: 6px;
-          background: var(--accent-light);
-          border: 2px dashed var(--accent);
-          z-index: 100;
-          pointer-events: none;
-          box-sizing: border-box;
+        .is-dragging {
+          opacity: 0.35 !important;
+          filter: saturate(0.5);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25) !important;
+          transform: scale(0.97);
+          transform-origin: center;
         }
+
+        .pool-hint {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 90;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--danger-light);
+          color: var(--danger);
+          font-size: 13px;
+          font-weight: 600;
+          padding: 8px 16px;
+          border-radius: var(--radius-md);
+          border: 1.5px dashed var(--danger);
+          pointer-events: none;
+          white-space: nowrap;
+        }
+      }
+    }
+
+    /* 拖拽落点幽灵：fixed 视口定位，任何滚动/裁剪下都可见 */
+    .drag-ghost {
+      position: fixed;
+      top: 0;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(139, 92, 246, 0.85));
+      border: 1.5px solid var(--accent);
+      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+      z-index: 5000;
+      pointer-events: none;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      animation: ghostPulse 1.4s ease-in-out infinite;
+
+      &.ghost-conflict {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.85), rgba(249, 115, 22, 0.85));
+        border-color: var(--danger);
+        box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+      }
+    }
+
+    /* 拖拽信息跟随卡片：固定宽度，落点条过窄时信息仍完整可见 */
+    .drag-tip-card {
+      position: fixed;
+      z-index: 5001;
+      min-width: 200px;
+      max-width: 260px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 8px 12px;
+      pointer-events: none;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+
+      .tip-card-title {
+        font-weight: 700;
+        font-size: 12.5px;
+        color: var(--text-primary);
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tip-card-time {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-family: 'Consolas', monospace;
+        font-size: 11.5px;
+        color: var(--text-primary);
+        white-space: nowrap;
+      }
+      .tip-card-status {
+        margin-top: 3px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tip-card-bound {
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--warning);
+        background: var(--warning-light);
+        padding: 2px 8px;
+        border-radius: 6px;
+      }
+
+      &.tip-conflict {
+        border-color: var(--danger);
+        .tip-card-time { color: var(--danger); }
       }
     }
 
@@ -1958,5 +2542,45 @@ watch(autoRefresh, setupPolling)
 @keyframes ctxIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ghostPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+
+.hint-pop-enter-active, .hint-pop-leave-active { transition: all 0.18s ease; }
+.hint-pop-enter-from, .hint-pop-leave-to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+</style>
+
+<!-- bar 悬停提示卡（全局样式，随主题） -->
+<style lang="scss">
+.bar-tip {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 8px 10px !important;
+
+  .bar-tip-body {
+    min-width: 220px;
+    .tip-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .tip-row {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+  }
+}
+.bar-tip .el-popper__arrow::before {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
 }
 </style>
