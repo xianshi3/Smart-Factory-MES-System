@@ -253,6 +253,99 @@
 
 ---
 
+### 9.2 排产班次表 mes_shift
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| shift_code | varchar(20) | 班次编码: DAY/NIGHT | NOT NULL, UNIQUE |
+| shift_name | varchar(50) | 班次名称 | NOT NULL |
+| start_time | time | 开始时间 | NOT NULL |
+| end_time | time | 结束时间 | NOT NULL |
+| is_work | tinyint | 是否排产可用: 1是 0否 | DEFAULT 1 |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+
+**种子数据**: DAY 白班 08:00-18:00 / NIGHT 夜班 20:00-06:00（跨天班次，排产自动处理跨零点）
+
+---
+
+### 9.3 排产工作日历表 mes_work_calendar
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| work_date | date | 日期 | NOT NULL, UNIQUE |
+| is_workday | tinyint | 是否工作日: 1是 0否 | DEFAULT 1 |
+| remark | varchar(200) | 备注(如节假日) | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+
+**说明**: 自动排程与冲突检测的工作日约束；V11 初始化当前起 60 个自然日（周末为非工作日）
+
+---
+
+### 9.4 排产明细表 wo_schedule（工序级）
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID（雪花） | PK |
+| work_order_id | bigint | 工单ID | NOT NULL, INDEX |
+| step_id | bigint | 工序ID(proc_step) | |
+| step_no | int | 工序序号 | NOT NULL, DEFAULT 1 |
+| step_name | varchar(100) | 工序名称 | |
+| workstation_id | bigint | 设备ID | NOT NULL, INDEX |
+| duration_min | int | 计划工时(分钟) | NOT NULL, DEFAULT 60 |
+| planned_start | datetime | 计划开始 | NOT NULL, INDEX |
+| planned_end | datetime | 计划结束 | NOT NULL, INDEX |
+| sort_order | int | 同设备内顺序 | DEFAULT 0 |
+| status | varchar(20) | 排产状态: PLANNED/FROZEN/RELEASED/HOLD | NOT NULL, DEFAULT 'PLANNED' |
+| bottleneck | tinyint | 是否瓶颈工序 | DEFAULT 0 |
+| operator_id | bigint | 排产人 | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+| update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
+| deleted | int | 逻辑删除 | DEFAULT 0 |
+
+**索引**: `idx_work_order` (work_order_id), `idx_workstation` (workstation_id), `idx_plan_time` (planned_start, planned_end)
+
+**状态枚举**: PLANNED 已排产 / FROZEN 已冻结 / RELEASED 已下发 / HOLD 挂起
+
+**说明**: 排产看板的核心表，一工单按工艺模板拆分为多行（每道工序一行）；冻结/下发工序禁止拖拽调整；`move` 支持单工序/整单移动与跨设备切换
+
+---
+
+### 9.5 排产变更日志表 wo_schedule_log
+
+| 字段 | 类型 | 说明 | 约束 |
+|-----|------|------|------|
+| id | bigint | 主键ID | PK, AUTO_INCREMENT |
+| work_order_id | bigint | 工单ID | INDEX |
+| schedule_id | bigint | 排产明细ID | |
+| action | varchar(30) | 操作: AUTO_PLAN/REPLAN/MOVE/SWAP/RESIZE/FREEZE/UNFREEZE/RELEASE/HOLD/UNDO/ASSIGN/UNASSIGN | NOT NULL |
+| action_desc | varchar(500) | 操作描述 | |
+| before_json | text | 操作前快照 | |
+| after_json | text | 操作后快照 | |
+| operator_id | bigint | 操作人 | |
+| create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
+
+**索引**: `idx_work_order` (work_order_id), `idx_create_time` (create_time)
+
+**说明**: 看板「变更日志」页签数据源，记录排产全操作审计；时间使用应用本地时间（避免 MySQL UTC 时区 8 小时偏差）
+
+---
+
+### 9.6 设备产能字段（mes_workstation 扩展）
+
+V11 在 `mes_workstation` 表新增：
+
+| 字段 | 类型 | 说明 |
+|-----|------|------|
+| capacity_per_hour | int | 每小时产能(件)，DEFAULT 100 |
+| is_bottleneck | tinyint | 是否瓶颈设备，DEFAULT 0 |
+
+**说明**: 自动排程负载均衡与瓶颈识别依据；瓶颈设备在看板设备标签列红字标注
+
+---
+
 ### 10. 质检记录表 qms_quality_record
 
 | 字段 | 类型 | 说明 | 约束 |
@@ -381,7 +474,10 @@ erDiagram
     proc_template ||--o{ wo_work_order : "process_template_id"
     proc_template ||--o{ proc_parameter : "template_id"
     proc_template ||--o{ proc_step : "template_id"
+    proc_template ||--o{ wo_schedule : "step_id via proc_step"
     wo_work_order ||--o{ wo_work_report : "work_order_id"
+    wo_work_order ||--o{ wo_schedule : "work_order_id"
+    wo_work_order ||--o{ wo_schedule_log : "work_order_id"
     wo_work_order ||--o{ qms_quality_record : "work_order_id"
     qms_quality_record ||--o{ qms_traceability : "sn"
     ai_chat_conversations ||--o{ ai_chat_messages : "conversation_id"
@@ -467,6 +563,13 @@ erDiagram
 | proc_template | uk_template_code | template_code |
 | proc_parameter | idx_template_id | template_id |
 | proc_step | idx_template_id | template_id |
+| mes_shift | uk_shift_code | shift_code |
+| mes_work_calendar | uk_work_date | work_date |
+| wo_schedule | idx_work_order | work_order_id |
+| wo_schedule | idx_workstation | workstation_id |
+| wo_schedule | idx_plan_time | planned_start, planned_end |
+| wo_schedule_log | idx_work_order | work_order_id |
+| wo_schedule_log | idx_create_time | create_time |
 | qms_quality_record | idx_work_order_id | work_order_id |
 | qms_quality_record | idx_sn | sn |
 | qms_quality_record | idx_check_type | check_type |
@@ -526,7 +629,11 @@ erDiagram
 | wo_work_report | ≥5 |
 | proc_template | ≥3 |
 | proc_parameter | ≥15 |
-| proc_step | ≥0 |
+| proc_step | 17 |
+| wo_schedule | ≥20 |
+| wo_schedule_log | ≥0 |
+| mes_shift | 2 |
+| mes_work_calendar | 60 |
 | qms_quality_record | 11 |
 | qms_traceability | ≥4 |
 | mes_workstation | ≥5 |
@@ -603,7 +710,10 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V7 | 2026-07-28 | AI对话历史（ai_chat_conversations + ai_chat_messages） |
 | V8 | 2026-08-02 | AI分析历史（ai_analysis_history） |
 | V9 | 2026-08-02 | Schema补齐: sys_user (nickname/avatar/employee_no/department/position/manager_id/hire_date/role_id), sys_permission(icon), sys_role_permission(sort), uk_username→(username,deleted), init.sql 完善 |
+| V10 | 2026-08-12 | 排产看板: wo_work_order 增加 sort_order（设备内排产顺序） |
+| V10.1 | 2026-08-12 | 排产演示数据: 加工类工单补充计划时间 |
+| V11 | 2026-08-13 | APS 排程: mes_shift 班次 / mes_work_calendar 工作日历 / wo_schedule 工序级排产明细 / wo_schedule_log 变更日志 / mes_workstation 产能+瓶颈列 / proc_step 工序种子 / 工单关联工艺模板 |
 
 ---
 
-*最后更新: 2026-08-02*
+*最后更新: 2026-08-13*

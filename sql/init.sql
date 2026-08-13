@@ -222,6 +222,7 @@ CREATE TABLE `wo_work_order` (
     `workstation_id` bigint DEFAULT NULL COMMENT '工位ID',
     `process_template_id` bigint DEFAULT NULL COMMENT '工艺模板ID',
     `priority` varchar(20) DEFAULT 'MEDIUM' COMMENT '优先级: LOW/MEDIUM/HIGH',
+    `sort_order` int NOT NULL DEFAULT '0' COMMENT '排产顺序(同设备内,0表示未排产)',
     `planned_start_time` datetime DEFAULT NULL COMMENT '计划开始时间',
     `planned_end_time` datetime DEFAULT NULL COMMENT '计划结束时间',
     `actual_start_time` datetime DEFAULT NULL COMMENT '实际开始时间',
@@ -470,6 +471,8 @@ CREATE TABLE `mes_workstation` (
     `workstation_name` varchar(100) NOT NULL COMMENT '工位名称',
     `production_line_id` bigint DEFAULT NULL COMMENT '生产线ID',
     `status` varchar(20) DEFAULT 'IDLE' COMMENT '状态: IDLE/RUNNING/MAINTENANCE',
+    `capacity_per_hour` int NOT NULL DEFAULT '100' COMMENT '每小时产能(件)',
+    `is_bottleneck` tinyint NOT NULL DEFAULT '0' COMMENT '是否瓶颈设备',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` int DEFAULT '0' COMMENT '逻辑删除',
@@ -772,6 +775,80 @@ CREATE TABLE `inventory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='当前库存表';
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =====================================================
+-- 8. Planning Module (排产看板 / APS 排程)
+--    对应迁移: V10 (sort_order), V11 (班次/日历/排产明细/日志)
+-- =====================================================
+
+DROP TABLE IF EXISTS `mes_shift`;
+CREATE TABLE `mes_shift` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `shift_code` varchar(20) NOT NULL COMMENT '班次编码: DAY/NIGHT',
+    `shift_name` varchar(50) NOT NULL COMMENT '班次名称',
+    `start_time` time NOT NULL COMMENT '开始时间',
+    `end_time` time NOT NULL COMMENT '结束时间',
+    `is_work` tinyint NOT NULL DEFAULT '1' COMMENT '是否排产可用: 1是 0否',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_shift_code` (`shift_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排产班次表';
+
+INSERT INTO `mes_shift` (`shift_code`, `shift_name`, `start_time`, `end_time`, `is_work`) VALUES
+('DAY', '白班', '08:00:00', '18:00:00', 1),
+('NIGHT', '夜班', '20:00:00', '06:00:00', 1);
+
+DROP TABLE IF EXISTS `mes_work_calendar`;
+CREATE TABLE `mes_work_calendar` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `work_date` date NOT NULL COMMENT '日期',
+    `is_workday` tinyint NOT NULL DEFAULT '1' COMMENT '是否工作日: 1是 0否',
+    `remark` varchar(200) DEFAULT NULL COMMENT '备注(如节假日)',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_work_date` (`work_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排产工作日历';
+
+DROP TABLE IF EXISTS `wo_schedule`;
+CREATE TABLE `wo_schedule` (
+    `id` bigint NOT NULL COMMENT '主键(雪花)',
+    `work_order_id` bigint NOT NULL COMMENT '工单ID',
+    `step_id` bigint DEFAULT NULL COMMENT '工序ID(proc_step)',
+    `step_no` int NOT NULL DEFAULT '1' COMMENT '工序序号',
+    `step_name` varchar(100) DEFAULT NULL COMMENT '工序名称',
+    `workstation_id` bigint NOT NULL COMMENT '设备ID',
+    `duration_min` int NOT NULL DEFAULT '60' COMMENT '计划工时(分钟)',
+    `planned_start` datetime NOT NULL COMMENT '计划开始',
+    `planned_end` datetime NOT NULL COMMENT '计划结束',
+    `sort_order` int NOT NULL DEFAULT '0' COMMENT '同设备内顺序',
+    `status` varchar(20) NOT NULL DEFAULT 'PLANNED' COMMENT '排产状态: PLANNED-已排产 FROZEN-已冻结 RELEASED-已下发 HOLD-挂起',
+    `bottleneck` tinyint NOT NULL DEFAULT '0' COMMENT '是否瓶颈工序',
+    `operator_id` bigint DEFAULT NULL COMMENT '排产人',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` int NOT NULL DEFAULT '0' COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_work_order` (`work_order_id`),
+    KEY `idx_workstation` (`workstation_id`),
+    KEY `idx_plan_time` (`planned_start`, `planned_end`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排产明细表(工序级)';
+
+DROP TABLE IF EXISTS `wo_schedule_log`;
+CREATE TABLE `wo_schedule_log` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `work_order_id` bigint DEFAULT NULL COMMENT '工单ID',
+    `schedule_id` bigint DEFAULT NULL COMMENT '排产明细ID',
+    `action` varchar(30) NOT NULL COMMENT '操作: AUTO_PLAN/REPLAN/MOVE/SWAP/RESIZE/FREEZE/UNFREEZE/RELEASE/HOLD/UNDO/ASSIGN/UNASSIGN',
+    `action_desc` varchar(500) DEFAULT NULL COMMENT '操作描述',
+    `before_json` text COMMENT '操作前快照',
+    `after_json` text COMMENT '操作后快照',
+    `operator_id` bigint DEFAULT NULL COMMENT '操作人',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_work_order` (`work_order_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排产变更日志';
 
 -- =====================================================
 -- End of Initialization Script
