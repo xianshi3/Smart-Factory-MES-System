@@ -91,3 +91,5 @@ mqtt-broker.js
 *.pdb
 *.runtimeconfig.json
 *.deps.json
+# Local dev artifacts
+var/

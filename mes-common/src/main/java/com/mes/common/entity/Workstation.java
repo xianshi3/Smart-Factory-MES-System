@@ -29,4 +29,10 @@ public class Workstation extends BaseEntity {
 
     /** 状态: IDLE-空闲, RUNNING-运行中, STOPPED-停用 */
     private String status;
+
+    /** 每小时产能(件) */
+    private Integer capacityPerHour;
+
+    /** 是否瓶颈设备 */
+    private Integer isBottleneck;
 }

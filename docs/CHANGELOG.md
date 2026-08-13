@@ -10,6 +10,52 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.46 (2026-08-13)
+
+### 生产调度看板（APS 排产）全量上线
+
+新增企业级工序级排产看板 `Production Scheduling Board`（/planning-board），实现「拖拽排产 + 自动排程 + 冲突检测 + 冻结下发 + 变更追溯」完整闭环。
+
+#### 数据库（sql/V10 + V11）
+
+- **V10 排产基础表**: `wo_schedule`（排产明细，工序级，含 planned_start/end、status PLANNED/FROZEN/RELEASED、sort_order、operator_id）、`wo_schedule_log`（变更日志，含 action/action_desc/operator_id/create_time）、`mes_shift`（班次表，DAY 08-18 / NIGHT 20-06）、`mes_work_calendar`（工作日历 60 天）
+- **V11 工艺工序与产能**: 新增 `proc_step` 工序表（17 条种子工序），`mes_workstation` 增加 `capacity_per_hour`（每小时产能）与 `is_bottleneck`（是否瓶颈）列，`work_orders` 增加 `sort_order`（排产顺序），工单关联工艺模板
+- V10.1 演示数据：为加工类工单补计划时间并展示排产各状态
+
+#### 后端（mes-workorder + mes-common）
+
+- **实体与 Mapper**: `ScheduleItem`/`ScheduleLog`/`Shift`/`WorkCalendarDay`/`ProcStep` 实体 + 5 个 Mapper
+- **APS 核心服务** `PlanningBoardServiceImpl`:
+  - 看板聚合：设备分组（含负载率/瓶颈标记）、未排产工单池、班次、工作日历、时间冲突、变更日志
+  - `auto-plan` 自动排程：按优先级+交期排序，工艺模板拆分工序，`pickLowestLoadWs` 负载均衡，工作日历+班次约束找空档，瓶颈工序标记
+  - `move` 拖拽调整：单工序/整单移动、跨设备切换、时间吸附（30min）、`checkConflict` 冲突检测（重叠区间计算）、`force` 强制保存
+  - `freeze/unfreeze/release` 冻结/解冻/下发：支持按工单/工序/设备范围；冻结与已下发工序禁止任何移动（含 force）
+  - `undo` 撤销栈（内存 50 条，线程安全），`unassign` 取消排产回池
+  - 日志审计：所有操作写入 `wo_schedule_log`，时间用应用本地时间（修复 MySQL UTC 8 小时时差）
+- **雪花 ID 精度修复**: 排产 VO 全部 Long ID 字段 `@JsonSerialize(ToStringSerializer)` 序列化为字符串，解决 19 位 ID 超 JS Number 安全整数导致拖拽"排产明细不存在"的根因问题
+- **异常处理**: `GlobalExceptionHandler` 新增 `IllegalStateException` 处理器，业务冲突/冻结拦截消息透传（400 而非 500 系统内部错误）
+- `WorkOrderApplication` 补扫 `com.mes.common.mapper`
+
+#### 前端（PlanningBoardView.vue 全新 + 主题化）
+
+- **甘特图看板**: 设备泳道行（按工单分组工序条）、双级时间刻度（月份 + 日/小时）、默认 28 天窗口、横向滚动 + 纵向滚动（表头/设备标签 sticky 固定）
+- **缩放控制**: 操作栏 −/+/重置 按钮，每日像素宽度 42px~300px 可调
+- **拖拽交互**: 工序条拖拽调时间/跨设备（鼠标锚点跟随 + 30min 吸附）、左右手柄拉伸工时、待排产卡片拖入设备、拖拽落点幽灵（绝对定位跟随目标行）、Esc 取消；位移 <5px 视为点击不触发拖拽
+- **选中与详情**: 点击工序条/泳道头选中（任意状态可选中，含冻结），右侧详情面板（10+ 字段、同工单工序列表、调整时间/整单移动/下发/取消排产操作）
+- **右键菜单**: 调整时间、冻结/解冻、下发、取消排产、设备级冻结
+- **自动排程**: 仅未排/全部重排（重排保护冻结与已下发工单不拆散），撤销按钮
+- **乐观更新**: 拖拽成功本地移动不整页刷新，失败回滚并提示后端具体原因（冲突/不存在等）
+- **主题兼容**: 全部改用全局 CSS 变量（暗色/亮色自适应），简约扁平风格（无发光），状态色/渐变/圆角与全局一致；工位标签三行分层布局（名称+状态点 / 编码+瓶颈+负载 / 细负载条）
+- **细节**: 30s 轮询（拖拽中不刷新）、刷新后保持选中、`user-select: none` + `dragstart` 拦截（消除拖拽复制光标）、API 拦截器保留 `response.data` 供业务层读取后端消息
+
+#### 其他
+
+- 移除未使用的 `vue-draggable-plus` 依赖
+- 工艺/质量视图清理重复的 `.status-tag` 样式定义与入场动画
+- `.gitignore` 忽略本地 `var/` 运行产物
+
+---
+
 ## v1.0.45 (2026-08-11)
 
 ### 四大业务模块企业级完整化（工单 / 工艺 / 质量 / 生产报表）

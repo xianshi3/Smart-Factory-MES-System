@@ -184,6 +184,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理业务状态非法（排产冲突/冻结拦截等），透传业务消息
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public Result<Void> handleIllegalState(IllegalStateException e, HttpServletRequest request) {
+        log.warn("业务状态异常: {} - {}", request.getRequestURI(), e.getMessage());
+        return Result.fail(400, e.getMessage() == null ? "操作不合法" : e.getMessage());
+    }
+
+    /**
      * 处理系统异常
      */
     @ExceptionHandler(Exception.class)

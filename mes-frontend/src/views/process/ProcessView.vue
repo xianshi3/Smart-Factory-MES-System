@@ -29,7 +29,7 @@
     <div v-if="loading" class="card-grid">
       <el-skeleton v-for="i in 6" :key="i" animated>
         <template #template>
-          <el-skeleton-item variant="rect" style="height: 190px; border-radius: var(--radius-lg)" />
+          <el-skeleton-item variant="rect" style="height: 200px; border-radius: var(--radius-lg)" />
         </template>
       </el-skeleton>
     </div>
@@ -514,10 +514,6 @@ onMounted(() => { loadData() })
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 .status-dot--success { background: var(--success); box-shadow: 0 0 6px var(--success); }
 .status-dot--info { background: var(--info); }
-
-.status-tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.status-tag--success { color: var(--success); background: rgba(52, 199, 123, 0.12); }
-.status-tag--info { color: var(--info); background: rgba(90, 100, 255, 0.12); }
 
 .template-version {
   font-size: 11px;

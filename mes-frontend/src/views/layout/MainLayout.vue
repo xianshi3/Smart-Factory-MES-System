@@ -160,6 +160,7 @@ const menuGroups = computed<MG[]>(() => [
   ]},
   { title: '生产管理', icon: 'Document', items: [
     { path: '/workorder', title: '工单管理', icon: 'Document' },
+    { path: '/planning-board', title: '生产调度看板', icon: 'Calendar' },
     { path: '/process', title: '工艺管理', icon: 'Setting' },
     { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
     { path: '/report', title: '生产报表', icon: 'DataAnalysis' },

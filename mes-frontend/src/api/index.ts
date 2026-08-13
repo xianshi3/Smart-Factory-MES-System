@@ -32,7 +32,10 @@ request.interceptors.response.use(
         removeToken()
         window.location.href = '/login'
       }
-      return Promise.reject(new Error(res.message || `请求失败 (code: ${code})`))
+      // 构造带响应结构的错误，便于业务层读取后端消息
+      const err = new Error(res.message || `请求失败 (code: ${code})`) as Error & { response?: unknown }
+      err.response = { data: res }
+      return Promise.reject(err)
     }
     return res
   },
@@ -46,7 +49,10 @@ request.interceptors.response.use(
       }
       const message = response.data?.message || response.data?.msg || JSON.stringify(response.data)
       console.error('API Error:', message)
-      return Promise.reject(new Error(message))
+      // 保留响应结构
+      const err = new Error(message) as Error & { response?: unknown }
+      err.response = { data: response.data }
+      return Promise.reject(err)
     }
     console.error('API Error:', error.message)
     return Promise.reject(error)

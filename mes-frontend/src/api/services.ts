@@ -225,3 +225,48 @@ export function updateBomItem(bomId: number, data: any) {
 export function deleteBomItem(bomId: number, id: number) {
   return request({ url: `/api/dashboard/bom/${bomId}/item/${id}`, method: 'delete' })
 }
+
+// ==================== 排产看板 (Planning Board) ====================
+export function getPlanningBoard(windowStart?: string, windowEnd?: string) {
+  return request({ url: '/workorder/planning/board', method: 'get', params: { windowStart, windowEnd } })
+}
+
+export function savePlanningOrder(data: { groups: { equipmentId: number; workOrderIds: number[] }[] }) {
+  return request({ url: '/workorder/planning/save-order', method: 'post', data })
+}
+
+export function movePlanningTask(data: {
+  scheduleId?: string
+  workOrderId: string | number
+  targetWorkstationId: string | number
+  newStart?: string
+  newEnd?: string
+  durationMin?: number
+  force?: boolean
+}) {
+  return request({ url: '/workorder/planning/move', method: 'post', data })
+}
+
+export function unassignPlanningOrder(workOrderId: string | number) {
+  return request({ url: '/workorder/planning/unassign', method: 'post', params: { workOrderId } })
+}
+
+export function autoPlanOrders(data: { windowStart?: string; windowEnd?: string; onlyPending?: boolean }) {
+  return request({ url: '/workorder/planning/auto-plan', method: 'post', data })
+}
+
+export function undoPlanning() {
+  return request({ url: '/workorder/planning/undo', method: 'post' })
+}
+
+export function freezePlanning(data: { workstationId?: string | number; workOrderId?: string | number; scheduleIds?: (string | number)[]; scope?: string }) {
+  return request({ url: '/workorder/planning/freeze', method: 'post', data })
+}
+
+export function unfreezePlanning(data: { workstationId?: string | number; workOrderId?: string | number; scheduleIds?: (string | number)[]; scope?: string }) {
+  return request({ url: '/workorder/planning/unfreeze', method: 'post', data })
+}
+
+export function releasePlanning(workOrderId: string | number) {
+  return request({ url: '/workorder/planning/release', method: 'post', params: { workOrderId } })
+}

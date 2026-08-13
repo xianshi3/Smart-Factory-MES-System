@@ -10,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
  * 提供工单管理、报工处理等功能
  */
 @SpringBootApplication
-@MapperScan("com.mes.workorder.mapper")
+@MapperScan({"com.mes.workorder.mapper", "com.mes.common.mapper"})
 @ComponentScan(basePackages = {"com.mes.workorder", "com.mes.common"})
 public class WorkOrderApplication {
     public static void main(String[] args) {

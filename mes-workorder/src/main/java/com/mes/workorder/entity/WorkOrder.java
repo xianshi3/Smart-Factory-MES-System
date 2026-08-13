@@ -50,6 +50,10 @@ public class WorkOrder extends BaseEntity {
     /** 优先级：LOW/MEDIUM/HIGH */
     private String priority;
 
+    /** 排产顺序（同设备内，0表示未排产） */
+    @TableField("sort_order")
+    private Integer sortOrder;
+
     /** 计划开始时间 */
     @TableField("planned_start_time")
     private LocalDateTime plannedStartTime;

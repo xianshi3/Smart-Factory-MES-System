@@ -300,8 +300,6 @@ onMounted(() => { loadData() })
   padding: 18px;
   cursor: pointer;
   transition: all var(--transition-normal);
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
 }
 
 .quality-card:hover {
@@ -369,19 +367,9 @@ onMounted(() => { loadData() })
 .step-name { font-weight: 500; color: var(--text-primary); }
 .step-operator { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .step-param { font-size: 12px; color: var(--accent); font-family: monospace; margin-top: 2px; word-break: break-all; }
-.status-tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.status-tag--success { color: var(--success); background: rgba(52, 199, 123, 0.12); }
-.status-tag--danger { color: var(--danger); background: rgba(255, 86, 48, 0.12); }
-.status-tag--warning { color: var(--warning); background: rgba(255, 183, 64, 0.12); }
-.status-tag--info { color: var(--info); background: rgba(90, 100, 255, 0.12); }
 
 html.light .page-title h1 { color: var(--text-primary); }
 html.light .filter-bar { background: var(--bg-card); box-shadow: var(--shadow-sm); }
 html.light .quality-card:hover { box-shadow: var(--shadow-md); }
 html.light .sn-text { color: var(--accent); }
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 </style>
