@@ -816,12 +816,7 @@ const orderLanes = (eq: EqGroup) => {
   return arr.map(x => ({ ...x.lane, steps: x.steps }))
 }
 
-const laneColor = (id: number) => {
-  let h = 0
-  const s = String(id ?? 0)
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360
-  return `hsl(${h}, 60%, 48%)`
-}
+const laneColor = (id: number) => swatchOf(id)
 
 /** 泳道总工时（小时，保留 1 位小数） */
 const laneDur = (lane: any) => {
@@ -840,21 +835,32 @@ const sortedUnassigned = computed(() =>
   })
 )
 
+/** 工单/泳道和谐色板（低饱和，去纯黄，多工单清晰可分） */
+const BAR_SWATCHES = [
+  'hsl(220, 62%, 48%)',   // 蓝
+  'hsl(250, 58%, 52%)',   // 靛紫
+  'hsl(280, 52%, 50%)',   // 紫
+  'hsl(190, 62%, 42%)',   // 青
+  'hsl(155, 56%, 38%)',   // 绿
+  'hsl(345, 62%, 48%)',   // 玫红
+  'hsl(26, 68%, 46%)',    // 橙
+  'hsl(204, 60%, 54%)'    // 天蓝
+]
+
+/** 按 ID 稳定取色板色（工单号与泳道共用，保证条与泳道圆点同色） */
+const swatchOf = (id: number | string | null | undefined) => {
+  let h = 0
+  const s = String(id ?? 0)
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff
+  return BAR_SWATCHES[h % BAR_SWATCHES.length]
+}
+
 const barColor = (t: Task) => {
-  // 基于工单ID生成稳定色相，饱和度/亮度适配主题（CSS变量不可用于hsl的calc内，用固定但主题友好的值）
-  const hue = (() => {
-    let h = 0
-    const s = String(t.id ?? 0)
-    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360
-    return h
-  })()
-  const base = `hsl(${hue}, 65%, 52%)`
+  // 状态语义色优先，工单区分用固定色板
   switch (t.planStatus) {
-    case 'COMPLETED': return `hsl(${hue}, 35%, 60%)`
-    case 'DELAYED': return `hsl(${hue}, 70%, 42%)`
-    case 'RUNNING': return `hsl(${hue}, 72%, 48%)`
-    case 'READY': return base
-    default: return `hsl(${hue}, 45%, 55%)`
+    case 'COMPLETED': return 'hsl(220, 12%, 62%)'
+    case 'DELAYED': return 'hsl(350, 72%, 46%)'
+    default: return swatchOf(t.id)
   }
 }
 
@@ -2490,9 +2496,21 @@ watch(autoRefresh, setupPolling)
             .pc-name { color: var(--text-primary); }
             .pc-qty { color: var(--text-tertiary); }
 
-            &.pri-high { border-left: 3px solid var(--danger); }
-            &.pri-medium { border-left: 3px solid var(--warning); }
-            &.pri-low { border-left: 3px solid var(--text-tertiary); }
+            &.pri-high {
+              background: rgba(245, 108, 108, 0.08);
+              border-color: rgba(245, 108, 108, 0.32);
+              .pc-no { color: var(--danger); }
+            }
+            &.pri-medium {
+              background: rgba(64, 158, 255, 0.08);
+              border-color: rgba(64, 158, 255, 0.32);
+              .pc-no { color: var(--accent); }
+            }
+            &.pri-low {
+              background: rgba(144, 147, 153, 0.06);
+              border-color: rgba(144, 147, 153, 0.3);
+              .pc-no { color: var(--text-tertiary); }
+            }
 
             &:active { cursor: grabbing; }
           }
