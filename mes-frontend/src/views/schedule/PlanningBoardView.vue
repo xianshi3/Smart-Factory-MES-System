@@ -259,31 +259,64 @@
                   <span class="detail-status-tag">{{ statusLabel(selectedTask.planStatus) }}</span>
                   <span v-if="selectedTask.scheduleStatus === 'FROZEN'" class="detail-status-tag">已冻结</span>
                   <span v-else-if="selectedTask.scheduleStatus === 'RELEASED'" class="detail-status-tag">已下发</span>
+                  <span class="detail-dev">
+                    <el-icon :size="12"><Cpu /></el-icon>{{ equipmentOf(selectedTask)?.workstationName || '未分配' }}
+                  </span>
                 </div>
                 <div class="detail-order">{{ selectedTask.orderNo }}</div>
                 <div class="detail-product">{{ selectedTask.productName }}</div>
+                <div class="detail-schedule">
+                  <span class="ds-time">{{ fmtTime(selectedTask.plannedStartTime) }} ~ {{ fmtTime(selectedTask.plannedEndTime) }}</span>
+                  <span class="ds-dur">{{ selectedTask.durationMin }} min</span>
+                </div>
               </div>
               <div class="detail-body">
-                <el-descriptions :column="1" size="small" label-width="84px" border>
-                  <el-descriptions-item label="工序">{{ selectedTask.stepName || '整单' }}</el-descriptions-item>
-                  <el-descriptions-item label="产品型号">{{ selectedTask.productModel || '-' }}</el-descriptions-item>
-                  <el-descriptions-item label="优先级">
-                    <el-tag size="small" :type="priType(selectedTask.priority)" effect="light">{{ priLabel(selectedTask.priority) }}</el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="计划数量">{{ selectedTask.planQuantity }}</el-descriptions-item>
-                  <el-descriptions-item label="已完成">{{ selectedTask.completedQuantity }}</el-descriptions-item>
-                  <el-descriptions-item label="生产进度">
-                    <el-progress :percentage="selectedTask.progress || 0" :stroke-width="8" />
-                  </el-descriptions-item>
-                  <el-descriptions-item label="设备">
-                    {{ equipmentOf(selectedTask)?.workstationName || '未分配' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="工时">{{ selectedTask.durationMin }} 分钟</el-descriptions-item>
-                  <el-descriptions-item label="计划开始">{{ fmtTime(selectedTask.plannedStartTime) }}</el-descriptions-item>
-                  <el-descriptions-item label="计划结束">{{ fmtTime(selectedTask.plannedEndTime) }}</el-descriptions-item>
-                  <el-descriptions-item label="实际开始">{{ fmtTime(selectedTask.actualStartTime) }}</el-descriptions-item>
-                  <el-descriptions-item label="备注">{{ selectedTask.remark || '-' }}</el-descriptions-item>
-                </el-descriptions>
+                <div class="info-group">
+                  <div class="group-title">基础信息</div>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="info-label">工序</span>
+                      <span class="info-value">{{ selectedTask.stepName || '整单' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">产品型号</span>
+                      <span class="info-value">{{ selectedTask.productModel || '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">优先级</span>
+                      <span class="info-value">
+                        <el-tag size="small" :type="priType(selectedTask.priority)" effect="light">{{ priLabel(selectedTask.priority) }}</el-tag>
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">计划数量</span>
+                      <span class="info-value mono">{{ selectedTask.planQuantity }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">已完成</span>
+                      <span class="info-value mono">{{ selectedTask.completedQuantity }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">设备</span>
+                      <span class="info-value">{{ equipmentOf(selectedTask)?.workstationCode || '未分配' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-group">
+                  <div class="group-title">生产进度</div>
+                  <div class="progress-block">
+                    <div class="progress-head">
+                      <span class="progress-num">{{ selectedTask.progress || 0 }}%</span>
+                      <span class="progress-caption">{{ (selectedTask.progress || 0) >= 100 ? '已全部完成' : (selectedTask.progress || 0) > 0 ? '生产中' : '未开始' }}</span>
+                    </div>
+                    <el-progress :percentage="selectedTask.progress || 0" :stroke-width="10" :color="progressColor(selectedTask.progress || 0)" :show-text="false" />
+                    <div class="progress-meta">
+                      <span>实际开始：{{ fmtTime(selectedTask.actualStartTime) }}</span>
+                      <span>备注：{{ selectedTask.remark || '-' }}</span>
+                    </div>
+                  </div>
+                </div>
 
                 <div class="step-list-title">该工单工序（{{ orderSteps(selectedTask.id).length }}）</div>
                 <el-timeline class="step-timeline">
@@ -292,9 +325,13 @@
                     :key="st.scheduleId"
                     :timestamp="fmtShort(st.plannedStartTime) + ' ~ ' + fmtShort(st.plannedEndTime)"
                     placement="top"
-                    :color="st.scheduleStatus === 'FROZEN' ? '#f59e0b' : st.scheduleStatus === 'RELEASED' ? '#8b5cf6' : '#6366f1'"
+                    :color="stepNodeColor(st)"
                   >
-                    <div class="step-item" @click="selectTask(st, equipmentOf(st))">
+                    <div
+                      class="step-item"
+                      :class="{ active: selectedTask?.scheduleId === st.scheduleId }"
+                      @click="selectTask(st, equipmentOf(st))"
+                    >
                       <span class="step-name">{{ st.stepNo ? '工序' + st.stepNo + ' ' + st.stepName : '整单' }}</span>
                       <span class="step-status" :class="'st-' + st.planStatus.toLowerCase()">{{ statusLabel(st.planStatus) }}</span>
                       <span class="step-dev">{{ equipmentOf(st)?.workstationName || '未分配' }}</span>
@@ -1505,6 +1542,19 @@ const loadClass = (rate: number) => (rate >= 85 ? 'load-danger' : rate >= 60 ? '
 const priType = (p?: string) => (p === 'HIGH' ? 'danger' : p === 'LOW' ? 'info' : 'warning')
 const priLabel = (p?: string) => ({ HIGH: '高', MEDIUM: '中', LOW: '低' }[p || 'MEDIUM'] || p || '-')
 
+/** 详情进度条颜色按完成度分档 */
+const progressColor = (p: number) => (p >= 100 ? '#2f9e69' : p >= 60 ? '#409eff' : p >= 30 ? '#e6a23c' : '#f56c6c')
+
+/** 时间线节点颜色：优先执行状态，其次调度状态 */
+const stepNodeColor = (st: Task) => {
+  if (st.planStatus === 'DELAYED') return '#ef4444'
+  if (st.planStatus === 'COMPLETED') return '#94a3b8'
+  if (st.planStatus === 'RUNNING') return '#10b981'
+  if (st.scheduleStatus === 'FROZEN') return '#f59e0b'
+  if (st.scheduleStatus === 'RELEASED') return '#8b5cf6'
+  return '#6366f1'
+}
+
 const fmtTime = (v?: string) => (v ? v.replace('T', ' ').slice(0, 19) : '-')
 const fmtShort = (v?: string) => (v ? v.replace('T', ' ').slice(5, 16) : '-')
 const fmtWorkHours = (min: number) => {
@@ -1856,11 +1906,115 @@ watch(autoRefresh, setupPolling)
               
             }
           }
-          .detail-order { font-size: 16px; font-weight: 700; margin-top: 8px; letter-spacing: 0.5px; }
-          .detail-product { font-size: 12px; opacity: 0.92; }
+          .detail-order { font-size: 17px; font-weight: 700; margin-top: 8px; letter-spacing: 0.5px; }
+          .detail-product { font-size: 12px; opacity: 0.92; margin-top: 2px; }
+          .detail-schedule {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 11.5px;
+            .ds-time { font-family: 'Consolas', monospace; letter-spacing: 0.3px; }
+            .ds-dur {
+              margin-left: auto;
+              font-family: 'Consolas', monospace;
+              font-weight: 600;
+              padding: 1px 8px;
+              border-radius: 8px;
+              background: rgba(255, 255, 255, 0.22);
+            }
+          }
+          .detail-dev {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.22);
+          }
         }
 
-        .detail-body { padding: 14px 2px; }
+        .detail-body { padding: 12px 2px; }
+
+        .info-group {
+          margin-bottom: 10px;
+          padding: 10px 12px;
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          background: var(--bg-hover);
+          .group-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            &::before {
+              content: '';
+              width: 3px;
+              height: 11px;
+              border-radius: 2px;
+              background: var(--gradient-primary);
+            }
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+            .info-item {
+              display: flex;
+              align-items: baseline;
+              gap: 6px;
+              min-width: 0;
+              .info-label {
+                flex: none;
+                font-size: 11px;
+                color: var(--text-tertiary);
+              }
+              .info-value {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-primary);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                &.mono { font-family: 'Consolas', monospace; }
+              }
+            }
+          }
+          .progress-block {
+            .progress-head {
+              display: flex;
+              align-items: baseline;
+              gap: 8px;
+              margin-bottom: 6px;
+              .progress-num {
+                font-size: 18px;
+                font-weight: 700;
+                font-family: 'Consolas', monospace;
+                color: var(--text-primary);
+              }
+              .progress-caption { font-size: 11px; color: var(--text-tertiary); }
+            }
+            .progress-meta {
+              margin-top: 8px;
+              display: flex;
+              flex-direction: column;
+              gap: 3px;
+              font-size: 11px;
+              color: var(--text-tertiary);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+        }
 
         .step-list-title {
           font-size: 12px;
@@ -1890,6 +2044,11 @@ watch(autoRefresh, setupPolling)
           background: var(--bg-hover);
           transition: all var(--transition-fast);
           &:hover { border-color: var(--accent); background: var(--accent-light); }
+          &.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: inset 3px 0 0 var(--accent);
+          }
           .step-name { font-weight: 600; white-space: nowrap; color: var(--text-primary); }
           .step-status {
             font-size: 10px;
@@ -1912,10 +2071,11 @@ watch(autoRefresh, setupPolling)
         }
 
         .detail-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
           margin-top: 14px;
+          :deep(.el-button) { margin: 0; width: 100%; }
         }
       }
 
@@ -2166,9 +2326,11 @@ watch(autoRefresh, setupPolling)
         padding: 6px 4px;
 
         &.drop-target {
-          outline: 2px dashed var(--accent);
-          outline-offset: -2px;
-          background: var(--accent-light);
+          outline: 1.5px dashed rgba(99, 102, 241, 0.85);
+          outline-offset: -1px;
+          border-radius: var(--radius-sm);
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.10), rgba(139, 92, 246, 0.06));
+          box-shadow: inset 0 0 14px rgba(99, 102, 241, 0.12);
         }
 
         .gantt-gridline {
@@ -2235,6 +2397,9 @@ watch(autoRefresh, setupPolling)
           &.lane-selected {
             background: var(--accent-light);
             border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
+            .order-lane-head { font-weight: 600; }
           }
 
           .order-lane-head {
