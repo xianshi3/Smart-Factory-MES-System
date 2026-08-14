@@ -169,7 +169,7 @@ Step 4: 汇总结果回复用户
 
 **Q: Docker 只跑基础设施，Java 服务跑在宿主机，为什么这么设计？**
 
-> 调试方便。Java 服务在 IDE 里直接启动可以热部署、断点调试。Docker 只用于 MySQL、Redis、Kafka、Nacos 这些基础设施，统一版本、一键拉起。
+> 调试方便。Java 服务在 IDE 里直接启动可以热部署、断点调试。Docker 只用于 MySQL、Redis、Kafka、EMQX 这些基础设施，统一版本、一键拉起。
 
 ---
 

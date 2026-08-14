@@ -39,9 +39,14 @@
 创建 `.env.local` 文件配置敏感信息：
 
 ```bash
-# 智谱AI API Key
+# 智谱AI API Key（必填，否则大模型功能不可用）
 ZHIPU_API_KEY=your-api-key-here
+
+# JWT 密钥（必填，与 Java 后端一致，>= 32 字符；所有业务接口鉴权使用）
+JWT_SECRET=your-jwt-secret-at-least-32-chars-long-change-me
 ```
+
+> **鉴权说明**：除 `/api/v1/health` 外，所有接口必须携带 `Authorization: Bearer <JWT>`（与 Java 后端共享 `JWT_SECRET`，HS256 校验，实现见 `src/security.py`，无第三方依赖）。Agent 工具调用后端 API 时自动透传用户 token。
 
 ### Docker部署
 ```bash
@@ -56,10 +61,10 @@ pip install -r requirements.txt
 
 # 方式一：使用虚拟环境
 .venv\Scripts\activate.bat
-python src/main.py
+python -m src.main
 
 # 方式二：直接运行
-python src/main.py
+python -m src.main
 ```
 
 ## API接口
@@ -116,14 +121,17 @@ python src/main.py
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v1/health` | 健康检查 |
+| GET | `/api/v1/health` | 健康检查（无需鉴权） |
 
 ## 请求示例
+
+> 除健康检查外，所有请求需携带 `Authorization: Bearer <token>`（登录接口获取，如 `POST /api/auth/login`）。
 
 ### 质量预测
 ```bash
 curl -X POST http://localhost:8087/api/v1/predict/quality \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "work_order_id": 12345,
     "product_name": "Product A",
@@ -193,6 +201,13 @@ llm:
   model: "glm-4-flash"
   rate_limit: 60          # LLM调用限流（次/分钟），超限返回"服务繁忙"
 
+database:
+  host: "localhost"       # 可用 MYSQL_HOST / MYSQL_PORT / MYSQL_USERNAME / MYSQL_PASSWORD 覆盖
+  port: 3306
+  username: "root"
+  password: "123455"
+  database: "mes_db"
+
 redis:
   host: "localhost"
   port: 6379
@@ -214,6 +229,7 @@ mes-ai-service/
 ├── src/
 │   ├── main.py              # 启动入口
 │   ├── app.py              # FastAPI应用
+│   ├── security.py         # JWT 鉴权（HS256，标准库实现，与后端共用 JWT_SECRET）
 │   ├── models/             # 模型定义
 │   │   ├── prediction_model.py   # 质量预测模型
 │   │   ├── regression_model.py  # 产量预测模型
@@ -270,4 +286,4 @@ pytest tests/test_prediction.py -v
 
 ---
 
-*最后更新: 2026-08-10*
+*最后更新: 2026-08-14*

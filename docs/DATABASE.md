@@ -39,7 +39,7 @@
 
 **索引**: `uk_username` (username, deleted), `uk_employee_no` (employee_no), `idx_role_id` (role_id)
 
-> **密码存储规范**: `password` 字段统一存储 BCrypt hash（`$2a$10$` 前缀，Spring Security `BCryptPasswordEncoder` 格式），禁止明文落库。种子数据（admin 等 5 用户，密码均为 `admin123`）的 hash 为真实可校验值。`AuthService` 保留明文比较兜底分支仅用于兼容历史明文存量库，新写入（注册/改密）一律 BCrypt 加密。
+> **密码存储规范**: `password` 字段统一存储 BCrypt hash（`$2a$10$` 前缀，Spring Security `BCryptPasswordEncoder` 格式），禁止明文落库。种子数据（admin 等 5 用户，密码均为 `admin123`）的 hash 为真实可校验值。登录/注册/改密一律 BCrypt 加密（登录已移除明文兜底分支）。
 
 ---
 
@@ -179,6 +179,7 @@
 **索引**:
 - `idx_work_order_id` (work_order_id)
 - `idx_report_time` (report_time)
+- `uk_work_report` (work_order_id, report_time, deleted) — V5.5 复合唯一索引
 
 ---
 
@@ -188,18 +189,13 @@
 |-----|------|------|------|
 | id | bigint | 主键ID | PK, AUTO_INCREMENT |
 | template_name | varchar(100) | 模板名称 | NOT NULL |
-| template_code | varchar(50) | 模板编码 | NOT NULL, UNIQUE |
+| template_code | varchar(50) | 模板编码 | NOT NULL, UNIQUE (template_code, deleted) |
 | product_model | varchar(100) | 适用产品型号 | |
 | status | varchar(20) | 状态 | DEFAULT 'DRAFT' |
-| version | int | 版本号 | DEFAULT 1 |
-| remark | varchar(500) | 备注 | |
-| create_by | bigint | 创建人ID | |
-| publish_by | bigint | 发布人ID | |
+| description | varchar(500) | 描述 | |
 | create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
 | update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
 | deleted | int | 逻辑删除 | DEFAULT 0 |
-| deleted_time | datetime | 删除时间 | |
-| deleted_by | bigint | 删除人ID | |
 | version | int | 乐观锁 | DEFAULT 0 |
 
 **状态枚举**: DRAFT / PUBLISHED
@@ -212,22 +208,21 @@
 |-----|------|------|------|
 | id | bigint | 主键ID | PK, AUTO_INCREMENT |
 | template_id | bigint | 模板ID | NOT NULL |
-| param_name | varchar(50) | 参数名称 | NOT NULL |
+| param_name | varchar(100) | 参数名称 | NOT NULL |
 | param_code | varchar(50) | 参数编码 | NOT NULL |
-| param_type | varchar(20) | 参数类型 | NOT NULL |
-| param_value | varchar(100) | 参数值 | NOT NULL |
+| param_value | varchar(100) | 参数值（默认值） | |
 | unit | varchar(20) | 单位 | |
 | min_value | double | 最小值 | |
 | max_value | double | 最大值 | |
+| sort_order | int | 排序 | DEFAULT 0 |
 | create_time | datetime | 创建时间 | DEFAULT CURRENT_TIMESTAMP |
 | update_time | datetime | 更新时间 | ON UPDATE CURRENT_TIMESTAMP |
 | deleted | int | 逻辑删除 | DEFAULT 0 |
-| deleted_time | datetime | 删除时间 | |
-| deleted_by | bigint | 删除人ID | |
 | version | int | 乐观锁 | DEFAULT 0 |
 
 **索引**:
 - `idx_template_id` (template_id)
+- `uk_template_parameter` (template_id, param_name, deleted) — V5.5 复合唯一索引
 
 ---
 
@@ -647,7 +642,7 @@ erDiagram
 - **Host**: localhost:3306 (Docker: mes-mysql:3306)
 - **Database**: mes_db
 - **User**: root
-- **Password**: root
+- **Password**: 123455（可通过环境变量 `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` 覆盖）
 
 ### 常用查询
 
@@ -672,10 +667,10 @@ SELECT id, template_name, template_code, status FROM proc_template;
 ### 工单 (wo_work_order)
 | 工单编号 | 产品名称 | 产品型号 | 状态 |
 |---------|---------|---------|------|
-| WO20260410001 | 智能手机外壳 | iPhone 16 Pro | IN_PRODUCTION |
-| WO20260410002 | 智能手表表壳 | Apple Watch S10 | CREATED |
-| WO20260410003 | 平板电脑外壳 | iPad Pro 13 | COMPLETED |
-| WO20260410004 | 蓝牙耳机外壳 | AirPods Pro 3 | PENDING_QC |
+| WO-20260405001 | 智能手机外壳 | iPhone 16 Pro | IN_PRODUCTION |
+| WO-20260405002 | 智能手表表壳 | Apple Watch S10 | ISSUED |
+| WO-20260405003 | 平板电脑外壳 | iPad Pro 13 | COMPLETED |
+| WO-20260405004 | 蓝牙耳机外壳 | AirPods Pro 3 | IN_PRODUCTION |
 
 ### 工艺模板 (proc_template)
 | 模板名称 | 模板编码 | 产品型号 | 状态 |
@@ -697,22 +692,26 @@ SELECT id, template_name, template_code, status FROM proc_template;
 
 ## 版本历史
 
+> **执行方式**：全新库先执行 `sql/init.sql`（全量最新 schema + 种子数据），旧库升级按 V2~V13 顺序执行。
+> **幂等性**：V2/V4/V5.5/V9/V10/V11 已改为存储过程条件判断（列/索引存在即跳过），V6/V7/V8 使用 `CREATE TABLE IF NOT EXISTS` / 去重插入，**全部脚本可安全重复执行**（v1.0.48 起）。
+> **注意**：V9 已移除"统一重置所有用户密码为 admin123"的破坏性语句。
+
 | 版本 | 日期 | 说明 |
 |-----|------|------|
 | V1 | 初始创建 | 基础表结构 |
-| V2 | 2026-04-06 | 添加 deleted_time, deleted_by 字段 |
+| V2 | 2026-04-06 | 添加 deleted_time, deleted_by 字段（幂等） |
 | V3 | 2026-04-10 | 完善质量管理表结构和示例数据 |
 | V3.1 | 2026-04-10 | 修复中文乱码，添加测试数据 |
-| V4 | 2026-04-13 | 权限增强（sys_role, sys_permission, sys_menu, sys_role_permission） |
+| V4 | 2026-04-13 | 权限增强（sys_role, sys_permission, sys_menu, sys_role_permission）（幂等） |
 | V5 | 2026-05-02 | 告警事件表（alarm_event） |
-| V5.5 | 2026-07-27 | 修复唯一约束复合索引 |
-| V6 | 2026-07-28 | BOM/物料/库存表、测试数据 |
-| V7 | 2026-07-28 | AI对话历史（ai_chat_conversations + ai_chat_messages） |
-| V8 | 2026-08-02 | AI分析历史（ai_analysis_history） |
-| V9 | 2026-08-02 | Schema补齐: sys_user (nickname/avatar/employee_no/department/position/manager_id/hire_date/role_id), sys_permission(icon), sys_role_permission(sort), uk_username→(username,deleted), init.sql 完善 |
-| V10 | 2026-08-12 | 排产看板: wo_work_order 增加 sort_order（设备内排产顺序） |
+| V5.5 | 2026-07-27 | 修复唯一约束复合索引（uk_username 等升级为 (字段, deleted)；修正 proc_parameter.param_name / wo_work_report.report_time 列名，幂等） |
+| V6 | 2026-07-28 | BOM/物料/库存表、测试数据（库存种子固定 batch_no='INIT-BATCH' 保证唯一键去重；交易流水 NOT EXISTS 防重复） |
+| V7 | 2026-07-28 | AI对话历史（ai_chat_conversations + ai_chat_messages，CREATE IF NOT EXISTS 不再 DROP） |
+| V8 | 2026-08-02 | AI分析历史（ai_analysis_history，同上） |
+| V9 | 2026-08-02 | Schema补齐: sys_user (nickname/avatar/employee_no/department/position/manager_id/hire_date/role_id), sys_permission(icon), sys_role_permission(sort), uk_username→(username,deleted), init.sql 完善（幂等；已移除"统一重置密码为 admin123"） |
+| V10 | 2026-08-12 | 排产看板: wo_work_order 增加 sort_order（设备内排产顺序）（幂等） |
 | V10.1 | 2026-08-12 | 排产演示数据: 加工类工单补充计划时间 |
-| V11 | 2026-08-13 | APS 排程: mes_shift 班次 / mes_work_calendar 工作日历 / wo_schedule 工序级排产明细 / wo_schedule_log 变更日志 / mes_workstation 产能+瓶颈列 / proc_step 工序种子 / 工单关联工艺模板 |
+| V11 | 2026-08-13 | APS 排程: mes_shift 班次 / mes_work_calendar 工作日历 / wo_schedule 工序级排产明细 / wo_schedule_log 变更日志 / mes_workstation 产能+瓶颈列 / proc_step 工序种子（幂等：表 IF NOT EXISTS、列条件添加、种子按 template_id+step_no 去重）/ 工单关联工艺模板 |
 | V12 | 2026-08-13 | 排产看板权限: 菜单(planning) + 权限码(planning:view / planning:edit) + 角色分配 |
 | V13 | 2026-08-14 | 补齐 sys_permission 权限码（workorder:view 等 19 条，与 init.sql 对齐）+ 5 个角色重新分配权限；修复旧库权限码缺失导致菜单/按钮被隐藏的问题 |
 

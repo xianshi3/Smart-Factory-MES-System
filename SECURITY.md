@@ -25,10 +25,15 @@
 
 ## 已知安全设计
 
-- 密码统一 BCrypt 加密存储（`$2a$10$`），禁止明文落库
+- 密码统一 BCrypt 加密存储（`$2a$10$`），禁止明文落库；登录/改密/管理员建号均 BCrypt 校验
 - 登录失败日志仅记录用户名，不记录任何密码信息
-- JWT 配置密钥必须通过环境变量注入，禁止硬编码于配置文件
-- 前端令牌统一存于 `sessionStorage`，登出/改密后令牌进入 Redis 黑名单
+- `JWT_SECRET` 强制环境变量注入（长度 ≥ 32，缺失启动失败），禁止硬编码于配置文件或使用公开默认值
+- API 网关全局 JWT 鉴权（白名单仅登录/注册/健康检查）+ CORS 白名单（`CORS_ALLOWED_ORIGINS` 可配）
+- 业务接口按 `@RequirePermission` / `@RequireRole` 细粒度鉴权，ADMIN 角色全量放行
+- WebSocket 握手校验 JWT（`/api/ws/**?token=`），未授权连接拒绝
+- AI 服务（FastAPI）除 `/api/v1/health` 外全部接口校验 JWT，Agent 工具调用透传用户 token
+- 前端令牌：勾选"记住我"存 `localStorage`，否则存 `sessionStorage`；登出/改密后令牌进入 Redis 黑名单
+- 基础设施默认凭据（MySQL `123455` 等）仅为开发默认值，生产必须通过环境变量覆盖
 
 ## 修复流程
 

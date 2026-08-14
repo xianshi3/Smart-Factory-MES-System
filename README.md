@@ -178,10 +178,10 @@ flowchart TB
 | 层级 | 技术选型 | 版本 |
 |------|----------|------|
 | 前端 | Vue 3 + TypeScript + Element Plus + Pinia + Vite | 3.5 / 2.9 / 2.3 / 6.0 |
-| 3D / 可视化 | Three.js + ECharts + GoJS | 0.172 / 5.6 |
+| 3D / 可视化 | Three.js + ECharts | 0.185 / 5.6 |
 | 后端 | Spring Boot + Spring Cloud (Alibaba) | 3.2.5 / 2023.0.0 |
 | 持久层 | MyBatis-Plus + MySQL | 3.5.6 / 8.0.33 |
-| 缓存 / 消息 | Redis + Kafka + Zookeeper | 7 / 3.4 |
+| 缓存 / 消息 | Redis + Kafka + Zookeeper | 7 / 7.5.0 |
 | 时序 / 搜索 | InfluxDB + Elasticsearch | 2.7 / 8.10.0 |
 | 设备接入 | .NET 8 + EMQX MQTT | .NET 8 |
 | AI 推理 | Python FastAPI + LightGBM + XGBoost | 0.115 / 4.5 / 2.1 |
@@ -207,7 +207,7 @@ Smart-Factory-MES-System/
 ├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 批量模拟 / 场景预设 / 双通道上报
 ├── sql/                             # 数据库脚本（init + V2~V13 迁移）
 ├── Makefile                         # 统一启动 / 构建命令
-└── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / Nacos）
+└── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / EMQX）
 ```
 
 ---
@@ -218,7 +218,7 @@ Smart-Factory-MES-System/
 
 | 工具 | 版本 | 用途 |
 |------|------|------|
-| Docker | 24+ | 基础设施（MySQL / Redis / Kafka / Nacos） |
+| Docker | 24+ | 基础设施（MySQL / Redis / Kafka / EMQX） |
 | JDK | 17+ | Java 后端服务 |
 | Maven | 3.9+ | 后端构建 |
 | Node.js | 18+ | 前端开发 |
@@ -226,17 +226,22 @@ Smart-Factory-MES-System/
 | .NET SDK | 8.0+ | 设备网关（可选） |
 
 > **架构说明**：Docker 仅运行基础设施，Java 后端在宿主机直接运行，便于开发调试。
+>
+> **安全配置**：数据库密码默认 `123455`（可用 `MYSQL_ROOT_PASSWORD` 覆盖）；所有 Java 服务强制要求环境变量 `JWT_SECRET`（长度 ≥ 32，未设置则启动失败）。部署前请先复制 `.env.example` 为 `.env` 并按需修改：`JWT_SECRET` / `MYSQL_PASSWORD` / `INFLUXDB_TOKEN` / `ZHIPU_API_KEY` 等。
 
 ### 一键启动（推荐）
 
 ```bash
-# ① 启动基础设施（MySQL / Redis / Kafka / EMQX）
+# ① 复制环境变量模板（修改 JWT_SECRET / 密码等）
+cp .env.example .env
+
+# ② 启动基础设施（MySQL / Redis / Kafka / EMQX）
 make docker
 
-# ② 启动 Java 后端（自动编译）
+# ③ 启动 Java 后端（自动编译，需已设置 JWT_SECRET）
 make backend
 
-# ③ 启动 .NET 设备网关 + AI 服务 + 前端
+# ④ 启动 .NET 设备网关 + AI 服务 + 前端
 make dotnet-gateway
 make ai
 make frontend
@@ -251,7 +256,8 @@ mvn clean package -DskipTests
 # ② 启动基础设施（含 EMQX MQTT Broker）
 docker compose up -d
 
-# ③ 启动 Java 服务
+# ③ 设置 JWT 密钥并启动 Java 服务（所有服务密钥必须一致）
+export JWT_SECRET=your-jwt-secret-at-least-32-chars-long   # Windows: set JWT_SECRET=...
 java -jar mes-auth/target/mes-auth-1.0.0-SNAPSHOT.jar
 java -jar mes-workorder/target/mes-workorder-1.0.0-SNAPSHOT.jar
 java -jar mes-process/target/mes-process-1.0.0-SNAPSHOT.jar
@@ -269,13 +275,13 @@ cd mes-frontend && npm install && npm run dev
 ### API 快速体验
 
 ```bash
-# 登录获取 Token
-curl -X POST http://localhost:8081/auth/login \
+# 登录获取 Token（走网关统一入口，端口 9090）
+curl -X POST http://localhost:9090/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "admin123"}'
 
-# 工单分页查询
-curl http://localhost:8082/workorder/page?current=1&size=10 \
+# 工单分页查询（网关全局 JWT 鉴权）
+curl http://localhost:9090/api/workorder/page?current=1&size=10 \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -294,9 +300,8 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 | 看板服务 | http://localhost:8085/doc.html | - |
 | AI 服务 | http://localhost:8087/docs | FastAPI 文档 |
 | 设备网关 | http://localhost:5000 | ASP.NET Core |
-| MySQL | localhost:3306 | root / root |
+| MySQL | localhost:3306 | root / 123455 |
 | Redis | localhost:6379 | 无密码 |
-| Nacos | http://localhost:8848/nacos | nacos / nacos |
 
 | 系统 | 账号 | 密码 |
 |------|------|------|
@@ -314,6 +319,11 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 | 设备工程师 | `ENGINEER` | 设备维护相关权限 |
 
 > 权限码数据以 `sys_permission` 表为准（初始化见 `sql/init.sql`，旧库升级执行 `sql/V13__sync_permission_codes.sql`，幂等可重复执行）。
+>
+> **安全说明**（v1.0.48 起）：
+> - 网关全局 JWT 鉴权 + CORS 白名单（`CORS_ALLOWED_ORIGINS` 可配）；WebSocket 经网关 `/api/ws/**` 连接并校验 token
+> - 业务写操作按权限码/角色控制（`@RequirePermission` / `@RequireRole`）；管理员创建用户密码自动 BCrypt 加密
+> - 数据库密码默认 `123455`、JWT 密钥 `JWT_SECRET` 强制环境变量化，详见 [开发指南](docs/DEVELOPMENT.md)
 
 ---
 

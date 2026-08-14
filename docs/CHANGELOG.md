@@ -10,6 +10,101 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.50 (2026-08-14)
+
+### 开源规范完善
+
+#### 安全性
+
+- **依赖漏洞清零**：`npm audit` 修复 5 个漏洞（brace-expansion/js-yaml/nanoid 高危传递依赖 + echarts 5.6 中危）；echarts 升级 `5.6.0 → 6.1.0`、vue-echarts 升级 `7.0.3 → 8.1.0`（type-check/build/测试全部通过）；happy-dom 升级至 20.x 修复 CVE-2026（VM 逃逸）
+- **CodeQL 静态安全扫描**：新增 `.github/workflows/codeql.yml`（Java/JS/Python 三语言，push/PR/每周定时）
+- **Dependabot 依赖自动更新**：新增 `.github/dependabot.yml`（npm 每月 / Maven 每月 / GitHub Actions 每周，echarts 大版本人工验证）
+
+#### 测试
+
+- **后端单元测试**：mes-common 引入 `spring-boot-starter-test`，新增 `JwtUtilsTest`（密钥校验/签发解析/防篡改/跨密钥拒绝）与 `ResultTest`（统一返回/分页），共 10 用例
+- **前端单元测试**：引入 Vitest + happy-dom，新增 `markdown.test.ts`（XSS 转义/标题层级/列表/代码）与 `auth.test.ts`（记住我 token 存储），共 10 用例
+- **CI 集成**：前端 job 新增 `npm test` 步骤；后端 `mvn package` 自动执行单测
+- **顺带修复真实 bug**：`mdToHtml` 有序列表被渲染成无序（数字被消费后无法区分 ol/ul），改用 `data-ord` 标记识别
+
+#### 合规与文档
+
+- **LICENSE 署名**：补充维护者 `xianshi3` 与 contributors
+- **CONTRIBUTING**：提交前检查加入 `mvn test` / `npm test` / `pytest`，并注明鉴权改动需同步检查清单
+- `.gitignore` 补充 `coverage/` 等测试产物
+
+#### 待办（需仓库所有者操作）
+
+- 发布版本：git tag 仅到 `v1.0.41`，CHANGELOG 已至 v1.0.50，建议按 CHANGELOG 打对应 tag 并创建 GitHub Release
+- 启用 GitHub Security 功能：Settings → Code security → 开启 Dependabot alerts / CodeQL scanning / Secret scanning
+
+---
+
+## v1.0.49 (2026-08-14)
+
+### 剩余中低危问题整改（异常处理 / 并发 / 校验 / 前端安全）
+
+#### 后端
+
+- **错误信息不再泄露内部细节**：`GlobalExceptionHandler` 500 不再返回底层 cause 消息（仅记录日志）；5 个服务 `server.error.include-message` 改为 `never`
+- **控制器去掉吞异常 + 透传 `e.getMessage()`**：`PlanningBoardController` 全部接口移除 try/catch，统一交给全局处理器（业务冲突 `IllegalStateException` 仍 400 透传消息，其余 500 通用消息）；`WorkOrderController.create` 同上，`detail` 不存在返回 404
+- **业务异常规范化**：process/quality/dashboard 的 `RuntimeException`（模板不存在/已发布、质检记录不存在、BOM/库存/设备不存在、库存不足等）全部改为 `BizException` → 返回 400 而非 500
+- **库存调整并发保护**：`adjustInventory` 改为条件更新（`quantity >= |delta|` 才成功），并发调整不再互相覆盖，冲突时提示刷新重试
+- **Kafka 消费竞态丢消息**：`findOrCreateDevice` 捕获唯一约束冲突后重查重试，不再吞掉并发首条消息；移除 debug 级完整消息日志
+- **工艺模板死缓存清理**：移除只写不读且不失效的 `mes:process:template:{id}` 缓存写入
+- **权限缓存即时失效**：`PermissionService.evictAll()` 在角色权限分配/权限码增删后调用，`evict(userId)` 在用户角色变更后调用（原来最长 5 分钟延迟）
+- **参数校验补齐**：`CreateWorkOrderDTO`/`SubmitReportDTO`/`CreateTemplateDTO`/`CreateQualityRecordDTO` 增加 `@NotBlank/@Size/@Min/@Max/@Pattern`，控制器补 `@Valid`；三个分页接口 `size` 限制 ≤ 100
+- **SQL 参数化**：报工数量累加 `setSql` 改用 `{0}` 占位符，杜绝拼接风险
+- **OEE 防护**：`deviceId` 为空返回空数据（避免全表 selectOne 多行异常）；`idealCycleTime`/`totalProducts` 为空不再 NPE/除零
+- **InfluxDB 行协议转义**：status 字段值转义引号/反斜杠/换行，防止破坏 line protocol
+- **WebSocket 资源释放**：`DashboardWebSocketHandler` 增加 `@PreDestroy` 关闭广播调度线程池
+- **健康检查白名单**：`TokenAuthFilter` 白名单增加 `/actuator/`（健康探针无需 token），支持目录前缀匹配
+
+#### 前端
+
+- **3D 标签 XSS 修复**：`DigitalTwinScene.vue` 设备名/状态等外部数据统一 `escHtml` 转义后再拼 innerHTML（此前可通过设备名注入脚本）
+- **权限加载失败重试**：`permissionStore.loadCurrentPermissions` 首次失败不再置 `loaded=true`，下次路由跳转自动重试
+- **Markdown 标题层级**：`####` 渲染为 h5、`#####` 渲染为 h6（原来三级/四级都输出 h4）
+
+---
+
+## v1.0.48 (2026-08-14)
+
+### 安全加固 + 生产可用性修复（代码审查整改）
+
+#### 高危安全
+
+- **JWT 密钥强制环境变量化**：`JwtUtils` / 网关过滤器移除硬编码默认密钥，`JWT_SECRET` 为空或长度 < 32 时启动失败；所有服务 application.yml 默认值置空，compose/CI/脚本注入开发密钥
+- **网关零认证修复**：新增 `JwtAuthGlobalFilter`（WebFlux），除登录/注册/健康检查外全部请求必须携带有效 Bearer Token，并向服务透传 X-User-Id 等头
+- **CORS 收紧**：网关 `allowedOriginPatterns: "*" + allowCredentials: true` 改为白名单（默认 localhost:3000/5173，可用 `CORS_ALLOWED_ORIGINS` 覆盖）
+- **权限注解补全**：process/quality/dashboard/menu/alarm/bom/material/inventory/base-data 控制器补齐 `@RequirePermission` / `@RequireRole`，堵住"登录即全通"越权（删除接口不再信任可伪造的 `X-User-Id` 请求头，改用 `UserContext`）
+- **密码明文入库修复**：`UserController.create/update` 统一 BCrypt 加密；`AuthService` 移除明文比对兜底分支
+- **InfluxDB Token / 智谱 API Key 清理**：dashboard 默认 token 置空（未配置时优雅降级），docker-compose.dev.yml 改用新随机 token + 环境变量；工作区 `.env.local` 中真实 API Key 已清除
+- **WebSocket 鉴权**：握手拦截器校验 `?token=` JWT，未授权连接被拒绝；新增网关 `/api/ws/**` WebSocket 路由
+- **AI 服务鉴权**：新增 `src/security.py`（HS256 JWT 校验，标准库实现），全部业务接口（除 /health）要求有效 JWT；Agent 工具调用后端时透传用户 JWT
+
+#### 功能 Bug
+
+- **生产环境接口双 `/api` 前缀**：前端所有 URL 统一去掉 `/api` 前缀（`VITE_API_BASE_URL=/api` 与网关 StripPrefix 配合），BOM/报警/生产线/工位等接口恢复可用；`agent.ts` 复用统一 axios 拦截器（带 token/401 处理）
+- **库存调整 500**：`Inventory.availableQuantity` 为数据库 STORED 生成列，标记 `@TableField(exist=false)` 不再写入
+- **SQL 迁移脚本幂等化**：V2/V4/V5_5/V9/V10/V11 改为存储过程条件判断（列/索引存在即跳过）；V5_5 修正错误列名（`param_name`/`report_time`）；V7/V8 改 `CREATE TABLE IF NOT EXISTS`（不再 DROP 丢数据）；V9 移除"全库重置密码为 admin123"；V11 工序种子按 (template_id, step_no) 去重；V6 库存种子加 `batch_no='INIT-BATCH'` 使唯一键可去重
+- **排产撤销栈跨用户污染**：`PlanningBoardServiceImpl` 撤销栈改为按用户隔离（ConcurrentHashMap）
+- **RoleController**：`assignPermissions` 不再吞异常（事务整体回滚）；`list` 移除 GET 写库与描述字段覆盖
+- **aiChat 恒真过滤**：多轮对话历史只携带已持久化消息，不再重复发送当前消息
+
+#### 中低危
+
+- **WebSocket 前端**：单例引用计数（所有页面退订后才断开）、默认地址改为同源网关 WS + 自动带 token、`rememberMe` 勾选生效（sessionStorage/localStorage）
+- **docker-compose**：MySQL/Redis/Zookeeper/Kafka/EMQX/InfluxDB 增加 healthcheck 与 `depends_on` 条件；Kafka 增加持久化卷；网关端口统一 `9090:9090`；移除未使用的 Nacos/Seata 服务
+- **数据库密码统一 `123455`**（compose/application.yml/CI/文档），可通过 `MYSQL_ROOT_PASSWORD` 环境变量覆盖
+- **CI**：`Lint Frontend` 步骤实际执行 `npm run lint` 且不再 `continue-on-error`；补齐 type-check 独立步骤；冒烟脚本注入 `JWT_SECRET`
+- **docker-daemon.json**：替换 4 个已停服镜像源
+- **Makefile stop**：改为按端口杀进程（不再依赖窗口标题）
+- **MenuController**：按当前用户权限码过滤菜单，非 ADMIN 不再看到全部管理菜单
+- **趋势接口**：`days` 限制 1~366，防止 N+1 循环查询
+
+---
+
 ## v1.0.47 (2026-08-14)
 
 ### 权限体系重构 + 修复权限码缺失导致功能被隐藏

@@ -35,16 +35,32 @@ Smart-Factory-MES-System/
 | 后端 | Java 17 + Spring Cloud + MyBatis-Plus | Spring Cloud 2023.0.0 |
 | 设备接入 | .NET 8 + MQTT + Kafka | .NET 8 |
 | AI服务 | Python 3.12 + FastAPI + PyMySQL + LightGBM + XGBoost | FastAPI 0.115 |
-| 基础设施 | MySQL 8.0.33 + Redis 7 + Kafka 3.4 + EMQX 5.8 | - |
+| 基础设施 | MySQL 8.0.33 + Redis 7 + Kafka 7.5.0 + EMQX 5.8 | - |
 
 ### 1.3 环境配置
 
-敏感信息通过 `.env.local` 文件配置（不提交到git）：
+敏感信息通过环境变量配置（不提交到git）。**所有 Java 服务启动强制要求 `JWT_SECRET`**（长度 ≥ 32 字符，且所有服务必须一致），未设置则启动失败。
 
 ```bash
-# mes-ai-service/.env.local
-ZHIPU_API_KEY=your-api-key-here
+# 方式一：复制根目录 .env.example 为 .env（docker compose 自动读取）
+cp .env.example .env
+
+# 方式二：设置系统环境变量（Windows PowerShell）
+$env:JWT_SECRET = "your-jwt-secret-at-least-32-chars-long-change-me"
+$env:MYSQL_PASSWORD = "123455"
 ```
+
+| 环境变量 | 说明 | 默认值 |
+|----------|------|--------|
+| `JWT_SECRET` | JWT 签名密钥（≥32 字符），**必填**，所有服务一致 | 无（缺失则启动失败） |
+| `MYSQL_PASSWORD` | 数据库密码 | `123455` |
+| `MYSQL_ROOT_PASSWORD` | docker-compose 初始化 MySQL root 密码 | `123455` |
+| `INFLUXDB_TOKEN` | InfluxDB 访问 token（dashboard 时序存储） | 空（未配置则历史遥测不可用） |
+| `INFLUXDB_ADMIN_PASSWORD` | docker-compose.dev.yml InfluxDB 管理员密码 | `123455` |
+| `ZHIPU_API_KEY` | AI 服务智谱 API Key（`mes-ai-service/.env.local`） | 空 |
+| `CORS_ALLOWED_ORIGINS` | 网关跨域白名单（逗号分隔） | `http://localhost:3000,http://localhost:5173` |
+
+> **安全提醒**：所有凭据均为开发默认值，生产部署必须通过环境变量覆盖（详见 `docs/CHANGELOG.md` v1.0.48）。
 
 ---
 
@@ -58,6 +74,8 @@ ZHIPU_API_KEY=your-api-key-here
 | Maven | 3.9+ | 项目构建 |
 | Node.js | 18+ | 前端开发 |
 | Python | 3.12+ | AI服务运行环境 |
+| .NET | 8.0+ | 设备网关运行环境 |
+| Docker | 24+ | 基础设施容器（MySQL / Redis / Kafka / EMQX） |
 
 ### 2.2 依赖安装
 
@@ -71,16 +89,15 @@ pip install -r requirements.txt
 ```
 
 > **注意**: Python 3.12 需要 `numpy>=2.0`，`requirements.txt` 已放宽版本约束。首次安装需确保 `pymysql` 和 `sniffio` 正确安装。
-| .NET | 8.0+ | 设备网关运行环境 |
-| Docker | 24+ | 容器化部署 |
+> **AI 服务鉴权**：AI 服务（FastAPI）除 `/api/v1/health` 外全部接口要求有效 JWT（`Authorization: Bearer <token>`），密钥与 Java 后端一致（`JWT_SECRET` 环境变量），Agent 工具调用后端 API 时会自动透传用户 token。
 
-### 2.2 启动所有服务
+### 2.3 启动所有服务
 
 ```bash
 make all
 ```
 
-### 2.3 单独启动服务
+### 2.4 单独启动服务
 
 ```bash
 make docker       # 启动基础设施
@@ -89,11 +106,11 @@ make ai           # 启动 AI 服务
 make frontend     # 启动前端
 make gateway      # 启动单一 Java 服务
 make status       # 查看运行状态
-make stop         # 停止所有服务
+make stop         # 停止所有服务（按端口终止进程）
 make clean        # 清理缓存
 ```
 
-### 2.4 启动前端
+### 2.5 启动前端
 
 ```bash
 cd mes-frontend
@@ -103,6 +120,8 @@ npm run dev
 
 访问 http://localhost:3000
 
+**前端 API 路径约定**：开发环境 `VITE_API_BASE_URL` 为空，浏览器请求由 Vite 代理转发（`/api` → 网关 9090、`/auth` → 8081、`/ai` → AI 服务 8087 等）；生产构建 `VITE_API_BASE_URL=/api`，请求统一走网关（Nginx 需将 `/api` 反向代理到 mes-gateway:9090，并代理 WebSocket `/api/ws/**`）。
+
 ---
 
 ## 3. 服务端口
@@ -110,22 +129,26 @@ npm run dev
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | 前端 | 3000 | Vue 3应用 |
-| API网关 | 9090 | Spring Cloud Gateway（已启用） |
+| API网关 | 9090 | Spring Cloud Gateway（JWT 全局鉴权 + CORS 白名单） |
 | 认证服务 | 8081 | 用户登录/注册 |
 | 工单服务 | 8082 | 工单管理 |
 | 工艺服务 | 8083 | 工艺模板 |
 | 质量服务 | 8084 | 质检追溯 |
 | 看板服务 | 8085 | OEE/WebSocket |
-| AI服务 | 8087 | 质量/产量预测 |
+| AI服务 | 8087 | 质量/产量预测、Agent 助理 |
 | .NET设备网关 | 5000 | MQTT/Kafka数据接入 |
 | 设备模拟器 | - | WPF 桌面客户端（HTTP 客户端 + MQTT 客户端，无监听端口） |
-| MySQL | 3306 | 数据库 |
+| MySQL | 3306 | 数据库（root / 123455） |
 | Redis | 6379 | 缓存/黑名单/限流/在线心跳/分布式序号 |
+| InfluxDB | 8086 | 时序数据库（docker-compose.dev.yml） |
 | MQTT | 1883 | 设备通信 |
 | Kafka | 9092 | 消息队列 |
 
-> 注意：开发环境前端可通过 Vite 代理直连各服务（8081-8085），或通过网关（9090）统一路由。网关已启用，
-> `/api/**` 路由使用 StripPrefix=1（去掉 `/api` 前缀后转发），`/api/ai/**` 路由使用 StripPrefix=2（去掉 `/api/ai` 前缀后转发）。
+> **认证链路**：网关 `JwtAuthGlobalFilter` 对所有请求校验 `Authorization: Bearer <JWT>`（白名单：`/api/auth/login`、`/api/auth/register`、`/actuator/**`），校验通过后透传 `X-User-Id` / `X-User-Name` / `X-User-Role` 头；各微服务再经 `TokenAuthFilter` 二次解析并写入 `UserContext`，业务接口按 `@RequireRole` / `@RequirePermission` 做细粒度鉴权（ADMIN 全量放行）。
+>
+> **WebSocket**：前端通过网关连接 `ws://localhost:9090/api/ws/dashboard?token=<JWT>`（开发环境同源），网关 `/api/ws/**` 路由转发到看板服务，握手时校验 token，未授权连接直接拒绝。生产环境如用 Nginx，需为 `/api/ws/**` 配置 `proxy_set_header Upgrade/Connection`。
+>
+> **开发直连**：前端可通过 Vite 代理直连各服务（8081-8085），或通过网关（9090）统一路由。网关 `/api/**` 路由使用 StripPrefix=1（去掉 `/api` 前缀后转发），`/api/ai/**` 使用 StripPrefix=2（去掉 `/api/ai` 前缀后转发）。
 
 ---
 
@@ -134,7 +157,7 @@ npm run dev
 | 服务 | 用户名 | 密码 |
 |------|--------|------|
 | 前端登录 | admin | admin123 |
-| Nacos | nacos | nacos |
+| MySQL (root) | root | 123455 |
 | EMQX Dashboard | admin | public |
 
 ---
@@ -173,10 +196,15 @@ npm run dev
 |-----|------|
 | Result<T> | 统一返回 (code, message, data) |
 | PageResult<T> | 分页结果 |
-| BaseEntity | 基类实体 (id, createTime, updateTime) |
+| BaseEntity | 基类实体 (id, createTime, updateTime, deleted) |
 | BizException | 业务异常 |
 | ErrorCode | 错误码枚举 |
-| JwtUtils | JWT工具类 |
+| JwtUtils | JWT 工具类（HS256；启动校验 `JWT_SECRET` ≥ 32 字符，缺失拒绝启动） |
+| TokenAuthFilter | 全局 Token 认证过滤器（白名单 `/auth/login,/auth/register`） |
+| SecurityInterceptor | 权限校验拦截器（读取 `@RequireRole` / `@RequirePermission`，ADMIN 全量放行） |
+| PermissionService | 权限码解析（role_id → sys_role_permission → sys_permission，5 分钟本地缓存） |
+| UserContext | 请求线程用户上下文（userId / username / role） |
+| GlobalExceptionHandler | 全局异常处理（业务异常 400、未认证 401、系统错误 500） |
 | MesConstants | 常量定义 |
 
 ### 5.4 Redis 使用规范
@@ -235,6 +263,10 @@ npm run dev
 ---
 
 ## 7. API接口
+
+> 除登录/注册外，所有接口需携带 `Authorization: Bearer <token>`（网关统一校验，未带/失效返回 401）。
+> 写操作按权限码/角色控制（如 `process:create`、`device:control`、`quality:delete`、ADMIN/MANAGER 角色等），权限码以 `sys_permission` 表为准。
+> 文档页面：各服务 `http://localhost:{port}/doc.html`（Knife4j，仅开发/测试环境启用）。
 
 ### 7.1 认证服务
 
@@ -310,14 +342,17 @@ npm run dev
 
 ## 9. 注意事项
 
-1. **首次启动**：必须执行 sql/init.sql 初始化数据库
+1. **首次启动**：必须执行 sql/init.sql 初始化数据库；旧库升级按 V2~V13 顺序执行（脚本已幂等，可重复执行）
 2. **Docker命令**：Windows使用 `docker compose`（空格）
 3. **前端账号**：admin / admin123
 4. **AI模型**：示例模型，需真实数据训练后替换
-5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、EMQX 使用 Docker 运行，Java 服务本地 `java -jar` 启动
-6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突。
-7. **Docker镜像拉取**：若直连 Docker Hub 超时，可配置代理（Docker Desktop → Settings → Resources → Proxies）或自建镜像加速器（daemon.json 中添加 registry-mirrors）；注意国内公共镜像源（USTC/163/百度/docker-cn）均已停服，勿再使用
+5. **Docker仅运行基础设施**：MySQL、Redis、Kafka、Zookeeper、EMQX 使用 Docker 运行，Java 服务本地 `java -jar` 启动（`docker-compose.dev.yml` 提供全容器方案 + InfluxDB）
+6. **AI服务端口**：AI 服务使用 8087 端口，已解决与 InfluxDB 的 8086 端口冲突
+7. **Docker镜像拉取**：`docker-daemon.json` 已配置可用镜像加速源（daocloud/1panel/rat）；若直连 Docker Hub 超时可自建代理，注意 USTC/163/百度/docker-cn 等源均已停服
 8. **设备模拟器**：启动时自动探测 API 网关与 EMQX 地址（失败回退 localhost）；连接 API 后自动加载已有设备，勾选"参与模拟"的复选框可批量选控；数据推送频率、场景、参数自动持久化到 `%APPDATA%/MESDeviceSimulator/config.json`
+9. **JWT 密钥**：所有 Java 服务与 AI 服务必须配置一致的 `JWT_SECRET`（≥ 32 字符），缺失则启动失败；严禁使用默认/公开密钥部署生产
+10. **密码修改**：管理员在「用户管理」创建/更新用户时，密码自动 BCrypt 加密落库；登录不再支持明文兜底
+11. **停服命令**：`make stop` 按端口（8081-8085/9090/8087/5000/3000）终止进程，不再依赖窗口标题
 
 ---
 
@@ -327,11 +362,17 @@ npm run dev
 **A**: 安装 Docker Desktop 并重启电脑
 
 ### Q2: 前端无法登录
-**A**: 检查数据库是否初始化，确认账号 admin/admin123 存在
+**A**: 检查数据库是否初始化，确认账号 admin/admin123 存在；再确认各服务 `JWT_SECRET` 环境变量一致（不一致会导致 token 解析失败）
 
 ### Q3: 微服务无法启动
-**A**: 检查端口占用，确保基础设施服务正常运行
+**A**: 检查端口占用，确保基础设施服务正常运行；确认已设置 `JWT_SECRET`（缺失或长度 < 32 时服务启动即失败，日志会提示）
+
+### Q4: 生产环境接口 404
+**A**: 前端生产构建 `VITE_API_BASE_URL=/api`，请求必须经网关转发（Nginx 将 `/api/**` 代理到 mes-gateway:9090）；若直接部署到子路径，需同步调整 Nginx 与 `CORS_ALLOWED_ORIGINS`
+
+### Q5: WebSocket 连不上
+**A**: 前端 WebSocket 走网关 `/api/ws/dashboard?token=<JWT>`；检查网关是否已启动、token 是否有效（过期会 401 拒绝握手）；Nginx 场景需配置 WebSocket Upgrade 头
 
 ---
 
-*最后更新：2026-08-10*
+*最后更新：2026-08-14*
