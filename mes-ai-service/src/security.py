@@ -62,11 +62,9 @@ def decode_jwt(token: str) -> dict:
 
 
 def verify_token(request: Request) -> dict:
-    """FastAPI 依赖：校验 Authorization: Bearer <JWT>，并把 token 存入请求上下文"""
+    """FastAPI 依赖：校验 Authorization: Bearer <JWT>（token 由中间件注入 contextvar）"""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="未登录或Token缺失")
     token = auth[len("Bearer "):].strip()
-    payload = decode_jwt(token)
-    set_token(token)
-    return payload
+    return decode_jwt(token)

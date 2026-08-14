@@ -43,6 +43,19 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def attach_token_context(request, call_next):
+        """把请求携带的 JWT 存入 contextvar，供 Agent 工具调用后端时透传。
+
+        注意：不能用 FastAPI 依赖（dependencies）做这件事——依赖与端点之间
+        contextvar 不传播，导致工具调用丢失 Authorization 头（401）。
+        """
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            from src.security import set_token
+            set_token(auth[len("Bearer "):].strip())
+        return await call_next(request)
+
     # 除健康检查外，所有业务接口必须携带有效 JWT（与后端网关密钥一致）
     auth_deps = [Depends(verify_token)]
 

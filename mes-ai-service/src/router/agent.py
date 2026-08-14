@@ -100,7 +100,6 @@ async def run_agent(request: AgentRequest):
                 session_id=request.session_id,
                 timestamp=datetime.utcnow(),
             )
-
         result = await agent_service.run(
             message=request.message,
             history=request.history,
