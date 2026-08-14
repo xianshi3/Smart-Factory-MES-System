@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '@/api'
 import { getUserPermissions } from '@/api/auth'
+import { useUserStore } from '@/stores/user'
 
 interface Menu {
   id?: number
@@ -39,6 +40,8 @@ export const usePermissionStore = defineStore('permission', () => {
 
   const hasPermission = (code: string): boolean => {
     if (!code) return true
+    const userStore = useUserStore()
+    if (userStore.roles.includes('ADMIN')) return true
     return codes.value.includes(code)
   }
 
