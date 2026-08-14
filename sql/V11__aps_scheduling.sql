@@ -3,14 +3,15 @@
 -- Version: V11
 -- Description: 企业级排产：班次/工作日历、工序级排产明细、
 --              变更日志、产能参数
+-- 幂等: 表使用 CREATE TABLE IF NOT EXISTS；设备产能列存在时自动跳过；
+--       proc_step 种子按 (template_id, step_no) 去重
 -- =====================================================
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. 班次定义表
-DROP TABLE IF EXISTS `mes_shift`;
-CREATE TABLE `mes_shift` (
+CREATE TABLE IF NOT EXISTS `mes_shift` (
     `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     `shift_code`  VARCHAR(20)  NOT NULL COMMENT '班次编码: DAY/NIGHT',
     `shift_name`  VARCHAR(50)  NOT NULL COMMENT '班次名称',
@@ -23,13 +24,12 @@ CREATE TABLE `mes_shift` (
     UNIQUE KEY `uk_shift_code` (`shift_code`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='排产班次表';
 
-INSERT INTO `mes_shift` (`shift_code`, `shift_name`, `start_time`, `end_time`, `is_work`) VALUES
+INSERT IGNORE INTO `mes_shift` (`shift_code`, `shift_name`, `start_time`, `end_time`, `is_work`) VALUES
 ('DAY',   '白班', '08:00:00', '18:00:00', 1),
 ('NIGHT', '夜班', '20:00:00', '06:00:00', 1);
 
 -- 2. 工作日历表（每天一行，标记是否排产）
-DROP TABLE IF EXISTS `mes_work_calendar`;
-CREATE TABLE `mes_work_calendar` (
+CREATE TABLE IF NOT EXISTS `mes_work_calendar` (
     `id`         BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
     `work_date`  DATE        NOT NULL COMMENT '日期',
     `is_workday` TINYINT     NOT NULL DEFAULT 1 COMMENT '是否工作日: 1是 0否',
@@ -40,8 +40,7 @@ CREATE TABLE `mes_work_calendar` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='排产工作日历';
 
 -- 3. 排产明细表（工序级）
-DROP TABLE IF EXISTS `wo_schedule`;
-CREATE TABLE `wo_schedule` (
+CREATE TABLE IF NOT EXISTS `wo_schedule` (
     `id`              BIGINT      NOT NULL COMMENT '主键(雪花)',
     `work_order_id`   BIGINT      NOT NULL COMMENT '工单ID',
     `step_id`         BIGINT      DEFAULT NULL COMMENT '工序ID(proc_step)',
@@ -65,8 +64,7 @@ CREATE TABLE `wo_schedule` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='排产明细表(工序级)';
 
 -- 4. 排产变更日志表
-DROP TABLE IF EXISTS `wo_schedule_log`;
-CREATE TABLE `wo_schedule_log` (
+CREATE TABLE IF NOT EXISTS `wo_schedule_log` (
     `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     `work_order_id` BIGINT       DEFAULT NULL COMMENT '工单ID',
     `schedule_id`   BIGINT       DEFAULT NULL COMMENT '排产明细ID',
@@ -81,33 +79,61 @@ CREATE TABLE `wo_schedule_log` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='排产变更日志';
 
--- 5. 设备增加产能参数
-ALTER TABLE `mes_workstation`
-    ADD COLUMN `capacity_per_hour` INT NOT NULL DEFAULT 100 COMMENT '每小时产能(件)' AFTER `status`,
-    ADD COLUMN `is_bottleneck` TINYINT NOT NULL DEFAULT 0 COMMENT '是否瓶颈设备' AFTER `capacity_per_hour`;
+-- 5. 设备增加产能参数（已存在时跳过）
+DROP PROCEDURE IF EXISTS mes_v11_add_ws_cols;
 
--- 6. 工艺工序种子数据（5个模板各3-4道工序）
-INSERT INTO `proc_step` (`template_id`, `step_no`, `step_name`, `step_desc`, `duration_min`, `sequence`, `deleted`) VALUES
-(1, 1, 'CNC粗加工', '铝合金外壳粗铣加工', 180, 1, 0),
-(1, 2, 'CNC精加工', '精密尺寸精铣加工', 240, 2, 0),
-(1, 3, '表面处理', '喷砂阳极氧化前处理', 120, 3, 0),
-(1, 4, '成品检验', 'CNC件尺寸检验', 60, 4, 0),
-(2, 1, '下料', '原材料切割下料', 90, 1, 0),
-(2, 2, 'CNC加工', '标准CNC铣削加工', 180, 2, 0),
-(2, 3, '去毛刺', '去毛刺打磨', 60, 3, 0),
-(3, 1, '预组装', '零件预装配', 120, 1, 0),
-(3, 2, '整机装配', '整机组装作业', 240, 2, 0),
-(3, 3, '功能测试', '整机功能测试', 90, 3, 0),
-(3, 4, '包装入库', '清洁包装入库', 60, 4, 0),
-(4, 1, '外观检测', '外观缺陷检测', 60, 1, 0),
-(4, 2, '功能检测', '性能功能测试', 120, 2, 0),
-(4, 3, '尺寸检测', '高精度尺寸测量', 90, 3, 0),
-(5, 1, '喷装底漆', '底漆喷涂', 90, 1, 0),
-(5, 2, '喷装面漆', '面漆喷涂', 120, 2, 0),
-(5, 3, '烘干固化', '高温烘干固化', 180, 3, 0);
+DELIMITER //
+CREATE PROCEDURE mes_v11_add_ws_cols()
+BEGIN
+    DECLARE col_count INT DEFAULT 0;
+    SELECT COUNT(*) INTO col_count FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'mes_workstation'
+      AND COLUMN_NAME = 'capacity_per_hour';
+    IF col_count = 0 THEN
+        ALTER TABLE `mes_workstation`
+            ADD COLUMN `capacity_per_hour` INT NOT NULL DEFAULT 100 COMMENT '每小时产能(件)' AFTER `status`,
+            ADD COLUMN `is_bottleneck` TINYINT NOT NULL DEFAULT 0 COMMENT '是否瓶颈设备' AFTER `capacity_per_hour`;
+        SELECT '[OK] Added mes_workstation.capacity_per_hour / is_bottleneck' AS result;
+    ELSE
+        SELECT '[SKIP] mes_workstation.capacity_per_hour already exists' AS result;
+    END IF;
+END //
+DELIMITER ;
 
--- 7. 初始化工作日历（从今天起60个自然日,周末非工作日）
-INSERT INTO `mes_work_calendar` (`work_date`, `is_workday`)
+CALL mes_v11_add_ws_cols();
+
+DROP PROCEDURE IF EXISTS mes_v11_add_ws_cols;
+
+-- 6. 工艺工序种子数据（5个模板各3-4道工序；按 template_id+step_no 去重，可重复执行）
+INSERT INTO `proc_step` (`template_id`, `step_no`, `step_name`, `step_desc`, `duration_min`, `sequence`, `deleted`)
+SELECT s.template_id, s.step_no, s.step_name, s.step_desc, s.duration_min, s.sequence, 0
+FROM (
+    SELECT 1 AS template_id, 1 AS step_no, 'CNC粗加工' AS step_name, '铝合金外壳粗铣加工' AS step_desc, 180 AS duration_min, 1 AS sequence
+    UNION ALL SELECT 1, 2, 'CNC精加工', '精密尺寸精铣加工', 240, 2
+    UNION ALL SELECT 1, 3, '表面处理', '喷砂阳极氧化前处理', 120, 3
+    UNION ALL SELECT 1, 4, '成品检验', 'CNC件尺寸检验', 60, 4
+    UNION ALL SELECT 2, 1, '下料', '原材料切割下料', 90, 1
+    UNION ALL SELECT 2, 2, 'CNC加工', '标准CNC铣削加工', 180, 2
+    UNION ALL SELECT 2, 3, '去毛刺', '去毛刺打磨', 60, 3
+    UNION ALL SELECT 3, 1, '预组装', '零件预装配', 120, 1
+    UNION ALL SELECT 3, 2, '整机装配', '整机组装作业', 240, 2
+    UNION ALL SELECT 3, 3, '功能测试', '整机功能测试', 90, 3
+    UNION ALL SELECT 3, 4, '包装入库', '清洁包装入库', 60, 4
+    UNION ALL SELECT 4, 1, '外观检测', '外观缺陷检测', 60, 1
+    UNION ALL SELECT 4, 2, '功能检测', '性能功能测试', 120, 2
+    UNION ALL SELECT 4, 3, '尺寸检测', '高精度尺寸测量', 90, 3
+    UNION ALL SELECT 5, 1, '喷装底漆', '底漆喷涂', 90, 1
+    UNION ALL SELECT 5, 2, '喷装面漆', '面漆喷涂', 120, 2
+    UNION ALL SELECT 5, 3, '烘干固化', '高温烘干固化', 180, 3
+) s
+WHERE NOT EXISTS (
+    SELECT 1 FROM proc_step p
+    WHERE p.template_id = s.template_id AND p.step_no = s.step_no AND p.deleted = 0
+);
+
+-- 7. 初始化工作日历（从今天起60个自然日,周末非工作日；已存在的日期跳过）
+INSERT IGNORE INTO `mes_work_calendar` (`work_date`, `is_workday`)
 SELECT DATE_ADD(CURDATE(), INTERVAL n DAY),
        CASE WHEN DAYOFWEEK(DATE_ADD(CURDATE(), INTERVAL n DAY)) IN (1, 7) THEN 0 ELSE 1 END
 FROM (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5

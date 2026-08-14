@@ -1,10 +1,9 @@
 -- =====================================================
 -- V8: AI 分析历史记录表
 -- 存储数字孪生 SPC/能耗/产能/AI建议 分析结果
+-- 幂等: 表已存在时跳过（不丢数据）
 -- =====================================================
-DROP TABLE IF EXISTS `ai_analysis_history`;
-
-CREATE TABLE `ai_analysis_history` (
+CREATE TABLE IF NOT EXISTS `ai_analysis_history` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `user_id` varchar(50) NOT NULL DEFAULT 'default' COMMENT '用户ID',
     `device_code` varchar(50) DEFAULT NULL COMMENT '设备编码',

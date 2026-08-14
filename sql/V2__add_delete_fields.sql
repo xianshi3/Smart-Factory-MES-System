@@ -1,63 +1,67 @@
 -- ========================================
 -- V2: 添加删除功能字段
 -- 日期: 2026-04-06
--- 说明: 为所有业务表添加逻辑删除字段
--- init.sql 只包含 deleted，需添加 deleted_time 和 deleted_by
+-- 说明: 为所有业务表添加逻辑删除字段（deleted_time / deleted_by）
+-- 幂等: init.sql 已包含这些列时自动跳过，可安全重复执行
 -- ========================================
 
 USE mes_db;
 
--- 工单表 wo_work_order
-ALTER TABLE wo_work_order 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+DROP PROCEDURE IF EXISTS mes_v2_add_column;
 
--- 报工记录表 wo_work_report
-ALTER TABLE wo_work_report 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+DELIMITER //
+CREATE PROCEDURE mes_v2_add_column(
+    IN tbl_name VARCHAR(64),
+    IN col_name VARCHAR(64),
+    IN col_def TEXT
+)
+BEGIN
+    DECLARE col_count INT DEFAULT 0;
+    SELECT COUNT(*) INTO col_count FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = tbl_name AND COLUMN_NAME = col_name;
+    IF col_count = 0 THEN
+        SET @sql_text = CONCAT('ALTER TABLE ', tbl_name, ' ADD COLUMN ', col_name, ' ', col_def);
+        PREPARE stmt FROM @sql_text;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        SELECT CONCAT('[OK] Added ', col_name, ' to ', tbl_name) AS result;
+    ELSE
+        SELECT CONCAT('[SKIP] ', col_name, ' already exists in ', tbl_name) AS result;
+    END IF;
+END //
+DELIMITER ;
 
--- 工艺模板表 proc_template
-ALTER TABLE proc_template 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('wo_work_order', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('wo_work_order', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 工艺参数表 proc_parameter
-ALTER TABLE proc_parameter 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('wo_work_report', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('wo_work_report', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 质检记录表 qms_quality_record
-ALTER TABLE qms_quality_record 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('proc_template', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('proc_template', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 追溯记录表 qms_traceability
-ALTER TABLE qms_traceability 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('proc_parameter', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('proc_parameter', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 设备状态表 dash_device_status
-ALTER TABLE dash_device_status 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('qms_quality_record', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('qms_quality_record', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 生产统计表 dash_production_stats
-ALTER TABLE dash_production_stats 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('qms_traceability', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('qms_traceability', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- OEE数据表 dash_oee_data
-ALTER TABLE dash_oee_data 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('dash_device_status', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('dash_device_status', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 工位表 mes_workstation
-ALTER TABLE mes_workstation 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('dash_production_stats', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('dash_production_stats', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
 
--- 生产线表 mes_production_line
-ALTER TABLE mes_production_line 
-ADD COLUMN deleted_time DATETIME COMMENT '删除时间',
-ADD COLUMN deleted_by BIGINT COMMENT '删除人ID';
+CALL mes_v2_add_column('dash_oee_data', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('dash_oee_data', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
+
+CALL mes_v2_add_column('mes_workstation', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('mes_workstation', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
+
+CALL mes_v2_add_column('mes_production_line', 'deleted_time', "DATETIME COMMENT '删除时间'");
+CALL mes_v2_add_column('mes_production_line', 'deleted_by',   "BIGINT COMMENT '删除人ID'");
+
+DROP PROCEDURE IF EXISTS mes_v2_add_column;

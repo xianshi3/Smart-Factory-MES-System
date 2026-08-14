@@ -58,8 +58,32 @@ DROP PROCEDURE IF EXISTS mes_add_column;
 -- =====================================================
 -- 4. 修复 sys_user uk_username -> (username, deleted)
 -- =====================================================
-ALTER TABLE sys_user DROP INDEX uk_username;
-ALTER TABLE sys_user ADD UNIQUE INDEX uk_username (username, deleted);
+DROP PROCEDURE IF EXISTS mes_v9_fix_username_uk;
+
+DELIMITER //
+CREATE PROCEDURE mes_v9_fix_username_uk()
+BEGIN
+    DECLARE cur_cols VARCHAR(255);
+    SELECT GROUP_CONCAT(s.COLUMN_NAME ORDER BY s.SEQ_IN_INDEX) INTO cur_cols
+    FROM INFORMATION_SCHEMA.STATISTICS s
+    WHERE s.TABLE_SCHEMA = DATABASE()
+      AND s.TABLE_NAME = 'sys_user'
+      AND s.INDEX_NAME = 'uk_username';
+    IF cur_cols IS NULL OR cur_cols <> 'username, deleted' THEN
+        IF cur_cols IS NOT NULL THEN
+            ALTER TABLE sys_user DROP INDEX uk_username;
+        END IF;
+        ALTER TABLE sys_user ADD UNIQUE INDEX uk_username (username, deleted);
+        SELECT '[OK] uk_username rebuilt to (username, deleted)' AS result;
+    ELSE
+        SELECT '[SKIP] uk_username already (username, deleted)' AS result;
+    END IF;
+END //
+DELIMITER ;
+
+CALL mes_v9_fix_username_uk();
+
+DROP PROCEDURE IF EXISTS mes_v9_fix_username_uk;
 
 -- =====================================================
 -- 5. 更新已有用户数据
@@ -90,9 +114,10 @@ VALUES
 UPDATE sys_role_permission SET sort = 0 WHERE sort IS NULL;
 
 -- =====================================================
--- 8. 统一所有用户密码为 admin123
+-- 8. 密码说明
+--    已移除"统一重置所有用户密码为 admin123"的语句（破坏性操作）。
+--    新库用户密码由 init.sql 种子数据决定；如需重置请逐个 UPDATE。
 -- =====================================================
-UPDATE sys_user SET password = '$2a$10$zvg7VZPssyWDl.OQ81XXy.hxth3VCA9GIiQXyxzCr2paPSfHQIemO' WHERE deleted = 0;
 
 -- =====================================================
 -- 9. 补充报警菜单入口
