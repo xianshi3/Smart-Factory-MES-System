@@ -139,6 +139,10 @@ class QualityPredictorService:
         features["pressure"] = pressure
         features["humidity"] = humidity if humidity is not None else 50.0
         features["vibration"] = vibration if vibration is not None else 0.5
+        # 模型输入缺省值（对应训练分布中位：运行时长 8h / 电流 12A / 功耗 300W）
+        features["runtime_hours"] = 8.0
+        features["current"] = 12.0
+        features["power_consumption"] = 300.0
         
         features["temp_normalized"] = (temperature - temp_mean) / temp_std
         features["speed_normalized"] = (speed - speed_mean) / speed_std

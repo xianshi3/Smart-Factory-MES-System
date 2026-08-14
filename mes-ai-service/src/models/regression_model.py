@@ -1,10 +1,13 @@
 """产量预测模型模块"""
 import os
 import pickle
+import logging
 import numpy as np
 import xgboost as xgb
 import onnxruntime as ort
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class ProductionPredictor:
@@ -27,22 +30,37 @@ class ProductionPredictor:
         self._is_onnx = False
         self._try_load(onnx_path)
 
+    def _resolve_path(self, path: str) -> str:
+        """相对路径基于 mes-ai-service 根目录解析，避免依赖进程工作目录"""
+        if os.path.isabs(path):
+            return path
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.normpath(os.path.join(base, path))
+
     def _try_load(self, path: Optional[str]):
-        if not path or not os.path.exists(path):
+        if not path:
+            logger.warning("未配置模型路径，将使用默认预测")
             return
-        try:
-            self._load_onnx(path)
-            return
-        except Exception:
-            pass
+        path = self._resolve_path(path)
+        if os.path.exists(path):
+            try:
+                self._load_onnx(path)
+                logger.info("ONNX 模型加载成功: %s", path)
+                return
+            except Exception:
+                logger.warning("ONNX 模型加载失败: %s", path)
+        else:
+            logger.warning("ONNX 模型文件不存在: %s，尝试 Pickle", path)
         pkl_path = path.replace(".onnx", ".pkl")
         if os.path.exists(pkl_path):
             try:
                 with open(pkl_path, "rb") as f:
                     self.model = pickle.load(f)
+                logger.info("Pickle 模型加载成功(onnx 缺失 fallback): %s", pkl_path)
                 return
             except Exception:
                 pass
+        logger.warning("模型加载失败: %s，将使用默认预测", path)
 
     def _load_onnx(self, path: str):
         self.onnx_session = ort.InferenceSession(path)
