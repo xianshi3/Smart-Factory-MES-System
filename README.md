@@ -227,18 +227,18 @@ Smart-Factory-MES-System/
 
 > **架构说明**：Docker 仅运行基础设施，Java 后端在宿主机直接运行，便于开发调试。
 >
-> **安全配置**：数据库密码默认 `123455`（可用 `MYSQL_ROOT_PASSWORD` 覆盖）；所有 Java 服务强制要求环境变量 `JWT_SECRET`（长度 ≥ 32，未设置则启动失败）。部署前请先复制 `.env.example` 为 `.env` 并按需修改：`JWT_SECRET` / `MYSQL_PASSWORD` / `INFLUXDB_TOKEN` / `ZHIPU_API_KEY` 等。
+> **安全配置**：数据库密码默认 `123455`（可用 `MYSQL_ROOT_PASSWORD` 覆盖）；所有 Java 服务强制要求 `JWT_SECRET`（长度 ≥ 32，未设置则启动失败）。本地开发只需复制 `.env.example` 为 `.env` 并填写 `JWT_SECRET`，服务会自动读取（IDE 直接启动即可）；生产环境请通过环境变量注入 `JWT_SECRET` / `MYSQL_PASSWORD` / `INFLUXDB_TOKEN` / `ZHIPU_API_KEY` 等。
 
 ### 一键启动（推荐）
 
 ```bash
-# ① 复制环境变量模板（修改 JWT_SECRET / 密码等）
-cp .env.example .env
+# ① 复制环境变量模板并设置 JWT_SECRET（服务自动读取 .env，IDE 直接启动即可）
+cp .env.example .env   # 然后编辑 .env 填入随机 JWT_SECRET（长度 >= 32）
 
 # ② 启动基础设施（MySQL / Redis / Kafka / EMQX）
 make docker
 
-# ③ 启动 Java 后端（自动编译，需已设置 JWT_SECRET）
+# ③ 启动 Java 后端（自动编译）
 make backend
 
 # ④ 启动 .NET 设备网关 + AI 服务 + 前端

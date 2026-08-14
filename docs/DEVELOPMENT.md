@@ -41,14 +41,17 @@ Smart-Factory-MES-System/
 
 敏感信息通过环境变量配置（不提交到git）。**所有 Java 服务启动强制要求 `JWT_SECRET`**（长度 ≥ 32 字符，且所有服务必须一致），未设置则启动失败。
 
+**本地开发（推荐）**：Java 服务已内置 `spring.config.import` 自动读取**项目根目录 `.env`**（`mes-ai-service/.env.local` 单独管理 AI 密钥），IDE 直接启动即可：
+
 ```bash
-# 方式一：复制根目录 .env.example 为 .env（docker compose 自动读取）
+# 复制模板为本地配置（.env 已被 .gitignore 忽略，不会入库）
 cp .env.example .env
 
-# 方式二：设置系统环境变量（Windows PowerShell）
-$env:JWT_SECRET = "your-jwt-secret-at-least-32-chars-long-change-me"
-$env:MYSQL_PASSWORD = "123455"
+# 编辑 .env，把 JWT_SECRET 改为随机值（长度 >= 32），所有服务自动生效
+# 例: JWT_SECRET=$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=')
 ```
+
+**生产/容器**：Docker Compose 或系统环境变量注入（优先级高于 .env）。
 
 | 环境变量 | 说明 | 默认值 |
 |----------|------|--------|
@@ -61,6 +64,7 @@ $env:MYSQL_PASSWORD = "123455"
 | `CORS_ALLOWED_ORIGINS` | 网关跨域白名单（逗号分隔） | `http://localhost:3000,http://localhost:5173` |
 
 > **安全提醒**：所有凭据均为开发默认值，生产部署必须通过环境变量覆盖（详见 `docs/CHANGELOG.md` v1.0.48）。
+> **旧容器升级**：若本地 MySQL 容器是旧密码（如 `root/root`），执行 `ALTER USER 'root'@'%' IDENTIFIED BY '123455';` 或重建容器，保持与 `.env` 一致。
 
 ---
 

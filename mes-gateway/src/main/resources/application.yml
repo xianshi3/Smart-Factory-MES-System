@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: mes-gateway
+  # 本地开发自动读取项目根目录 .env（git 已忽略，不入库）；Docker/生产用环境变量注入
+  config:
+    import: optional:file:./.env[.properties],optional:file:../.env[.properties]
   lifecycle:
     timeout-per-shutdown-phase: 30s
   cloud:
