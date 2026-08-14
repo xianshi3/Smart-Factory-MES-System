@@ -93,6 +93,19 @@ async def _run_sync(func, *args, **kwargs):
 def _create_conversation_sync(user_id: str, title: str) -> dict:
     conn = _get_conn()
     cur: Any = conn.cursor()
+    # 复用用户最新的"空对话"占位（无消息），避免反复新建导致列表膨胀
+    if title == "新对话":
+        cur.execute(
+            "SELECT c.id FROM ai_chat_conversations c "
+            "WHERE c.user_id = %s AND c.deleted = 0 "
+            "AND NOT EXISTS (SELECT 1 FROM ai_chat_messages m WHERE m.conversation_id = c.id) "
+            "ORDER BY c.create_time DESC LIMIT 1",
+            (user_id,),
+        )
+        row = cur.fetchone()  # type: ignore[assignment]
+        if row:
+            conn.close()
+            return _get_conversation_sync(row["id"])  # type: ignore[index,arg-type]
     conv_id = str(uuid.uuid4())
     cur.execute(
         "INSERT INTO ai_chat_conversations (id, user_id, title) VALUES (%s, %s, %s)",
@@ -187,8 +200,14 @@ def _update_title_sync(conv_id: str, title: str):
 
 def _delete_conversation_sync(conv_id: str):
     conn = _get_conn()
-    conn.cursor().execute(
+    cur = conn.cursor()
+    # 逻辑删除对话 + 级联物理清理其消息，避免残留数据无限膨胀
+    cur.execute(
         "UPDATE ai_chat_conversations SET deleted = 1 WHERE id = %s",
+        (conv_id,),
+    )
+    cur.execute(
+        "DELETE FROM ai_chat_messages WHERE conversation_id = %s",
         (conv_id,),
     )
     conn.close()

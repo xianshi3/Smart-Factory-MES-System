@@ -208,11 +208,13 @@ export const useAiChatStore = defineStore('aiChat', () => {
   }
 
   async function clearMessages() {
+    // 清空消息但保留当前对话（继续发送会回到同一对话），避免每次清空都新建一条记录
     messages.value = []
-    const ok = await newChat()
-    if (!ok) {
-      // 回退到本地空列表
-      currentId.value = null
+    if (!currentId.value) {
+      const ok = await newChat()
+      if (!ok) {
+        currentId.value = null
+      }
     }
   }
 

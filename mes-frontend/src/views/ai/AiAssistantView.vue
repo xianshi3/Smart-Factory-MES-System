@@ -46,6 +46,9 @@
           >
             <span class="conv-name">{{ conv.title }}</span>
             <span class="conv-time">{{ fmt(conv.updated_at) }}</span>
+            <button class="conv-del" title="删除对话" @click.stop="handleRemoveConversation(conv.id)">
+              <el-icon :size="11"><Close /></el-icon>
+            </button>
           </div>
           <div v-if="store.loadingList" class="conv-loading">
             <el-skeleton v-for="i in 3" :key="i" animated>
@@ -69,7 +72,7 @@
 import { ref, reactive, onMounted, markRaw } from 'vue'
 import type { Component } from 'vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
-import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { MagicStick, Monitor, Warning, Document, Notebook, TrendCharts, Setting, ArrowRight, DArrowLeft, DArrowRight, Close } from '@element-plus/icons-vue'
 import { useAiChatStore } from '@/stores/aiChat'
 
 const assistantRef = ref<InstanceType<typeof AiAssistant> | null>(null)
@@ -104,6 +107,10 @@ function fmt(iso: string): string {
   if (diff < 3600_000) return Math.floor(diff / 60_000) + 'm'
   if (diff < 86400_000) return Math.floor(diff / 3600_000) + 'h'
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
+
+async function handleRemoveConversation(id: string) {
+  await store.removeConversation(id)
 }
 
 onMounted(() => { store.loadList() })
@@ -200,6 +207,14 @@ onMounted(() => { store.loadList() })
 .conv-item.current .conv-name { color: var(--accent, #6366f1); font-weight: 500; }
 .conv-name { font-size: 12px; color: var(--text-primary, #f0f0f5); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conv-time { font-size: 10px; color: var(--text-muted, #505060); flex-shrink: 0; }
+.conv-del {
+  width: 18px; height: 18px; border-radius: 4px; border: none; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  background: transparent; color: var(--text-muted, #505060); flex-shrink: 0; padding: 0;
+}
+.conv-del:hover { background: rgba(239, 68, 68, 0.15); color: var(--danger, #ef4444); }
+.conv-item:hover .conv-del { display: inline-flex; }
+.conv-item.current .conv-del { display: inline-flex; }
 .conv-note { font-size: 11px; color: var(--text-muted, #505060); padding: 12px 8px; text-align: center; }
 
 /* ===== Collapse ===== */
