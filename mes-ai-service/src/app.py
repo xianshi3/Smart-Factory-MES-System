@@ -1,6 +1,7 @@
 """FastAPI 应用构建模块"""
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from src.security import verify_token
 from src.schemas.schemas import ModelStatusResponse
 from src.services.inference_service import InferenceService
 from src.services.feature_engineering import FeatureEngineering
@@ -42,6 +43,9 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # 除健康检查外，所有业务接口必须携带有效 JWT（与后端网关密钥一致）
+    auth_deps = [Depends(verify_token)]
+
     @app.get("/api/v1/health")
     async def health_check():
         return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
@@ -54,9 +58,9 @@ def create_app() -> FastAPI:
             last_trained=datetime.utcnow(),
         )
 
-    app.include_router(prediction_router)
-    app.include_router(llm_router)
-    app.include_router(analysis_router)
-    app.include_router(agent_router)
+    app.include_router(prediction_router, dependencies=auth_deps)
+    app.include_router(llm_router, dependencies=auth_deps)
+    app.include_router(analysis_router, dependencies=auth_deps)
+    app.include_router(agent_router, dependencies=auth_deps)
 
     return app

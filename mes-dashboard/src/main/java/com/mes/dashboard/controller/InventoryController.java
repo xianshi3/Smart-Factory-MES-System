@@ -3,6 +3,7 @@ package com.mes.dashboard.controller;
 import com.mes.common.entity.Inventory;
 import com.mes.common.entity.InventoryTransaction;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import com.mes.dashboard.service.BomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,9 +36,15 @@ public class InventoryController {
 
     @PostMapping("/adjust")
     @Operation(summary = "调整库存")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Inventory> adjust(@RequestBody Map<String, Object> params) {
-        Long inventoryId = Long.valueOf(params.get("inventoryId").toString());
-        BigDecimal quantity = new BigDecimal(params.get("quantity").toString());
+        Object inventoryIdValue = params.get("inventoryId");
+        Object quantityValue = params.get("quantity");
+        if (inventoryIdValue == null || quantityValue == null) {
+            return Result.fail(400, "参数缺失: inventoryId / quantity 不能为空");
+        }
+        Long inventoryId = Long.valueOf(inventoryIdValue.toString());
+        BigDecimal quantity = new BigDecimal(quantityValue.toString());
         String remark = (String) params.getOrDefault("remark", "");
         return Result.ok(bomService.adjustInventory(inventoryId, quantity, remark));
     }

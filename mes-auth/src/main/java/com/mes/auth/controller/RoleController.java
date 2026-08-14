@@ -9,6 +9,7 @@ import com.mes.common.mapper.PermissionMapper;
 import com.mes.common.mapper.RoleMapper;
 import com.mes.common.mapper.RolePermissionMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.PermissionService;
 import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ public class RoleController {
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
+    private final PermissionService permissionService;
 
     /**
      * 获取角色列表
@@ -40,49 +42,11 @@ public class RoleController {
     @GetMapping("/list")
     @Operation(summary = "获取角色列表")
     public Result<List<Role>> list() {
-        List<Role> roles;
-        try {
-            long count = roleMapper.selectCount(null);
-            if (count == 0) {
-                Role admin = new Role();
-                admin.setRoleName("超级管理员");
-                admin.setRoleCode("ADMIN");
-                admin.setDescription("拥有系统所有权限");
-                admin.setStatus(1);
-                roleMapper.insert(admin);
-                
-                Role manager = new Role();
-                manager.setRoleName("生产主管");
-                manager.setRoleCode("MANAGER");
-                manager.setDescription("负责生产管理相关权限");
-                manager.setStatus(1);
-                roleMapper.insert(manager);
-            }
-            
-            roles = roleMapper.selectList(
+        List<Role> roles = roleMapper.selectList(
                 new LambdaQueryWrapper<Role>()
-                    .eq(Role::getStatus, 1)
-            );
-            
-            for (Role role : roles) {
-                try {
-                    Long permCount = rolePermissionMapper.selectPermissionIdsByRoleId(role.getId()).stream().count();
-                    role.setDescription("权限数量: " + permCount);
-                } catch (Exception ex) {
-                    role.setDescription("权限数量: 0");
-                }
-            }
-        } catch (Exception e) {
-            roles = new ArrayList<>();
-            Role admin = new Role();
-            admin.setId(1L);
-            admin.setRoleName("超级管理员");
-            admin.setRoleCode("ADMIN");
-            admin.setDescription("拥有系统所有权限");
-            admin.setStatus(1);
-            roles.add(admin);
-        }
-        
+                        .eq(Role::getStatus, 1)
+                        .orderByAsc(Role::getSort)
+        );
         return Result.ok(roles);
     }
 
@@ -366,20 +330,18 @@ public class RoleController {
     }
 
     /**
-     * 分配权限给角色
+     * 分配权限给角色（失败时整体回滚，避免删除成功后插入失败造成数据不一致）
      */
     @PutMapping("/{id}/permissions")
     @Operation(summary = "分配权限给角色")
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> assignPermissions(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
-        try {
-            rolePermissionMapper.deleteByRoleId(id);
-            if (permissionIds != null && !permissionIds.isEmpty()) {
-                rolePermissionMapper.batchInsert(id, permissionIds);
-            }
-            return Result.ok();
-        } catch (Exception e) {
-            return Result.fail("分配权限失败: " + e.getMessage());
+        rolePermissionMapper.deleteByRoleId(id);
+        if (permissionIds != null && !permissionIds.isEmpty()) {
+            rolePermissionMapper.batchInsert(id, permissionIds);
         }
+        // 清除权限缓存，使变更立即生效（最长 5 分钟延迟改为即时）
+        permissionService.evictAll();
+        return Result.ok();
     }
 }

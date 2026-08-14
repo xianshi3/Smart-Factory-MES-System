@@ -4,10 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mes.auth.entity.User;
 import com.mes.auth.mapper.UserMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.PermissionService;
 import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +26,8 @@ import java.util.List;
 public class UserController {
 
     private final UserMapper userMapper;
+    private final PermissionService permissionService;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
      * 获取用户列表
@@ -63,6 +68,10 @@ public class UserController {
     @PostMapping
     @Operation(summary = "创建用户")
     public Result<Void> create(@RequestBody User user) {
+        if (!StringUtils.hasText(user.getPassword())) {
+            return Result.fail(400, "密码不能为空");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userMapper.insert(user);
         return Result.ok();
     }
@@ -74,6 +83,12 @@ public class UserController {
     @Operation(summary = "更新用户")
     public Result<Void> update(@PathVariable Long id, @RequestBody User user) {
         user.setId(id);
+        if (StringUtils.hasText(user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        } else {
+            // 未传密码时保持原密码不变
+            user.setPassword(null);
+        }
         userMapper.updateById(user);
         return Result.ok();
     }
@@ -98,6 +113,8 @@ public class UserController {
         if (existingUser != null) {
             existingUser.setRole(user.getRole());
             userMapper.updateById(existingUser);
+            // 角色变更后立即清除该用户的权限缓存
+            permissionService.evict(id);
         }
         return Result.ok();
     }

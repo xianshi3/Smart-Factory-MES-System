@@ -36,7 +36,7 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final ObjectProvider<TokenBlacklistChecker> blacklistCheckerProvider;
 
-    @Value("${mes.security.whitelist:/auth/login,/auth/register}")
+    @Value("${mes.security.whitelist:/auth/login,/auth/register,/actuator/}")
     private String whitelist;
 
     @Override
@@ -93,7 +93,14 @@ public class TokenAuthFilter extends OncePerRequestFilter {
             return false;
         }
         List<String> paths = Arrays.asList(whitelist.split(","));
-        return paths.stream().anyMatch(p -> uri.equals(p.trim()) || uri.startsWith(p.trim() + "/"));
+        return paths.stream().anyMatch(p -> {
+            String trim = p.trim();
+            // 末尾带 / 视为目录前缀匹配（如 /actuator/ 匹配 /actuator/health）
+            if (trim.endsWith("/")) {
+                return uri.startsWith(trim);
+            }
+            return uri.equals(trim) || uri.startsWith(trim + "/");
+        });
     }
 
     private void reject(HttpServletResponse response, String message) throws IOException {

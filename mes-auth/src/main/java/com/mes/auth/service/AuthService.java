@@ -64,21 +64,10 @@ public class AuthService implements TokenBlacklistChecker {
             throw new BizException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 验证密码
+        // 验证密码（统一使用 BCrypt，数据库不应存在明文密码）
         String storedPassword = user.getPassword();
         String inputPassword = dto.getPassword();
-        boolean matched = false;
-
-        if (storedPassword != null && storedPassword.startsWith("$2a$")) {
-            matched = passwordEncoder.matches(inputPassword, storedPassword);
-        } else if (storedPassword != null) {
-            // 临时：直接比较明文密码
-            matched = storedPassword.equals(inputPassword);
-            if (!matched) {
-                // 再尝试BCrypt（可能是旧的hash）
-                matched = passwordEncoder.matches(inputPassword, storedPassword);
-            }
-        }
+        boolean matched = storedPassword != null && passwordEncoder.matches(inputPassword, storedPassword);
 
         if (!matched) {
             log.warn("密码验证失败 - 用户名: {}", dto.getUsername());

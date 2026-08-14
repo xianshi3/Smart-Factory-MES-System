@@ -3,6 +3,7 @@ package com.mes.dashboard.controller;
 import com.mes.common.entity.Workstation;
 import com.mes.common.entity.ProductionLine;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import com.mes.dashboard.service.ProductionLineService;
 import com.mes.dashboard.service.WorkstationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,18 +36,21 @@ public class BaseDataController {
 
     @PostMapping("/production-line")
     @Operation(summary = "创建生产线")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<ProductionLine> createProductionLine(@RequestBody ProductionLine line) {
         return Result.ok(productionLineService.createProductionLine(line));
     }
 
     @PutMapping("/production-line")
     @Operation(summary = "更新生产线")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<ProductionLine> updateProductionLine(@RequestBody ProductionLine line) {
         return Result.ok(productionLineService.updateProductionLine(line));
     }
 
     @DeleteMapping("/production-line/{id}")
     @Operation(summary = "删除生产线")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> deleteProductionLine(@PathVariable Long id) {
         productionLineService.deleteProductionLine(id);
         return Result.ok();
@@ -66,18 +70,21 @@ public class BaseDataController {
 
     @PostMapping("/workstation")
     @Operation(summary = "创建工位")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Workstation> createWorkstation(@RequestBody Workstation station) {
         return Result.ok(workstationService.createWorkstation(station));
     }
 
     @PutMapping("/workstation")
     @Operation(summary = "更新工位")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Workstation> updateWorkstation(@RequestBody Workstation station) {
         return Result.ok(workstationService.updateWorkstation(station));
     }
 
     @DeleteMapping("/workstation/{id}")
     @Operation(summary = "删除工位")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> deleteWorkstation(@PathVariable Long id) {
         workstationService.deleteWorkstation(id);
         return Result.ok();

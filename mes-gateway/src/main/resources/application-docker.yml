@@ -51,15 +51,27 @@ spring:
             - Path=/api/ai/**
           filters:
             - StripPrefix=2
+        - id: mes-dashboard-ws
+          uri: ws://mes-dashboard:8085
+          predicates:
+            - Path=/api/ws/**
+          filters:
+            - StripPrefix=1
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
             allowedMethods: "*"
             allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,metrics

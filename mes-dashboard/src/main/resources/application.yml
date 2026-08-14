@@ -2,7 +2,7 @@ server:
   port: ${SERVER_PORT:8085}
   shutdown: graceful
   error:
-    include-message: always
+    include-message: never
   mvc:
     throw-exception-if-no-handler-found: true
   web:
@@ -19,7 +19,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/mes_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
     username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:root}
+    password: ${MYSQL_PASSWORD:123455}
     druid:
       initial-size: 5
       min-idle: 5
@@ -51,11 +51,16 @@ mybatis-plus:
 
 influxdb:
   # 设备历史遥测时序存储（默认连本机 docker-compose.dev.yml 的 InfluxDB，IDE 直接启动即可用）
-  # 如需覆盖: 设置环境变量 INFLUXDB_URL / INFLUXDB_TOKEN
+  # 覆盖方式: 设置环境变量 INFLUXDB_URL / INFLUXDB_TOKEN / INFLUXDB_ORG / INFLUXDB_BUCKET
+  # 注意: token 必须显式提供（生产环境严禁使用固定 token）
   url: ${INFLUXDB_URL:http://localhost:8086}
-  token: ${INFLUXDB_TOKEN:Y2FrwpCCgedJZv_aX6mFnKMrKegGEY0kFWlEqVquhIZOX5lCO_MnqJz_vNKGTJW6q6W6cekL8BO9SS8nv-8ZmQ==}
+  token: ${INFLUXDB_TOKEN:}
   org: ${INFLUXDB_ORG:mes}
   bucket: ${INFLUXDB_BUCKET:mes_metrics}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 knife4j:
   enable: true

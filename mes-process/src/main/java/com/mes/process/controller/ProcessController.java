@@ -2,6 +2,7 @@ package com.mes.process.controller;
 
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequirePermission;
 import com.mes.process.dto.CreateTemplateDTO;
 import com.mes.process.dto.ParameterCheckDTO;
 import com.mes.process.dto.ParameterDTO;
@@ -13,6 +14,7 @@ import com.mes.process.entity.ProcessTemplate;
 import com.mes.process.service.ProcessTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +29,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/process/template")
 @RequiredArgsConstructor
+@RequirePermission("process:view")
 public class ProcessController {
 
     private final ProcessTemplateService processTemplateService;
@@ -38,7 +41,8 @@ public class ProcessController {
      */
     @Operation(summary = "创建工艺模板")
     @PostMapping
-    public Result<Long> create(@RequestBody CreateTemplateDTO dto) {
+    @RequirePermission("process:create")
+    public Result<Long> create(@Valid @RequestBody CreateTemplateDTO dto) {
         Long id = processTemplateService.create(dto);
         return Result.ok(id);
     }
@@ -76,6 +80,7 @@ public class ProcessController {
      */
     @Operation(summary = "复制工艺模板")
     @PostMapping("/{id}/copy")
+    @RequirePermission("process:create")
     public Result<Long> copy(@PathVariable Long id) {
         return Result.ok(processTemplateService.copy(id));
     }
@@ -88,7 +93,8 @@ public class ProcessController {
      */
     @Operation(summary = "更新模板")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody CreateTemplateDTO dto) {
+    @RequirePermission("process:edit")
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody CreateTemplateDTO dto) {
         processTemplateService.updateTemplate(id, dto);
         return Result.ok();
     }
@@ -100,6 +106,7 @@ public class ProcessController {
      */
     @Operation(summary = "发布模板")
     @PostMapping("/{id}/publish")
+    @RequirePermission("process:edit")
     public Result<Void> publish(@PathVariable Long id) {
         processTemplateService.publish(id);
         return Result.ok();
@@ -131,13 +138,16 @@ public class ProcessController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword) {
+        // 防止 size 过大拖垮数据库
+        size = Math.min(Math.max(size, 1), 100);
         return Result.ok(processTemplateService.queryPage(current, size, status, keyword));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除工艺模板")
-    public Result<Void> delete(@PathVariable Long id,
-                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    @RequirePermission("process:delete")
+    public Result<Void> delete(@PathVariable Long id) {
+        Long userId = com.mes.common.security.UserContext.getUserId();
         return processTemplateService.delete(id, userId);
     }
 
@@ -151,6 +161,7 @@ public class ProcessController {
 
     @Operation(summary = "新增工艺参数")
     @PostMapping("/{id}/parameters")
+    @RequirePermission("process:edit")
     public Result<Long> addParameter(@PathVariable Long id, @RequestBody ParameterDTO dto) {
         dto.setTemplateId(id);
         return Result.ok(processTemplateService.addParameter(dto));
@@ -158,6 +169,7 @@ public class ProcessController {
 
     @Operation(summary = "更新工艺参数")
     @PutMapping("/parameters/{paramId}")
+    @RequirePermission("process:edit")
     public Result<Void> updateParameter(@PathVariable Long paramId, @RequestBody ParameterDTO dto) {
         processTemplateService.updateParameter(paramId, dto);
         return Result.ok();
@@ -165,6 +177,7 @@ public class ProcessController {
 
     @Operation(summary = "删除工艺参数")
     @DeleteMapping("/parameters/{paramId}")
+    @RequirePermission("process:delete")
     public Result<Void> deleteParameter(@PathVariable Long paramId) {
         processTemplateService.deleteParameter(paramId);
         return Result.ok();
@@ -180,6 +193,7 @@ public class ProcessController {
 
     @Operation(summary = "新增工序步骤")
     @PostMapping("/{id}/steps")
+    @RequirePermission("process:edit")
     public Result<Long> addStep(@PathVariable Long id, @RequestBody StepDTO dto) {
         dto.setTemplateId(id);
         return Result.ok(processTemplateService.addStep(dto));
@@ -187,6 +201,7 @@ public class ProcessController {
 
     @Operation(summary = "更新工序步骤")
     @PutMapping("/steps/{stepId}")
+    @RequirePermission("process:edit")
     public Result<Void> updateStep(@PathVariable Long stepId, @RequestBody StepDTO dto) {
         processTemplateService.updateStep(stepId, dto);
         return Result.ok();
@@ -194,6 +209,7 @@ public class ProcessController {
 
     @Operation(summary = "删除工序步骤")
     @DeleteMapping("/steps/{stepId}")
+    @RequirePermission("process:delete")
     public Result<Void> deleteStep(@PathVariable Long stepId) {
         processTemplateService.deleteStep(stepId);
         return Result.ok();

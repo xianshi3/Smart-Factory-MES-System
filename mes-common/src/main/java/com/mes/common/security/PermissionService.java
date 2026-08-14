@@ -90,6 +90,13 @@ public class PermissionService {
         }
     }
 
+    /**
+     * 清理全部权限缓存（角色权限批量分配/权限码增删后调用）
+     */
+    public void evictAll() {
+        cache.clear();
+    }
+
     private Set<String> loadFromDb(Long userId) {
         try {
             SysUserAuth user = sysUserAuthMapper.selectById(userId);

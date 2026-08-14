@@ -6,6 +6,7 @@ import com.mes.dashboard.entity.OeeData;
 import com.mes.dashboard.entity.ProductionStats;
 import com.mes.dashboard.service.DashboardService;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class DashboardController {
 
     @Operation(summary = "设备模拟数据")
     @PostMapping("/device/simulate")
+    @RequirePermission("device:control")
     public Result<Void> simulateDevice(@RequestBody DeviceStatus device) {
         dashboardService.saveDeviceData(device);
         return Result.ok();
@@ -33,6 +35,7 @@ public class DashboardController {
 
     @Operation(summary = "创建设备")
     @PostMapping("/device")
+    @RequirePermission("device:control")
     public Result<DeviceStatus> createDevice(@RequestBody DeviceStatus device) {
         dashboardService.createDevice(device);
         return Result.ok(device);
@@ -40,6 +43,7 @@ public class DashboardController {
 
     @Operation(summary = "批量创建设备")
     @PostMapping("/device/batch")
+    @RequirePermission("device:control")
     public Result<Integer> createDevicesBatch(@RequestBody List<DeviceStatus> devices) {
         int created = 0;
         if (devices != null) {
@@ -58,6 +62,7 @@ public class DashboardController {
 
     @Operation(summary = "删除设备")
     @DeleteMapping("/device/{deviceCode}")
+    @RequirePermission("device:control")
     public Result<Void> deleteDevice(@PathVariable String deviceCode) {
         dashboardService.deleteDeviceByCode(deviceCode);
         return Result.ok();
@@ -65,6 +70,7 @@ public class DashboardController {
 
     @Operation(summary = "清空所有设备")
     @DeleteMapping("/devices/all")
+    @RequirePermission("device:control")
     public Result<Void> deleteAllDevices() {
         dashboardService.deleteAllDevices();
         return Result.ok();
@@ -72,6 +78,7 @@ public class DashboardController {
 
     @Operation(summary = "更新设备")
     @PutMapping("/device")
+    @RequirePermission("device:control")
     public Result<DeviceStatus> updateDevice(@RequestBody DeviceStatus device) {
         dashboardService.updateDevice(device);
         return Result.ok(device);
@@ -104,7 +111,9 @@ public class DashboardController {
     @Operation(summary = "趋势数据")
     @GetMapping("/trend")
     public Result<Map<String, Object>> getTrendData(@RequestParam(defaultValue = "7") int days) {
-        return Result.ok(dashboardService.getTrendData(days));
+        // 限制查询窗口，防止超大 days 导致 N+1 循环查询
+        int safeDays = Math.min(Math.max(days, 1), 366);
+        return Result.ok(dashboardService.getTrendData(safeDays));
     }
 
     @Operation(summary = "告警设备列表")
@@ -115,6 +124,7 @@ public class DashboardController {
 
     @Operation(summary = "启动设备")
     @PostMapping("/device/{deviceId}/start")
+    @RequirePermission("device:control")
     public Result<Void> startDevice(@PathVariable Long deviceId) {
         dashboardService.startDevice(deviceId);
         return Result.ok();
@@ -122,6 +132,7 @@ public class DashboardController {
 
     @Operation(summary = "停止设备")
     @PostMapping("/device/{deviceId}/stop")
+    @RequirePermission("device:control")
     public Result<Void> stopDevice(@PathVariable Long deviceId) {
         dashboardService.stopDevice(deviceId);
         return Result.ok();
@@ -129,6 +140,7 @@ public class DashboardController {
 
     @Operation(summary = "设备控制")
     @PostMapping("/device/{deviceId}/control")
+    @RequirePermission("device:control")
     public Result<Void> controlDevice(@PathVariable Long deviceId, @RequestParam String action) {
         if ("start".equals(action)) {
             dashboardService.startDevice(deviceId);

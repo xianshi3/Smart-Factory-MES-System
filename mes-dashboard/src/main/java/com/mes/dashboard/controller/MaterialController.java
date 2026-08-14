@@ -2,6 +2,7 @@ package com.mes.dashboard.controller;
 
 import com.mes.common.entity.Material;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import com.mes.dashboard.service.BomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,18 +45,21 @@ public class MaterialController {
 
     @PostMapping
     @Operation(summary = "创建物料")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Material> create(@RequestBody Material material) {
         return Result.ok(bomService.createMaterial(material));
     }
 
     @PutMapping
     @Operation(summary = "更新物料")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Material> update(@RequestBody Material material) {
         return Result.ok(bomService.updateMaterial(material));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除物料")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> delete(@PathVariable Long id) {
         bomService.deleteMaterial(id);
         return Result.ok();

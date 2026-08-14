@@ -3,6 +3,7 @@ package com.mes.dashboard.controller;
 import com.mes.common.entity.Bom;
 import com.mes.common.entity.BomItem;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import com.mes.dashboard.service.BomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,18 +43,21 @@ public class BomController {
 
     @PostMapping
     @Operation(summary = "创建BOM")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Bom> create(@RequestBody Bom bom) {
         return Result.ok(bomService.createBom(bom));
     }
 
     @PutMapping
     @Operation(summary = "更新BOM")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Bom> update(@RequestBody Bom bom) {
         return Result.ok(bomService.updateBom(bom));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除BOM")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> delete(@PathVariable Long id) {
         bomService.deleteBom(id);
         return Result.ok();
@@ -61,6 +65,7 @@ public class BomController {
 
     @PostMapping("/{id}/validate")
     @Operation(summary = "验证BOM")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> validate(@PathVariable Long id) {
         bomService.validateBom(id);
         return Result.ok();
@@ -74,18 +79,21 @@ public class BomController {
 
     @PostMapping("/{bomId}/item")
     @Operation(summary = "添加BOM行项")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<BomItem> createItem(@RequestBody BomItem bomItem) {
         return Result.ok(bomService.createBomItem(bomItem));
     }
 
     @PutMapping("/{bomId}/item")
     @Operation(summary = "更新BOM行项")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<BomItem> updateItem(@RequestBody BomItem bomItem) {
         return Result.ok(bomService.updateBomItem(bomItem));
     }
 
     @DeleteMapping("/{bomId}/item/{id}")
     @Operation(summary = "删除BOM行项")
+    @RequireRole({"ADMIN", "MANAGER"})
     public Result<Void> deleteItem(@PathVariable Long id) {
         bomService.deleteBomItem(id);
         return Result.ok();

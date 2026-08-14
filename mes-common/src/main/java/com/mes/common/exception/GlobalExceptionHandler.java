@@ -193,23 +193,13 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理系统异常
+     * 处理系统异常（内部细节仅记录日志，不返回客户端，防止泄露 SQL/连接串等）
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e, HttpServletRequest request) {
         log.error("系统异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
-        
-        String message = "系统内部错误";
-        Throwable cause = e.getCause();
-        if (cause != null) {
-            String causeMessage = cause.getMessage();
-            if (causeMessage != null && causeMessage.length() > 0) {
-                message = causeMessage.length() > 100 ? causeMessage.substring(0, 100) : causeMessage;
-            }
-        }
-        
-        return Result.fail(500, message);
+        return Result.fail(500, "系统内部错误，请稍后重试或联系管理员");
     }
 
     /**

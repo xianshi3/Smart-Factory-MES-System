@@ -29,7 +29,7 @@ DB_CONFIG = {
     "host": os.getenv("MYSQL_HOST", _db_config.get("host", "localhost")),
     "port": int(os.getenv("MYSQL_PORT", _db_config.get("port", 3306))),
     "user": os.getenv("MYSQL_USERNAME", _db_config.get("username", "root")),
-    "password": os.getenv("MYSQL_PASSWORD", _db_config.get("password", "root")),
+    "password": os.getenv("MYSQL_PASSWORD", _db_config.get("password", "123455")),
     "database": os.getenv("MYSQL_DATABASE", _db_config.get("database", "mes_db")),
     "charset": "utf8mb4",
     "cursorclass": pymysql.cursors.DictCursor,

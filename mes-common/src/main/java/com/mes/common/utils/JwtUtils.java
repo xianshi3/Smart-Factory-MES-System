@@ -3,6 +3,7 @@ package com.mes.common.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,12 +19,28 @@ import java.util.Map;
 @Component
 public class JwtUtils {
 
-    @Value("${jwt.secret:SmartFactoryMES2024SecretKeyForJWTTokenGeneration!}")
+    /** 最小密钥长度（HS256 要求 >= 32 字节） */
+    private static final int MIN_SECRET_LENGTH = 32;
+
+    @Value("${jwt.secret:}")
     private String secret;
 
     /** 过期时间（毫秒），默认24小时 */
     @Value("${jwt.expiration:86400000}")
     private long expiration;
+
+    /**
+     * 启动校验：拒绝空密钥/过短密钥，防止使用公开默认值运行。
+     * 部署时必须在环境变量或配置中提供 JWT_SECRET（>= 32 字符）。
+     */
+    @PostConstruct
+    public void validateSecret() {
+        if (secret == null || secret.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                    "JWT 签名密钥未配置或过短: 请设置环境变量 JWT_SECRET（长度 >= " + MIN_SECRET_LENGTH
+                            + "），禁止使用代码内默认密钥启动服务");
+        }
+    }
 
     /**
      * 获取密钥对象

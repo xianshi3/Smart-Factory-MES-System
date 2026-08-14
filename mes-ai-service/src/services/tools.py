@@ -37,8 +37,10 @@ TOOL_META: Dict[str, Dict[str, Any]] = {
 
 
 def _safe_request(method: str, url: str, **kwargs) -> Dict[str, Any]:
-    """统一 HTTP 调用 — 超时与错误规范化，绝不抛异常到编排层"""
+    """统一 HTTP 调用 — 超时与错误规范化，绝不抛异常到编排层。
+    透传当前用户 JWT，保证调用后端接口时通过鉴权。"""
     kwargs.setdefault("timeout", _HTTP_TIMEOUT)
+    _attach_auth(kwargs)
     try:
         with httpx.Client(trust_env=False) as client:
             resp = client.request(method, url, **kwargs)
@@ -51,6 +53,7 @@ def _safe_request(method: str, url: str, **kwargs) -> Dict[str, Any]:
 
 async def _safe_request_async(method: str, url: str, **kwargs) -> Dict[str, Any]:
     kwargs.setdefault("timeout", _HTTP_TIMEOUT)
+    _attach_auth(kwargs)
     try:
         async with httpx.AsyncClient(trust_env=False) as client:
             resp = await client.request(method, url, **kwargs)
@@ -59,6 +62,19 @@ async def _safe_request_async(method: str, url: str, **kwargs) -> Dict[str, Any]
     except Exception as e:
         logger.warning(f"工具请求失败 {method} {url}: {e}")
         return {"success": False, "error": f"后端服务不可用或响应异常: {e}", "data": None}
+
+
+def _attach_auth(kwargs: Dict[str, Any]) -> None:
+    """如当前请求上下文中存在用户 JWT，则附加 Authorization 头"""
+    try:
+        from src.security import get_token
+        token = get_token()
+        if token:
+            headers = dict(kwargs.get("headers") or {})
+            headers.setdefault("Authorization", f"Bearer {token}")
+            kwargs["headers"] = headers
+    except Exception as e:
+        logger.debug(f"附加 JWT 头失败（非致命）: {e}")
 
 
 TOOL_DEFINITIONS = [

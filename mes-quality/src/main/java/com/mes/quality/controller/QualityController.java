@@ -2,6 +2,7 @@ package com.mes.quality.controller;
 
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequirePermission;
 import com.mes.quality.dto.CreateQualityRecordDTO;
 import com.mes.quality.dto.TraceDetailVO;
 import com.mes.quality.dto.TraceQueryDTO;
@@ -10,6 +11,7 @@ import com.mes.quality.entity.Traceability;
 import com.mes.quality.service.QualityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,7 @@ import java.util.List;
 @RequestMapping("/quality")
 @RequiredArgsConstructor
 @Tag(name = "质量管理", description = "质检记录与追溯管理接口")
+@RequirePermission("quality:view")
 public class QualityController {
 
     private final QualityService qualityService;
@@ -35,7 +38,8 @@ public class QualityController {
      */
     @PostMapping("/record")
     @Operation(summary = "创建质检记录")
-    public Result<Long> createRecord(@RequestBody CreateQualityRecordDTO dto) {
+    @RequirePermission("quality:create")
+    public Result<Long> createRecord(@Valid @RequestBody CreateQualityRecordDTO dto) {
         return Result.ok(qualityService.createRecord(dto));
     }
 
@@ -46,8 +50,9 @@ public class QualityController {
      */
     @DeleteMapping("/record/{id}")
     @Operation(summary = "删除质检记录")
-    public Result<Void> deleteRecord(@PathVariable Long id,
-                                   @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    @RequirePermission("quality:delete")
+    public Result<Void> deleteRecord(@PathVariable Long id) {
+        Long userId = com.mes.common.security.UserContext.getUserId();
         qualityService.deleteRecord(id, userId);
         return Result.ok();
     }
@@ -70,6 +75,7 @@ public class QualityController {
      */
     @PostMapping("/record/{id}/pass")
     @Operation(summary = "质检通过")
+    @RequirePermission("quality:create")
     public Result<Void> pass(@PathVariable Long id) {
         qualityService.pass(id);
         return Result.ok();
@@ -83,6 +89,7 @@ public class QualityController {
      */
     @PostMapping("/record/{id}/fail")
     @Operation(summary = "质检不通过")
+    @RequirePermission("quality:create")
     public Result<Void> fail(@PathVariable Long id, @RequestParam String reason) {
         qualityService.fail(id, reason);
         return Result.ok();
@@ -127,6 +134,8 @@ public class QualityController {
             @RequestParam(required = false) String checkType,
             @RequestParam(required = false) String result,
             @RequestParam(required = false) String keyword) {
+        // 防止 size 过大拖垮数据库
+        size = Math.min(Math.max(size, 1), 100);
         return Result.ok(qualityService.queryPage(current, size, checkType, result, keyword));
     }
 }

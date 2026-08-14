@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mes.common.entity.Permission;
 import com.mes.common.mapper.PermissionMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.PermissionService;
 import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,7 @@ import java.util.List;
 public class PermissionController {
 
     private final PermissionMapper permissionMapper;
+    private final PermissionService permissionService;
 
     /**
      * 获取所有权限列表
@@ -44,6 +46,7 @@ public class PermissionController {
     @Operation(summary = "创建权限")
     public Result<Void> create(@RequestBody Permission permission) {
         permissionMapper.insert(permission);
+        permissionService.evictAll();
         return Result.ok();
     }
 
@@ -54,6 +57,7 @@ public class PermissionController {
     @Operation(summary = "更新权限")
     public Result<Void> update(@RequestBody Permission permission) {
         permissionMapper.updateById(permission);
+        permissionService.evictAll();
         return Result.ok();
     }
 
@@ -64,6 +68,7 @@ public class PermissionController {
     @Operation(summary = "删除权限")
     public Result<Void> delete(@PathVariable Long id) {
         permissionMapper.deleteById(id);
+        permissionService.evictAll();
         return Result.ok();
     }
 }
