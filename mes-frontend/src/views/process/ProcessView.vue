@@ -150,7 +150,7 @@
           <el-table-column label="范围" min-width="120">
             <template #default="{ row }">{{ row.minValue ?? '-' }} ~ {{ row.maxValue ?? '-' }} {{ row.unit || '' }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="110" v-if="detailEditable">
+          <el-table-column v-if="detailEditable" label="操作" width="110">
             <template #default="{ row }">
               <el-button size="small" link type="primary" @click="openParamDialog(row)">编辑</el-button>
               <el-button size="small" link type="danger" @click="handleDeleteParam(row)">删除</el-button>
@@ -171,7 +171,7 @@
           <el-table-column prop="stepName" label="工序名称" width="140" />
           <el-table-column prop="stepDesc" label="描述" min-width="160" />
           <el-table-column prop="durationMin" label="工时(分)" width="80" />
-          <el-table-column label="操作" width="110" v-if="detailEditable">
+          <el-table-column v-if="detailEditable" label="操作" width="110">
             <template #default="{ row }">
               <el-button size="small" link type="primary" @click="openStepDialog(row)">编辑</el-button>
               <el-button size="small" link type="danger" @click="handleDeleteStep(row)">删除</el-button>
@@ -217,10 +217,10 @@
     </el-dialog>
 
     <el-dialog v-model="checkVisible" title="参数校验" width="560px">
-      <el-form :model="checkForm" label-width="140px" v-if="checkParams.length">
+      <el-form v-if="checkParams.length" :model="checkForm" label-width="140px">
         <el-form-item v-for="p in checkParams" :key="p.paramCode" :label="`${p.paramName} (${p.unit || '无量纲'})`">
           <el-input-number v-model="checkForm[p.paramCode]" :min="0" style="width: 100%" />
-          <div class="form-hint" v-if="p.minValue != null || p.maxValue != null">范围: {{ p.minValue ?? '-' }} ~ {{ p.maxValue ?? '-' }}</div>
+          <div v-if="p.minValue != null || p.maxValue != null" class="form-hint">范围: {{ p.minValue ?? '-' }} ~ {{ p.maxValue ?? '-' }}</div>
         </el-form-item>
       </el-form>
       <div v-if="checkResult" class="check-result">
@@ -250,7 +250,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getTemplatePage, createTemplate, updateTemplate, publishTemplate, deleteTemplate,
-  getTemplateDetailInfo, copyTemplate,
+  getTemplateDetailInfo, copyTemplate, getTemplateParameters,
   addTemplateParameter, updateTemplateParameter, deleteTemplateParameter,
   addTemplateStep, updateTemplateStep, deleteTemplateStep,
   checkParameters,

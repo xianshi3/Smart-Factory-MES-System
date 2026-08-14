@@ -249,7 +249,6 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(timeInterval)
   wsUnsubscribe?.()
-  wsService.disconnect()
 })
 
 watch(() => themeStore.isDark, () => {

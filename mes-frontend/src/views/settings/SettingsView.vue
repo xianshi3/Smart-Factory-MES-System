@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <div class="settings-content" v-loading="loading">
+    <div v-loading="loading" class="settings-content">
       <!-- 外观设置 -->
       <div class="settings-section">
         <div class="section-title">

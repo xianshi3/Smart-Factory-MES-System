@@ -1,20 +1,39 @@
 import { ref, onUnmounted } from 'vue'
+import { getToken } from './auth'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8085/ws/dashboard'
+/**
+ * WebSocket 地址推导：
+ * 1. 优先使用 VITE_WS_URL（生产环境显式配置）；
+ * 2. 否则走网关同源 WebSocket 端点（与 HTTP 同源，自动带 token）。
+ */
+function resolveWsUrl(): string {
+  const configured = import.meta.env.VITE_WS_URL as string | undefined
+  if (configured) return configured
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const host = window.location.host || 'localhost:9090'
+  const base = `${proto}://${host}/api/ws/dashboard`
+  const token = getToken()
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base
+}
 
 class WebSocketService {
   private ws: WebSocket | null = null
   private reconnectTimer: number | null = null
   private messageHandlers: ((data: any) => void)[] = []
   private intentionalDisconnect = false
+  /** 订阅者引用计数：所有订阅者退出后才真正断开 */
+  private refCount = 0
   private connected = ref(false)
 
   connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) return
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) return
+
+    this.refCount = Math.max(this.refCount, 1)
+    if (this.ws) return
 
     try {
       this.intentionalDisconnect = false
-      this.ws = new WebSocket(WS_URL)
+      this.ws = new WebSocket(resolveWsUrl())
 
       this.ws.onopen = () => {
         this.connected.value = true
@@ -34,13 +53,16 @@ class WebSocketService {
       this.ws.onclose = () => {
         this.connected.value = false
         wsConnected.value = false
-        if (!this.intentionalDisconnect) {
+        this.ws = null
+        if (!this.intentionalDisconnect && this.refCount > 0) {
           this.scheduleReconnect(5000)
         }
       }
 
       this.ws.onerror = () => {
-        this.scheduleReconnect(5000)
+        if (this.refCount > 0) {
+          this.scheduleReconnect(5000)
+        }
       }
     } catch {
       this.scheduleReconnect(5000)
@@ -58,9 +80,14 @@ class WebSocketService {
 
   subscribe(handler: (data: any) => void) {
     this.messageHandlers.push(handler)
+    this.refCount++
     return () => {
       const index = this.messageHandlers.indexOf(handler)
       if (index > -1) this.messageHandlers.splice(index, 1)
+      this.refCount = Math.max(0, this.refCount - 1)
+      if (this.refCount === 0) {
+        this.disconnect()
+      }
     }
   }
 
@@ -71,6 +98,7 @@ class WebSocketService {
   }
 
   disconnect() {
+    this.refCount = 0
     this.intentionalDisconnect = true
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
@@ -99,8 +127,7 @@ export function useWebSocket(onMessage: (data: any) => void) {
   return {
     connect: () => wsService.connect(),
     disconnect: () => {
-      wsConnected.value = false
-      wsService.disconnect()
+      unsubscribe()
     }
   }
 }

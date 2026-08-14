@@ -41,33 +41,33 @@ export function getTrendData(days: number) {
 }
 
 export function getProductionLineList() {
-  return request({ url: '/api/dashboard/production-line/list', method: 'get' })
+  return request({ url: '/dashboard/production-line/list', method: 'get' })
 }
 
 export function createProductionLine(data: any) {
-  return request({ url: '/api/dashboard/production-line', method: 'post', data })
+  return request({ url: '/dashboard/production-line', method: 'post', data })
 }
 
 export function updateProductionLine(data: any) {
-  return request({ url: '/api/dashboard/production-line', method: 'put', data })
+  return request({ url: '/dashboard/production-line', method: 'put', data })
 }
 
 export function deleteProductionLine(id: number) {
-  return request({ url: `/api/dashboard/production-line/${id}`, method: 'delete' })
+  return request({ url: `/dashboard/production-line/${id}`, method: 'delete' })
 }
 
 export function getWorkstationList() {
-  return request({ url: '/api/dashboard/workstation/list', method: 'get' })
+  return request({ url: '/dashboard/workstation/list', method: 'get' })
 }
 
 export function createWorkstation(data: any) {
-  return request({ url: '/api/dashboard/workstation', method: 'post', data })
+  return request({ url: '/dashboard/workstation', method: 'post', data })
 }
 
 export function updateWorkstation(data: any) {
-  return request({ url: '/api/dashboard/workstation', method: 'put', data })
+  return request({ url: '/dashboard/workstation', method: 'put', data })
 }
 
 export function deleteWorkstation(id: number) {
-  return request({ url: `/api/dashboard/workstation/${id}`, method: 'delete' })
+  return request({ url: `/dashboard/workstation/${id}`, method: 'delete' })
 }

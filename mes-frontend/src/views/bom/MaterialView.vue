@@ -104,7 +104,7 @@ function unitLabel(v: string) { const m: Record<string, string> = { pcs: '个', 
 async function loadData() {
   loading.value = true
   try {
-    const res = await request({ url: '/api/dashboard/material/list', method: 'get', params: { ...searchForm, page: pagination.page, size: pagination.size } })
+    const res = await request({ url: '/dashboard/material/list', method: 'get', params: { ...searchForm, page: pagination.page, size: pagination.size } })
     const d = res?.data || res || []
     tableData.value = d.records || d || []
     pagination.total = d.total || 0
@@ -122,8 +122,8 @@ function handleEdit(row: any) { Object.assign(form, { ...row }); dialogVisible.v
 async function handleSubmit() {
   saving.value = true
   try {
-    if (form.id) { await request({ url: `/api/dashboard/material/${form.id}`, method: 'put', data: form }); ElMessage.success('更新成功') }
-    else { await request({ url: '/api/dashboard/material', method: 'post', data: form }); ElMessage.success('创建成功') }
+    if (form.id) { await request({ url: `/dashboard/material/${form.id}`, method: 'put', data: form }); ElMessage.success('更新成功') }
+    else { await request({ url: '/dashboard/material', method: 'post', data: form }); ElMessage.success('创建成功') }
     dialogVisible.value = false; loadData()
   } catch (e: any) { ElMessage.error(e?.message || '保存失败') }
   finally { saving.value = false }
@@ -131,7 +131,7 @@ async function handleSubmit() {
 
 function handleDelete(row: any) {
   ElMessageBox.confirm('确认删除「' + row.materialName + '」？', '删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
-    .then(async () => { try { await request({ url: `/api/dashboard/material/${row.id}`, method: 'delete' }); ElMessage.success('已删除'); loadData() } catch { ElMessage.error('删除失败') } }).catch(() => {})
+    .then(async () => { try { await request({ url: `/dashboard/material/${row.id}`, method: 'delete' }); ElMessage.success('已删除'); loadData() } catch { ElMessage.error('删除失败') } }).catch(() => {})
 }
 
 function handleInventory() { ElMessage.info('库存管理功能开发中') }

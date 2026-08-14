@@ -266,13 +266,13 @@
             <span>⚡ {{ detailData?.power ?? '--' }} kW</span>
             <span>📊 {{ detailData?.utilization || '0%' }}</span>
           </div>
-          <div class="ai-dc-actions" v-if="!quickType">
+          <div v-if="!quickType" class="ai-dc-actions">
             <el-button size="small" @click="handleSPCAnalysis"><el-icon><Histogram /></el-icon> SPC分析</el-button>
             <el-button size="small" @click="handleEnergyOptimization"><el-icon><Lightning /></el-icon> 能耗优化</el-button>
             <el-button size="small" @click="handleCapacityPrediction"><el-icon><TrendCharts /></el-icon> 产能预测</el-button>
             <el-button size="small" type="primary" @click="handleLLMChat"><el-icon><ChatLineRound /></el-icon> AI建议</el-button>
           </div>
-          <div class="ai-dc-actions" v-else>
+          <div v-else class="ai-dc-actions">
             <el-button size="small" type="primary" @click="handleQuickAnalysis">{{ quickBtn.cta }}</el-button>
           </div>
         </div>
@@ -302,11 +302,11 @@
                 <div><label>标准差</label><span>{{ aiAnalysisResult.statistics?.std }}</span></div>
                 <div><label>稳定性</label><span>{{ ((aiAnalysisResult.stability || 0) * 100).toFixed(0) }}%</span></div>
               </div>
-              <div class="ai-spec-line" v-if="aiAnalysisResult.specification">
+              <div v-if="aiAnalysisResult.specification" class="ai-spec-line">
                 规格限 <b>LSL {{ aiAnalysisResult.specification.lsl }}</b> / 目标 {{ aiAnalysisResult.specification.target }} / <b>USL {{ aiAnalysisResult.specification.usl }}</b>
                 <em>{{ aiAnalysisResult.spec_source }}</em>
-                <span class="ai-spec-normal" v-if="aiAnalysisResult.statistics?.normal_distribution">✓ 正态</span>
-                <span class="ai-spec-nonormal" v-else>✗ 非正态 (偏度{{ aiAnalysisResult.statistics?.skewness }})</span>
+                <span v-if="aiAnalysisResult.statistics?.normal_distribution" class="ai-spec-normal">✓ 正态</span>
+                <span v-else class="ai-spec-nonormal">✗ 非正态 (偏度{{ aiAnalysisResult.statistics?.skewness }})</span>
               </div>
 
               <!-- SVG 控制图 -->
@@ -329,7 +329,7 @@
 
               <!-- 直方图 -->
               <div class="ai-sec-title">分布直方图</div>
-              <div class="ai-histogram" v-if="aiAnalysisResult.histogram">
+              <div v-if="aiAnalysisResult.histogram" class="ai-histogram">
                 <div v-for="(b, i) in aiAnalysisResult.histogram" :key="i" class="ai-hist-bar" :title="b.range + ':' + b.count + '个'">
                   <div class="ai-hist-col" :style="{ height: Math.max(6, b.count / spcHistMax * 60) + 'px' }"></div>
                   <span>{{ b.count }}</span>
@@ -345,7 +345,7 @@
                   <span class="ai-we-desc">{{ r.desc }}</span>
                 </div>
               </div>
-              <div class="ai-we-hit" v-if="aiAnalysisResult.rules_violated?.length">
+              <div v-if="aiAnalysisResult.rules_violated?.length" class="ai-we-hit">
                 <div v-for="h in aiAnalysisResult.rules_violated" :key="h.id" class="ai-we-hit-item">⚠ {{ h.id }} {{ h.name }} — {{ h.detail }}</div>
               </div>
 
@@ -356,7 +356,7 @@
               </ul>
 
               <!-- 抽样计划 -->
-              <div class="ai-sampling" v-if="aiAnalysisResult.sampling_plan">
+              <div v-if="aiAnalysisResult.sampling_plan" class="ai-sampling">
                 <div class="ai-sec-title">监控抽样计划</div>
                 <el-tag v-for="(v, k) in aiAnalysisResult.sampling_plan" :key="k" size="small" effect="plain" style="margin:2px">{{ { frequency:'频率', subgroup_size:'子组', trigger:'触发条件' }[k] }}: {{ v }}</el-tag>
               </div>
@@ -366,7 +366,7 @@
 
         <template v-else-if="currentAnalysisType === 'energy'">
           <div class="ai-result-card">
-            <div class="ai-rc-head warning">能耗优化分析 <span class="ai-rc-src" v-if="aiAnalysisResult.data_source === 'mysql_realtime'">· 实时遥测数据</span><span class="ai-rc-src" v-else>· 请求参数估算</span></div>
+            <div class="ai-rc-head warning">能耗优化分析 <span v-if="aiAnalysisResult.data_source === 'mysql_realtime'" class="ai-rc-src">· 实时遥测数据</span><span v-else class="ai-rc-src">· 请求参数估算</span></div>
             <div class="ai-rc-body">
               <!-- KPI 四宫格 -->
               <div class="ai-kpi-grid">
@@ -375,13 +375,13 @@
                 <div class="ai-kpi-cell"><span class="kpi-val">¥{{ aiAnalysisResult.kpis?.monthly_savings_cost ?? aiAnalysisResult.estimated_monthly_savings_cost ?? '--' }}</span><small>月省成本</small></div>
                 <div class="ai-kpi-cell"><span class="kpi-val">{{ aiAnalysisResult.kpis?.co2_reduction_kg ?? '--' }} kg</span><small>CO₂减排/月</small></div>
               </div>
-              <div class="ai-kpi-sub" v-if="aiAnalysisResult.baseline">
+              <div v-if="aiAnalysisResult.baseline" class="ai-kpi-sub">
                 基线 {{ aiAnalysisResult.baseline.monthly_baseline_kwh }} kWh/月 · 负载率 {{ (aiAnalysisResult.baseline.load_factor * 100).toFixed(0) }}% · 单位能耗 {{ aiAnalysisResult.baseline.specific_energy_before }} → {{ aiAnalysisResult.baseline.specific_energy_after }} kWh/件
               </div>
 
               <!-- 优化策略构成 -->
-              <div class="ai-sec-title" v-if="aiAnalysisResult.optimization_breakdown">优化策略构成</div>
-              <div class="ai-breakdown" v-if="aiAnalysisResult.optimization_breakdown">
+              <div v-if="aiAnalysisResult.optimization_breakdown" class="ai-sec-title">优化策略构成</div>
+              <div v-if="aiAnalysisResult.optimization_breakdown" class="ai-breakdown">
                 <div v-for="b in aiAnalysisResult.optimization_breakdown" :key="b.strategy" class="ai-bd-row">
                   <span class="ai-bd-name">{{ b.strategy }}<em>{{ b.phase }}</em></span>
                   <span class="ai-bd-bar"><i :style="{ width: Math.min(100, b.savings_kwh / Math.max(...aiAnalysisResult.optimization_breakdown.map(x => x.savings_kwh), 1) * 100) + '%' }"></i></span>
@@ -402,7 +402,7 @@
 
               <!-- 削峰填谷 -->
               <div class="ai-sec-title">削峰填谷 · 分时电价策略</div>
-              <div class="ai-tou-row" v-if="aiAnalysisResult.tou_schedule">
+              <div v-if="aiAnalysisResult.tou_schedule" class="ai-tou-row">
                 <div v-for="(t, k) in aiAnalysisResult.tou_schedule" :key="k" class="ai-tou-cell" :class="k">
                   <div class="ai-tou-head"><span class="ai-tou-tag" :class="k">{{ { peak:'峰', flat:'平', valley:'谷' }[k] }}</span><b>¥{{ t.price }}/kWh</b></div>
                   <div class="ai-tou-hours">{{ t.hours }}</div>
@@ -412,7 +412,7 @@
 
               <!-- 实施路线图 -->
               <div class="ai-sec-title">实施路线图</div>
-              <div class="ai-roadmap" v-if="aiAnalysisResult.roadmap">
+              <div v-if="aiAnalysisResult.roadmap" class="ai-roadmap">
                 <div v-for="(rp, i) in aiAnalysisResult.roadmap" :key="i" class="ai-rm-item">
                   <div class="ai-rm-phase">{{ rp.phase }}</div>
                   <div class="ai-rm-body">
@@ -424,7 +424,7 @@
               </div>
 
               <!-- 风险提示 -->
-              <div class="ai-risks" v-if="aiAnalysisResult.risk_and_notes">
+              <div v-if="aiAnalysisResult.risk_and_notes" class="ai-risks">
                 <div class="ai-sec-title">风险与注意事项</div>
                 <ul><li v-for="(n, i) in aiAnalysisResult.risk_and_notes" :key="i">{{ n }}</li></ul>
               </div>
@@ -891,7 +891,9 @@ const showAIResult = (type: string, data: any) => {
     const local: any[] = JSON.parse(localStorage.getItem(key) || '[]')
     local.unshift({ ...entry })
     localStorage.setItem(key, JSON.stringify(local.slice(0, 50)))
-  } catch {}
+  } catch {
+    /* 存储失败时忽略，不影响主流程 */
+  }
 }
 const filteredHistory = computed(() => {
   const curCode = detailData.value?.code
@@ -1051,7 +1053,7 @@ onMounted(() => {
   })
 })
 
-onUnmounted(() => { clearInterval(refreshInterval); wsUnsubscribe.value?.(); wsService.disconnect() })
+onUnmounted(() => { clearInterval(refreshInterval); wsUnsubscribe.value?.() })
 watch(() => themeStore.isDark, () => updateCharts())
 watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 </script>

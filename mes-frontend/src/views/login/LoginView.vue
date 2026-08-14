@@ -121,7 +121,7 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        await userStore.login(loginForm.username, loginForm.password)
+        await userStore.login(loginForm.username, loginForm.password, rememberMe.value)
         ElMessage.success('登录成功')
         router.push('/')
       } catch (error: any) {

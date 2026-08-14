@@ -223,7 +223,7 @@ function enrichItems(list: any[]) {
 
 async function loadMaterials() {
   try {
-    const res = await request({ url: '/api/dashboard/material/list', method: 'get', params: { page: 1, size: 100 } })
+    const res = await request({ url: '/dashboard/material/list', method: 'get', params: { page: 1, size: 100 } })
     const d = res?.data || res || []
     materials.value = Array.isArray(d) ? d : d.records || []
   } catch {

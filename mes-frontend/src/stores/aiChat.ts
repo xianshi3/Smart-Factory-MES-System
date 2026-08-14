@@ -50,8 +50,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   async function checkHealth(): Promise<boolean> {
     try {
-      const { default: axios } = await import('axios')
-      await axios.get('/ai/api/v1/agent/tools', { timeout: 3000 })
+      const { default: request } = await import('@/api')
+      await request.get('/ai/api/v1/agent/tools', { timeout: 3000 })
       aiOnline.value = true
       stopPolling()
       return true
@@ -138,8 +138,10 @@ export const useAiChatStore = defineStore('aiChat', () => {
     // 调用 Agent
     loading.value = true
     try {
-      const history = messages.value.slice(0, -1)
-        .filter(m => m.role !== m.role || m !== messages.value[messages.value.length - 1])
+      // 仅携带已持久化的历史消息（slice 已排除刚推送的当前用户消息）
+      const history = messages.value
+        .slice(0, -1)
+        .filter(m => m.saved)
         .map(m => ({ role: m.role, content: m.content }))
 
       const res = await runAgent(text, history.slice(-10))
@@ -170,7 +172,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
       startPolling()
       const errorMsg: MessageItem = {
         role: 'assistant',
-        content: '**AI 服务未连接**\n\n请在终端执行以下命令启动：\n\n```bash\ncd mes-ai-service && python src/main.py\n```',
+        content: '**AI 服务未连接**\n\n请在终端执行以下命令启动：\n\n```bash\ncd mes-ai-service && python -m src.main\n```',
         timestamp: new Date(),
         saved: false,
       }

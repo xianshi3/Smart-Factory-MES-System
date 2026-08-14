@@ -147,7 +147,7 @@
         <el-timeline v-if="traceData.steps?.length">
           <el-timeline-item v-for="(step, i) in traceData.steps" :key="i" :timestamp="step.createTime?.substring(0, 16) || '-'" placement="top">
             <div class="step-name">{{ step.processStep || '工序 ' + (i + 1) }}</div>
-            <div class="step-operator">操作员ID：{{ step.operatorId ?? '-' }}　物料批次：{{ step.materialBatchNo || '-' }}　设备ID：{{ step.equipmentId ?? '-' }}</div>
+            <div class="step-operator">操作员ID：{{ step.operatorId ?? '-' }} 物料批次：{{ step.materialBatchNo || '-' }} 设备ID：{{ step.equipmentId ?? '-' }}</div>
             <div v-if="step.paramSnapshot" class="step-param">参数快照：{{ step.paramSnapshot }}</div>
           </el-timeline-item>
         </el-timeline>

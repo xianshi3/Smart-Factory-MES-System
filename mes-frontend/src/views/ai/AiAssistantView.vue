@@ -3,12 +3,12 @@
     <div class="ai-side" :class="{ collapsed }">
       <div class="side-brand">
         <div class="brand-glow"></div>
-        <div class="brand-icon-box" @click="collapsed = !collapsed" title="折叠侧栏">
+        <div class="brand-icon-box" title="折叠侧栏" @click="collapsed = !collapsed">
           <el-icon :size="18"><MagicStick /></el-icon>
         </div>
         <span class="brand-name">AI 助理</span>
         <span class="brand-dot online"></span>
-        <button class="collapse-btn" @click="collapsed = !collapsed" :title="collapsed ? '展开' : '折叠'">
+        <button class="collapse-btn" :title="collapsed ? '展开' : '折叠'" @click="collapsed = !collapsed">
           <el-icon :size="12"><DArrowLeft v-if="!collapsed" /><DArrowRight v-else /></el-icon>
         </button>
       </div>

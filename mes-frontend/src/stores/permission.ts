@@ -67,14 +67,17 @@ export const usePermissionStore = defineStore('permission', () => {
    */
   const loadCurrentPermissions = async () => {
     if (loaded.value) return
+    loading.value = true
     try {
       const res = await getUserPermissions()
       codes.value = res?.data || []
+      loaded.value = true
     } catch (e) {
+      // 首次加载失败不置 loaded，下次路由跳转会重试，避免权限码永久缺失
       console.error('获取当前用户权限失败', e)
       codes.value = []
     } finally {
-      loaded.value = true
+      loading.value = false
     }
   }
 

@@ -170,6 +170,16 @@ function mat(c: number, r = 0.35, m = 0.45, e = 0, ei = 0) {
 }
 
 // ─── label ───
+/** HTML 转义，防止设备名等外部数据注入脚本 */
+function escHtml(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function labelHtml(text: string, border: string, bg = 'rgba(0,0,0,.72)'): CSS2DObject {
   const div = document.createElement('div')
   div.innerHTML = text
@@ -561,7 +571,7 @@ function buildMachine(device: any): THREE.Group {
   // ══════════════════════════════════════════
   const devName = device.name || device.deviceName || device.deviceCode || '设备'
   const dataDiv = labelHtml(
-    `<b>${devName}</b><br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${TXT[st] || ''}`,
+    `<b>${escHtml(devName)}</b><br><span style="color:#${c.toString(16).padStart(6, '0')}">●</span> ${escHtml(TXT[st] || '')}`,
     '#' + c.toString(16).padStart(6, '0')
   )
   dataDiv.position.set(0, 2.3, 0); root.add(dataDiv)
@@ -925,7 +935,7 @@ function updateNodes(devices: any[]) {
       const speed = dev.speed ?? '--'
       const el = (n.label as any).element as HTMLElement
       if (el) {
-        el.innerHTML = `<b>${name}</b><br><span style="color:#${hex}">●</span> ${TXT[st] || ''} · ${temp}°C · ${speed}rpm`
+        el.innerHTML = `<b>${escHtml(name)}</b><br><span style="color:#${hex}">●</span> ${escHtml(TXT[st] || '')} · ${escHtml(String(temp))}°C · ${escHtml(String(speed))}rpm`
       }
     }
 

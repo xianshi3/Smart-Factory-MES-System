@@ -173,7 +173,7 @@
       
       <el-empty v-if="!loading && tableData.length === 0" description="暂无生产数据" />
       
-      <div class="pagination-wrapper" v-if="tableData.length > 0">
+      <div v-if="tableData.length > 0" class="pagination-wrapper">
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.size"

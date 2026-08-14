@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper planning-page" v-loading="loading">
+  <div v-loading="loading" class="page-wrapper planning-page">
     <!-- 顶部工具栏：标题 + 图例 + 操作 -->
     <div class="page-header">
       <div class="header-left">
@@ -53,7 +53,7 @@
         <el-button size="small" plain :icon="ZoomOut" @click="zoomOut" />
         <span class="zoom-text">{{ (zoomLevel * 100).toFixed(0) }}%</span>
         <el-button size="small" plain :icon="ZoomIn" @click="zoomIn" />
-        <el-button size="small" plain :icon="Aim" @click="zoomReset" title="重置缩放" />
+        <el-button size="small" plain :icon="Aim" title="重置缩放" @click="zoomReset" />
       </div>
       <span class="work-hours">
         <el-icon><Clock /></el-icon>
@@ -63,7 +63,7 @@
 
     <!-- KPI 指标卡 -->
     <div class="kpi-row">
-      <div class="kpi-card" v-for="k in kpiItems" :key="k.key">
+      <div v-for="k in kpiItems" :key="k.key" class="kpi-card">
         <div class="kpi-icon" :style="{ background: k.bg, color: k.color }">
           <el-icon><component :is="k.icon" /></el-icon>
         </div>
@@ -78,7 +78,7 @@
     <div class="board-layout">
       <!-- 甘特图主体 -->
       <div class="gantt-area">
-        <div class="gantt-body" ref="bodyRef">
+        <div ref="bodyRef" class="gantt-body">
           <!-- 表头：时间刻度（sticky 固定，双级：月 + 日/小时） -->
           <div class="gantt-head">
             <div class="gantt-row-label head-corner">设备 / 工序</div>
@@ -130,7 +130,7 @@
                 <span class="machine-count">{{ unassigned.length }} 单</span>
               </div>
             </div>
-            <div class="gantt-track pool-track" ref="poolRef" :style="{ width: ganttTotalPx + 'px' }" :class="{ 'drop-target': dragState && dragOverPool }">
+            <div ref="poolRef" class="gantt-track pool-track" :style="{ width: ganttTotalPx + 'px' }" :class="{ 'drop-target': dragState && dragOverPool }">
               <div class="gantt-gridline">
                 <div v-for="cell in headCells" :key="cell.key" class="grid-col" :class="{ weekend: cell.shaded }" :style="{ width: cell.widthPx + 'px' }"></div>
                 <div v-if="nowFrac >= 0" class="now-line" :style="{ left: (nowFrac * ganttTotalPx + 4) + 'px' }"></div>
@@ -391,8 +391,8 @@
         <div v-permission="'planning:edit'" class="ctx-item" @click="openAdjustDialog(ctxMenu.task, false)">调整本工序时间…</div>
         <div v-permission="'planning:edit'" class="ctx-item" @click="openAdjustDialog(ctxMenu.task, true)">整单移动 / 调时间…</div>
         <el-divider style="margin: 4px 0" />
-        <div v-permission="'planning:edit'" v-if="ctxMenu.task.scheduleStatus !== 'FROZEN'" class="ctx-item" @click="doFreeze(ctxMenu.task, false)">冻结本工序</div>
-        <div v-permission="'planning:edit'" v-else class="ctx-item" @click="doUnfreeze(ctxMenu.task)">解除冻结</div>
+        <div v-if="ctxMenu.task.scheduleStatus !== 'FROZEN'" v-permission="'planning:edit'" class="ctx-item" @click="doFreeze(ctxMenu.task, false)">冻结本工序</div>
+        <div v-else v-permission="'planning:edit'" class="ctx-item" @click="doUnfreeze(ctxMenu.task)">解除冻结</div>
         <div v-permission="'planning:edit'" class="ctx-item" @click="doFreeze(ctxMenu.task, true)">冻结整单</div>
         <el-divider style="margin: 4px 0" />
         <div v-permission="'planning:edit'" class="ctx-item" @click="doRelease(ctxMenu.task.id)">下发排产</div>

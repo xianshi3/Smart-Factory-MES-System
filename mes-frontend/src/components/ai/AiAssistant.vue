@@ -12,23 +12,23 @@
         <span v-if="store.currentTitle" class="brand-title-badge">{{ store.currentTitle }}</span>
       </div>
       <div class="header-actions">
-        <button class="header-btn" @click="handleNewChat" title="新建对话">
+        <button class="header-btn" title="新建对话" @click="handleNewChat">
           <el-icon :size="14"><Plus /></el-icon>
         </button>
-        <button class="header-btn" @click="handleClear" title="清空">
+        <button class="header-btn" title="清空" @click="handleClear">
           <el-icon :size="15"><Delete /></el-icon>
         </button>
-        <button class="header-btn close-btn" @click="emit('close')" title="关闭">
+        <button class="header-btn close-btn" title="关闭" @click="emit('close')">
           <el-icon :size="15"><Close /></el-icon>
         </button>
       </div>
     </div>
     <div v-else class="panel-topbar">
       <span class="topbar-title">{{ store.currentTitle || '新对话' }}</span>
-      <span class="topbar-count" v-if="store.messageCount">{{ store.messageCount }} 条消息</span>
+      <span v-if="store.messageCount" class="topbar-count">{{ store.messageCount }} 条消息</span>
       <div class="header-actions">
-        <button class="header-btn" @click="handleClear" title="清空"><el-icon :size="14"><Delete /></el-icon></button>
-        <button class="header-btn new-chat-btn" @click="handleNewChat" title="新建对话">
+        <button class="header-btn" title="清空" @click="handleClear"><el-icon :size="14"><Delete /></el-icon></button>
+        <button class="header-btn new-chat-btn" title="新建对话" @click="handleNewChat">
           <el-icon :size="14"><Plus /></el-icon>
           <span>新对话</span>
         </button>
@@ -45,7 +45,7 @@
       </div>
     </Transition>
 
-    <div class="panel-body" ref="bodyRef">
+    <div ref="bodyRef" class="panel-body">
       <template v-for="(msg, i) in store.messages" :key="i">
         <div v-if="i === 0 && msg.role === 'assistant' && !store.currentId" class="msg assistant welcome-msg">
           <div class="msg-avatar">
@@ -93,7 +93,7 @@
             </div>
             <div class="msg-text" v-html="renderMarkdown(msg.content)" />
             <div v-if="msg.report" class="msg-report">
-              <div class="report-summary" v-if="msg.report.summary">{{ msg.report.summary }}</div>
+              <div v-if="msg.report.summary" class="report-summary">{{ msg.report.summary }}</div>
               <div v-if="msg.report.key_points?.length" class="report-section">
                 <div class="report-label">关键结论</div>
                 <ul class="report-points">

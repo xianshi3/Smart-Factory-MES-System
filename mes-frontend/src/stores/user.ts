@@ -13,11 +13,11 @@ export const useUserStore = defineStore('user', () => {
   /**
  * User login function
  */
-async function login(username: string, password: string) {
+async function login(username: string, password: string, remember = true) {
     const res = await loginApi({ username, password })
     if (res.data) {
       token.value = res.data.token
-      setToken(res.data.token)
+      setToken(res.data.token, remember)
     }
     return res.data
   }

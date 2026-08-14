@@ -132,7 +132,7 @@ export function forwardTrace(sn: string) {
   return request({ url: '/quality/trace/forward', method: 'get', params: { sn } })
 }
 
-const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/api/ai'
+const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/ai'
 
 export function predictDeviceFault(data: any) {
   return request({ url: `${AI_BASE_URL}/api/v1/predict/device/fault`, method: 'post', data })
@@ -155,75 +155,75 @@ export function optimizeEnergy(data: any) {
 }
 
 export function getAlarmDevices() {
-  return request({ url: '/api/dashboard/alarms', method: 'get' })
+  return request({ url: '/dashboard/alarms', method: 'get' })
 }
 
 export function startDevice(deviceId: number) {
-  return request({ url: `/api/dashboard/device/${deviceId}/start`, method: 'post' })
+  return request({ url: `/dashboard/device/${deviceId}/start`, method: 'post' })
 }
 
 export function stopDevice(deviceId: number) {
-  return request({ url: `/api/dashboard/device/${deviceId}/stop`, method: 'post' })
+  return request({ url: `/dashboard/device/${deviceId}/stop`, method: 'post' })
 }
 
 export function getProductionReport(params: any) {
-  return request({ url: `/api/dashboard/report/production`, method: 'get', params })
+  return request({ url: `/dashboard/report/production`, method: 'get', params })
 }
 
 export function getAllAlarms() {
-  return request({ url: '/api/alarm', method: 'get' })
+  return request({ url: '/alarm', method: 'get' })
 }
 
 export function acknowledgeAlarm(alarmId: number, userId: string) {
-  return request({ url: `/api/alarm/${alarmId}/ack`, method: 'post', params: { userId } })
+  return request({ url: `/alarm/${alarmId}/ack`, method: 'post', params: { userId } })
 }
 
 export function resolveAlarm(alarmId: number, userId: string, remarks: string) {
-  return request({ url: `/api/alarm/${alarmId}/resolve`, method: 'post', params: { userId, remarks } })
+  return request({ url: `/alarm/${alarmId}/resolve`, method: 'post', params: { userId, remarks } })
 }
 
 export function deleteAlarm(alarmId: number) {
-  return request({ url: `/api/alarm/${alarmId}`, method: 'delete' })
+  return request({ url: `/alarm/${alarmId}`, method: 'delete' })
 }
 
 export function getBomList(params?: any) {
-  return request({ url: '/api/dashboard/bom/list', method: 'get', params })
+  return request({ url: '/dashboard/bom/list', method: 'get', params })
 }
 
 export function getBomDetail(id: number) {
-  return request({ url: `/api/dashboard/bom/${id}`, method: 'get' })
+  return request({ url: `/dashboard/bom/${id}`, method: 'get' })
 }
 
 export function createBom(data: any) {
-  return request({ url: '/api/dashboard/bom', method: 'post', data })
+  return request({ url: '/dashboard/bom', method: 'post', data })
 }
 
 export function updateBom(data: any) {
-  return request({ url: '/api/dashboard/bom', method: 'put', data })
+  return request({ url: '/dashboard/bom', method: 'put', data })
 }
 
 export function deleteBom(id: number) {
-  return request({ url: `/api/dashboard/bom/${id}`, method: 'delete' })
+  return request({ url: `/dashboard/bom/${id}`, method: 'delete' })
 }
 
 export function validateBom(id: number) {
-  return request({ url: `/api/dashboard/bom/${id}/validate`, method: 'post' })
+  return request({ url: `/dashboard/bom/${id}/validate`, method: 'post' })
 }
 
 export function getBomItems(bomId: number) {
-  return request({ url: `/api/dashboard/bom/${bomId}/item/list`, method: 'get' })
+  return request({ url: `/dashboard/bom/${bomId}/item/list`, method: 'get' })
 }
 
 export function createBomItem(bomId: number, data: any) {
-  return request({ url: `/api/dashboard/bom/${bomId}/item`, method: 'post', data })
+  return request({ url: `/dashboard/bom/${bomId}/item`, method: 'post', data })
 }
 
 export function updateBomItem(bomId: number, data: any) {
-  return request({ url: `/api/dashboard/bom/${bomId}/item`, method: 'put', data })
+  return request({ url: `/dashboard/bom/${bomId}/item`, method: 'put', data })
 }
 
 export function deleteBomItem(bomId: number, id: number) {
-  return request({ url: `/api/dashboard/bom/${bomId}/item/${id}`, method: 'delete' })
+  return request({ url: `/dashboard/bom/${bomId}/item/${id}`, method: 'delete' })
 }
 
 // ==================== 排产看板 (Planning Board) ====================
