@@ -43,19 +43,19 @@ export async function runAgent(
     message,
     history: history || [],
   })
-  return res.data
+  return res
 }
 
 export async function getAgentTools() {
   const res = await request.get(`${AI_BASE_URL}/api/v1/agent/tools`)
-  return res.data
+  return res
 }
 
 export async function searchKnowledgeBase(query: string, topK = 3) {
   const res = await request.post(`${AI_BASE_URL}/api/v1/agent/kb/search`, null, {
     params: { query, top_k: topK },
   })
-  return res.data
+  return res
 }
 
 // ========== 对话历史 ==========
@@ -87,19 +87,19 @@ export async function createConversation(userId: string, title = '新对话'): P
   const res = await request.post(`${AI_BASE_URL}/api/v1/agent/conversations`, { title }, {
     params: { user_id: userId },
   })
-  return res.data.conversation
+  return res.conversation
 }
 
 export async function listConversations(userId: string): Promise<ConversationListItem[]> {
   const res = await request.get(`${AI_BASE_URL}/api/v1/agent/conversations`, {
     params: { user_id: userId },
   })
-  return res.data.conversations
+  return res.conversations || []
 }
 
 export async function getConversation(id: string): Promise<ConversationDetail> {
   const res = await request.get(`${AI_BASE_URL}/api/v1/agent/conversations/${id}`)
-  return res.data.conversation
+  return res.conversation
 }
 
 export async function addConversationMessage(
@@ -140,12 +140,12 @@ export async function saveAnalysis(userId: string, deviceCode: string, deviceNam
     analysis_type: analysisType,
     result_data: resultData,
   })
-  return res.data?.id || 0
+  return res?.id || 0
 }
 
 export async function listAnalyses(userId: string, type?: string, deviceCode?: string): Promise<AnalysisRecord[]> {
   const res = await request.get(`${AI_BASE_URL}/api/v1/agent/analysis`, { params: { user_id: userId, type, device_code: deviceCode } })
-  return res.data.analyses || []
+  return res.analyses || []
 }
 
 export async function deleteAnalysis(id: number, userId: string) {

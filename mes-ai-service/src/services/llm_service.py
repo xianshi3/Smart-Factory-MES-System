@@ -33,6 +33,16 @@ def _load_api_key() -> Optional[str]:
     return None
 
 
+def _looks_valid_api_key(key: Optional[str]) -> bool:
+    """智谱 key 格式为 `id.secret`；占位符/空值/明显无效的值视为未配置"""
+    if not key or not isinstance(key, str):
+        return False
+    k = key.strip()
+    if k.startswith("your-") or k.startswith("${") or k in ("", "null", "None"):
+        return False
+    return "." in k and len(k) >= 20
+
+
 class LLmService:
     """大语言模型服务，支持智谱AI"""
 
@@ -61,8 +71,8 @@ class LLmService:
             return
 
         api_key = _load_api_key()
-        if not api_key:
-            logger.warning("未配置智谱AI API Key")
+        if not _looks_valid_api_key(api_key):
+            logger.warning("未配置有效的智谱AI API Key（占位符/空值视为未配置）")
             return
 
         try:

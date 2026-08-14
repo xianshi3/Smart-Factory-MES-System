@@ -807,6 +807,10 @@ watch(detailVisible, (v) => {
 async function loadAnalysisHistory(deviceCode?: string) {
   try {
     const userStore = useUserStore()
+    // 确保用户信息已加载（user_id 依赖 username），避免查成 'default' 导致历史为空
+    if (!userStore.userInfo && userStore.token) {
+      try { await userStore.getUserInfo() } catch { /* 静默 */ }
+    }
     const uid = userStore.userInfo?.username || 'default'
     const records = await listAnalyses(uid, undefined, deviceCode)
     aiHistory.value = records.map(r => ({

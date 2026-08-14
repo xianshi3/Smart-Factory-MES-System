@@ -28,6 +28,15 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const loading = ref(false)
   const loadingList = ref(false)
 
+  /** 确保当前用户信息已加载（user_id 依赖 username，加载失败时回退 'default'） */
+  async function ensureUser() {
+    if (!userStore.userInfo && userStore.token) {
+      try {
+        await userStore.getUserInfo()
+      } catch { /* 静默，回退 'default' */ }
+    }
+  }
+
   interface MessageItem {
     id?: number
     role: 'user' | 'assistant'
@@ -76,6 +85,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
   async function loadList() {
     loadingList.value = true
     try {
+      await ensureUser()
       conversations.value = await listConversations(userId.value)
     } catch { /* 静默 */ } finally {
       loadingList.value = false
@@ -103,6 +113,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   async function newChat(): Promise<string | null> {
     try {
+      await ensureUser()
       const conv = await createConversation(userId.value, '新对话')
       conversations.value.unshift(conv)
       await selectConversation(conv.id)

@@ -9,6 +9,7 @@
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 
 from src.services.llm_service import LLmService
@@ -127,6 +128,52 @@ class AgentService:
         final_content: Optional[str] = None
         iteration = 0
 
+        try:
+            final_content = await self._execute_plan(
+                message, history, device_code, intent, plan, messages, steps, executed
+            )
+        except Exception as e:
+            logger.error(f"Agent 执行失败（LLM 或工具异常）: {e}")
+            return {
+                "success": False,
+                "content": f"AI 服务执行失败：{e}。请检查大模型服务配置（ZHIPU_API_KEY）后重试。",
+                "steps": steps,
+                "plan": plan,
+                "report": None,
+                "intent": intent,
+                "intent_label": TaskPlanner.intent_label(intent),
+                "session_id": None,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        # ============ 阶段四：结果交付 ============
+        report = await self.report_builder.build(intent, message, steps)
+
+        return {
+            "success": True,
+            "content": final_content,
+            "steps": steps,
+            "plan": plan,
+            "report": report,
+            "intent": intent,
+            "intent_label": TaskPlanner.intent_label(intent),
+        }
+
+    async def _execute_plan(
+        self,
+        message: str,
+        history: Optional[List[Dict]],
+        device_code: Optional[str],
+        intent: str,
+        plan: List[Dict],
+        messages: List[Dict],
+        steps: List[Dict],
+        executed: set,
+    ) -> str:
+        """ReAct 编排循环：LLM 决策 → 工具执行 → 结果回灌，直到 LLM 输出最终回复"""
+        final_content: Optional[str] = None
+        iteration = 0
+
         while iteration < self.max_iterations:
             iteration += 1
 
@@ -210,9 +257,6 @@ class AgentService:
                         "result": result,
                     })
 
-            elif finish_reason == "stop":
-                final_content = msg.content or ""
-                break
             else:
                 final_content = msg.content or ""
                 break
@@ -225,16 +269,4 @@ class AgentService:
                     break
         if final_content is None:
             final_content = "任务已完成，请查看下方执行步骤。"
-
-        # ============ 阶段四：结果交付 ============
-        report = await self.report_builder.build(intent, message, steps)
-
-        return {
-            "success": True,
-            "content": final_content,
-            "steps": steps,
-            "plan": plan,
-            "report": report,
-            "intent": intent,
-            "intent_label": TaskPlanner.intent_label(intent),
-        }
+        return final_content
