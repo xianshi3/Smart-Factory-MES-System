@@ -14,10 +14,11 @@ cleanup() {
 trap cleanup EXIT
 
 wait_for_health() {
-  local name=$1 port=$2 i
+  local name=$1 port=$2 i code
   for i in $(seq 1 60); do
-    if curl -sf "http://localhost:$port/actuator/health" >/dev/null 2>&1; then
-      echo "OK: $name 已就绪 (port $port)"
+    code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$port/actuator/health" 2>/dev/null || true)
+    if [ -n "$code" ] && [ "$code" != "000" ]; then
+      echo "OK: $name 已就绪 (port $port, http $code)"
       return 0
     fi
     sleep 2
