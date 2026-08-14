@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from zhipuai import ZhipuAI
+    import httpx
     ZHIPU_SDK_AVAILABLE = True
 except ImportError:
     ZHIPU_SDK_AVAILABLE = False
@@ -65,7 +66,9 @@ class LLmService:
             return
 
         try:
-            self.client = ZhipuAI(api_key=api_key)
+            # trust_env=False: 忽略系统/环境代理（如本地 git 代理 127.0.0.1:54689），避免初始化卡住
+            http_client = httpx.Client(trust_env=False, timeout=60.0)
+            self.client = ZhipuAI(api_key=api_key, http_client=http_client)
             self.model_name = self.config.get("llm", {}).get("model", "glm-4-flash")
             if self.model_name not in self.FREE_MODELS:
                 self.model_name = "glm-4-flash"
