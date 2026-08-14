@@ -10,6 +10,32 @@ Smart Factory MES System - 智能工厂制造执行系统
 
 ---
 
+## v1.0.47 (2026-08-14)
+
+### 权限体系重构 + 修复权限码缺失导致功能被隐藏
+
+#### 后端（mes-common）
+
+- **AOP 切面 → Spring MVC 拦截器**：`SecurityAspect`（依赖 aspectjweaver）替换为 `SecurityInterceptor`（`HandlerInterceptor`）+ `SecurityWebConfig` 自动注册，功能完全一致（`@RequireRole` / `@RequirePermission` 类级/方法级、401/403），**零 AspectJ 依赖**——修复运行环境缺 `aspectjweaver` 导致全部服务启动失败的问题
+- 移除 `spring-boot-starter-aop` / `aspectjweaver` 依赖
+- 修复 mes-process / mes-quality 的 `@MapperScan` 缺少 `com.mes.common.mapper`（PermissionService 依赖的 `SysUserAuthMapper` 无法注入）
+
+#### 数据库（sql/V13）
+
+- 新增 `V13__sync_permission_codes.sql`（幂等）：补齐 `sys_permission` 缺失的 19 条权限码（`workorder:view/create/edit/delete`、`process:view`、`quality:view`、`device:view`、`report:view`、`role:manage`、`permission:manage` 等），并为 ADMIN/MANAGER/USER/QC/ENGINEER 重新分配角色权限
+- 清理一次性修复脚本：删除 `fix_charset.sql` / `fix_charset2.sql` / `fix_password.sql` / `add_alarm_menu.sql`（内容均已并入 init.sql / V5 / V6）
+
+#### 前端（mes-frontend）
+
+- `hasPermission` 对 ADMIN 角色全量放行，与后端 `PermissionService` 语义对齐——修复 `sys_permission` 数据不完整时 admin 菜单被按权限码过滤隐藏的问题
+
+#### CI（GitHub Actions）
+
+- 新增 `smoke` job：MySQL + Redis 就绪后**真实启动** auth/workorder/process/quality/gateway 五个服务，逐个等待就绪，再经网关验证「登录 → 带 token 访问工作台(200) → 无 token 被拦截(401)」完整链路，防止「编译通过但运行期挂掉」类回归
+- `setup-java` 升级 v5
+
+---
+
 ## v1.0.46 (2026-08-13)
 
 ### 生产调度看板（APS 排产）全量上线

@@ -713,7 +713,9 @@ SELECT id, template_name, template_code, status FROM proc_template;
 | V10 | 2026-08-12 | 排产看板: wo_work_order 增加 sort_order（设备内排产顺序） |
 | V10.1 | 2026-08-12 | 排产演示数据: 加工类工单补充计划时间 |
 | V11 | 2026-08-13 | APS 排程: mes_shift 班次 / mes_work_calendar 工作日历 / wo_schedule 工序级排产明细 / wo_schedule_log 变更日志 / mes_workstation 产能+瓶颈列 / proc_step 工序种子 / 工单关联工艺模板 |
+| V12 | 2026-08-13 | 排产看板权限: 菜单(planning) + 权限码(planning:view / planning:edit) + 角色分配 |
+| V13 | 2026-08-14 | 补齐 sys_permission 权限码（workorder:view 等 19 条，与 init.sql 对齐）+ 5 个角色重新分配权限；修复旧库权限码缺失导致菜单/按钮被隐藏的问题 |
 
 ---
 
-*最后更新: 2026-08-13*
+*最后更新: 2026-08-14*

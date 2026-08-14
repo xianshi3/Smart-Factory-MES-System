@@ -61,7 +61,7 @@
 | **实时数据展示** | WebSocket 毫秒级推送，InfluxDB 时序数据库存储 |
 | **AI 智能预测** | FastAPI 推理服务，LightGBM/XGBoost 模型，支持 ONNX 部署 |
 | **AI Agent 生产助理** | GLM-4 function calling 多步推理，自然语言 → 工具调用 → 任务闭环 |
-| **全链路权限控制** | JWT + Spring Security，RBAC 菜单级 / 按钮级权限 |
+| **全链路权限控制** | JWT + RBAC 菜单级 / 按钮级权限（拦截器实现，ADMIN 全量放行） |
 | **SPC 统计分析** | 真实规格限 + 8 条 Nelson 判异规则 + 全过程能力指数 + 控制图 |
 | **设备模拟器** | WPF 上位机，批量模拟 + 5 种生产场景预设 + 实时曲线 + HTTP/MQTT 双通道上报 |
 
@@ -205,7 +205,7 @@ Smart-Factory-MES-System/
 ├── mes-ai-service/                  # Python AI 服务 (8087) — 预测 / Agent / RAG
 ├── mes-frontend/                    # Vue 3 前端 (3000) — 生产看板 / 3D 数字孪生
 ├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 批量模拟 / 场景预设 / 双通道上报
-├── sql/                             # 数据库脚本（init + V2~V9 迁移）
+├── sql/                             # 数据库脚本（init + V2~V13 迁移）
 ├── Makefile                         # 统一启动 / 构建命令
 └── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / Nacos）
 ```
@@ -302,6 +302,18 @@ curl http://localhost:8082/workorder/page?current=1&size=10 \
 |------|------|------|
 | 前端登录 | `admin` | `admin123` |
 | EMQX | `admin` | `public` |
+
+**内置角色**（`sys_role`，登录后按角色/权限码控制菜单与按钮）：
+
+| 角色 | role_code | 说明 |
+|------|-----------|------|
+| 超级管理员 | `ADMIN` | 拥有全部权限（后端与前端均全量放行） |
+| 生产主管 | `MANAGER` | 生产管理相关权限 |
+| 生产员工 | `USER` | 基本操作权限 |
+| 质检员 | `QC` | 质量检验相关权限 |
+| 设备工程师 | `ENGINEER` | 设备维护相关权限 |
+
+> 权限码数据以 `sys_permission` 表为准（初始化见 `sql/init.sql`，旧库升级执行 `sql/V13__sync_permission_codes.sql`，幂等可重复执行）。
 
 ---
 
