@@ -254,8 +254,9 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
         vo.setStatus(o.getStatus());
         vo.setPlanQuantity(o.getPlanQuantity());
         vo.setCompletedQuantity(o.getCompletedQuantity());
+        int completed = o.getCompletedQuantity() == null ? 0 : o.getCompletedQuantity();
         vo.setProgress(o.getPlanQuantity() == null || o.getPlanQuantity() == 0
-                ? 0 : (int) Math.min(100, Math.round(o.getCompletedQuantity() * 100.0 / o.getPlanQuantity())));
+                ? 0 : (int) Math.min(100, Math.round(completed * 100.0 / o.getPlanQuantity())));
         vo.setWorkstationId(o.getWorkstationId());
         vo.setSortOrder(o.getSortOrder());
         vo.setRemark(o.getRemark());
@@ -307,7 +308,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveOrder(PlanningSaveOrderDTO dto) {
-        if (dto.getGroups() == null || dto.getGroups().isEmpty()) {
+        if ((dto.getGroups() == null || dto.getGroups().isEmpty())
+                && (dto.getUnassignedOrderIds() == null || dto.getUnassignedOrderIds().isEmpty())) {
             return;
         }
         List<WorkOrder> all = workOrderMapper.selectList(
@@ -315,6 +317,23 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
         Map<Long, WorkOrder> orderMap = all.stream()
                 .filter(o -> o.getId() != null)
                 .collect(Collectors.toMap(WorkOrder::getId, o -> o, (a, b) -> a));
+        List<Long> wsIds = new ArrayList<>();
+        if (dto.getGroups() != null) {
+            for (PlanningSaveOrderDTO.EquipmentOrder group : dto.getGroups()) {
+                if (group.getEquipmentId() != null) {
+                    wsIds.add(group.getEquipmentId());
+                }
+            }
+        }
+        if (dto.getUnassignedOrderIds() != null) {
+            for (Long id : dto.getUnassignedOrderIds()) {
+                WorkOrder o = orderMap.get(id);
+                if (o != null && o.getWorkstationId() != null) {
+                    wsIds.add(o.getWorkstationId());
+                }
+            }
+        }
+        lockWorkstationsInOrder(wsIds);
         List<ScheduleItem> items = scheduleItemMapper.selectList(
                 new LambdaQueryWrapper<ScheduleItem>().eq(ScheduleItem::getDeleted, 0));
         Map<Long, List<ScheduleItem>> itemsByOrder = items.stream()
@@ -380,6 +399,17 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
                 new LambdaQueryWrapper<ScheduleItem>()
                         .eq(ScheduleItem::getWorkOrderId, dto.getWorkOrderId())
                         .eq(ScheduleItem::getDeleted, 0));
+        List<Long> wsIds = new ArrayList<>();
+        wsIds.add(dto.getTargetWorkstationId());
+        if (order.getWorkstationId() != null) {
+            wsIds.add(order.getWorkstationId());
+        }
+        for (ScheduleItem it : items) {
+            if (it.getWorkstationId() != null) {
+                wsIds.add(it.getWorkstationId());
+            }
+        }
+        lockWorkstationsInOrder(wsIds);
         List<WorkOrder> orderBefore = new ArrayList<>();
         orderBefore.add(copyOf(order));
 
@@ -470,7 +500,18 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
                 throw new IllegalStateException("工单已冻结或已下发，不能取消排产");
             }
         }
+        List<Long> wsIds = new ArrayList<>();
+        if (order.getWorkstationId() != null) {
+            wsIds.add(order.getWorkstationId());
+        }
+        for (ScheduleItem it : items) {
+            if (it.getWorkstationId() != null) {
+                wsIds.add(it.getWorkstationId());
+            }
+        }
+        lockWorkstationsInOrder(wsIds);
         List<ScheduleItem> before = items.stream().map(this::copyOf).collect(Collectors.toList());
+        WorkOrder beforeOrder = copyOf(order);
         for (ScheduleItem it : items) {
             scheduleItemMapper.deleteById(it.getId());
         }
@@ -479,7 +520,7 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
         order.setPlannedStartTime(null);
         order.setPlannedEndTime(null);
         workOrderMapper.updateById(order);
-        pushUndo(before, new ArrayList<>(), List.of(copyOf(order)), "取消排产");
+        pushUndo(before, new ArrayList<>(), List.of(beforeOrder), "取消排产");
         writeLog(order.getId(), null, "UNASSIGN", "工单移回待排产池");
     }
 
@@ -490,6 +531,11 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
                 : LocalDate.now().plusDays(1).atStartOfDay();
         LocalDateTime winEnd = dto.getWindowEnd() != null ? dto.getWindowEnd() : winStart.plusDays(14);
         boolean onlyPending = dto.getOnlyPending() == null || dto.getOnlyPending();
+
+        List<Long> allWsIds = workstationMapper.selectList(
+                        new LambdaQueryWrapper<Workstation>().eq(Workstation::getDeleted, 0))
+                .stream().map(Workstation::getId).filter(Objects::nonNull).toList();
+        lockWorkstationsInOrder(allWsIds);
 
         List<WorkOrder> orders = workOrderMapper.selectList(
                 new LambdaQueryWrapper<WorkOrder>().eq(WorkOrder::getDeleted, 0));
@@ -666,6 +712,23 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
         if (snap == null) {
             throw new IllegalStateException("没有可撤销的操作");
         }
+        List<Long> wsIds = new ArrayList<>();
+        for (ScheduleItem it : snap.beforeItems) {
+            if (it.getWorkstationId() != null) {
+                wsIds.add(it.getWorkstationId());
+            }
+        }
+        for (ScheduleItem it : snap.afterItems) {
+            if (it.getWorkstationId() != null) {
+                wsIds.add(it.getWorkstationId());
+            }
+        }
+        for (WorkOrder wo : snap.beforeOrders) {
+            if (wo.getWorkstationId() != null) {
+                wsIds.add(wo.getWorkstationId());
+            }
+        }
+        lockWorkstationsInOrder(wsIds);
         for (ScheduleItem it : snap.afterItems) {
             scheduleItemMapper.deleteById(it.getId());
         }
@@ -691,6 +754,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     @Transactional(rollbackFor = Exception.class)
     public int freeze(PlanningFreezeRequestDTO dto) {
         List<ScheduleItem> targets = resolveTargets(dto);
+        lockWorkstationsInOrder(targets.stream()
+                .map(ScheduleItem::getWorkstationId).filter(Objects::nonNull).toList());
         int cnt = 0;
         List<ScheduleItem> before = targets.stream().map(this::copyOf).collect(Collectors.toList());
         for (ScheduleItem it : targets) {
@@ -710,6 +775,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     @Transactional(rollbackFor = Exception.class)
     public int unfreeze(PlanningFreezeRequestDTO dto) {
         List<ScheduleItem> targets = resolveTargets(dto);
+        lockWorkstationsInOrder(targets.stream()
+                .map(ScheduleItem::getWorkstationId).filter(Objects::nonNull).toList());
         int cnt = 0;
         List<ScheduleItem> before = targets.stream().map(this::copyOf).collect(Collectors.toList());
         for (ScheduleItem it : targets) {
@@ -736,6 +803,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
                 new LambdaQueryWrapper<ScheduleItem>()
                         .eq(ScheduleItem::getWorkOrderId, workOrderId)
                         .eq(ScheduleItem::getDeleted, 0));
+        lockWorkstationsInOrder(items.stream()
+                .map(ScheduleItem::getWorkstationId).filter(Objects::nonNull).toList());
         int cnt = 0;
         List<ScheduleItem> before = items.stream().map(this::copyOf).collect(Collectors.toList());
         for (ScheduleItem it : items) {
@@ -757,6 +826,28 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     }
 
     // ==================== 内部工具 ====================
+
+    /**
+     * 按工位 id 升序逐个加行锁（FOR UPDATE），串行化同一工位上的排产变更，
+     * 防止"冲突检测-写入"期间其他事务并发修改导致的时间重叠/排序错乱。
+     * 升序加锁保证所有事务加锁顺序一致，避免死锁。
+     */
+    private void lockWorkstationsInOrder(Collection<Long> workstationIds) {
+        if (workstationIds == null || workstationIds.isEmpty()) {
+            return;
+        }
+        List<Long> sorted = workstationIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+        for (Long id : sorted) {
+            Workstation ws = workstationMapper.selectByIdForUpdate(id);
+            if (ws == null) {
+                throw new IllegalStateException("设备不存在或已停用，无法排产");
+            }
+        }
+    }
 
     private List<ScheduleItem> resolveTargets(PlanningFreezeRequestDTO dto) {
         List<ScheduleItem> result = new ArrayList<>();
@@ -901,7 +992,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     }
 
     private Long getCurrentUserId() {
-        return 1L;
+        Long userId = com.mes.common.security.UserContext.getUserId();
+        return userId != null ? userId : 1L;
     }
 
     // ==================== APS 排程算法 ====================

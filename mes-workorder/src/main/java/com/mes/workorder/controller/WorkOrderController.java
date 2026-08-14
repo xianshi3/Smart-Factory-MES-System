@@ -2,6 +2,7 @@ package com.mes.workorder.controller;
 
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequirePermission;
 import com.mes.workorder.dto.CreateWorkOrderDTO;
 import com.mes.workorder.dto.SubmitReportDTO;
 import com.mes.workorder.dto.UpdateWorkOrderDTO;
@@ -26,12 +27,12 @@ public class WorkOrderController {
 
     @PostMapping
     @Operation(summary = "创建工单")
-    public Result<WorkOrder> create(@RequestBody CreateWorkOrderDTO dto,
-                                    @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    @RequirePermission("workorder:create")
+    public Result<WorkOrder> create(@RequestBody CreateWorkOrderDTO dto) {
         try {
             log.info("收到创建工单请求: productName={}, productModel={}, planQuantity={}, workstationId={}, processTemplateId={}",
                     dto.getProductName(), dto.getProductModel(), dto.getPlanQuantity(), dto.getWorkstationId(), dto.getProcessTemplateId());
-            return Result.ok(workOrderService.create(dto, userId));
+            return Result.ok(workOrderService.create(dto));
         } catch (Exception e) {
             log.error("创建工单失败", e);
             return Result.fail("创建失败: " + e.getMessage());
@@ -40,12 +41,14 @@ public class WorkOrderController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查询工单详情")
+    @RequirePermission("workorder:view")
     public Result<WorkOrder> detail(@PathVariable Long id) {
         return Result.ok(workOrderService.getById(id));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新工单")
+    @RequirePermission("workorder:edit")
     public Result<Void> update(@PathVariable Long id, @RequestBody UpdateWorkOrderDTO dto) {
         workOrderService.updateStatus(id, dto);
         return Result.ok();
@@ -53,6 +56,7 @@ public class WorkOrderController {
 
     @PostMapping("/{id}/issue")
     @Operation(summary = "下发工单")
+    @RequirePermission("workorder:edit")
     public Result<Void> issue(@PathVariable Long id) {
         workOrderService.issue(id);
         return Result.ok();
@@ -60,6 +64,7 @@ public class WorkOrderController {
 
     @PostMapping("/{id}/start")
     @Operation(summary = "开始生产")
+    @RequirePermission("workorder:edit")
     public Result<Void> start(@PathVariable Long id) {
         workOrderService.startProduction(id);
         return Result.ok();
@@ -67,6 +72,7 @@ public class WorkOrderController {
 
     @PostMapping("/{id}/complete")
     @Operation(summary = "完成工单")
+    @RequirePermission("workorder:edit")
     public Result<Void> complete(@PathVariable Long id) {
         workOrderService.complete(id);
         return Result.ok();
@@ -74,6 +80,7 @@ public class WorkOrderController {
 
     @PostMapping("/{id}/close")
     @Operation(summary = "关闭工单")
+    @RequirePermission("workorder:edit")
     public Result<Void> close(@PathVariable Long id) {
         workOrderService.close(id);
         return Result.ok();
@@ -81,13 +88,14 @@ public class WorkOrderController {
 
     @PostMapping("/report")
     @Operation(summary = "提交报工")
-    public Result<WorkReport> submitReport(@Valid @RequestBody SubmitReportDTO dto,
-                                           @RequestHeader(value = "X-User-Id", required = false) Long operatorId) {
-        return Result.ok(workOrderService.submitReport(dto, operatorId));
+    @RequirePermission("workorder:edit")
+    public Result<WorkReport> submitReport(@Valid @RequestBody SubmitReportDTO dto) {
+        return Result.ok(workOrderService.submitReport(dto));
     }
 
     @GetMapping("/page")
     @Operation(summary = "分页查询工单")
+    @RequirePermission("workorder:view")
     public Result<PageResult<WorkOrder>> page(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -98,8 +106,8 @@ public class WorkOrderController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除工单")
-    public Result<Void> delete(@PathVariable Long id,
-                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
-        return workOrderService.delete(id, userId);
+    @RequirePermission("workorder:delete")
+    public Result<Void> delete(@PathVariable Long id) {
+        return workOrderService.delete(id);
     }
 }

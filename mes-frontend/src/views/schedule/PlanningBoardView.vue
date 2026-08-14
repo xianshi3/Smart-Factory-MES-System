@@ -39,13 +39,13 @@
         <span class="legend-item"><i class="legend-dot" style="background:#722ed1"></i>已下发</span>
       </div>
       <span class="bar-divider"></span>
-      <el-button type="success" size="small" plain @click="doAutoPlan(true)">
+      <el-button v-permission="'planning:edit'" type="success" size="small" plain @click="doAutoPlan(true)">
         <el-icon><MagicStick /></el-icon>&nbsp;自动排程
       </el-button>
-      <el-button type="warning" size="small" plain @click="doAutoPlan(false)">
+      <el-button v-permission="'planning:edit'" type="warning" size="small" plain @click="doAutoPlan(false)">
         <el-icon><RefreshRight /></el-icon>&nbsp;全部重排
       </el-button>
-      <el-button size="small" plain @click="doUndo">
+      <el-button v-permission="'planning:edit'" size="small" plain @click="doUndo">
         <el-icon><Back /></el-icon>&nbsp;撤销
       </el-button>
       <span class="action-spacer"></span>
@@ -341,10 +341,10 @@
                 </el-timeline>
 
                 <div class="detail-actions">
-                  <el-button size="small" type="primary" plain @click="openAdjustDialog(selectedTask, false)">调整时间</el-button>
-                  <el-button size="small" type="warning" plain @click="openAdjustDialog(selectedTask, true)">整单移动</el-button>
-                  <el-button size="small" type="success" plain @click="doRelease(selectedTask.id)">下发</el-button>
-                  <el-button size="small" type="danger" plain @click="doUnassign(selectedTask.id)">取消排产</el-button>
+                  <el-button v-permission="'planning:edit'" size="small" type="primary" plain @click="openAdjustDialog(selectedTask, false)">调整时间</el-button>
+                  <el-button v-permission="'planning:edit'" size="small" type="warning" plain @click="openAdjustDialog(selectedTask, true)">整单移动</el-button>
+                  <el-button v-permission="'planning:edit'" size="small" type="success" plain @click="doRelease(selectedTask.id)">下发</el-button>
+                  <el-button v-permission="'planning:edit'" size="small" type="danger" plain @click="doUnassign(selectedTask.id)">取消排产</el-button>
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@
           <el-tab-pane label="变更日志" name="logs">
             <div class="log-toolbar">
               <span class="log-count">共 {{ logs.length }} 条</span>
-              <el-button size="small" type="danger" plain @click="doClearLogs">
+              <el-button v-permission="'planning:edit'" size="small" type="danger" plain @click="doClearLogs">
                 <el-icon><Delete /></el-icon>&nbsp;清空日志
               </el-button>
             </div>
@@ -388,25 +388,25 @@
     <div v-if="ctxMenu" class="ctx-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }" @mouseleave="ctxMenu = null">
       <template v-if="ctxMenu.task">
         <div class="ctx-title">{{ ctxMenu.task.orderNo }}</div>
-        <div class="ctx-item" @click="openAdjustDialog(ctxMenu.task, false)">调整本工序时间…</div>
-        <div class="ctx-item" @click="openAdjustDialog(ctxMenu.task, true)">整单移动 / 调时间…</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="openAdjustDialog(ctxMenu.task, false)">调整本工序时间…</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="openAdjustDialog(ctxMenu.task, true)">整单移动 / 调时间…</div>
         <el-divider style="margin: 4px 0" />
-        <div v-if="ctxMenu.task.scheduleStatus !== 'FROZEN'" class="ctx-item" @click="doFreeze(ctxMenu.task, false)">冻结本工序</div>
-        <div v-else class="ctx-item" @click="doUnfreeze(ctxMenu.task)">解除冻结</div>
-        <div class="ctx-item" @click="doFreeze(ctxMenu.task, true)">冻结整单</div>
+        <div v-permission="'planning:edit'" v-if="ctxMenu.task.scheduleStatus !== 'FROZEN'" class="ctx-item" @click="doFreeze(ctxMenu.task, false)">冻结本工序</div>
+        <div v-permission="'planning:edit'" v-else class="ctx-item" @click="doUnfreeze(ctxMenu.task)">解除冻结</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doFreeze(ctxMenu.task, true)">冻结整单</div>
         <el-divider style="margin: 4px 0" />
-        <div class="ctx-item" @click="doRelease(ctxMenu.task.id)">下发排产</div>
-        <div class="ctx-item danger" @click="doUnassign(ctxMenu.task.id)">取消排产（拖回池）</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doRelease(ctxMenu.task.id)">下发排产</div>
+        <div v-permission="'planning:edit'" class="ctx-item danger" @click="doUnassign(ctxMenu.task.id)">取消排产（拖回池）</div>
       </template>
       <template v-else-if="ctxMenu.eq">
         <div class="ctx-title">{{ ctxMenu.eq.workstationName }}</div>
-        <div class="ctx-item" @click="doFreezeWs(ctxMenu.eq, true)">冻结设备全部工序</div>
-        <div class="ctx-item" @click="doFreezeWs(ctxMenu.eq, false)">解冻设备全部工序</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doFreezeWs(ctxMenu.eq, true)">冻结设备全部工序</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doFreezeWs(ctxMenu.eq, false)">解冻设备全部工序</div>
       </template>
       <template v-else>
         <div class="ctx-title">待排产池</div>
-        <div class="ctx-item" @click="doAutoPlan(true)">自动排程（仅未排）</div>
-        <div class="ctx-item" @click="doAutoPlan(false)">全部重排</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doAutoPlan(true)">自动排程（仅未排）</div>
+        <div v-permission="'planning:edit'" class="ctx-item" @click="doAutoPlan(false)">全部重排</div>
       </template>
     </div>
 
@@ -440,6 +440,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { usePermissionStore } from '@/stores/permission'
 import {
   getPlanningBoard,
   movePlanningTask,
@@ -526,6 +527,10 @@ const calendar = ref<{ workDate: string; workday: boolean }[]>([])
 const conflicts = ref<ConflictItem[]>([])
 const logs = ref<LogItem[]>([])
 const workMinutes = ref(0)
+
+const permissionStore = usePermissionStore()
+/** 是否有排产编辑权限（拖拽/调整等写操作） */
+const canEdit = computed(() => permissionStore.hasPermission('planning:edit'))
 
 const selectedTask = ref<Task | null>(null)
 const selectedOrderId = ref<number | null>(null)
@@ -778,8 +783,6 @@ const zoomIn = () => { zoomLevel.value = Math.min(ZOOM_MAX, +(zoomLevel.value + 
 const zoomOut = () => { zoomLevel.value = Math.max(ZOOM_MIN, +(zoomLevel.value - 0.25).toFixed(2)) }
 const zoomReset = () => { zoomLevel.value = 1 }
 
-const cellPct = computed(() => (headCells.value.length ? 100 / headCells.value.length : 100))
-
 /** 当前时刻在窗口内的横向比例（0~1，窗口外为 -1） */
 const nowFrac = computed(() => {
   const now = Date.now()
@@ -912,7 +915,7 @@ const barResizable = (t: Task) => {
   return (e - s) / totalMs.value * ganttTotalPx.value >= 56
 }
 
-const conflictStepIds = computed(() => new Set(conflicts.value.flatMap(c => [c.scheduleAId, c.scheduleBId] as number[])))
+const conflictStepIds = computed(() => new Set<string>(conflicts.value.flatMap(c => [c.scheduleAId, c.scheduleBId]).filter((x): x is string => !!x)))
 
 // ==================== 拖拽逻辑 ====================
 const snapTime = (ms: number) => {
@@ -976,7 +979,10 @@ const dragTipTitle = computed(() => {
 const dragTipTime = computed(() => {
   const t = dragState.value?.task
   if (!t) return ''
-  if (dragState.value?.type === 'pool') return `预计 8 小时 · ${ghostTimeLabel.value}`
+  if (dragState.value?.type === 'pool') {
+    const d = Math.max((t.durationMin || 480) * 60000, 30 * 60 * 1000)
+    return `预计 ${(d / 3600000).toFixed(1)} 小时 · ${ghostTimeLabel.value}`
+  }
   return ghostTimeLabel.value || (t.plannedStartTime ? `${fmtShort(t.plannedStartTime)} ~ ${fmtShort(t.plannedEndTime)}` : '')
 })
 const dragTipStatus = computed(() => {
@@ -1024,6 +1030,10 @@ const onBarDown = (e: MouseEvent, t: Task, eq: EqGroup) => {
   // 任何状态都可点击选中查看详情；冻结/完成仅禁止拖动（在 onDragEnd 拦截）
   selectTask(t, eq)
   if (t.planStatus === 'COMPLETED') return
+  if (!canEdit.value) {
+    ElMessage.warning('无排产编辑权限，不能拖拽调整')
+    return
+  }
   const startMs = parseDT(t.plannedStartTime)
   // 锚点：鼠标按下点相对工序起点的时间偏移
   const mouseMs = mouseTimeInTrack(e, eq.id)
@@ -1039,6 +1049,10 @@ const onResizeDown = (e: MouseEvent, t: Task, eq: EqGroup, dir: 'l' | 'r') => {
     ElMessage.warning('已完成工序不可调整工时')
     return
   }
+  if (!canEdit.value) {
+    ElMessage.warning('无排产编辑权限，不能调整工时')
+    return
+  }
   if (t.scheduleStatus === 'FROZEN') {
     ElMessage.warning('该排产已冻结，请先解冻')
     return
@@ -1051,6 +1065,10 @@ const onResizeDown = (e: MouseEvent, t: Task, eq: EqGroup, dir: 'l' | 'r') => {
 const onCardDown = (e: MouseEvent, t: Task) => {
   e.stopPropagation()
   e.preventDefault()
+  if (!canEdit.value) {
+    ElMessage.warning('无排产编辑权限，不能拖拽排产')
+    return
+  }
   dragState.value = { type: 'pool', task: t, originWsId: null, startClientX: e.clientX, startMs: 0, endMs: 0, grabOffsetMs: 0 }
 }
 
@@ -1197,7 +1215,7 @@ const onDragMove = (e: MouseEvent) => {
       : snapTime(mouseMs - ds.grabOffsetMs)
     dragGhost.value = ghostRect(newStart, durMs, targetWs, 0, e.clientY)
   } else if (ds.type === 'pool') {
-    const durMs = 480 * 60 * 1000
+    const durMs = Math.max((ds.task.durationMin || 480) * 60000, 30 * 60 * 1000)
     if (dragTargetWsId.value !== null) {
       const tMs = snapTime(mouseTimeInTrack(e, dragTargetWsId.value))
       dragGhost.value = ghostRect(tMs, durMs, dragTargetWsId.value, 0, e.clientY)
@@ -1346,10 +1364,11 @@ const onDragEnd = async (e: MouseEvent) => {
   }
 }
 
-/** Esc 取消拖拽 */
+/** Esc 取消拖拽/关闭右键菜单 */
 const onKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && dragState.value) {
+  if (e.key === 'Escape') {
     onDragCancel()
+    ctxMenu.value = null
   }
 }
 
@@ -1611,7 +1630,7 @@ const setupPolling = () => {
   }
   if (autoRefresh.value) {
     pollTimer = setInterval(() => {
-      if (!dragState.value && !loading.value) loadBoard()
+      if (!dragState.value && !loading.value && !adjustVisible.value) loadBoard()
     }, 30000)
   }
 }
@@ -1783,7 +1802,6 @@ watch(autoRefresh, setupPolling)
       border-radius: var(--radius-sm);
       white-space: nowrap;
     }
-    .conflict-badge { margin-left: 8px; }
   }
 
   /* ===== KPI 指标卡 ===== */

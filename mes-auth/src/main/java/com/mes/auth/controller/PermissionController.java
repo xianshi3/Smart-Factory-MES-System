@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mes.common.entity.Permission;
 import com.mes.common.mapper.PermissionMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -12,12 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 权限管理控制器
+ * 权限管理接口（仅管理员）
  */
 @RestController
 @RequestMapping("/auth/permission")
 @RequiredArgsConstructor
 @Tag(name = "权限管理", description = "权限管理接口")
+@RequireRole("ADMIN")
 public class PermissionController {
 
     private final PermissionMapper permissionMapper;

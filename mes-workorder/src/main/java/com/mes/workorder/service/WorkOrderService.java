@@ -10,13 +10,13 @@ import com.mes.workorder.entity.WorkOrder;
 import com.mes.workorder.entity.WorkReport;
 
 public interface WorkOrderService extends IService<WorkOrder> {
-    WorkOrder create(CreateWorkOrderDTO dto, Long userId);
+    WorkOrder create(CreateWorkOrderDTO dto);
     void issue(Long id);
     void startProduction(Long id);
     void complete(Long id);
     void close(Long id);
     void updateStatus(Long id, UpdateWorkOrderDTO dto);
-    Result<Void> delete(Long id, Long userId);
-    WorkReport submitReport(SubmitReportDTO dto, Long operatorId);
+    Result<Void> delete(Long id);
+    WorkReport submitReport(SubmitReportDTO dto);
     PageResult<WorkOrder> queryPage(int current, int size, String status, String keyword);
 }

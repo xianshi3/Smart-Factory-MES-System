@@ -9,6 +9,7 @@ import com.mes.auth.mapper.UserMapper;
 import com.mes.common.exception.BizException;
 import com.mes.common.exception.ErrorCode;
 import com.mes.common.result.Result;
+import com.mes.common.security.TokenBlacklistChecker;
 import com.mes.common.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService implements TokenBlacklistChecker {
 
     private static final String LOGIN_FAIL_KEY = "auth:fail:";
     private static final String TOKEN_BLACKLIST_KEY = "auth:blacklist:";
@@ -168,6 +169,7 @@ public class AuthService {
     /**
      * Token是否在黑名单中（Redis不可用时返回false，不阻断请求）
      */
+    @Override
     public boolean isTokenBlacklisted(String token) {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(TOKEN_BLACKLIST_KEY + sha256(token)));

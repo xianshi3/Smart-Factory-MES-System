@@ -9,6 +9,7 @@ import com.mes.common.mapper.PermissionMapper;
 import com.mes.common.mapper.RoleMapper;
 import com.mes.common.mapper.RolePermissionMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +21,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 角色管理控制器
+ * 角色管理接口（仅管理员）
  */
 @RestController
 @RequestMapping("/auth/role")
 @RequiredArgsConstructor
 @Tag(name = "角色管理", description = "角色CRUD接口")
+@RequireRole("ADMIN")
 public class RoleController {
 
     private final RoleMapper roleMapper;

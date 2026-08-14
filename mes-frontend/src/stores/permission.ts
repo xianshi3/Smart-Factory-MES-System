@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '@/api'
+import { getUserPermissions } from '@/api/auth'
 
 interface Menu {
   id?: number
@@ -22,6 +23,8 @@ interface Permission {
 export const usePermissionStore = defineStore('permission', () => {
   const menus = ref<Menu[]>([])
   const permissions = ref<Permission[]>([])
+  const codes = ref<string[]>([])
+  const loaded = ref(false)
   const loading = ref(false)
 
   const menuCodes = computed(() => {
@@ -35,7 +38,8 @@ export const usePermissionStore = defineStore('permission', () => {
   })
 
   const hasPermission = (code: string): boolean => {
-    return permissionCodes.value.includes(code)
+    if (!code) return true
+    return codes.value.includes(code)
   }
 
   const hasMenu = (code: string): boolean => {
@@ -55,6 +59,22 @@ export const usePermissionStore = defineStore('permission', () => {
     }
   }
 
+  /**
+   * 加载当前用户权限码（v-permission 指令 / 路由守卫使用）
+   */
+  const loadCurrentPermissions = async () => {
+    if (loaded.value) return
+    try {
+      const res = await getUserPermissions()
+      codes.value = res?.data || []
+    } catch (e) {
+      console.error('获取当前用户权限失败', e)
+      codes.value = []
+    } finally {
+      loaded.value = true
+    }
+  }
+
   const loadPermissions = async () => {
     try {
       const res = await request({ url: '/auth/role/permissions', method: 'get' })
@@ -64,15 +84,26 @@ export const usePermissionStore = defineStore('permission', () => {
     }
   }
 
+  const reset = () => {
+    codes.value = []
+    loaded.value = false
+    menus.value = []
+    permissions.value = []
+  }
+
   return {
     menus,
     permissions,
+    codes,
+    loaded,
     loading,
     menuCodes,
     permissionCodes,
     hasPermission,
     hasMenu,
     loadMenus,
-    loadPermissions
+    loadCurrentPermissions,
+    loadPermissions,
+    reset
   }
 })

@@ -6,6 +6,8 @@ import com.mes.auth.dto.UpdatePasswordDTO;
 import com.mes.auth.dto.UpdateUserDTO;
 import com.mes.auth.service.AuthService;
 import com.mes.common.result.Result;
+import com.mes.common.security.PermissionService;
+import com.mes.common.security.UserContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final PermissionService permissionService;
 
     @PostMapping("/login")
     @Operation(summary = "用户登录")
@@ -84,6 +87,13 @@ public class AuthController {
         String token = resolveToken(request);
         authService.saveSettings(token, settings);
         return Result.ok();
+    }
+
+    @GetMapping("/user/permissions")
+    @Operation(summary = "获取当前用户权限码列表")
+    public Result<List<String>> userPermissions() {
+        return Result.ok(new java.util.ArrayList<>(
+                permissionService.permissionsOf(UserContext.getUserId())));
     }
 
     private String resolveToken(HttpServletRequest request) {

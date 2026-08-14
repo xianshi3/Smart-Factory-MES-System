@@ -30,7 +30,7 @@
           @open="onMenuOpen"
           @close="onMenuClose"
         >
-          <template v-for="group in menuGroups" :key="group.title">
+          <template v-for="group in visibleMenuGroups" :key="group.title">
             <el-sub-menu v-if="!isCollapse" :index="group.title">
               <template #title>
                 <el-icon><component :is="group.icon" /></el-icon>
@@ -148,22 +148,22 @@ const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
 
-interface MI { path: string; title: string; icon: string; badge?: string }
+interface MI { path: string; title: string; icon: string; badge?: string; perm?: string }
 interface MG { title: string; icon: string; items: MI[] }
 
 const menuGroups = computed<MG[]>(() => [
   { title: '生产监控', icon: 'Odometer', items: [
     { path: '/dashboard', title: '工作台', icon: 'Odometer' },
-    { path: '/device', title: '设备监控', icon: 'Monitor' },
+    { path: '/device', title: '设备监控', icon: 'Monitor', perm: 'device:view' },
     { path: '/alarm', title: '报警中心', icon: 'Warning' },
     { path: '/ai-assistant', title: 'AI 生产助理', icon: 'MagicStick' },
   ]},
   { title: '生产管理', icon: 'Document', items: [
-    { path: '/workorder', title: '工单管理', icon: 'Document' },
-    { path: '/planning-board', title: '生产调度看板', icon: 'Calendar' },
-    { path: '/process', title: '工艺管理', icon: 'Setting' },
-    { path: '/quality', title: '质量管理', icon: 'CircleCheck' },
-    { path: '/report', title: '生产报表', icon: 'DataAnalysis' },
+    { path: '/workorder', title: '工单管理', icon: 'Document', perm: 'workorder:view' },
+    { path: '/planning-board', title: '生产调度看板', icon: 'Calendar', perm: 'planning:view' },
+    { path: '/process', title: '工艺管理', icon: 'Setting', perm: 'process:view' },
+    { path: '/quality', title: '质量管理', icon: 'CircleCheck', perm: 'quality:view' },
+    { path: '/report', title: '生产报表', icon: 'DataAnalysis', perm: 'report:view' },
   ]},
   { title: '基础数据', icon: 'Grid', items: [
     { path: '/production-line', title: '生产线', icon: 'Connection' },
@@ -172,13 +172,22 @@ const menuGroups = computed<MG[]>(() => [
     { path: '/bom', title: 'BOM管理', icon: 'List' },
   ]},
   { title: '系统管理', icon: 'Setting', items: [
-    { path: '/role', title: '角色管理', icon: 'Key' },
-    { path: '/menu', title: '菜单管理', icon: 'Menu' },
-    { path: '/permission', title: '权限管理', icon: 'Lock' },
+    { path: '/role', title: '角色管理', icon: 'Key', perm: 'role:manage' },
+    { path: '/menu', title: '菜单管理', icon: 'Menu', perm: 'role:manage' },
+    { path: '/permission', title: '权限管理', icon: 'Lock', perm: 'permission:manage' },
     { path: '/settings', title: '系统设置', icon: 'Setting' },
     { path: '/profile', title: '个人中心', icon: 'User' },
   ]},
 ])
+
+/**
+ * 按当前用户权限过滤后的可见菜单（无权限码要求的菜单始终可见）
+ */
+const visibleMenuGroups = computed<MG[]>(() =>
+  menuGroups.value
+    .map(g => ({ ...g, items: g.items.filter(i => !i.perm || permissionStore.hasPermission(i.perm)) }))
+    .filter(g => g.items.length > 0)
+)
 
 const pageMap = computed(() => {
   const m: Record<string, { title: string; group: string }> = {}
@@ -248,6 +257,7 @@ const onMenuClose = (idx: string) => {
 
 onMounted(async () => {
   await userStore.getUserInfo()
+  await permissionStore.loadCurrentPermissions()
   permissionStore.loadMenus()
 })
 
@@ -256,7 +266,7 @@ const handleCommand = (cmd: string) => {
   else if (cmd === 'settings') router.push('/settings')
   else if (cmd === 'logout') {
     ElMessageBox.confirm('确定退出登录?', '提示', { type: 'warning' })
-      .then(() => { userStore.logout(); router.push('/login') }).catch(() => {})
+      .then(() => { userStore.logout(); permissionStore.reset(); router.push('/login') }).catch(() => {})
   }
 }
 </script>

@@ -1,6 +1,7 @@
 package com.mes.workorder.controller;
 
 import com.mes.common.result.Result;
+import com.mes.common.security.RequirePermission;
 import com.mes.workorder.dto.planning.PlanningAutoPlanDTO;
 import com.mes.workorder.dto.planning.PlanningBoardVO;
 import com.mes.workorder.dto.planning.PlanningFreezeRequestDTO;
@@ -44,6 +45,7 @@ public class PlanningBoardController {
 
     @PostMapping("/save-order")
     @Operation(summary = "保存拖拽后的排产顺序（整单级）")
+    @RequirePermission("planning:edit")
     public Result<Void> saveOrder(@Valid @RequestBody PlanningSaveOrderDTO dto) {
         try {
             planningBoardService.saveOrder(dto);
@@ -56,6 +58,7 @@ public class PlanningBoardController {
 
     @PostMapping("/move")
     @Operation(summary = "拖拽调整（工序换设备/改时间/拉伸）")
+    @RequirePermission("planning:edit")
     public Result<Void> move(@Valid @RequestBody PlanningMoveRequestDTO dto) {
         try {
             planningBoardService.move(dto);
@@ -68,6 +71,7 @@ public class PlanningBoardController {
 
     @PostMapping("/unassign")
     @Operation(summary = "拖回待排产池（取消排产）")
+    @RequirePermission("planning:edit")
     public Result<Void> unassign(@RequestParam Long workOrderId) {
         try {
             planningBoardService.unassign(workOrderId);
@@ -80,6 +84,7 @@ public class PlanningBoardController {
 
     @PostMapping("/auto-plan")
     @Operation(summary = "自动排程（APS：优先级+交期+工序拆分+负载均衡+工作日历）")
+    @RequirePermission("planning:edit")
     public Result<Integer> autoPlan(@RequestBody(required = false) PlanningAutoPlanDTO dto) {
         try {
             if (dto == null) {
@@ -95,6 +100,7 @@ public class PlanningBoardController {
 
     @PostMapping("/undo")
     @Operation(summary = "撤销上一次排产变更")
+    @RequirePermission("planning:edit")
     public Result<Void> undo() {
         try {
             planningBoardService.undo();
@@ -107,6 +113,7 @@ public class PlanningBoardController {
 
     @PostMapping("/freeze")
     @Operation(summary = "冻结排产（设备行/工单/指定工序）")
+    @RequirePermission("planning:edit")
     public Result<Integer> freeze(@RequestBody PlanningFreezeRequestDTO dto) {
         try {
             return Result.ok(planningBoardService.freeze(dto));
@@ -118,6 +125,7 @@ public class PlanningBoardController {
 
     @PostMapping("/unfreeze")
     @Operation(summary = "解除冻结")
+    @RequirePermission("planning:edit")
     public Result<Integer> unfreeze(@RequestBody PlanningFreezeRequestDTO dto) {
         try {
             return Result.ok(planningBoardService.unfreeze(dto));
@@ -129,6 +137,7 @@ public class PlanningBoardController {
 
     @PostMapping("/release")
     @Operation(summary = "下发排产（标记RELEASED）")
+    @RequirePermission("planning:edit")
     public Result<Integer> release(@RequestParam Long workOrderId) {
         try {
             return Result.ok(planningBoardService.release(workOrderId));
@@ -140,6 +149,7 @@ public class PlanningBoardController {
 
     @DeleteMapping("/logs")
     @Operation(summary = "清空变更日志（仅审计记录，不影响排产与撤销）")
+    @RequirePermission("planning:edit")
     public Result<Void> clearLogs() {
         try {
             planningBoardService.clearLogs();

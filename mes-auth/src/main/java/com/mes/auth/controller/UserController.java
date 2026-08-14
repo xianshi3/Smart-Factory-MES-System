@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mes.auth.entity.User;
 import com.mes.auth.mapper.UserMapper;
 import com.mes.common.result.Result;
+import com.mes.common.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -12,12 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 用户管理控制器
+ * 用户管理接口（仅管理员）
  */
 @RestController
 @RequestMapping("/auth/user")
 @RequiredArgsConstructor
 @Tag(name = "用户管理", description = "用户CRUD接口")
+@RequireRole("ADMIN")
 public class UserController {
 
     private final UserMapper userMapper;

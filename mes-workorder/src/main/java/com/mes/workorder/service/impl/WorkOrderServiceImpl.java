@@ -39,7 +39,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WorkOrder create(CreateWorkOrderDTO dto, Long userId) {
+    public WorkOrder create(CreateWorkOrderDTO dto) {
         WorkOrder workOrder = new WorkOrder();
         workOrder.setDeleted(0);
         workOrder.setOrderNo(generateOrderNo());
@@ -54,7 +54,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         workOrder.setPlannedStartTime(dto.getPlannedStartTime());
         workOrder.setPlannedEndTime(dto.getPlannedEndTime());
         workOrder.setRemark(dto.getRemark());
-        workOrder.setCreateBy(userId);
+        workOrder.setCreateBy(getCurrentUserId());
         this.save(workOrder);
         return workOrder;
     }
@@ -158,7 +158,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WorkReport submitReport(SubmitReportDTO dto, Long operatorId) {
+    public WorkReport submitReport(SubmitReportDTO dto) {
         WorkOrder wo = getByIdOrThrow(dto.getWorkOrderId());
         if (!WorkOrderStatusEnum.IN_PRODUCTION.getCode().equals(wo.getStatus())) {
             throw new BizException(ErrorCode.WORKORDER_STATUS_ERROR.getCode(), "当前工单不在生产中，无法报工");
@@ -166,7 +166,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         WorkReport report = new WorkReport();
         report.setWorkOrderId(dto.getWorkOrderId());
         report.setDeviceId(dto.getDeviceId());
-        report.setOperatorId(operatorId);
+        report.setOperatorId(getCurrentUserId());
         report.setReportQuantity(dto.getReportQuantity());
         report.setQualifiedQuantity(dto.getQualifiedQuantity() != null ? dto.getQualifiedQuantity() : dto.getReportQuantity());
         report.setDefectiveQuantity(dto.getDefectiveQuantity() != null ? dto.getDefectiveQuantity() : 0);
@@ -227,7 +227,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> delete(Long id, Long userId) {
+    public Result<Void> delete(Long id) {
         log.info("删除工单, id={}", id);
         WorkOrder order = getById(id);
         if (order == null) {
@@ -264,6 +264,7 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
     }
 
     private Long getCurrentUserId() {
-        return 1L;
+        Long userId = com.mes.common.security.UserContext.getUserId();
+        return userId != null ? userId : 1L;
     }
 }

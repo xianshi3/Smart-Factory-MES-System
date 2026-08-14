@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { usePermissionStore } from '@/stores/permission'
+import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -33,7 +35,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'planning-board',
         name: 'PlanningBoard',
-        component: () => import('@/views/schedule/PlanningBoardView.vue')
+        component: () => import('@/views/schedule/PlanningBoardView.vue'),
+        meta: { permission: 'planning:view' }
       },
       {
         path: 'process',
@@ -149,7 +152,18 @@ router.beforeEach(async (to, from, next) => {
       return
     }
   }
-  
+
+  const permissionStore = usePermissionStore()
+  if (!permissionStore.loaded) {
+    await permissionStore.loadCurrentPermissions()
+  }
+  const required = to.meta.permission as string | undefined
+  if (required && !permissionStore.hasPermission(required)) {
+    ElMessage.warning('无权限访问该页面')
+    next('/dashboard')
+    return
+  }
+
   next()
 })
 

@@ -22,6 +22,13 @@ export function getUserInfo() {
 }
 
 /**
+ * Get current user permission codes API
+ */
+export function getUserPermissions() {
+  return request({ url: '/auth/user/permissions', method: 'get' })
+}
+
+/**
  * Update user profile API
  */
 export function updateProfile(data: {
