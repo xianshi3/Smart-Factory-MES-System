@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   type ConversationListItem,
   type ConversationDetail,
@@ -119,6 +120,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
       await selectConversation(conv.id)
       return conv.id
     } catch {
+      // 明确提示而非静默失败（AI 服务未启动时用户能看到原因）
+      ElMessage.error('AI 服务不可用，请确认 mes-ai-service 已启动')
       return null
     }
   }
