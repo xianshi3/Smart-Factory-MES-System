@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  * @description 负责工艺模板、工艺参数的管理
  */
 @SpringBootApplication
-@MapperScan("com.mes.process.mapper")
+@MapperScan({"com.mes.process.mapper", "com.mes.common.mapper"})
 @ComponentScan(basePackages = {"com.mes.process", "com.mes.common"})
 public class ProcessApplication {
     public static void main(String[] args) {

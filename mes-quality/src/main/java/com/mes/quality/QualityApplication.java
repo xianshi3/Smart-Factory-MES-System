@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  * @description 负责质检记录与追溯管理
  */
 @SpringBootApplication
-@MapperScan("com.mes.quality.mapper")
+@MapperScan({"com.mes.quality.mapper", "com.mes.common.mapper"})
 @ComponentScan(basePackages = {"com.mes.quality", "com.mes.common"})
 public class QualityApplication {
 
