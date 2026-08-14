@@ -40,16 +40,21 @@ def decode_jwt(token: str) -> dict:
     parts = token.split(".")
     if len(parts) != 3:
         raise HTTPException(status_code=401, detail="Token 无效")
-    header_payload = f"{parts[0]}.{parts[1]}".encode()
-    expected = base64.urlsafe_b64encode(
-        hmac.new(secret.encode(), header_payload, hashlib.sha256).digest()
-    ).rstrip(b"=").decode()
-    if not hmac.compare_digest(expected, parts[2]):
-        raise HTTPException(status_code=401, detail="Token 签名无效")
     try:
+        header = json.loads(_b64url_decode(parts[0]))
         payload = json.loads(_b64url_decode(parts[1]))
     except Exception:
         raise HTTPException(status_code=401, detail="Token 内容无效")
+    # 与 Java 端 jjwt 对齐：密钥长度决定 HS256/384/512（如 48 字节密钥 → HS384）
+    hash_mod = {"HS256": hashlib.sha256, "HS384": hashlib.sha384, "HS512": hashlib.sha512}.get(header.get("alg"))
+    if hash_mod is None:
+        raise HTTPException(status_code=401, detail=f"不支持的签名算法: {header.get('alg')}")
+    header_payload = f"{parts[0]}.{parts[1]}".encode()
+    expected = base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), header_payload, hash_mod).digest()
+    ).rstrip(b"=").decode()
+    if not hmac.compare_digest(expected, parts[2]):
+        raise HTTPException(status_code=401, detail="Token 签名无效")
     exp = payload.get("exp")
     if isinstance(exp, (int, float)) and exp < time.time():
         raise HTTPException(status_code=401, detail="登录已过期")
