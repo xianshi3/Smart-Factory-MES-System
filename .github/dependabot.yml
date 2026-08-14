@@ -1,0 +1,42 @@
+# GitHub Dependabot — 自动依赖更新
+# https://docs.github.com/code-security/dependabot
+version: 2
+updates:
+  # npm 前端依赖（每月一次，常规 PR）
+  - package-ecosystem: "npm"
+    directory: "/mes-frontend"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    ignore:
+      # echarts/vue-echarts 大版本升级需人工验证图表渲染
+      - dependency-name: "echarts"
+        versions: [">=7"]
+      - dependency-name: "vue-echarts"
+        versions: [">=9"]
+
+  # Maven 后端依赖（每月一次）
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+
+  # GitHub Actions（每周一次，含安全修复）
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"

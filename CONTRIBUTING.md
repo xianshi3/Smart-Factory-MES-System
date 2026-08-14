@@ -21,20 +21,22 @@
 ## 提交前检查
 
 ```bash
-# 后端（全模块编译）
+# 后端（全模块编译 + 单元测试）
 mvn compile -T 4
+mvn test -pl mes-common          # 公共模块单测（JWT/Result）
 
-# 前端（类型检查 + 生产构建）
-cd mes-frontend && npm run type-check && npm run build
+# 前端（ESLint + 类型检查 + 单元测试 + 生产构建）
+cd mes-frontend && npm run lint && npm run type-check && npm test && npm run build
 
-# Python AI 服务（语法检查）
-cd mes-ai-service && python -m compileall -q src
+# Python AI 服务（语法检查 + 测试）
+cd mes-ai-service && python -m compileall -q src && pytest tests -q
 
 # .NET 设备网关
 cd mes-device-gateway && dotnet build
 ```
 
 > 注意：`vue-tsc` 存在全局类型声明漏检，页面改动请确认 vite 构建（`npm run build`）通过。
+> 涉及鉴权/权限改动时，请同步确认网关 `JwtAuthGlobalFilter` 白名单与各控制器 `@RequirePermission` 注解。
 
 ## 提交信息规范
 
