@@ -40,6 +40,7 @@ class AgentRequest(BaseModel):
     message: str = Field(..., description="用户消息", min_length=1, max_length=2000)
     history: Optional[List[Dict[str, str]]] = Field(None, description="对话历史")
     session_id: Optional[str] = Field(None, description="会话ID（用于保持上下文）")
+    context: Optional[Dict[str, Any]] = Field(None, description="页面上下文（用户所在页面/筛选/数据摘要）")
 
 
 class AgentStep(BaseModel):
@@ -104,6 +105,7 @@ async def run_agent(request: AgentRequest):
             message=request.message,
             history=request.history,
             session_id=request.session_id,
+            context=request.context,
         )
 
         steps = []

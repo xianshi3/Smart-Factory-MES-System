@@ -675,11 +675,28 @@ background: transparent !important;
   margin-bottom: 20px;
 }
 .header-left { display: flex; flex-direction: column; gap: 4px; }
+.header-right { display: flex; gap: 10px; align-items: center; }
 .page-title { display: flex; align-items: center; gap: 10px; }
 .page-title, .page-title h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 0; }
 .page-title .el-icon { font-size: 24px; color: var(--accent); }
 .page-desc { font-size: 13px; color: var(--text-muted); }
 .header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* 页面级 AI 助手按钮 */
+.ai-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: var(--accent, #6366f1);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+.ai-btn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.28), rgba(139, 92, 246, 0.28));
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #6366f1);
+}
 
 /* Filter Bar */
 .filter-bar {

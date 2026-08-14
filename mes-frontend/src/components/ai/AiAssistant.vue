@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, watch, onMounted, onUnmounted, computed } from 'vue'
 import { marked } from 'marked'
 import type { Component } from 'vue'
 import {
@@ -223,9 +223,18 @@ import { useAiChatStore } from '@/stores/aiChat'
 
 marked.setOptions({ breaks: true, gfm: true })
 
-const props = withDefaults(defineProps<{ visible?: boolean; floating?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  visible?: boolean
+  floating?: boolean
+  /** 页面上下文：发送消息时注入给 AI（当前页面/筛选/数据摘要） */
+  context?: any
+  /** 自定义场景按钮（替换默认快捷指令） */
+  scenarios?: { text: string; icon?: Component }[]
+}>(), {
   visible: true,
   floating: true,
+  context: null,
+  scenarios: () => [],
 })
 const emit = defineEmits<{ close: [] }>()
 
@@ -237,12 +246,20 @@ const input = ref('')
 
 interface Suggestion { icon: Component; text: string }
 
-const suggestions: Suggestion[] = [
+const defaultSuggestions: Suggestion[] = [
   { icon: DataAnalysis, text: '查看所有设备状态' },
   { icon: Search, text: '查看 DEV-001 温度' },
   { icon: Notebook, text: '主轴温度过高怎么处理' },
   { icon: DocIcon, text: '温度超过55°C就创建工单' },
 ]
+
+/** 页面自定义场景优先，否则用默认快捷指令 */
+const suggestions = computed<Suggestion[]>(() =>
+  (props.scenarios && props.scenarios.length ? props.scenarios : defaultSuggestions).map(s => ({
+    icon: s.icon || MagicStick,
+    text: s.text,
+  })),
+)
 
 const mdCache = new Map<string, string>()
 
@@ -280,7 +297,7 @@ async function handleSend() {
   const text = input.value.trim()
   if (!text) return
   input.value = ''
-  await store.sendMessage(text)
+  await store.sendMessage(text, props.context)
 }
 
 async function handleNewChat() {

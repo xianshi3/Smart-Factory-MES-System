@@ -26,6 +26,9 @@
           <el-icon><Refresh /></el-icon>&nbsp;刷新
         </el-button>
         <el-switch v-model="autoRefresh" size="small" active-text="自动刷新" inline-prompt />
+        <el-button size="small" class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>&nbsp;AI 助手
+        </el-button>
       </div>
     </div>
 
@@ -434,6 +437,15 @@
         <el-button size="small" type="primary" @click="submitAdjust">保存</el-button>
       </template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
@@ -452,6 +464,8 @@ import {
   releasePlanning,
   clearPlanningLogs
 } from '@/api/services'
+import { MagicStick, Warning, DataAnalysis, Document } from '@element-plus/icons-vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 
 interface Task {
   scheduleId?: string
@@ -527,6 +541,36 @@ const calendar = ref<{ workDate: string; workday: boolean }[]>([])
 const conflicts = ref<ConflictItem[]>([])
 const logs = ref<LogItem[]>([])
 const workMinutes = ref(0)
+
+/* ===== 页面级 AI 助手（生产调度看板） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: MagicStick, text: '分析当前排产的产能负荷与瓶颈' },
+  { icon: Warning, text: '检查排产冲突与异常任务' },
+  { icon: DataAnalysis, text: '评估交期风险并给出调整建议' },
+  { icon: Document, text: '优化排产顺序（减少换线/插单）' },
+]
+const aiContext = computed(() => ({
+  page: '生产调度看板',
+  summary: {
+    work_minutes: workMinutes.value,
+    conflicts: conflicts.value,
+    unassigned_orders: unassigned.value.map((t: Task) => ({
+      orderNo: t.orderNo, product: t.productName, priority: t.priority,
+      plan: t.planQuantity, status: t.planStatus,
+    })),
+    equipment_load: equipment.value.map((g: EqGroup) => ({
+      workstation: g.workstationName,
+      load_rate: g.loadRate + '%',
+      task_count: g.taskCount,
+      bottleneck: !!g.bottleneck,
+      tasks: g.tasks.map((t: Task) => ({
+        orderNo: t.orderNo, step: t.stepName, progress: t.progress + '%',
+        window: `${t.plannedStartTime || '--'} ~ ${t.plannedEndTime || '--'}`,
+      })),
+    })),
+  },
+}))
 
 const permissionStore = usePermissionStore()
 /** 是否有排产编辑权限（拖拽/调整等写操作） */

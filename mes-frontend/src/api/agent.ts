@@ -37,11 +37,13 @@ export interface AgentResponse {
 
 export async function runAgent(
   message: string,
-  history?: { role: string; content: string }[]
+  history?: { role: string; content: string }[],
+  context?: any,
 ): Promise<AgentResponse> {
   const res = await request.post(`${AI_BASE_URL}/api/v1/agent/run`, {
     message,
     history: history || [],
+    context: context || null,
   })
   return res
 }

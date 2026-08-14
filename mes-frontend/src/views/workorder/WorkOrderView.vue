@@ -8,10 +8,16 @@
         </div>
         <p class="page-desc">生产工单 · 进度跟踪 · 报工管理</p>
       </div>
-      <el-button type="primary" class="create-btn" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        新建工单
-      </el-button>
+      <div class="header-right">
+        <el-button class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>
+          AI 助手
+        </el-button>
+        <el-button type="primary" class="create-btn" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新建工单
+        </el-button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -223,15 +229,25 @@
         <el-button type="primary" @click="handleSubmitReport">提交</el-button>
       </template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, updateWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, closeWorkOrder, deleteWorkOrder, submitReport, getTemplatePage } from '@/api/services'
 import { getWorkstationList } from '@/api/dashboard'
-import { Document, Plus, Search, Coin, CircleCheck, Calendar, MoreFilled } from '@element-plus/icons-vue'
+import { Document, Plus, Search, Coin, CircleCheck, Calendar, MoreFilled, MagicStick, DataAnalysis, Warning, TrendCharts } from '@element-plus/icons-vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -242,6 +258,30 @@ const detailData = ref<any>({})
 const tableData = ref<any[]>([])
 const workstationOptions = ref<any[]>([])
 const templateOptions = ref<any[]>([])
+
+/* ===== 页面级 AI 助手（工单管理） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '分析当前工单的交期风险' },
+  { icon: TrendCharts, text: '生产进度总览与瓶颈分析' },
+  { icon: Warning, text: '排查异常或延期工单' },
+  { icon: MagicStick, text: '评估产线产能负荷' },
+]
+const aiContext = computed(() => ({
+  page: '工单管理',
+  filters: { status: searchForm.status || null, keyword: searchForm.keyword || null },
+  summary: `当前页面显示 ${tableData.value.length} 个工单（筛选：${searchForm.status || '全部状态'}${searchForm.keyword ? '，关键字 ' + searchForm.keyword : ''}）。工单列表：` +
+    tableData.value.map((r: any) => ({
+      orderNo: r.orderNo,
+      product: r.productName,
+      status: r.status,
+      priority: r.priority,
+      plan: r.planQuantity,
+      completed: r.completedQuantity || 0,
+      progress: getProgress(r) + '%',
+      window: `${r.plannedStartTime || '--'} ~ ${r.plannedEndTime || '--'}`,
+    })),
+}))
 
 const searchForm = reactive({ keyword: '', status: '' })
 const pagination = reactive({ page: 1, size: 12, total: 0 })

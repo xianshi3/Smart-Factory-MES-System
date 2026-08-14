@@ -9,6 +9,10 @@
         <p class="page-desc">产量统计 · 良品率分析 · OEE监控</p>
       </div>
       <div class="header-actions">
+        <el-button class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>
+          AI 助手
+        </el-button>
         <el-button type="primary" @click="handleExport">
           <el-icon><Download /></el-icon>
           导出
@@ -183,6 +187,15 @@
         />
       </div>
     </div>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
@@ -191,13 +204,35 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getProductionReport } from '@/api/services'
 import { useChartTheme } from '@/composables/useChartTheme'
-import { DataAnalysis, Download, Refresh, TrendCharts, List, Search, Odometer, PieChart } from '@element-plus/icons-vue'
+import { DataAnalysis, Download, Refresh, TrendCharts, List, Search, Odometer, PieChart, MagicStick, Warning } from '@element-plus/icons-vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 
 const chartTheme = useChartTheme()
 const loading = ref(false)
 const tableData = ref<any[]>([])
 const searchForm = reactive({ dateRange: [] as string[], dimension: 'day' })
 const pagination = reactive({ page: 1, size: 10 })
+
+/* ===== 页面级 AI 助手（生产报表） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '解读当前生产报表数据' },
+  { icon: Warning, text: '预警产量/OEE异常波动' },
+  { icon: TrendCharts, text: '分析生产趋势与影响因素' },
+  { icon: MagicStick, text: '给出产能提升建议' },
+]
+const aiContext = computed(() => ({
+  page: '生产报表',
+  filters: { dimension: searchForm.dimension, dateRange: searchForm.dateRange },
+  summary: {
+    stats: stats.value.map((s: any) => ({ label: s.label, value: s.value })),
+    oee: { avgOee: oeeSummary.avgOee, availability: oeeSummary.avgAvailability, performance: oeeSummary.avgPerformance, quality: oeeSummary.avgQuality },
+    rows: tableData.value.map((r: any) => ({
+      date: r.date, workstation: r.workstationName || r.workStationName, workOrder: r.workOrderNo,
+      output: r.output, qualified: r.qualified, defective: r.defective, oee: r.oee,
+    })),
+  },
+}))
 
 const pagedData = computed(() => {
   const start = (pagination.page - 1) * pagination.size

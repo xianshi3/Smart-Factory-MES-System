@@ -123,7 +123,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
     }
   }
 
-  async function sendMessage(text: string): Promise<boolean> {
+  async function sendMessage(text: string, context?: any): Promise<boolean> {
     if (!text.trim() || loading.value) return false
 
     const now = new Date()
@@ -155,7 +155,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
         .filter(m => m.saved)
         .map(m => ({ role: m.role, content: m.content }))
 
-      const res = await runAgent(text, history.slice(-10))
+      const res = await runAgent(text, history.slice(-10), context)
 
       aiOnline.value = true; stopPolling()
 

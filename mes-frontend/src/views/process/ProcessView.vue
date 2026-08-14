@@ -8,10 +8,16 @@
         </div>
         <p class="page-desc">工艺模板 · 版本管理 · 流程配置</p>
       </div>
-      <el-button type="primary" class="create-btn" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        新建模板
-      </el-button>
+      <div class="header-right">
+        <el-button class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>
+          AI 助手
+        </el-button>
+        <el-button type="primary" class="create-btn" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新建模板
+        </el-button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -242,6 +248,15 @@
         <el-button type="primary" @click="handleDoCheck">开始校验</el-button>
       </template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
@@ -255,7 +270,8 @@ import {
   addTemplateStep, updateTemplateStep, deleteTemplateStep,
   checkParameters,
 } from '@/api/services'
-import { Setting, Plus, Search, Box, Clock, CircleCheck, WarningFilled, MoreFilled } from '@element-plus/icons-vue'
+import { Setting, Plus, Search, Box, Clock, CircleCheck, WarningFilled, MoreFilled, MagicStick, Notebook, Document, DataAnalysis } from '@element-plus/icons-vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -263,6 +279,28 @@ const dialogTitle = ref('新建模板')
 const detailVisible = ref(false)
 const detail = ref<any>({})
 const tableData = ref<any[]>([])
+
+/* ===== 页面级 AI 助手（工艺管理） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '分析工艺参数合理性（CPK/公差）' },
+  { icon: Document, text: '模板参数配置建议（机加工艺）' },
+  { icon: Notebook, text: '工序步骤优化建议' },
+  { icon: MagicStick, text: '对比不同模板的工艺路线' },
+]
+const aiContext = computed(() => ({
+  page: '工艺管理',
+  filters: { status: searchForm.status || null, keyword: searchForm.keyword || null },
+  summary: `当前页面显示 ${tableData.value.length} 个工艺模板（筛选：${searchForm.status || '全部状态'}${searchForm.keyword ? '，关键字 ' + searchForm.keyword : ''}）。模板列表：` +
+    tableData.value.map((r: any) => ({
+      name: r.templateName,
+      code: r.templateCode,
+      model: r.productModel,
+      status: r.status,
+      version: r.version,
+      updated: r.updateTime,
+    })),
+}))
 
 const searchForm = reactive({ keyword: '', status: '' })
 const pagination = reactive({ page: 1, size: 12, total: 0 })

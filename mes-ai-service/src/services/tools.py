@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 MES_BASE_URL = "http://localhost:8085"
 AUTH_BASE_URL = "http://localhost:8081"
+WORKORDER_BASE_URL = "http://localhost:8082"
+PROCESS_BASE_URL = "http://localhost:8083"
+QUALITY_BASE_URL = "http://localhost:8084"
 
 _HTTP_TIMEOUT = 8.0
 
@@ -27,6 +30,10 @@ TOOL_META: Dict[str, Dict[str, Any]] = {
     "list_work_orders": {"category": "工单", "kb_fallback": False},
     "get_work_order_detail": {"category": "工单", "kb_fallback": False},
     "create_work_order": {"category": "工单", "kb_fallback": False},
+    "list_process_templates": {"category": "工艺", "kb_fallback": False},
+    "list_quality_records": {"category": "质量", "kb_fallback": False},
+    "get_planning_board": {"category": "排产", "kb_fallback": False},
+    "get_production_report": {"category": "报表", "kb_fallback": False},
     "list_production_lines": {"category": "生产", "kb_fallback": False},
     "list_workstations": {"category": "生产", "kb_fallback": False},
     "list_boms": {"category": "物料", "kb_fallback": False},
@@ -293,8 +300,74 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "list_process_templates",
+            "description": "获取工艺模板列表（名称、编码、状态、产品型号），可按状态或关键字筛选",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": ["DRAFT", "PUBLISHED"],
+                        "description": "模板状态筛选（可选）",
+                    }
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_quality_records",
+            "description": "获取质检记录列表（工单、SN、检验类型、结果、缺陷），可按检验类型或结果筛选",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "check_type": {
+                        "type": "string",
+                        "enum": ["IPQC", "FQC", "OQC"],
+                        "description": "检验类型筛选（可选）",
+                    },
+                    "result": {
+                        "type": "string",
+                        "enum": ["PASSED", "FAILED", "REWORK"],
+                        "description": "检验结果筛选（可选）",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_planning_board",
+            "description": "获取生产调度看板数据（各设备排产任务、时间窗口、进度），用于产能负荷与排产分析",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_production_report",
+            "description": "获取生产报表（产量、OEE、设备状态汇总），可按天数统计，用于报表解读与异常预警",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "integer",
+                        "description": "统计天数（可选，默认 7）",
+                    }
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_device_trend",
-            "description": "获取设备最近24小时的温度/转速/振动趋势数据，用于分析设备运行趋势和预测潜在故障",
+            "description": "获取指定设备的运行趋势数据（温度/速度/功率历史），用于趋势分析与故障预测",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -330,16 +403,30 @@ async def call_get_device_detail(device_code: str, headers: Optional[Dict] = Non
 
 
 async def call_list_work_orders(status: Optional[str] = None, headers: Optional[Dict] = None) -> Dict:
-    result = await _safe_request_async("GET", "http://localhost:8082/workorder/page",
+    result = await _safe_request_async("GET", f"{WORKORDER_BASE_URL}/workorder/page",
                                        params={"status": status} if status else {}, headers=headers or {})
     if not result["success"]:
         return result
     data = result["data"]
-    return {"success": True, "work_orders": data.get("data", {}).get("records", [])}
+    records = data.get("data", {}).get("records", [])
+    # 精简字段，避免冗余数据干扰 LLM 解读
+    work_orders = [{
+        "orderNo": w.get("orderNo"),
+        "productName": w.get("productName"),
+        "productModel": w.get("productModel"),
+        "status": w.get("status"),
+        "priority": w.get("priority"),
+        "planQuantity": w.get("planQuantity"),
+        "completedQuantity": w.get("completedQuantity") or 0,
+        "progress_pct": round((w.get("completedQuantity") or 0) / w.get("planQuantity", 1) * 100) if w.get("planQuantity") else 0,
+        "plannedStartTime": w.get("plannedStartTime"),
+        "plannedEndTime": w.get("plannedEndTime"),
+    } for w in records if isinstance(records, list)]
+    return {"success": True, "work_orders": work_orders, "total": len(work_orders)}
 
 
 async def call_get_work_order_detail(order_no: str, headers: Optional[Dict] = None) -> Dict:
-    result = await _safe_request_async("GET", "http://localhost:8082/workorder/page",
+    result = await _safe_request_async("GET", f"{WORKORDER_BASE_URL}/workorder/page",
                                        params={"orderNo": order_no}, headers=headers or {})
     if not result["success"]:
         return result
@@ -364,6 +451,45 @@ async def call_create_work_order(product_name: str, quantity: int,
         return result
     data = result["data"]
     return {"success": True, "work_order": data.get("data", {}), "message": f"工单创建成功"}
+
+
+async def call_list_process_templates(status: Optional[str] = None, headers: Optional[Dict] = None) -> Dict:
+    result = await _safe_request_async("GET", f"{PROCESS_BASE_URL}/process/template/page",
+                                       params={"status": status} if status else {},
+                                       headers=headers or {})
+    if not result["success"]:
+        return result
+    return {"success": True, "process_templates": result["data"].get("data", {}).get("records", [])}
+
+
+async def call_list_quality_records(check_type: Optional[str] = None, result: Optional[str] = None,
+                                   headers: Optional[Dict] = None) -> Dict:
+    params: Dict[str, Any] = {"current": 1, "size": 20}
+    if check_type:
+        params["checkType"] = check_type
+    if result:
+        params["result"] = result
+    resp = await _safe_request_async("GET", f"{QUALITY_BASE_URL}/quality/record/page",
+                                     params=params, headers=headers or {})
+    if not resp["success"]:
+        return resp
+    return {"success": True, "quality_records": resp["data"].get("data", {}).get("records", [])}
+
+
+async def call_get_planning_board(headers: Optional[Dict] = None) -> Dict:
+    resp = await _safe_request_async("GET", f"{WORKORDER_BASE_URL}/workorder/planning/board",
+                                     headers=headers or {})
+    if not resp["success"]:
+        return resp
+    return {"success": True, "planning_board": resp["data"].get("data", {})}
+
+
+async def call_get_production_report(days: int = 7, headers: Optional[Dict] = None) -> Dict:
+    resp = await _safe_request_async("GET", f"{MES_BASE_URL}/dashboard/report/production",
+                                     params={"days": days}, headers=headers or {})
+    if not resp["success"]:
+        return resp
+    return {"success": True, "production_report": resp["data"].get("data", {})}
 
 
 async def call_list_production_lines(headers: Optional[Dict] = None) -> Dict:
@@ -540,6 +666,10 @@ TOOL_DISPATCH = {
     "list_work_orders": call_list_work_orders,
     "get_work_order_detail": call_get_work_order_detail,
     "create_work_order": call_create_work_order,
+    "list_process_templates": call_list_process_templates,
+    "list_quality_records": call_list_quality_records,
+    "get_planning_board": call_get_planning_board,
+    "get_production_report": call_get_production_report,
     "list_production_lines": call_list_production_lines,
     "list_workstations": call_list_workstations,
     "list_boms": call_list_boms,

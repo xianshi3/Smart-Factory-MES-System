@@ -8,10 +8,16 @@
         </div>
         <p class="page-desc">质量检验 · 不良品追踪 · 全程追溯</p>
       </div>
-      <el-button type="primary" class="create-btn" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        新建质检
-      </el-button>
+      <div class="header-right">
+        <el-button class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>
+          AI 助手
+        </el-button>
+        <el-button type="primary" class="create-btn" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新建质检
+        </el-button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -170,14 +176,48 @@
         <el-button type="danger" :loading="failLoading" @click="submitFail">确定</el-button>
       </template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getQualityPage, passQuality, failQuality, deleteQualityRecord, createQualityRecord, forwardTrace } from '@/api/services'
-import { CircleCheck, Plus, Search, Document, Grid, Clock } from '@element-plus/icons-vue'
+import { CircleCheck, Plus, Search, Document, Grid, Clock, MagicStick, Warning, DataAnalysis } from '@element-plus/icons-vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
+
+/* ===== 页面级 AI 助手（质量管理） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '分析质检不良趋势与缺陷分布' },
+  { icon: Warning, text: '定位高频不合格SN与缺陷原因' },
+  { icon: MagicStick, text: '给出质量改善建议（PDCA）' },
+  { icon: Search, text: '根据当前筛选做质量总结' },
+]
+const aiContext = computed(() => ({
+  page: '质量管理',
+  filters: { sn: searchForm.sn || null, result: searchForm.result || null },
+  summary: `当前页面显示 ${tableData.value.length} 条质检记录（筛选：${searchForm.result || '全部结果'}${searchForm.sn ? '，SN ' + searchForm.sn : ''}）。记录列表：` +
+    tableData.value.map((r: any) => ({
+      sn: r.sn,
+      workOrderNo: r.workOrderNo,
+      checkType: r.checkType,
+      checkResult: r.checkResult,
+      defectType: r.defectType,
+      defectDesc: r.defectDesc,
+      operatorId: r.operatorId,
+      checkTime: r.checkTime,
+    })),
+}))
 
 const loading = ref(false)
 const createLoading = ref(false)

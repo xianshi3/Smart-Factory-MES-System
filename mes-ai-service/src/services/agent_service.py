@@ -75,7 +75,8 @@ class AgentService:
         self.max_iterations = 8
 
     async def run(self, message: str, history: Optional[List[Dict]] = None,
-                  session_id: Optional[str] = None) -> Dict[str, Any]:
+                  session_id: Optional[str] = None,
+                  context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """执行 Agent 任务 — 任务理解 → 编排执行 → 结果交付"""
         if not self.llm.is_available():
             return {
@@ -94,6 +95,14 @@ class AgentService:
         device_code = task["entities"].get("device_code")
 
         messages: List[Dict] = [{"role": "system", "content": AGENT_SYSTEM_PROMPT}]
+
+        # 页面上下文注入：用户当前所在页面/筛选/数据摘要，辅助 LLM 精准回答
+        if context:
+            messages.append({
+                "role": "system",
+                "content": "## 用户当前所在页面与上下文\n"
+                           + json.dumps(context, ensure_ascii=False, default=str),
+            })
 
         # 执行计划注入（流程编排提示）
         if plan:
