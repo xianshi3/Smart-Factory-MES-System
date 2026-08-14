@@ -3,7 +3,7 @@ server:
   port: ${SERVER_PORT:8083}
   shutdown: graceful
   error:
-    include-message: always
+    include-message: never
   mvc:
     throw-exception-if-no-handler-found: true
   web:
@@ -23,7 +23,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/mes_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:root}
+    password: ${MYSQL_PASSWORD:123455}
     druid:
       initial-size: 5
       min-idle: 5
@@ -47,6 +47,10 @@ mybatis-plus:
   type-aliases-package: com.mes.process.entity
   configuration:
     map-underscore-to-camel-case: true
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 knife4j:
   enable: true
