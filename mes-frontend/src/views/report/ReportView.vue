@@ -194,6 +194,7 @@
       floating
       :context="aiContext"
       :scenarios="aiScenarios"
+      auto-new
       @close="aiVisible = false"
     />
   </div>

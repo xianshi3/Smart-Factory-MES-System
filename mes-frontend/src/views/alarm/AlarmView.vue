@@ -11,6 +11,10 @@
         </div>
       </div>
       <div class="header-actions">
+        <el-button class="ai-btn" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon>
+          AI 助手
+        </el-button>
         <el-button circle title="刷新" @click="loadAlarms">
           <el-icon><Refresh /></el-icon>
         </el-button>
@@ -235,6 +239,16 @@
         <el-button type="primary" @click="submitResolve">确认解决</el-button>
       </template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      auto-new
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
@@ -242,10 +256,31 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
-import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search } from '@element-plus/icons-vue'
+import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search, MagicStick, DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 
 const userStore = useUserStore()
+
+/* ===== 页面级 AI 助手（报警中心） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '分析当前告警分布与根因' },
+  { icon: Warning, text: '定位最高频告警设备与类型' },
+  { icon: MagicStick, text: '给出告警处置优先级建议' },
+  { icon: Search, text: '总结告警趋势与改进方向' },
+]
+const aiContext = computed(() => ({
+  page: '报警中心',
+  summary: {
+    counts: { active: activeCount.value, acknowledged: ackCount.value, resolved: resolvedCount.value, total: totalCount.value },
+    alarms: filteredAlarms.value.slice(0, 50).map((a: any) => ({
+      deviceCode: a.deviceCode, deviceName: a.deviceName,
+      alarmType: a.alarmType, level: a.level, status: a.status,
+      message: a.message, time: a.alarmTime || a.createTime,
+    })),
+  },
+}))
 
 const alarms = ref<any[]>([])
 const loading = ref(false)

@@ -20,6 +20,9 @@
           <el-input v-model="searchKeyword" size="small" placeholder="搜索..." clearable :prefix-icon="Search" style="width:150px" />
           <span v-for="f in filterChips" :key="f.key" class="dt-fchip" :class="{ on: statusFilter === f.key }" @click="statusFilter = f.key">{{ f.label }}</span>
         </div>
+        <el-button text size="small" class="dt-btn-ai" @click="aiVisible = true">
+          <el-icon><MagicStick /></el-icon> AI 助手
+        </el-button>
         <el-button text size="small" class="dt-btn-refresh" @click="refresh"><el-icon><Refresh /></el-icon></el-button>
       </div>
     </header>
@@ -467,6 +470,16 @@
       </div>
       <template #footer><el-button @click="aiAnalysisVisible=false">关闭</el-button></template>
     </el-dialog>
+
+    <AiAssistant
+      v-if="aiVisible"
+      :visible="true"
+      floating
+      auto-new
+      :context="aiContext"
+      :scenarios="aiScenarios"
+      @close="aiVisible = false"
+    />
   </div>
 </template>
 
@@ -481,8 +494,9 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import { Monitor, Refresh, Search, TrendCharts, Warning, Grid, View, Cpu,
- VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft, Timer } from '@element-plus/icons-vue'
+ VideoPlay, VideoPause, Loading, CircleCheck, Histogram, Lightning, ChatLineRound, Close, ArrowRight, DArrowLeft, Timer, MagicStick, DataAnalysis } from '@element-plus/icons-vue'
 import DigitalTwinScene from '@/components/device/DigitalTwinScene.vue'
+import AiAssistant from '@/components/ai/AiAssistant.vue'
 import { marked } from 'marked'
 marked.setOptions({ breaks: true, gfm: true })
 import { useUserStore } from '@/stores/user'
@@ -494,6 +508,30 @@ const alarmList = ref<any[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const page = ref(1)
+
+/* ===== 页面级 AI 助手（设备监控） ===== */
+const aiVisible = ref(false)
+const aiScenarios = [
+  { icon: DataAnalysis, text: '分析全厂设备健康与故障风险' },
+  { icon: Warning, text: '定位告警设备并给出处置建议' },
+  { icon: TrendCharts, text: '预测设备趋势与维护窗口' },
+  { icon: MagicStick, text: '创建设备异常维修工单' },
+]
+const aiContext = computed(() => ({
+  page: '设备监控',
+  summary: {
+    total: deviceList.value.length,
+    alarms: alarmList.value.length,
+    devices: deviceList.value.slice(0, 30).map((d: any) => ({
+      code: d.deviceCode, name: d.deviceName, status: d.status,
+      temperature: d.temperature, speed: d.speed, power: d.power,
+      utilization: d.utilization, lastHeartbeat: d.lastHeartbeat,
+    })),
+    activeAlarms: alarmList.value.slice(0, 20).map((a: any) => ({
+      deviceCode: a.deviceCode, level: a.level, message: a.message, time: a.alarmTime,
+    })),
+  },
+}))
 const pageSize = ref(50)
 const detailVisible = ref(false)
 const detailData = ref<any>({})

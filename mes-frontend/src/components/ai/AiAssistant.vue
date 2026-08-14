@@ -230,11 +230,14 @@ const props = withDefaults(defineProps<{
   context?: any
   /** 自定义场景按钮（替换默认快捷指令） */
   scenarios?: { text: string; icon?: Component }[]
+  /** 打开时自动开启新对话（页面级助手建议开启，避免跨页面串会话） */
+  autoNew?: boolean
 }>(), {
   visible: true,
   floating: true,
   context: null,
   scenarios: () => [],
+  autoNew: false,
 })
 const emit = defineEmits<{ close: [] }>()
 
@@ -280,8 +283,15 @@ function focusInput(text?: string) {
   nextTick(() => inputRef.value?.focus())
 }
 
-watch(() => props.visible, (v) => {
-  if (v) { scrollToBottom(false); nextTick(() => inputRef.value?.focus()) }
+watch(() => props.visible, async (v) => {
+  if (v) {
+    // 页面级助手：每次打开开启新会话，避免与上一页/上一会话串上下文
+    if (props.autoNew && store.currentId) {
+      await store.newChat()
+    }
+    scrollToBottom(false)
+    nextTick(() => inputRef.value?.focus())
+  }
 })
 
 watch(() => store.messages.length, () => scrollToBottom())
