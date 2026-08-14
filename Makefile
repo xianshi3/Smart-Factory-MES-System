@@ -57,17 +57,10 @@ clean:
 	rm -rf .opencode
 
 stop:
-	-taskkill /F /FI "WINDOWTITLE eq MES-Auth*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq MES-Gateway*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq MES-WorkOrder*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq MES-Process*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq MES-Quality*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq MES-Dashboard*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq AI-Service*" 2>nul
-	-taskkill /F /FI "WINDOWTITLE eq .NET-Gateway*" 2>nul
+	@powershell -NoProfile -Command "$$ports = 8081,8082,8083,8084,8085,9090,3000,8087,5000; foreach ($$p in $$ports) { Get-NetTCPConnection -LocalPort $$p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $$_.OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host \"[$$p] stopped\" } }"
 
 status:
 	@echo "=== Service Status ==="
-	@for port in 8081 8082 8083 8084 8085 9090 3000 5173; do \
+	@for port in 8081 8082 8083 8084 8085 9090 3000 5173 8087 5000; do \
 		netstat -ano | findstr ":$$port " | findstr "LISTENING" >nul && echo "  [$$port] RUNNING" || echo "  [$$port] STOPPED"; \
 	done

@@ -4,12 +4,18 @@ services:
     container_name: mes-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       MYSQL_DATABASE: mes_db
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-123455}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -26,6 +32,12 @@ services:
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -42,6 +54,12 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -54,7 +72,8 @@ services:
     container_name: mes-kafka
     restart: always
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
@@ -69,6 +88,14 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
     deploy:
       resources:
         limits:
@@ -85,7 +112,13 @@ services:
       - "18083:18083"    # Dashboard 控制台
     environment:
       EMQX_NODE_NAME: mes-emqx@127.0.0.1
-      EMQX_DASHBOARD__DEFAULT_PASSWORD: public
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DEFAULT_PASSWORD:-public}
+    healthcheck:
+      test: ["CMD-SHELL", "emqx ctl status | grep -q 'is running'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -96,6 +129,7 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  kafka-data:
 
 networks:
   mes-network:

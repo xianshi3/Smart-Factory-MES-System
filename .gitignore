@@ -47,10 +47,14 @@ yarn.lock
 # ==================== Environment ====================
 .env.local
 .env.*.local
+.env
+!.env.example
 
 # ==================== Test ====================
 coverage/
 .nyc_output/
+vitest.config.*.tmp
+*.log
 
 # ==================== Gradle ====================
 .gradle/

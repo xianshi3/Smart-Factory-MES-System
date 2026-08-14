@@ -5,11 +5,16 @@
 # 注：mes-dashboard 依赖 InfluxDB/Kafka，未纳入本次冒烟。
 set -euo pipefail
 
+# 服务启动必需：JWT 密钥（>= 32 字符）
+export JWT_SECRET="${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}"
+
 SERVICES=("mes-auth:8081" "mes-workorder:8082" "mes-process:8083" "mes-quality:8084" "mes-gateway:9090")
 PIDS=()
 
 cleanup() {
-  for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done
+  for p in "${PIDS[@]:-}"; do
+    [ -n "$p" ] && kill "$p" 2>/dev/null || true
+  done
 }
 trap cleanup EXIT
 
@@ -29,7 +34,7 @@ wait_for_health() {
 }
 
 echo "==> 初始化数据库 schema"
-mysql -h 127.0.0.1 -P 3306 -uroot -proot --default-character-set=utf8mb4 mes_db < sql/init.sql
+mysql -h 127.0.0.1 -P 3306 -uroot -p123455 --default-character-set=utf8mb4 mes_db < sql/init.sql
 
 for svc in "${SERVICES[@]}"; do
   name=${svc%%:*}

@@ -1,26 +1,4 @@
 services:
-  nacos:
-    image: nacos/nacos-server:v2.3.0
-    container_name: mes-nacos
-    restart: always
-    ports:
-      - "8848:8848"
-    environment:
-      MODE: standalone
-    networks:
-      - mes-network
-
-  seata:
-    image: seataio/seata-server:1.7.0
-    container_name: mes-seata
-    restart: always
-    ports:
-      - "8091:8091"
-    environment:
-      SEATA_IP: seata
-    networks:
-      - mes-network
-
   influxdb:
     image: influxdb:2.7-alpine
     container_name: mes-influxdb
@@ -30,11 +8,19 @@ services:
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD:-123455}
       DOCKER_INFLUXDB_INIT_ORG: mes
       DOCKER_INFLUXDB_INIT_BUCKET: mes_metrics
-      # 固定 token，与 mes-dashboard application.yml 默认值一致（容器重建后不变）
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: Y2FrwpCCgedJZv_aX6mFnKMrKegGEY0kFWlEqVquhIZOX5lCO_MnqJz_vNKGTJW6q6W6cekL8BO9SS8nv-8ZmQ==
+      # 固定 token，与 mes-dashboard 的 INFLUXDB_TOKEN 保持一致（容器重建后不变）
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-kUVlFGXR2YxkzRUzn9bW9dJazYkigOU6GyYlKLdGsF7ekBLLz9URVnOLMmFZViLy}
+    healthcheck:
+      test: ["CMD-SHELL", "influx ping >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
     networks:
       - mes-network
 
@@ -48,13 +34,17 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - nacos
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - mes-network
 
@@ -65,16 +55,20 @@ services:
     container_name: mes-gateway
     restart: always
     ports:
-      - "8080:9090"
+      - "9090:9090"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
-      SPRING_REDIS_HOST: redis
+      MES_AUTH_URI: http://mes-auth:8081
+      MES_WORKORDER_URI: http://mes-workorder:8082
+      MES_PROCESS_URI: http://mes-process:8083
+      MES_QUALITY_URI: http://mes-quality:8084
+      MES_DASHBOARD_URI: http://mes-dashboard:8085
+      MES_DASHBOARD_WS_URI: ws://mes-dashboard:8085
+      MES_AI_URI: http://mes-ai-service:8087
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - nacos
+      mes-auth:
+        condition: service_started
     networks:
       - mes-network
 
@@ -87,13 +81,17 @@ services:
     ports:
       - "8082:8082"
     environment:
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - nacos
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - mes-network
 
@@ -107,13 +105,17 @@ services:
       - "8083:8083"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - nacos
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - mes-network
 
@@ -126,15 +128,20 @@ services:
     ports:
       - "8084:8084"
     environment:
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - kafka
-      - nacos
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - mes-network
 
@@ -147,17 +154,27 @@ services:
     ports:
       - "8085:8085"
     environment:
-      NACOS_SERVER_ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mes_db
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-kUVlFGXR2YxkzRUzn9bW9dJazYkigOU6GyYlKLdGsF7ekBLLz9URVnOLMmFZViLy}
+      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
     depends_on:
-      - mysql
-      - redis
-      - influxdb
-      - nacos
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
     networks:
       - mes-network
+
+volumes:
+  influxdb-data:
 
 networks:
   mes-network:
