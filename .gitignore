@@ -85,7 +85,8 @@ obj/
 *.onnx
 
 # ==================== Legacy ====================
-scripts/
+scripts/*
+!scripts/ci-smoke.sh
 mqtt-broker.js
 *.exe
 *.pdb
