@@ -6,30 +6,27 @@
 -- 幂等：可重复执行
 -- =====================================================
 
--- 1. 权限码（sys_permission.permission_code 唯一，使用 NOT EXISTS 防重）
-INSERT INTO `sys_permission` (`permission_name`, `permission_code`, `permission_type`, `parent_id`, `path`, `sort`)
-SELECT * FROM (
-    SELECT '工单查看', 'workorder:view', 'BUTTON', 2, '', 1 UNION ALL
-    SELECT '工单创建', 'workorder:create', 'BUTTON', 2, '', 2 UNION ALL
-    SELECT '工单编辑', 'workorder:edit', 'BUTTON', 2, '', 3 UNION ALL
-    SELECT '工单删除', 'workorder:delete', 'BUTTON', 2, '', 4 UNION ALL
-    SELECT '工艺查看', 'process:view', 'BUTTON', 3, '', 1 UNION ALL
-    SELECT '工艺创建', 'process:create', 'BUTTON', 3, '', 2 UNION ALL
-    SELECT '工艺编辑', 'process:edit', 'BUTTON', 3, '', 3 UNION ALL
-    SELECT '质量查看', 'quality:view', 'BUTTON', 4, '', 1 UNION ALL
-    SELECT '质量创建', 'quality:create', 'BUTTON', 4, '', 2 UNION ALL
-    SELECT '质量删除', 'quality:delete', 'BUTTON', 4, '', 3 UNION ALL
-    SELECT '设备查看', 'device:view', 'BUTTON', 5, '', 1 UNION ALL
-    SELECT '设备控制', 'device:control', 'BUTTON', 5, '', 2 UNION ALL
-    SELECT '报表查看', 'report:view', 'BUTTON', 6, '', 1 UNION ALL
-    SELECT '报表导出', 'report:export', 'BUTTON', 6, '', 2 UNION ALL
-    SELECT '个人中心', 'profile', 'MENU', 0, '/profile', 7 UNION ALL
-    SELECT '系统设置', 'settings', 'MENU', 0, '/settings', 8 UNION ALL
-    SELECT '用户管理', 'user:manage', 'MENU', 0, '/user', 9 UNION ALL
-    SELECT '角色管理', 'role:manage', 'MENU', 0, '/role', 10 UNION ALL
-    SELECT '权限管理', 'permission:manage', 'MENU', 0, '/permission', 11
-) t
-WHERE NOT EXISTS (SELECT 1 FROM sys_permission p WHERE p.permission_code = t.permission_code);
+-- 1. 权限码（sys_permission.permission_code 唯一，INSERT IGNORE 防重）
+INSERT IGNORE INTO `sys_permission` (`permission_name`, `permission_code`, `permission_type`, `parent_id`, `path`, `sort`) VALUES
+('工单查看', 'workorder:view', 'BUTTON', 2, '', 1),
+('工单创建', 'workorder:create', 'BUTTON', 2, '', 2),
+('工单编辑', 'workorder:edit', 'BUTTON', 2, '', 3),
+('工单删除', 'workorder:delete', 'BUTTON', 2, '', 4),
+('工艺查看', 'process:view', 'BUTTON', 3, '', 1),
+('工艺创建', 'process:create', 'BUTTON', 3, '', 2),
+('工艺编辑', 'process:edit', 'BUTTON', 3, '', 3),
+('质量查看', 'quality:view', 'BUTTON', 4, '', 1),
+('质量创建', 'quality:create', 'BUTTON', 4, '', 2),
+('质量删除', 'quality:delete', 'BUTTON', 4, '', 3),
+('设备查看', 'device:view', 'BUTTON', 5, '', 1),
+('设备控制', 'device:control', 'BUTTON', 5, '', 2),
+('报表查看', 'report:view', 'BUTTON', 6, '', 1),
+('报表导出', 'report:export', 'BUTTON', 6, '', 2),
+('个人中心', 'profile', 'MENU', 0, '/profile', 7),
+('系统设置', 'settings', 'MENU', 0, '/settings', 8),
+('用户管理', 'user:manage', 'MENU', 0, '/user', 9),
+('角色管理', 'role:manage', 'MENU', 0, '/role', 10),
+('权限管理', 'permission:manage', 'MENU', 0, '/permission', 11);
 
 -- 2. 角色分配（sys_role_permission 无唯一约束，用 NOT EXISTS 防重）
 -- ADMIN(1)：拥有全部权限
