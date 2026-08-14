@@ -6,6 +6,7 @@ import com.mes.dashboard.entity.DeviceStatus;
 import com.mes.dashboard.mapper.DeviceStatusMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +25,6 @@ public class KafkaDeviceDataConsumer {
     @KafkaListener(topics = "mes-device-data", groupId = "mes-dashboard-consumer")
     public void consumeDeviceData(String message) {
         try {
-            log.debug("Received Kafka message: {}", message);
-            
             Map<String, Object> data = objectMapper.readValue(message, Map.class);
             
             String deviceId = (String) data.get("deviceId");
@@ -55,7 +54,7 @@ public class KafkaDeviceDataConsumer {
 
     private DeviceStatus findOrCreateDevice(String deviceId) {
         LambdaQueryWrapper<DeviceStatus> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DeviceStatus::getDeviceCode, deviceId);
+        wrapper.eq(DeviceStatus::getDeviceCode, deviceId).last("LIMIT 1");
         DeviceStatus existing = deviceStatusMapper.selectOne(wrapper);
         
         if (existing != null) {
@@ -70,11 +69,22 @@ public class KafkaDeviceDataConsumer {
         newDevice.setTemperature(30.0);
         newDevice.setSpeed(0.0);
         newDevice.setLastHeartbeat(LocalDateTime.now());
-        
-        deviceStatusMapper.insert(newDevice);
-        log.info("Created new device: {}", deviceId);
-        
-        return newDevice;
+
+        try {
+            deviceStatusMapper.insert(newDevice);
+            log.info("Created new device: {}", deviceId);
+            return newDevice;
+        } catch (DuplicateKeyException e) {
+            // 并发首条消息同时到达：唯一约束冲突，重查其他线程已创建的设备，避免丢消息
+            DeviceStatus created = deviceStatusMapper.selectOne(
+                    new LambdaQueryWrapper<DeviceStatus>()
+                            .eq(DeviceStatus::getDeviceCode, deviceId)
+                            .last("LIMIT 1"));
+            if (created != null) {
+                return created;
+            }
+            throw e;
+        }
     }
 
     private void updateDeviceStatus(DeviceStatus device, Map<String, Object> data) {

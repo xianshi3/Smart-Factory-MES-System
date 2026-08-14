@@ -2,6 +2,7 @@ package com.mes.quality.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mes.common.exception.BizException;
 import com.mes.common.result.PageResult;
 import com.mes.quality.dto.CreateQualityRecordDTO;
 import com.mes.quality.dto.TraceDetailVO;
@@ -73,7 +74,7 @@ public class QualityServiceImpl implements QualityService {
         log.info("删除质检记录, id={}", id);
         QualityRecord record = qualityRecordMapper.selectById(id);
         if (record == null) {
-            throw new RuntimeException("质检记录不存在: " + id);
+            throw new BizException("质检记录不存在: " + id);
         }
 
         qualityRecordMapper.deleteById(id);
@@ -93,7 +94,7 @@ public class QualityServiceImpl implements QualityService {
     public void pass(Long id) {
         QualityRecord record = qualityRecordMapper.selectById(id);
         if (record == null) {
-            throw new RuntimeException("质检记录不存在: " + id);
+            throw new BizException("质检记录不存在: " + id);
         }
         record.setCheckResult("PASSED");
         record.setUpdateTime(LocalDateTime.now());
@@ -112,7 +113,7 @@ public class QualityServiceImpl implements QualityService {
     public void fail(Long id, String reason) {
         QualityRecord record = qualityRecordMapper.selectById(id);
         if (record == null) {
-            throw new RuntimeException("质检记录不存在: " + id);
+            throw new BizException("质检记录不存在: " + id);
         }
         record.setCheckResult("FAILED");
         record.setDefectDesc(reason);

@@ -94,7 +94,7 @@ public class KafkaAlarmEventConsumer {
 
     private DeviceStatus findDevice(String deviceId) {
         LambdaQueryWrapper<DeviceStatus> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DeviceStatus::getDeviceCode, deviceId);
+        wrapper.eq(DeviceStatus::getDeviceCode, deviceId).last("LIMIT 1");
         return deviceStatusMapper.selectOne(wrapper);
     }
 

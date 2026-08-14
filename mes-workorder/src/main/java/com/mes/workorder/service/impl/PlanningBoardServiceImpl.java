@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -45,8 +46,8 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     private final WorkCalendarMapper workCalendarMapper;
     private final ProcStepMapper procStepMapper;
 
-    /** 撤销栈：最近一次变更的快照 */
-    private final Deque<UndoSnapshot> undoStack = new ArrayDeque<>();
+    /** 撤销栈：按用户隔离，避免跨用户互相撤销（key = 用户ID，未登录回退 0） */
+    private final Map<Long, Deque<UndoSnapshot>> undoStacks = new ConcurrentHashMap<>();
 
     // ==================== 查询 ====================
 
@@ -706,8 +707,9 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     @Transactional(rollbackFor = Exception.class)
     public void undo() {
         UndoSnapshot snap;
-        synchronized (undoStack) {
-            snap = undoStack.pollLast();
+        synchronized (undoStacks) {
+            Deque<UndoSnapshot> stack = undoStacks.computeIfAbsent(getCurrentUserId(), k -> new ArrayDeque<>());
+            snap = stack.pollLast();
         }
         if (snap == null) {
             throw new IllegalStateException("没有可撤销的操作");
@@ -968,10 +970,11 @@ public class PlanningBoardServiceImpl implements PlanningBoardService {
     }
 
     private void pushUndo(List<ScheduleItem> before, List<ScheduleItem> after, List<WorkOrder> orders, String desc) {
-        synchronized (undoStack) {
-            undoStack.addLast(new UndoSnapshot(before, after, orders, desc));
-            while (undoStack.size() > UNDO_LIMIT) {
-                undoStack.pollFirst();
+        synchronized (undoStacks) {
+            Deque<UndoSnapshot> stack = undoStacks.computeIfAbsent(getCurrentUserId(), k -> new ArrayDeque<>());
+            stack.addLast(new UndoSnapshot(before, after, orders, desc));
+            while (stack.size() > UNDO_LIMIT) {
+                stack.pollFirst();
             }
         }
     }

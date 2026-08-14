@@ -176,9 +176,9 @@ public class WorkOrderServiceImpl extends ServiceImpl<WorkOrderMapper, WorkOrder
         report.setRemark(dto.getRemark());
         workReportMapper.insert(report);
 
-        // 原子更新已完成数量，避免并发报工时的读改写竞态
+        // 原子更新已完成数量，避免并发报工时的读改写竞态（{0} 占位符参数化，杜绝拼接注入）
         var incrementWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<WorkOrder>()
-                .setSql("completed_quantity = completed_quantity + " + dto.getReportQuantity())
+                .setSql("completed_quantity = completed_quantity + {0}", dto.getReportQuantity())
                 .eq("id", dto.getWorkOrderId())
                 .eq("deleted", 0);
         workOrderMapper.update(null, incrementWrapper);

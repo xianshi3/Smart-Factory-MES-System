@@ -1,12 +1,14 @@
 package com.mes.dashboard.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.mes.common.entity.Bom;
 import com.mes.common.entity.BomItem;
 import com.mes.common.entity.Inventory;
 import com.mes.common.entity.InventoryTransaction;
 import com.mes.common.entity.Material;
+import com.mes.common.exception.BizException;
 import com.mes.dashboard.mapper.BomItemMapper;
 import com.mes.dashboard.mapper.BomMapper;
 import com.mes.dashboard.mapper.InventoryMapper;
@@ -194,23 +196,23 @@ public class BomServiceImpl implements BomService {
     public void validateBom(Long bomId) {
         Bom bom = bomMapper.selectById(bomId);
         if (bom == null) {
-            throw new RuntimeException("BOM not found: " + bomId);
+            throw new BizException("BOM not found: " + bomId);
         }
 
         List<BomItem> items = listBomItems(bomId);
         if (items.isEmpty()) {
-            throw new RuntimeException("BOM has no items: " + bom.getBomCode());
+            throw new BizException("BOM has no items: " + bom.getBomCode());
         }
 
         for (BomItem item : items) {
             Material material = materialMapper.selectById(item.getMaterialId());
             if (material == null) {
-                throw new RuntimeException("Material not found: id=" + item.getMaterialId()
+                throw new BizException("Material not found: id=" + item.getMaterialId()
                         + " in BOM: " + bom.getBomCode());
             }
 
             if (item.getMaterialId().equals(bom.getProductId())) {
-                throw new RuntimeException("Circular reference: material id=" + item.getMaterialId()
+                throw new BizException("Circular reference: material id=" + item.getMaterialId()
                         + " is the same as product in BOM: " + bom.getBomCode());
             }
         }
@@ -241,20 +243,27 @@ public class BomServiceImpl implements BomService {
     public Inventory adjustInventory(Long inventoryId, BigDecimal quantity, String remark) {
         Inventory inv = inventoryMapper.selectById(inventoryId);
         if (inv == null) {
-            throw new RuntimeException("Inventory not found: " + inventoryId);
+            throw new BizException("Inventory not found: " + inventoryId);
         }
 
         BigDecimal oldQuantity = inv.getQuantity();
         BigDecimal newQuantity = oldQuantity.add(quantity);
         if (newQuantity.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("Insufficient inventory: current=" + oldQuantity + ", adjust=" + quantity);
+            throw new BizException("Insufficient inventory: current=" + oldQuantity + ", adjust=" + quantity);
         }
 
-        inv.setQuantity(newQuantity);
-        BigDecimal oldAvailable = inv.getAvailableQuantity();
-        inv.setAvailableQuantity(oldAvailable.add(quantity));
-        inv.setLastTransactionTime(LocalDateTime.now());
-        inventoryMapper.updateById(inv);
+        // 并发安全：条件更新（库存必须 >= |delta|），防止并发调整互相覆盖导致超卖/漏减
+        BigDecimal minRequired = quantity.compareTo(BigDecimal.ZERO) >= 0 ? BigDecimal.ZERO : quantity.negate();
+        int updated = inventoryMapper.update(null, new LambdaUpdateWrapper<Inventory>()
+                .eq(Inventory::getId, inventoryId)
+                .ge(Inventory::getQuantity, minRequired)
+                .set(Inventory::getQuantity, newQuantity)
+                .set(Inventory::getLastTransactionTime, LocalDateTime.now()));
+        if (updated == 0) {
+            Inventory latest = inventoryMapper.selectById(inventoryId);
+            BigDecimal current = latest == null ? BigDecimal.ZERO : latest.getQuantity();
+            throw new BizException("库存已被并发调整，请刷新后重试（当前=" + current + "）");
+        }
 
         InventoryTransaction tx = new InventoryTransaction();
         tx.setTransactionNo(generateTransactionNo());
@@ -269,6 +278,11 @@ public class BomServiceImpl implements BomService {
         tx.setCreateBy("SYSTEM");
         tx.setDeleted(0);
         inventoryTransactionMapper.insert(tx);
+
+        inv.setQuantity(newQuantity);
+        // available_quantity 为数据库生成列，仅用于响应展示，不做持久化赋值
+        inv.setAvailableQuantity(newQuantity.subtract(inv.getLockedQuantity()));
+        inv.setLastTransactionTime(LocalDateTime.now());
 
         log.info("Inventory adjusted: id={}, old={}, new={}, delta={}", inventoryId, oldQuantity, newQuantity, quantity);
         return inv;

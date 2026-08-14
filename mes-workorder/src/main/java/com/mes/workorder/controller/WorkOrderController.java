@@ -28,22 +28,21 @@ public class WorkOrderController {
     @PostMapping
     @Operation(summary = "创建工单")
     @RequirePermission("workorder:create")
-    public Result<WorkOrder> create(@RequestBody CreateWorkOrderDTO dto) {
-        try {
-            log.info("收到创建工单请求: productName={}, productModel={}, planQuantity={}, workstationId={}, processTemplateId={}",
-                    dto.getProductName(), dto.getProductModel(), dto.getPlanQuantity(), dto.getWorkstationId(), dto.getProcessTemplateId());
-            return Result.ok(workOrderService.create(dto));
-        } catch (Exception e) {
-            log.error("创建工单失败", e);
-            return Result.fail("创建失败: " + e.getMessage());
-        }
+    public Result<WorkOrder> create(@Valid @RequestBody CreateWorkOrderDTO dto) {
+        log.info("收到创建工单请求: productName={}, productModel={}, planQuantity={}, workstationId={}, processTemplateId={}",
+                dto.getProductName(), dto.getProductModel(), dto.getPlanQuantity(), dto.getWorkstationId(), dto.getProcessTemplateId());
+        return Result.ok(workOrderService.create(dto));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "查询工单详情")
     @RequirePermission("workorder:view")
     public Result<WorkOrder> detail(@PathVariable Long id) {
-        return Result.ok(workOrderService.getById(id));
+        WorkOrder order = workOrderService.getById(id);
+        if (order == null) {
+            return Result.fail(404, "工单不存在");
+        }
+        return Result.ok(order);
     }
 
     @PutMapping("/{id}")
@@ -101,6 +100,8 @@ public class WorkOrderController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword) {
+        // 防止 size 过大拖垮数据库
+        size = Math.min(Math.max(size, 1), 100);
         return Result.ok(workOrderService.queryPage(current, size, status, keyword));
     }
 

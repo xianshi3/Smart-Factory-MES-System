@@ -67,7 +67,7 @@ public class TelemetryServiceImpl implements TelemetryService {
                     "%s,device_code=%s status=\"%s\",temperature=%f,speed=%f,pressure=%f,power=%f",
                     MEASUREMENT,
                     escapeTag(deviceCode),
-                    status == null ? "UNKNOWN" : status,
+                    escapeFieldValue(status == null ? "UNKNOWN" : status),
                     temperature, speed, pressure, power);
             writeApi.writeRecord(BUCKET_KEY, ORG_KEY, WritePrecision.S, line);
         } catch (Exception e) {
@@ -158,5 +158,13 @@ public class TelemetryServiceImpl implements TelemetryService {
 
     private String escapeTag(String value) {
         return value.replace(",", "\\,").replace(" ", "\\ ").replace("=", "\\=");
+    }
+
+    /** 转义字段字符串值（引号/反斜杠/换行），防止破坏 InfluxDB 行协议 */
+    private String escapeFieldValue(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

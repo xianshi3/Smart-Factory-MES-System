@@ -1,5 +1,6 @@
 package com.mes.common.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,6 +23,8 @@ public class Inventory extends BaseEntity {
 
     private BigDecimal lockedQuantity;
 
+    /** 数据库 GENERATED 列 (quantity - locked_quantity)，不可写入 */
+    @TableField(exist = false)
     private BigDecimal availableQuantity;
 
     private LocalDateTime lastTransactionTime;

@@ -12,6 +12,7 @@ import com.mes.dashboard.mapper.DeviceStatusMapper;
 import com.mes.dashboard.mapper.OeeDataMapper;
 import com.mes.dashboard.mapper.ProductionStatsMapper;
 import com.mes.dashboard.service.DashboardService;
+import com.mes.common.exception.BizException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -134,8 +135,16 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public OeeData calculateOee(OeeQueryDTO dto) {
+        if (dto == null || dto.getDeviceId() == null) {
+            OeeData empty = new OeeData();
+            empty.setAvailability(0.0);
+            empty.setPerformance(0.0);
+            empty.setQuality(0.0);
+            empty.setOee(0.0);
+            return empty;
+        }
         LambdaQueryWrapper<OeeData> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OeeData::getDeviceId, dto.getDeviceId());
+        wrapper.eq(OeeData::getDeviceId, dto.getDeviceId()).last("LIMIT 1");
         OeeData oeeData = oeeDataMapper.selectOne(wrapper);
         if (oeeData == null) {
             oeeData = new OeeData();
@@ -147,7 +156,8 @@ public class DashboardServiceImpl implements DashboardService {
             return oeeData;
         }
 
-        if (oeeData.getRunTime() == null || oeeData.getRunTime() == 0) {
+        if (oeeData.getRunTime() == null || oeeData.getRunTime() == 0
+                || oeeData.getTotalProducts() == null || oeeData.getTotalProducts() == 0) {
             oeeData.setAvailability(0.0);
             oeeData.setPerformance(0.0);
             oeeData.setQuality(0.0);
@@ -156,7 +166,9 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         double availability = (double) oeeData.getRunTime() / (oeeData.getRunTime() + oeeData.getDowntime());
-        double performance = (oeeData.getIdealCycleTime() * oeeData.getTotalProducts()) / oeeData.getRunTime();
+        // idealCycleTime 缺失时按 0 计性能（避免 NPE），产品数/工时已在上方校验非零
+        double cycle = oeeData.getIdealCycleTime() != null ? oeeData.getIdealCycleTime() : 0.0;
+        double performance = (cycle * oeeData.getTotalProducts()) / oeeData.getRunTime();
         double quality = (double) oeeData.getGoodProducts() / oeeData.getTotalProducts();
 
         availability = Math.min(availability, 1.0);
@@ -293,7 +305,7 @@ public class DashboardServiceImpl implements DashboardService {
     public void startDevice(Long deviceId) {
         DeviceStatus device = deviceStatusMapper.selectById(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在: " + deviceId);
+            throw new BizException("设备不存在: " + deviceId);
         }
         device.setStatus("ONLINE");
         deviceStatusMapper.updateById(device);
@@ -307,7 +319,7 @@ public class DashboardServiceImpl implements DashboardService {
     public void stopDevice(Long deviceId) {
         DeviceStatus device = deviceStatusMapper.selectById(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在: " + deviceId);
+            throw new BizException("设备不存在: " + deviceId);
         }
         device.setStatus("OFFLINE");
         deviceStatusMapper.updateById(device);

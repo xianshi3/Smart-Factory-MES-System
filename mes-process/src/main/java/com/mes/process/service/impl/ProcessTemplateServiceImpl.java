@@ -3,6 +3,7 @@ package com.mes.process.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mes.common.exception.BizException;
 import com.mes.common.result.PageResult;
 import com.mes.common.result.Result;
 import com.mes.process.dto.CreateTemplateDTO;
@@ -19,7 +20,6 @@ import com.mes.process.mapper.ProcessTemplateMapper;
 import com.mes.process.service.ProcessTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 工艺模板服务实现类
@@ -43,9 +42,6 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     private final ProcessTemplateMapper processTemplateMapper;
     private final ProcessParameterMapper processParameterMapper;
     private final ProcessStepMapper processStepMapper;
-    private final StringRedisTemplate stringRedisTemplate;
-
-    private static final String TEMPLATE_CACHE_PREFIX = "mes:process:template:";
 
     /**
      * 创建工艺模板
@@ -61,7 +57,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
                 .eq(ProcessTemplate::getTemplateCode, dto.getTemplateCode())
         );
         if (count > 0) {
-            throw new RuntimeException("模板编码 " + dto.getTemplateCode() + " 已存在，请使用不同的编码");
+            throw new BizException("模板编码 " + dto.getTemplateCode() + " 已存在，请使用不同的编码");
         }
 
         ProcessTemplate template = new ProcessTemplate();
@@ -112,7 +108,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public TemplateDetailVO getDetail(Long id) {
         ProcessTemplate template = processTemplateMapper.selectById(id);
         if (template == null) {
-            throw new RuntimeException("工艺模板不存在: " + id);
+            throw new BizException("工艺模板不存在: " + id);
         }
         TemplateDetailVO vo = new TemplateDetailVO();
         vo.setTemplate(template);
@@ -137,10 +133,10 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void updateTemplate(Long id, CreateTemplateDTO dto) {
         ProcessTemplate template = processTemplateMapper.selectById(id);
         if (template == null) {
-            throw new RuntimeException("工艺模板不存在: " + id);
+            throw new BizException("工艺模板不存在: " + id);
         }
         if ("PUBLISHED".equals(template.getStatus())) {
-            throw new RuntimeException("已发布的模板不能直接修改，请先创建新版本");
+            throw new BizException("已发布的模板不能直接修改，请先创建新版本");
         }
 
         var updateWrapper = new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ProcessTemplate>()
@@ -185,18 +181,13 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void publish(Long id) {
         ProcessTemplate template = processTemplateMapper.selectById(id);
         if (template == null) {
-            throw new RuntimeException("工艺模板不存在: " + id);
+            throw new BizException("工艺模板不存在: " + id);
         }
         template.setStatus("PUBLISHED");
         processTemplateMapper.updateById(template);
 
-        stringRedisTemplate.opsForValue().set(
-                TEMPLATE_CACHE_PREFIX + id,
-                "PUBLISHED",
-                24,
-                TimeUnit.HOURS
-        );
-
+        // 注：曾写入 mes:process:template:{id} 缓存但全项目无读取方（只写不读），
+        // 且更新/删除后不失效会造成脏数据，已移除该缓存写入
         log.info("发布工艺模板成功: id={}", id);
     }
 
@@ -208,7 +199,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public Long copy(Long id) {
         ProcessTemplate template = processTemplateMapper.selectById(id);
         if (template == null) {
-            throw new RuntimeException("工艺模板不存在: " + id);
+            throw new BizException("工艺模板不存在: " + id);
         }
         ProcessTemplate copy = new ProcessTemplate();
         copy.setDeleted(0);
@@ -386,7 +377,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void updateParameter(Long paramId, ParameterDTO dto) {
         ProcessParameter param = processParameterMapper.selectById(paramId);
         if (param == null) {
-            throw new RuntimeException("工艺参数不存在: " + paramId);
+            throw new BizException("工艺参数不存在: " + paramId);
         }
         assertTemplateEditable(param.getTemplateId());
         param.setParamName(dto.getParamName());
@@ -406,7 +397,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void deleteParameter(Long paramId) {
         ProcessParameter param = processParameterMapper.selectById(paramId);
         if (param == null) {
-            throw new RuntimeException("工艺参数不存在: " + paramId);
+            throw new BizException("工艺参数不存在: " + paramId);
         }
         assertTemplateEditable(param.getTemplateId());
         processParameterMapper.deleteById(paramId);
@@ -447,7 +438,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void updateStep(Long stepId, StepDTO dto) {
         ProcessStep step = processStepMapper.selectById(stepId);
         if (step == null) {
-            throw new RuntimeException("工序步骤不存在: " + stepId);
+            throw new BizException("工序步骤不存在: " + stepId);
         }
         assertTemplateEditable(step.getTemplateId());
         step.setStepNo(dto.getStepNo());
@@ -465,7 +456,7 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     public void deleteStep(Long stepId) {
         ProcessStep step = processStepMapper.selectById(stepId);
         if (step == null) {
-            throw new RuntimeException("工序步骤不存在: " + stepId);
+            throw new BizException("工序步骤不存在: " + stepId);
         }
         assertTemplateEditable(step.getTemplateId());
         processStepMapper.deleteById(stepId);
@@ -474,10 +465,10 @@ public class ProcessTemplateServiceImpl implements ProcessTemplateService {
     private void assertTemplateEditable(Long templateId) {
         ProcessTemplate template = processTemplateMapper.selectById(templateId);
         if (template == null) {
-            throw new RuntimeException("工艺模板不存在: " + templateId);
+            throw new BizException("工艺模板不存在: " + templateId);
         }
         if ("PUBLISHED".equals(template.getStatus())) {
-            throw new RuntimeException("已发布的模板不能修改，请复制为草稿后编辑");
+            throw new BizException("已发布的模板不能修改，请复制为草稿后编辑");
         }
     }
 }

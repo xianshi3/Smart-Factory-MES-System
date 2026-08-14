@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mes.dashboard.service.DashboardService;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -49,6 +50,15 @@ public class DashboardWebSocketHandler extends TextWebSocketHandler {
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         scheduler.scheduleAtFixedRate(this::broadcastData, 5, 5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 应用关闭时释放定时线程池，避免泄漏
+     */
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdownNow();
+        log.info("WebSocket 广播调度器已关闭");
     }
 
     /**
