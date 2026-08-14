@@ -98,3 +98,6 @@ mqtt-broker.js
 *.deps.json
 # Local dev artifacts
 var/
+
+# ==================== OpenChamber ====================
+.openchamber/
