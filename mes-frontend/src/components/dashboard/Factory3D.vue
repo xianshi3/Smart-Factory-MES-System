@@ -57,11 +57,6 @@ let disposed = false
 /** 设备方块 mesh 列表（与 devices 对应） */
 const deviceMeshes: { mesh: THREE.Group; baseY: number; userData: any }[] = []
 
-/** 动态装饰对象 */
-const conveyorBlocks: THREE.Mesh[] = []
-const scanRings: { mesh: THREE.Mesh; base: number }[] = []
-let floatParticles: THREE.Points | null = null
-
 const buildScene = () => {
   const wrap = wrapRef.value
   const canvas = canvasRef.value
@@ -120,63 +115,9 @@ const buildScene = () => {
     new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-24, 0.4, 0), new THREE.Vector3(24, 0.4, 0),
     ]),
-    new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.5 })
+    new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.45 })
   )
   scene.add(belt)
-
-  // 传送带流动块（生产物流流动效果）
-  for (let i = 0; i < 8; i++) {
-    const block = new THREE.Mesh(
-      new THREE.BoxGeometry(0.55, 0.55, 0.55),
-      new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.9 })
-    )
-    block.position.set(-24 + i * 6, 0.75, 0)
-    scene.add(block)
-    conveyorBlocks.push(block)
-  }
-
-  // 地面扫描环（雷达扩散效果）
-  for (let i = 0; i < 3; i++) {
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(1.4, 1.5, 48),
-      new THREE.MeshBasicMaterial({
-        color: 0x22d3ee,
-        transparent: true,
-        opacity: 0.5,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      })
-    )
-    ring.rotation.x = -Math.PI / 2
-    ring.position.y = 0.06
-    scanRings.push({ mesh: ring, base: i * 1.7 })
-    scene.add(ring)
-  }
-
-  // 漂浮数据粒子
-  {
-    const count = 70
-    const positions = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 56
-      positions[i * 3 + 1] = 1 + Math.random() * 11
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 34
-    }
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    floatParticles = new THREE.Points(
-      geo,
-      new THREE.PointsMaterial({
-        color: 0x8b5cf6,
-        size: 0.18,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      })
-    )
-    scene.add(floatParticles)
-  }
 
   // 灯光
   scene.add(new THREE.HemisphereLight(0xffffff, 0x223, 1.1))
@@ -246,26 +187,16 @@ const syncDevices = () => {
     lamp.position.y = 0.5 + bodyH + 0.45
     group.add(lamp)
 
-    // 告警浮标（仅 ALARM 设备显示红色感叹号锥）
-    const marker = new THREE.Mesh(
-      new THREE.ConeGeometry(0.34, 0.6, 4),
-      new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.95 })
-    )
-    marker.rotation.x = Math.PI
-    marker.position.y = 0.5 + bodyH + 1.15
-    marker.visible = d.status === 'ALARM'
-    group.add(marker)
-
-    // 状态光柱（半透明竖线）
+    // 状态光柱（半透明竖线，静态）
     const beam = new THREE.Mesh(
       new THREE.CylinderGeometry(0.06, 0.06, 7, 6, 1, true),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22 })
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.16 })
     )
     beam.position.y = 4
     group.add(beam)
 
     group.position.set(startX + col * spacingX, 0, startZ + row * spacingZ)
-    group.userData = { device: d, lamp, marker, beam, body, baseY: body.position.y }
+    group.userData = { device: d, lamp, body, baseY: body.position.y }
     scene!.add(group)
     deviceMeshes.push({ mesh: group, baseY: body.position.y, userData: d })
   })
@@ -297,45 +228,15 @@ const animate = (now: number) => {
   }
 
   const t = now / 1000
-  deviceMeshes.forEach(({ mesh, baseY }) => {
+  deviceMeshes.forEach(({ mesh }) => {
     const d = mesh.userData.device
-    const beam = mesh.userData.beam as THREE.Mesh | undefined
-    const lamp = mesh.userData.lamp as THREE.Mesh | undefined
-    const marker = mesh.userData.marker as THREE.Mesh | undefined
+    // 仅告警设备呼吸灯（信息性动效），其余保持静态
     if (d.status === 'ALARM') {
-      const pulse = 1 + Math.sin(t * 6) * 0.12
-      if (lamp) lamp.scale.setScalar(pulse)
-      if (lamp) (lamp.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.sin(t * 6) * 0.5
-      if (marker) {
-        marker.position.y = mesh.userData.markerY || (marker.position.y + Math.sin(t * 5) * 0.08)
-        marker.scale.setScalar(1 + Math.sin(t * 6) * 0.15)
-      }
-      if (beam) (beam.material as THREE.MeshBasicMaterial).opacity = 0.18 + Math.sin(t * 4) * 0.14
-    } else {
-      mesh.userData.body.position.y = baseY + Math.sin(t * 2 + mesh.position.x) * 0.06
-      if (beam) (beam.material as THREE.MeshBasicMaterial).opacity = 0.12 + Math.sin(t * 1.5) * 0.06
+      const pulse = 1 + Math.sin(t * 5) * 0.1
+      mesh.userData.lamp.scale.setScalar(pulse)
+      ;(mesh.userData.lamp.material as THREE.MeshBasicMaterial).opacity = 0.55 + Math.sin(t * 5) * 0.35
     }
   })
-
-  // 传送带流动块循环
-  conveyorBlocks.forEach((b, i) => {
-    b.position.x = ((b.position.x + 0.06 + 24) % 48) - 24
-    b.rotation.y += 0.03
-  })
-
-  // 扫描环扩散
-  scanRings.forEach((r, i) => {
-    const cycle = ((t + r.base) % 4) / 4
-    const s = 0.4 + cycle * 22
-    r.mesh.scale.setScalar(s)
-    ;(r.mesh.material as THREE.MeshBasicMaterial).opacity = 0.45 * (1 - cycle)
-  })
-
-  // 粒子缓慢浮动
-  if (floatParticles) {
-    floatParticles.rotation.y += 0.0008
-    floatParticles.position.y = Math.sin(t * 0.5) * 0.3
-  }
 
   if (controls && renderer && scene && camera) {
     controls.update()
