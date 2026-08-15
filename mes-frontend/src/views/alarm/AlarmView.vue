@@ -131,6 +131,17 @@
     </div>
 
     <div class="alarm-table-panel">
+      <el-alert
+        v-if="loadError"
+        title="告警数据加载失败（后端服务未启动或不可达）"
+        type="error"
+        show-icon
+        class="load-error-bar"
+      >
+        <template #default>
+          <el-button size="small" @click="loadAlarms">重试</el-button>
+        </template>
+      </el-alert>
       <el-table v-loading="loading" :data="pagedAlarms" style="width: 100%" empty-text="暂无告警记录">
         <el-table-column prop="alarmCode" label="告警编码" width="150">
           <template #default="{ row }">
@@ -253,7 +264,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm } from '@/api/services'
 import { WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search, MagicStick, DataAnalysis } from '@element-plus/icons-vue'
@@ -284,6 +295,7 @@ const aiContext = computed(() => ({
 
 const alarms = ref<any[]>([])
 const loading = ref(false)
+const loadError = ref(false)
 const statusFilter = ref('')
 const searchKeyword = ref('')
 const dateRange = ref<[Date, Date] | null>(null)
@@ -334,10 +346,13 @@ const loadAlarms = async () => {
   loading.value = true
   try {
     const res = await getAllAlarms()
-    alarms.value = res.data || res || []
+    // 兜底解析：兼容 {data:[...]} / 直接数组 / 分页对象
+    const raw = res?.data ?? res
+    alarms.value = Array.isArray(raw) ? raw : Array.isArray(raw?.records) ? raw.records : []
+    loadError.value = false
   } catch (e: any) {
     console.error('[Alarm] Load error:', e)
-    ElMessage.error('获取告警列表失败')
+    loadError.value = true
   } finally {
     loading.value = false
   }
@@ -413,13 +428,23 @@ const formatTime = (time: string) => {
   return new Date(time).toLocaleString('zh-CN')
 }
 
+let autoRefreshTimer: number | null = null
+
 onMounted(() => {
   loadAlarms()
+  // 告警中心自动刷新（10s），保持与实时设备数据同步
+  autoRefreshTimer = window.setInterval(loadAlarms, 10000)
+})
+
+onUnmounted(() => {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer)
 })
 </script>
 
 <style scoped>
 .alarm-page { padding: 0; }
+
+.load-error-bar { margin-bottom: 12px; }
 
 /* 头部徽章 */
 .header-badge {

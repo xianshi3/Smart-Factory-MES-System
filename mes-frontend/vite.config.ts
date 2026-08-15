@@ -59,6 +59,7 @@ export default defineConfig({
       '/process': safeProxy('http://localhost:8083'),
       '/quality': safeProxy('http://localhost:8084'),
       '/dashboard': safeProxy('http://localhost:8085'),
+      '/alarm': safeProxy('http://localhost:8085'),
       '/api': safeProxy('http://localhost:9090'),
       '/auth': safeProxy('http://localhost:8081'),
       '/ai': safeProxy('http://localhost:8087', {
