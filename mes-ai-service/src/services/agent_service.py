@@ -7,6 +7,7 @@
   阶段四 结果交付: ReportBuilder 生成结构化交付报告（LLM + 规则兜底）
 """
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -138,9 +139,21 @@ class AgentService:
         iteration = 0
 
         try:
-            final_content = await self._execute_plan(
-                message, history, device_code, intent, plan, messages, steps, executed
+            # 整体执行超时保护（LLM 多轮往返 + 工具调用），避免无限卡住
+            final_content = await asyncio.wait_for(
+                self._execute_plan(message, history, device_code, intent, plan, messages, steps, executed),
+                timeout=100.0,
             )
+        except asyncio.TimeoutError:
+            logger.warning("Agent 编排执行超过 100s，提前返回已有结果")
+            # 循环上限兜底：取最后一条 assistant 内容
+            final_content = None
+            for m in reversed(messages):
+                if m.get("role") == "assistant" and m.get("content"):
+                    final_content = m["content"]
+                    break
+            if final_content is None:
+                final_content = "任务执行超时，请稍后重试或缩小问题范围。"
         except Exception as e:
             logger.error(f"Agent 执行失败（LLM 或工具异常）: {e}")
             return {
@@ -191,7 +204,7 @@ class AgentService:
                 messages=messages,
                 tools=TOOL_DEFINITIONS,
                 temperature=0.3,
-                max_tokens=2048,
+                max_tokens=1200,
             )
 
             choice = response.choices[0]

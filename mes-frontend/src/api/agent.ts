@@ -44,7 +44,7 @@ export async function runAgent(
     message,
     history: history || [],
     context: context || null,
-  })
+  }, { timeout: 150000 })  // Agent 多轮工具调用较慢，覆盖全局 30s 超时
   return res
 }
 

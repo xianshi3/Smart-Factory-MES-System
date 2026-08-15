@@ -159,7 +159,7 @@ class ReportBuilder:
 
 
 async def _async_chat(llm_service, prompt: str) -> str:
-    """LLM 简单对话（无工具）— 同步 SDK 放入线程池"""
+    """LLM 简单对话（无工具）— 同步 SDK 放入线程池，30s 超时兜底"""
     import asyncio
 
     def _run():
@@ -174,4 +174,8 @@ async def _async_chat(llm_service, prompt: str) -> str:
         )
         return resp.choices[0].message.content or ""
 
-    return await asyncio.to_thread(_run)
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(_run), timeout=30.0)
+    except asyncio.TimeoutError:
+        logger.warning("报告生成 LLM 调用超时，使用规则兜底")
+        return ""
