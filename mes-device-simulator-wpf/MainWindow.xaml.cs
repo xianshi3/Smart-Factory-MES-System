@@ -26,6 +26,50 @@ public partial class MainWindow : Window
     private bool _isDarkTheme = false;
     private readonly DispatcherTimer _sendRateTimer;
 
+    /// <summary>JWT 登录态（认证服务签名，20 小时自动续期）</summary>
+    private string _authToken = "";
+    private DateTime _authExpireAt = DateTime.MinValue;
+
+    /// <summary>
+    /// 确保已登录（v1.0.48 起后端全链路 JWT 鉴权）：
+    /// 调 mes-auth 登录接口获取 token，并挂到 HttpClient 默认请求头。
+    /// 幂等：token 未过期时直接复用。
+    /// </summary>
+    private async Task EnsureAuthAsync()
+    {
+        if (!string.IsNullOrEmpty(_authToken) && DateTime.Now < _authExpireAt)
+            return;
+
+        try
+        {
+            // 认证服务固定 8081（与 apiServerInput 无关）
+            var payload = new { username = "admin", password = "admin123" };
+            var resp = await _httpClient.PostAsJsonAsync("http://localhost:8081/auth/login", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = JsonConvert.DeserializeObject<dynamic>(await resp.Content.ReadAsStringAsync());
+                string token = json?.data?.token?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(token))
+                {
+                    _authToken = token;
+                    _authExpireAt = DateTime.Now.AddHours(20); // JWT 有效期 24h，提前续期
+                    _httpClient.DefaultRequestHeaders.Remove("Authorization");
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+                    return;
+                }
+            }
+            throw new HttpRequestException($"认证失败: HTTP {(int)resp.StatusCode}（请确认 mes-auth:8081 已启动）");
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new HttpRequestException($"无法连接认证服务 mes-auth:8081（{ex.Message}）");
+        }
+    }
+
     private IMqttClient? _mqttClient;
     private bool _mqttConnected = false;
     private int _mqttReconnectAttempts = 0;
@@ -214,6 +258,10 @@ public partial class MainWindow : Window
         try
         {
             string apiBase = apiServerInput.Text.TrimEnd('/');
+
+            // 全链路 JWT 鉴权：先登录拿 token 再请求
+            await EnsureAuthAsync();
+
             var response = await _httpClient.GetAsync($"{apiBase}/api/dashboard/devices");
 
             if (response.IsSuccessStatusCode)
@@ -369,6 +417,7 @@ public partial class MainWindow : Window
         try
         {
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.GetAsync($"{apiBase}/api/dashboard/devices");
             
             if (response.IsSuccessStatusCode)
@@ -453,6 +502,7 @@ public partial class MainWindow : Window
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.PutAsync($"{apiBase}/api/dashboard/device", content);
 
             if (response.IsSuccessStatusCode)
@@ -501,6 +551,7 @@ public partial class MainWindow : Window
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.PostAsync($"{apiBase}/api/dashboard/device", content);
 
             if (response.IsSuccessStatusCode)
@@ -551,6 +602,7 @@ public partial class MainWindow : Window
 
             string code = devIdInput.Text.Trim();
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/device/" + code);
 
             if (response.IsSuccessStatusCode)
@@ -596,6 +648,7 @@ public partial class MainWindow : Window
             txtSimulationStatus.Text = "停止";
 
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.DeleteAsync($"{apiBase}/api/dashboard/devices/all");
 
             if (response.IsSuccessStatusCode)
@@ -794,6 +847,7 @@ public partial class MainWindow : Window
             };
 
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
 
             if (response.IsSuccessStatusCode)
@@ -850,6 +904,7 @@ public partial class MainWindow : Window
                 };
                 try
                 {
+            await EnsureAuthAsync();
                     var resp = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/simulate", deviceData);
                     if (resp.IsSuccessStatusCode) httpSent++;
                 }
@@ -933,6 +988,7 @@ public partial class MainWindow : Window
             }
 
             string apiBase = apiServerInput.Text.TrimEnd('/');
+            await EnsureAuthAsync();
             var response = await _httpClient.PostAsJsonAsync($"{apiBase}/api/dashboard/device/batch", payload);
             if (response.IsSuccessStatusCode)
             {
