@@ -2,7 +2,9 @@ package com.mes.dashboard.consumer;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mes.dashboard.entity.AlarmEvent;
 import com.mes.dashboard.entity.DeviceStatus;
+import com.mes.dashboard.mapper.AlarmMapper;
 import com.mes.dashboard.mapper.DeviceStatusMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -19,6 +22,7 @@ import java.util.Map;
 public class KafkaDeviceDataConsumer {
 
     private final DeviceStatusMapper deviceStatusMapper;
+    private final AlarmMapper alarmMapper;
     private final com.mes.dashboard.service.TelemetryService telemetryService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -37,10 +41,14 @@ public class KafkaDeviceDataConsumer {
             }
 
             DeviceStatus device = findOrCreateDevice(deviceId);
-            
+            String oldStatus = device.getStatus();
+
             updateDeviceStatus(device, data);
             
             deviceStatusMapper.updateById(device);
+
+            // 状态变化 → 自动产生/解决告警（报警中心真实数据源）
+            handleAlarmTransition(device, oldStatus);
 
             // 遥测写入 InfluxDB（历史趋势数据源）
             telemetryService.writeTelemetry(device);
@@ -50,6 +58,72 @@ public class KafkaDeviceDataConsumer {
         } catch (Exception e) {
             log.error("Failed to process Kafka message: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 设备状态变化驱动告警生命周期：
+     * - 进入 ALARM：无该设备活跃告警时自动创建（按温度推断级别）
+     * - 离开 ALARM：自动解决该设备全部活跃告警（SYSTEM 自动关闭）
+     */
+    private void handleAlarmTransition(DeviceStatus device, String oldStatus) {
+        String newStatus = device.getStatus();
+        if (newStatus == null) return;
+        boolean wasAlarm = "ALARM".equalsIgnoreCase(oldStatus);
+        boolean isAlarm = "ALARM".equalsIgnoreCase(newStatus);
+
+        if (isAlarm && !wasAlarm) {
+            Long activeCount = alarmMapper.selectCount(new LambdaQueryWrapper<AlarmEvent>()
+                    .eq(AlarmEvent::getDeviceCode, device.getDeviceCode())
+                    .eq(AlarmEvent::getStatus, "ACTIVE"));
+            if (activeCount != null && activeCount > 0) {
+                return; // 已有活跃告警，不重复
+            }
+
+            double temp = device.getTemperature() == null ? 0 : device.getTemperature();
+            AlarmEvent alarm = new AlarmEvent();
+            alarm.setAlarmCode("ALM-" + device.getDeviceCode() + "-" + System.currentTimeMillis());
+            alarm.setLevel(resolveLevel(temp));
+            alarm.setAlarmType("DEVICE_STATUS");
+            alarm.setDeviceCode(device.getDeviceCode());
+            alarm.setDeviceName(device.getDeviceName());
+            alarm.setStatus("ACTIVE");
+            alarm.setDeleted(0);
+            alarm.setOccurrenceTime(LocalDateTime.now());
+            alarm.setMessage(buildAlarmMessage(device, temp));
+            alarmMapper.insert(alarm);
+            log.info("自动创建告警: {} ({}), level={}, temp={}°C",
+                    alarm.getAlarmCode(), device.getDeviceCode(), alarm.getLevel(), temp);
+        } else if (!isAlarm && wasAlarm) {
+            List<AlarmEvent> actives = alarmMapper.selectList(new LambdaQueryWrapper<AlarmEvent>()
+                    .eq(AlarmEvent::getDeviceCode, device.getDeviceCode())
+                    .eq(AlarmEvent::getStatus, "ACTIVE"));
+            for (AlarmEvent a : actives) {
+                a.setStatus("RESOLVED");
+                a.setResolveTime(LocalDateTime.now());
+                a.setResolveUser("SYSTEM");
+                a.setRemarks("设备状态恢复正常，自动解决");
+                alarmMapper.updateById(a);
+                log.info("自动解决告警: {} ({} 状态恢复)", a.getAlarmCode(), device.getDeviceCode());
+            }
+        }
+    }
+
+    /** 按温度推断告警级别：>85 严重 / >70 警告 / 其余提示 */
+    private String resolveLevel(double temperature) {
+        if (temperature > 85) return "CRITICAL";
+        if (temperature > 70) return "WARNING";
+        return "INFO";
+    }
+
+    private String buildAlarmMessage(DeviceStatus device, double temp) {
+        String name = device.getDeviceName() != null ? device.getDeviceName() : device.getDeviceCode();
+        if (temp > 85) {
+            return String.format("%s 温度过高 (%.1f°C)，存在严重过热风险", name, temp);
+        }
+        if (temp > 70) {
+            return String.format("%s 温度偏高 (%.1f°C)，请关注散热状态", name, temp);
+        }
+        return String.format("%s 状态异常 (%.1f°C)，已进入告警", name, temp);
     }
 
     private DeviceStatus findOrCreateDevice(String deviceId) {

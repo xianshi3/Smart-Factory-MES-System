@@ -127,39 +127,53 @@
         @selection-change="(rows: any[]) => selectedRows = rows"
       >
         <el-table-column type="selection" width="42" />
-        <el-table-column prop="alarmCode" label="告警编码" width="150" sortable>
+        <el-table-column prop="alarmCode" label="告警编码" width="160" sortable>
           <template #default="{ row }">
-            <div class="alarm-code">{{ row.alarmCode }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="message" label="告警信息" min-width="240">
-          <template #default="{ row }">
-            <div class="alarm-message" :title="row.message">{{ row.message }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="level" label="级别" width="100" sortable>
-          <template #default="{ row }">
-            <div class="level-tag" :class="(row.level || 'minor').toLowerCase()">
-              <i class="level-dot"></i>{{ getLevelText(row.level) }}
+            <div class="alarm-code">
+              <el-icon :size="13" class="code-icon"><BellFilled /></el-icon>
+              {{ row.alarmCode }}
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="deviceName" label="设备" width="140" sortable>
+        <el-table-column prop="message" label="告警信息" min-width="260">
           <template #default="{ row }">
-            <div class="device-name">
-              <el-icon><Monitor /></el-icon>
-              {{ row.deviceName || row.deviceCode || '-' }}
+            <div class="alarm-msg-cell">
+              <div class="alarm-msg-icon" :class="(row.level || 'info').toLowerCase()">
+                <el-icon :size="16"><WarningFilled /></el-icon>
+              </div>
+              <div class="alarm-msg-body">
+                <div class="alarm-msg-text">{{ row.message }}</div>
+                <div class="alarm-msg-sub">
+                  <span class="msg-sub-item">
+                    <el-icon :size="11"><Monitor /></el-icon>
+                    {{ row.deviceName || row.deviceCode || '-' }}
+                  </span>
+                  <span class="msg-sub-item">{{ row.alarmType || 'DEVICE_STATUS' }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="level" label="级别" width="110" sortable>
+          <template #default="{ row }">
+            <div class="level-pill" :class="(row.level || 'info').toLowerCase()">
+              <el-icon :size="12">
+                <WarningFilled v-if="(row.level || '').toUpperCase() === 'CRITICAL'" />
+                <Warning v-else-if="(row.level || '').toUpperCase() === 'WARNING'" />
+                <InfoFilled v-else />
+              </el-icon>
+              {{ getLevelText(row.level) }}
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="110" sortable>
           <template #default="{ row }">
-            <div class="status-tag" :class="(row.status || '').toLowerCase()">
-              {{ getStatusText(row.status) }}
+            <div class="status-pill" :class="(row.status || '').toLowerCase()">
+              <i class="status-dot"></i>{{ getStatusText(row.status) }}
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="occurrenceTime" label="发生时间" width="175" sortable>
+        <el-table-column prop="occurrenceTime" label="发生时间" width="185" sortable>
           <template #default="{ row }">
             <div class="time-cell">
               <span class="rel-time" :class="{ hot: isRecent(row.occurrenceTime) }">{{ relTime(row.occurrenceTime) }}</span>
@@ -245,19 +259,19 @@
           </div>
           <div class="dg-item">
             <span class="dg-label">确认人</span>
-            <span class="dg-value">{{ detailAlarm.acknowledgedBy || '-' }}</span>
+            <span class="dg-value">{{ detailAlarm.ackUser || '-' }}</span>
           </div>
           <div class="dg-item">
             <span class="dg-label">确认时间</span>
-            <span class="dg-value">{{ detailAlarm.acknowledgedTime ? formatTime(detailAlarm.acknowledgedTime) : '-' }}</span>
+            <span class="dg-value">{{ detailAlarm.ackTime ? formatTime(detailAlarm.ackTime) : '-' }}</span>
           </div>
           <div class="dg-item">
             <span class="dg-label">解决人</span>
-            <span class="dg-value">{{ detailAlarm.resolvedBy || '-' }}</span>
+            <span class="dg-value">{{ detailAlarm.resolveUser || '-' }}</span>
           </div>
           <div class="dg-item">
             <span class="dg-label">解决备注</span>
-            <span class="dg-value">{{ detailAlarm.resolveRemarks || '-' }}</span>
+            <span class="dg-value">{{ detailAlarm.remarks || '-' }}</span>
           </div>
         </div>
 
@@ -297,7 +311,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAllAlarms, acknowledgeAlarm, resolveAlarm, deleteAlarm, llmChat } from '@/api/services'
 import {
   WarningFilled, Warning, CircleCheck, Refresh, List, Monitor, Check, Delete, Search,
-  MagicStick, DataAnalysis, Download, View, PieChart, Histogram,
+  MagicStick, DataAnalysis, Download, View, PieChart, Histogram, BellFilled, InfoFilled,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
@@ -866,41 +880,96 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   padding: 8px;
 }
-.alarm-code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-secondary); }
-.alarm-message {
+.alarm-code {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.code-icon { color: var(--text-muted); }
+
+/* 告警信息列（图标 + 双行） */
+.alarm-msg-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 2px 0;
+}
+.alarm-msg-icon {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.alarm-msg-icon.critical { background: rgba(239,68,68,0.12); color: #ef4444; }
+.alarm-msg-icon.warning, .alarm-msg-icon.major { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.alarm-msg-icon.info, .alarm-msg-icon.minor { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.alarm-msg-body { min-width: 0; }
+.alarm-msg-text {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 420px;
-  color: var(--text-primary);
 }
-.level-tag {
+.alarm-msg-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.msg-sub-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.msg-sub-item .el-icon { font-size: 11px; }
+
+/* 级别胶囊 */
+.level-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.level-pill.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.35); }
+.level-pill.warning, .level-pill.major { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.35); }
+.level-pill.info, .level-pill.minor, .level-pill.low { color: #3b82f6; background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.35); }
+
+/* 状态胶囊 */
+.status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
   font-weight: 600;
 }
-.level-dot { width: 6px; height: 6px; border-radius: 50%; }
-.level-tag.critical { color: #ef4444; background: rgba(239,68,68,0.1); }
-.level-tag.critical .level-dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
-.level-tag.major, .level-tag.warning { color: #f59e0b; background: rgba(245,158,11,0.1); }
-.level-tag.major .level-dot, .level-tag.warning .level-dot { background: #f59e0b; }
-.level-tag.minor, .level-tag.info, .level-tag.low { color: #3b82f6; background: rgba(59,130,246,0.1); }
-.level-tag.minor .level-dot, .level-tag.info .level-dot { background: #3b82f6; }
-.device-name { display: flex; align-items: center; gap: 6px; color: var(--text-primary); }
-.status-tag {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.status-pill.active { color: var(--danger); background: var(--danger-light); }
+.status-pill.active .status-dot { background: var(--danger); animation: pulse-red 1.5s ease-in-out infinite; }
+.status-pill.acknowledged { color: var(--warning); background: var(--warning-light); }
+.status-pill.acknowledged .status-dot { background: var(--warning); }
+.status-pill.resolved { color: var(--success); background: var(--success-light); }
+.status-pill.resolved .status-dot { background: var(--success); }
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 4px rgba(239,68,68,0); }
 }
-.status-tag.active { color: var(--danger); background: var(--danger-light); }
-.status-tag.acknowledged { color: var(--warning); background: var(--warning-light); }
-.status-tag.resolved { color: var(--success); background: var(--success-light); }
 .time-cell { display: flex; flex-direction: column; }
 .rel-time { font-size: 12px; color: var(--text-muted); }
 .rel-time.hot { color: var(--danger); font-weight: 600; }

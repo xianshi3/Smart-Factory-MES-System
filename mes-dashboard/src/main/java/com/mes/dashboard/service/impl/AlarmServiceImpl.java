@@ -33,7 +33,9 @@ public class AlarmServiceImpl implements AlarmService {
     @Override
     public List<AlarmEvent> getAllAlarms() {
         return alarmMapper.selectList(
-            new LambdaQueryWrapper<AlarmEvent>().eq(AlarmEvent::getDeleted, 0)
+            new LambdaQueryWrapper<AlarmEvent>()
+                .eq(AlarmEvent::getDeleted, 0)
+                .orderByDesc(AlarmEvent::getOccurrenceTime)
         );
     }
 
