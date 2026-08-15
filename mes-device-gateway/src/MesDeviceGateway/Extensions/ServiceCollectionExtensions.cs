@@ -24,14 +24,15 @@ public static class ServiceCollectionExtensions
         // 核心服务
         services.AddSingleton<DataCleanseService>();
         services.AddSingleton<DeviceHeartbeatService>();
-        
-        // Kafka生产者 - 使用HostedService
-        services.AddHostedService(provider =>
+
+        // Kafka 生产者：注册为单例（供 DataCleanseService 等注入）+ 宿主服务（复用同一实例）
+        services.AddSingleton<KafkaProducerService>(provider =>
         {
             var config = provider.GetRequiredService<GatewayConfig>();
             var logger = provider.GetRequiredService<ILogger<KafkaProducerService>>();
             return new KafkaProducerService(config, logger);
         });
+        services.AddHostedService(provider => provider.GetRequiredService<KafkaProducerService>());
 
         // MQTT消费者
         services.AddHostedService<MqttConsumerService>();
