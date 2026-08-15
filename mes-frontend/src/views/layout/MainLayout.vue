@@ -4,7 +4,10 @@
     <el-aside class="sidebar" :class="{ collapsed: isCollapse }">
       <div class="sidebar-header">
         <div class="brand-logo">
-          <span class="brand-mark"><el-icon :size="20"><Cpu /></el-icon></span>
+          <span class="brand-mark">
+            <img v-if="logoOk" class="brand-img" src="/logo.png" alt="logo" @error="logoOk = false" />
+            <el-icon v-else :size="20"><Cpu /></el-icon>
+          </span>
           <transition name="fade-slide">
             <div v-show="!isCollapse" class="brand-info">
               <span class="brand-title">Smart MES</span>
@@ -48,6 +51,13 @@
             </template>
           </template>
         </el-menu>
+      </div>
+
+      <!-- 侧边栏底部版本信息 -->
+      <div v-show="!isCollapse" class="sidebar-footer">
+        <span class="sf-ver">MES v1.0.50</span>
+        <span class="sf-dot">·</span>
+        <span class="sf-copy">© 2026 Smart Factory</span>
       </div>
     </el-aside>
 
@@ -147,6 +157,9 @@ const menuRef = ref()
 const openedMenus = ref<string[]>(['生产监控', '生产管理', '基础数据', '系统管理'])
 const tabs = ref<{ path: string; label: string; group: string }[]>([])
 const tabScrollRef = ref<HTMLElement>()
+
+/** 品牌 logo：public/logo.png 存在则显示，加载失败回退内置图标 */
+const logoOk = ref(true)
 
 interface MI { path: string; title: string; icon: string; badge?: string; perm?: string }
 interface MG { title: string; icon: string; items: MI[] }
@@ -290,22 +303,32 @@ const handleCommand = (cmd: string) => {
 .sidebar.collapsed { width: 56px; }
 
 .sidebar-header { 
-  height: 52px; 
+  height: 56px; 
   display: flex; 
   align-items: center; 
   justify-content: space-between;
   padding: 0 12px; 
   flex-shrink: 0; 
   border-bottom: 1px solid var(--border-color); 
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.07), transparent 60%);
+  position: relative;
 }
 .brand-logo { display: flex; align-items: center; gap: 10px; overflow: hidden; }
 .brand-mark { 
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-  background: var(--accent); border-radius: 8px; color: #fff; flex-shrink: 0;
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: var(--gradient-primary); border-radius: 9px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.45);
+  overflow: hidden;
 }
+.brand-img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
 .brand-info { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }
-.brand-title { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: .3px; line-height: 1.1; }
-.brand-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.brand-title {
+  font-size: 15px; font-weight: 700; letter-spacing: .3px; line-height: 1.1;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.brand-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; letter-spacing: 1px; }
 .collapse-btn { 
   width: 24px; height: 24px; 
   display: flex; align-items: center; justify-content: center; 
@@ -336,10 +359,12 @@ const handleCommand = (cmd: string) => {
   height: 38px; line-height: 38px; 
   color: var(--text-secondary) !important; margin: 1px 8px; 
   border-radius: 6px; font-size: 13px; padding-left: 12px !important; 
+  letter-spacing: .3px;
 }
 :deep(.el-sub-menu__title:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
 :deep(.el-sub-menu.is-opened > .el-sub-menu__title) { color: var(--accent) !important; font-weight: 600; }
-:deep(.el-sub-menu__title .el-icon) { font-size: 16px; }
+:deep(.el-sub-menu__title .el-icon) { font-size: 16px; transition: transform .2s ease; }
+:deep(.el-sub-menu__title:hover .el-icon) { transform: scale(1.12); }
 
 /* Sub-items */
 :deep(.el-sub-menu .el-menu) { background: transparent !important; padding: 2px 0; }
@@ -347,20 +372,58 @@ const handleCommand = (cmd: string) => {
   height: 34px; line-height: 34px; 
   color: var(--text-secondary) !important; margin: 1px 8px 1px 24px; 
   border-radius: 6px; font-size: 13px; padding-left: 12px !important; 
+  position: relative;
+  transition: all .18s ease;
 }
-:deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; }
+:deep(.el-sub-menu .el-menu-item:hover) { background: var(--bg-hover) !important; color: var(--text-primary) !important; transform: translateX(2px); }
 :deep(.el-sub-menu .el-menu-item.is-active) { 
-  background: var(--accent-light) !important; color: var(--accent) !important; font-weight: 600; 
+  background: linear-gradient(90deg, var(--accent-light), transparent 85%) !important; 
+  color: var(--accent) !important; font-weight: 600; 
+}
+:deep(.el-sub-menu .el-menu-item.is-active::before) {
+  content: '';
+  position: absolute;
+  left: 0; top: 22%; height: 56%;
+  width: 3px; border-radius: 2px;
+  background: var(--gradient-primary);
 }
 
 /* Top-level items (no sub) */
 .el-menu-item { 
   height: 38px; line-height: 38px; color: var(--text-secondary); 
   margin: 1px 8px; border-radius: 6px; padding-left: 14px !important; font-size: 13px; 
+  position: relative;
+  transition: all .18s ease;
 }
-.el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-.el-menu-item.is-active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.el-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); transform: translateX(2px); }
+.el-menu-item.is-active { 
+  background: linear-gradient(90deg, var(--accent-light), transparent 85%) !important; 
+  color: var(--accent); font-weight: 600; 
+}
 .el-menu-item.is-active .el-icon { color: var(--accent); }
+.el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 22%; height: 56%;
+  width: 3px; border-radius: 2px;
+  background: var(--gradient-primary);
+}
+
+/* 底部版本信息 */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 0 10px;
+  border-top: 1px solid var(--border-color);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  letter-spacing: .3px;
+}
+.sf-ver { color: var(--accent); font-weight: 600; }
+.sf-dot { opacity: .5; }
 
 /* Collapsed mode */
 .el-menu--collapse .el-menu-item { 
