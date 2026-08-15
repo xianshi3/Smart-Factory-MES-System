@@ -129,38 +129,8 @@
       </div>
     </div>
 
-    <!-- ===== 3D 工厂沙盘 ===== -->
-    <div class="f3d-section">
-      <div class="f3d-section-head">
-        <span class="section-title">
-          <el-icon><Monitor /></el-icon>
-          3D 工厂总览
-          <span class="f3d-live"><i></i> 实时孪生</span>
-        </span>
-        <span class="f3d-count">{{ devices.length }} 台设备 · 拖拽旋转 · 点击设备查看详情</span>
-      </div>
-      <Factory3D :devices="devices" class="f3d-stage" />
-    </div>
-
-    <!-- ===== 图表 ===== -->
-    <el-row :gutter="20" class="charts-row">
-      <el-col :xs="24" :md="12">
-        <el-skeleton v-if="!devices.length" animated>
-          <template #template>
-            <el-skeleton-item variant="rect" style="height: 280px; border-radius: var(--radius-lg)" />
-          </template>
-        </el-skeleton>
-        <ChartCard v-else title="生产趋势" icon="TrendCharts" :option="productionChart" :height="'280px'" />
-      </el-col>
-      <el-col :xs="24" :md="12">
-        <el-skeleton v-if="!devices.length" animated>
-          <template #template>
-            <el-skeleton-item variant="rect" style="height: 280px; border-radius: var(--radius-lg)" />
-          </template>
-        </el-skeleton>
-        <ChartCard v-else title="设备状态分布" icon="PieChart" :option="statusChart" :height="'280px'" />
-      </el-col>
-    </el-row>
+    <!-- ===== 3D 工厂总览（孪生 + 趋势 + 状态分布三合一） ===== -->
+    <FactoryTwin :devices="devices" :trend-option="productionChart" :status-option="statusChart" />
 
     <!-- ===== 设备列表 ===== -->
     <div class="device-section">
@@ -220,8 +190,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import DeviceCard from '@/components/common/DeviceCard.vue'
-import ChartCard from '@/components/common/ChartCard.vue'
-import Factory3D from '@/components/dashboard/Factory3D.vue'
+import FactoryTwin from '@/components/dashboard/FactoryTwin.vue'
 import { Refresh, Monitor, ArrowRight, MagicStick, Cpu, Timer, CircleCheck, VideoPause, Warning } from '@element-plus/icons-vue'
 import { mdToHtml } from '@/utils/markdown'
 
@@ -876,38 +845,7 @@ watch(() => themeStore.isDark, () => {
   50% { opacity: 0; }
 }
 
-/* ===== 3D 工厂沙盘 ===== */
-.f3d-section { margin-bottom: 20px; animation: fadeIn 0.6s ease 0.15s both; }
-.f3d-section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.f3d-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--success);
-  padding: 2px 8px;
-  border: 1px solid var(--success);
-  border-radius: 20px;
-  margin-left: 8px;
-}
-.f3d-live i {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success);
-  animation: pulse-green 1.6s ease-in-out infinite;
-}
-.f3d-count { font-size: 12px; color: var(--text-muted); }
-.f3d-stage { height: 380px; }
-
 /* ===== 图表与设备 ===== */
-.charts-row { margin-bottom: 20px; }
-
 .device-section { margin-top: 8px; animation: fadeIn 0.6s ease 0.2s both; }
 .section-header {
   display: flex;
