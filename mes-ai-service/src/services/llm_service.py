@@ -214,7 +214,25 @@ class LLmService:
             parts.append(f"\n故障预测：")
             parts.append(f"- 故障概率: {fault.get('fault_probability', 'N/A')}")
             parts.append(f"- 预测结果: {fault.get('prediction', 'N/A')}")
-        
+
+        if "alarm" in context:
+            alarm = context["alarm"]
+            parts.append(f"\n告警信息：")
+            parts.append(f"- 告警编码: {alarm.get('code', 'N/A')}")
+            parts.append(f"- 告警内容: {alarm.get('message', 'N/A')}")
+            parts.append(f"- 级别: {alarm.get('level', 'N/A')}")
+            parts.append(f"- 设备: {alarm.get('device', 'N/A')}")
+            parts.append(f"- 状态: {alarm.get('status', 'N/A')}")
+            parts.append(f"- 时间: {alarm.get('time', 'N/A')}")
+
+        # 通用兜底：未识别的上下文键（页面上下文/自定义数据）直接注入，避免信息丢失
+        known_keys = {"device", "work_order", "quality", "fault", "alarm"}
+        for key, val in context.items():
+            if key in known_keys:
+                continue
+            parts.append(f"\n{key}:")
+            parts.append(json.dumps(val, ensure_ascii=False, default=str)[:2000])
+
         return "\n".join(parts)
 
     def analyze_device_fault(self, device: Dict, fault_prediction: Dict) -> str:
