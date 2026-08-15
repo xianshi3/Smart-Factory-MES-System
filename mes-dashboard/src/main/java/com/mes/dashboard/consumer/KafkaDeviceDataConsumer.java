@@ -6,6 +6,7 @@ import com.mes.dashboard.entity.AlarmEvent;
 import com.mes.dashboard.entity.DeviceStatus;
 import com.mes.dashboard.mapper.AlarmMapper;
 import com.mes.dashboard.mapper.DeviceStatusMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -25,6 +26,36 @@ public class KafkaDeviceDataConsumer {
     private final AlarmMapper alarmMapper;
     private final com.mes.dashboard.service.TelemetryService telemetryService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 启动兜底扫描：设备已在 ALARM 状态但无活跃告警时补建告警。
+     * 覆盖"服务重启后 Kafka 已消费的状态变化事件不再重放"的场景。
+     */
+    @PostConstruct
+    public void reconcileAlarmsOnStartup() {
+        try {
+            List<DeviceStatus> alarmDevices = deviceStatusMapper.selectList(
+                    new LambdaQueryWrapper<DeviceStatus>()
+                            .eq(DeviceStatus::getStatus, "ALARM")
+                            .eq(DeviceStatus::getDeleted, 0));
+            int created = 0;
+            for (DeviceStatus d : alarmDevices) {
+                Long activeCount = alarmMapper.selectCount(new LambdaQueryWrapper<AlarmEvent>()
+                        .eq(AlarmEvent::getDeviceCode, d.getDeviceCode())
+                        .eq(AlarmEvent::getStatus, "ACTIVE"));
+                if (activeCount != null && activeCount > 0) {
+                    continue;
+                }
+                createAlarmForDevice(d);
+                created++;
+            }
+            if (created > 0) {
+                log.info("启动兜底扫描: 为 {} 台 ALARM 设备补建告警", created);
+            }
+        } catch (Exception e) {
+            log.warn("启动告警兜底扫描失败: {}", e.getMessage());
+        }
+    }
 
     @KafkaListener(topics = "mes-device-data", groupId = "mes-dashboard-consumer")
     public void consumeDeviceData(String message) {
@@ -78,21 +109,7 @@ public class KafkaDeviceDataConsumer {
             if (activeCount != null && activeCount > 0) {
                 return; // 已有活跃告警，不重复
             }
-
-            double temp = device.getTemperature() == null ? 0 : device.getTemperature();
-            AlarmEvent alarm = new AlarmEvent();
-            alarm.setAlarmCode("ALM-" + device.getDeviceCode() + "-" + System.currentTimeMillis());
-            alarm.setLevel(resolveLevel(temp));
-            alarm.setAlarmType("DEVICE_STATUS");
-            alarm.setDeviceCode(device.getDeviceCode());
-            alarm.setDeviceName(device.getDeviceName());
-            alarm.setStatus("ACTIVE");
-            alarm.setDeleted(0);
-            alarm.setOccurrenceTime(LocalDateTime.now());
-            alarm.setMessage(buildAlarmMessage(device, temp));
-            alarmMapper.insert(alarm);
-            log.info("自动创建告警: {} ({}), level={}, temp={}°C",
-                    alarm.getAlarmCode(), device.getDeviceCode(), alarm.getLevel(), temp);
+            createAlarmForDevice(device);
         } else if (!isAlarm && wasAlarm) {
             List<AlarmEvent> actives = alarmMapper.selectList(new LambdaQueryWrapper<AlarmEvent>()
                     .eq(AlarmEvent::getDeviceCode, device.getDeviceCode())
@@ -113,6 +130,24 @@ public class KafkaDeviceDataConsumer {
         if (temperature > 85) return "CRITICAL";
         if (temperature > 70) return "WARNING";
         return "INFO";
+    }
+
+    /** 为设备创建活跃告警（调用方负责去重判断） */
+    private void createAlarmForDevice(DeviceStatus device) {
+        double temp = device.getTemperature() == null ? 0 : device.getTemperature();
+        AlarmEvent alarm = new AlarmEvent();
+        alarm.setAlarmCode("ALM-" + device.getDeviceCode() + "-" + System.currentTimeMillis());
+        alarm.setLevel(resolveLevel(temp));
+        alarm.setAlarmType("DEVICE_STATUS");
+        alarm.setDeviceCode(device.getDeviceCode());
+        alarm.setDeviceName(device.getDeviceName());
+        alarm.setStatus("ACTIVE");
+        alarm.setDeleted(0);
+        alarm.setOccurrenceTime(LocalDateTime.now());
+        alarm.setMessage(buildAlarmMessage(device, temp));
+        alarmMapper.insert(alarm);
+        log.info("自动创建告警: {} ({}), level={}, temp={}°C",
+                alarm.getAlarmCode(), device.getDeviceCode(), alarm.getLevel(), temp);
     }
 
     private String buildAlarmMessage(DeviceStatus device, double temp) {
