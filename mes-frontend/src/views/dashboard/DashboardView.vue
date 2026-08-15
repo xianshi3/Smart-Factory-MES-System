@@ -104,9 +104,29 @@
               <div class="ai-thinking-dots"><i></i><i></i><i></i></div>
               <span>AI 分析中…</span>
             </div>
-            <div v-else-if="aiContent" class="ai-insight-text">
-              <span v-html="renderInsight"></span><span v-if="typing" class="type-cursor">▍</span>
-            </div>
+            <template v-else-if="aiContent">
+              <!-- 打字机阶段 -->
+              <div v-if="typing" class="ai-insight-text">
+                <span v-html="renderInsight"></span><span class="type-cursor">▍</span>
+              </div>
+              <!-- 完成阶段：条目卡片 -->
+              <div v-else class="insight-cards">
+                <div
+                  v-for="(item, i) in insightItems"
+                  :key="i"
+                  class="insight-card"
+                  :style="{ animationDelay: `${i * 0.12}s` }"
+                >
+                  <div class="ic-icon" :class="`ic-${item.theme}`">
+                    <el-icon :size="14"><component :is="item.icon" /></el-icon>
+                  </div>
+                  <div class="ic-body">
+                    <div class="ic-title">{{ item.title }}</div>
+                    <div class="ic-text">{{ item.text }}</div>
+                  </div>
+                </div>
+              </div>
+            </template>
             <div v-else class="ai-insight-empty">
               <el-icon :size="16"><MagicStick /></el-icon>
               点击「AI 洞察」分析当前生产状态
@@ -188,7 +208,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useChartTheme } from '@/composables/useChartTheme'
 import { wsService } from '@/utils/websocket'
 import FactoryTwin from '@/components/dashboard/FactoryTwin.vue'
-import { Refresh, Monitor, ArrowRight, MagicStick, Cpu, Timer, CircleCheck, VideoPause, Warning } from '@element-plus/icons-vue'
+import { Refresh, Monitor, ArrowRight, MagicStick, Cpu, Timer, CircleCheck, VideoPause, Warning, WarningFilled, Lightning, AlarmClock, Star } from '@element-plus/icons-vue'
 import { mdToHtml } from '@/utils/markdown'
 
 const router = useRouter()
@@ -335,6 +355,50 @@ const startTyping = (text: string) => {
     }
   }, 24)
 }
+
+/* ===== 洞察条目解析（按主题配图标） ===== */
+const INSIGHT_STYLE: { match: RegExp; icon: any; theme: string }[] = [
+  { match: /健康|风险|温度|过热|故障/, icon: WarningFilled, theme: 'danger' },
+  { match: /产能|瓶颈|效率|利用|产量/, icon: Lightning, theme: 'violet' },
+  { match: /告警|处置|优先|异常/, icon: AlarmClock, theme: 'warning' },
+  { match: /趋势|预测|维护|改进/, icon: Star, theme: 'cyan' },
+]
+
+const makeInsightItem = (title: string, text: string) => {
+  const t = text.trim().replace(/^\*\*|\*\*$/g, '').replace(/^\s*[\/:：]\s*/, '')
+  const found = INSIGHT_STYLE.find(x => x.match.test(title + t))
+  return {
+    title: title.replace(/^\s*[:：]\s*/, ''),
+    text: t,
+    icon: found?.icon ?? Star,
+    theme: found?.theme ?? 'primary',
+  }
+}
+
+const insightItems = computed(() => {
+  const text = aiContent.value || ''
+  const items: { title: string; text: string; icon: any; theme: string }[] = []
+  const re = /洞察[一二三四五六七八九十]+/g
+  let lastIdx = 0
+  let lastTitle = '智能洞察'
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > lastIdx) {
+      const seg = text.slice(lastIdx, m.index)
+      if (seg.trim()) items.push(makeInsightItem(lastTitle, seg))
+    }
+    lastTitle = m[0]
+    lastIdx = re.lastIndex
+  }
+  if (lastIdx < text.length) {
+    const seg = text.slice(lastIdx)
+    if (seg.trim()) items.push(makeInsightItem(lastTitle, seg))
+  }
+  if (!items.length && text.trim()) {
+    items.push(makeInsightItem('智能洞察', text))
+  }
+  return items
+})
 
 const generateInsight = async (manual = false) => {
   if (aiLoading.value) return
@@ -757,6 +821,13 @@ watch(() => themeStore.isDark, () => {
   flex-direction: column;
   animation: fadeIn 0.5s ease 0.08s both;
 }
+.ai-insight-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), rgba(34, 211, 238, 0.7), transparent);
+}
 .ai-insight-panel.is-loading { border-color: rgba(99, 102, 241, 0.4); }
 .ai-insight-panel.has-content { border-color: rgba(139, 92, 246, 0.35); }
 .ai-insight-glow {
@@ -842,6 +913,77 @@ watch(() => themeStore.isDark, () => {
 .ai-insight-text :deep(strong) { color: var(--text-primary); }
 .ai-insight-text :deep(ol), .ai-insight-text :deep(ul) { padding-left: 18px; margin: 2px 0; }
 .type-cursor { color: var(--accent); animation: blink 0.9s step-end infinite; }
+
+/* ===== 洞察条目卡片 ===== */
+.insight-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.insight-card {
+  display: flex;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  animation: insightIn 0.45s ease both;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+.insight-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  opacity: 0.9;
+}
+.insight-card:hover {
+  transform: translateX(3px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.ic-icon {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.ic-icon :deep(.el-icon) { font-size: 14px; }
+.ic-danger { background: var(--danger-light); color: var(--danger); }
+.ic-warning { background: var(--warning-light); color: var(--warning); }
+.ic-violet { background: rgba(139, 92, 246, 0.14); color: #8b5cf6; }
+.ic-cyan { background: var(--info-light); color: var(--info); }
+.ic-primary { background: var(--accent-light); color: var(--accent); }
+
+.insight-card:has(.ic-danger)::before { background: var(--danger); }
+.insight-card:has(.ic-warning)::before { background: var(--warning); }
+.insight-card:has(.ic-violet)::before { background: #8b5cf6; }
+.insight-card:has(.ic-cyan)::before { background: var(--info); }
+.insight-card:has(.ic-primary)::before { background: var(--accent); }
+
+.ic-body { flex: 1; min-width: 0; }
+.ic-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.ic-text {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes insightIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 .ai-insight-empty {
   display: flex;
   align-items: center;
