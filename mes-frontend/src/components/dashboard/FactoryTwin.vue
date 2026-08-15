@@ -16,34 +16,27 @@
       </div>
     </div>
 
+    <!-- 3D 场景（纯净，内置图例与操作提示） -->
     <div class="ft-body">
       <Factory3D :devices="devices" class="ft-3d" />
+    </div>
 
-      <!-- 左下：生产趋势浮层 -->
-      <div class="ft-overlay ft-trend">
-        <div class="ov-title">
+    <!-- 底部图表行（实色主题卡片，不遮挡 3D） -->
+    <div class="ft-charts">
+      <div class="ft-chart-card">
+        <div class="ft-chart-title">
           <el-icon :size="13"><TrendCharts /></el-icon>
           生产趋势
         </div>
-        <ChartMini :option="trendOption" :height="'170px'" />
+        <ChartMini :option="trendOption" :height="'130px'" />
       </div>
-
-      <!-- 右下：设备状态分布浮层 -->
-      <div class="ft-overlay ft-status">
-        <div class="ov-title">
+      <div class="ft-chart-card">
+        <div class="ft-chart-title">
           <el-icon :size="13"><PieChart /></el-icon>
           设备状态分布
         </div>
-        <ChartMini :option="statusOption" :height="'170px'" />
+        <ChartMini :option="statusOption" :height="'130px'" />
       </div>
-    </div>
-
-    <div class="ft-legend">
-      <span class="lg-item"><i class="lg-dot" style="background:#10b981"></i>运行中</span>
-      <span class="lg-item"><i class="lg-dot" style="background:#06b6d4"></i>空闲</span>
-      <span class="lg-item"><i class="lg-dot" style="background:#ef4444"></i>告警</span>
-      <span class="lg-item"><i class="lg-dot" style="background:#f59e0b"></i>维护</span>
-      <span class="lg-hint">拖拽旋转 · 滚轮缩放 · 点击设备查看详情</span>
     </div>
   </div>
 </template>
@@ -71,6 +64,7 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -147,38 +141,36 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 .ft-stat.idle em { color: var(--info); }
 .ft-stat.alarm em { color: var(--danger); }
 
+/* 3D 场景区 */
 .ft-body {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: 140px;
 }
 .ft-3d {
   position: absolute;
   inset: 0;
 }
 
-/* 数据浮层（毛玻璃） */
-.ft-overlay {
-  position: absolute;
-  z-index: 4;
-  width: 300px;
+/* 底部图表行：实色主题卡片 */
+.ft-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: rgba(13, 13, 20, 0.68);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+  background: var(--bg-card);
+}
+.ft-chart-card {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 8px 10px 4px;
   transition: border-color var(--transition-normal);
 }
-.ft-overlay:hover { border-color: rgba(99, 102, 241, 0.55); }
-:global(html.light) .ft-overlay {
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
-}
-.ft-trend { left: 16px; bottom: 12px; }
-.ft-status { right: 16px; bottom: 12px; }
-.ov-title {
+.ft-chart-card:hover { border-color: var(--accent); }
+.ft-chart-title {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -187,26 +179,7 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
   color: var(--text-primary);
   margin-bottom: 2px;
 }
-.ov-title .el-icon { color: var(--accent); }
-
-.ft-legend {
-  position: absolute;
-  z-index: 4;
-  left: 16px;
-  top: 50px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  pointer-events: none;
-}
-.lg-item { display: inline-flex; align-items: center; gap: 5px; }
-.lg-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-}
-.lg-hint { color: var(--text-muted); opacity: 0.85; margin-left: 6px; }
+.ft-chart-title .el-icon { color: var(--accent); }
 
 @keyframes pulse-green {
   0%, 100% { opacity: 1; }
@@ -215,10 +188,5 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
-  .ft-overlay { width: 190px; }
-  .lg-hint { display: none; }
 }
 </style>

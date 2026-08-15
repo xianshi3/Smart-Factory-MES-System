@@ -364,7 +364,7 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 340px;
+  min-height: 140px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background:
