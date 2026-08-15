@@ -90,6 +90,8 @@ obj/
 
 # ==================== Legacy ====================
 scripts/*
+!scripts/README.md
+!scripts/*.sh
 !scripts/ci-smoke.sh
 mqtt-broker.js
 *.exe
