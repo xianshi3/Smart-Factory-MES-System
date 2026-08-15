@@ -4,8 +4,26 @@
  */
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
+import type { ProxyOptions } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+
+/** 代理目标不可达（后端未启动）时仅告警，防止 ECONNRESET 导致 dev server 崩溃退出 */
+function safeProxy(target: string, extra?: Partial<ProxyOptions>): ProxyOptions {
+  return {
+    target,
+    changeOrigin: true,
+    bypass: (req) => {
+      if (req.headers.accept?.includes('text/html')) return '/'
+    },
+    configure: (proxy) => {
+      proxy.on('error', (err) => {
+        console.warn(`[vite-proxy] ${target} 不可达: ${err.message}（后端服务未启动？）`)
+      })
+    },
+    ...extra,
+  }
+}
 
 export default defineConfig({
   plugins: [vue()],
@@ -37,56 +55,15 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/workorder': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/process': {
-        target: 'http://localhost:8083',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/quality': {
-        target: 'http://localhost:8084',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/dashboard': {
-        target: 'http://localhost:8085',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/api': {
-        target: 'http://localhost:9090',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/auth': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      },
-      '/ai': {
-        target: 'http://localhost:8087',
-        changeOrigin: true,
+      '/workorder': safeProxy('http://localhost:8082'),
+      '/process': safeProxy('http://localhost:8083'),
+      '/quality': safeProxy('http://localhost:8084'),
+      '/dashboard': safeProxy('http://localhost:8085'),
+      '/api': safeProxy('http://localhost:9090'),
+      '/auth': safeProxy('http://localhost:8081'),
+      '/ai': safeProxy('http://localhost:8087', {
         rewrite: (path) => path.replace(/^\/ai/, ''),
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) return '/'
-        }
-      }
+      }),
     }
   }
 })
