@@ -132,6 +132,30 @@
               点击「AI 洞察」分析当前生产状态
             </div>
           </div>
+
+          <!-- 底部：元信息 + 快捷追问 -->
+          <div class="ai-insight-foot">
+            <div class="aif-meta">
+              <span class="aif-model"><i></i>{{ AI_MODEL }}</span>
+              <template v-if="lastInsightAt">
+                <span class="aif-sep">·</span>
+                <span class="aif-time">{{ lastInsightAt }}</span>
+                <span class="aif-sep">·</span>
+                <span class="aif-ms">{{ insightMs }}ms</span>
+              </template>
+            </div>
+            <div v-if="!aiLoading" class="aif-quick">
+              <span
+                v-for="q in followUps"
+                :key="q.text"
+                class="quick-chip"
+                @click="quickAsk(q.text)"
+              >
+                <el-icon :size="10"><MagicStick /></el-icon>
+                {{ q.text }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -365,7 +389,7 @@ const INSIGHT_STYLE: { match: RegExp; icon: any; theme: string }[] = [
 ]
 
 const makeInsightItem = (title: string, text: string) => {
-  const t = text.trim().replace(/^\*\*|\*\*$/g, '').replace(/^\s*[\/:：]\s*/, '')
+  const t = text.trim().replace(/^\*\*|\*\*$/g, '').replace(/^\s*[/:：]\s*/, '')
   const found = INSIGHT_STYLE.find(x => x.match.test(title + t))
   return {
     title: title.replace(/^\s*[:：]\s*/, ''),
@@ -400,35 +424,46 @@ const insightItems = computed(() => {
   return items
 })
 
-const generateInsight = async (manual = false) => {
+/* ===== AI 洞察请求（共享上下文构建 + 耗时记录） ===== */
+const lastInsightAt = ref('')
+const insightMs = ref(0)
+const AI_MODEL = 'glm-4-flash'
+
+const buildInsightContext = () => {
+  const svcSummary = services.value.map(s => `${s.name}(${s.status === 'up' ? '在线' : s.status === 'down' ? '离线' : '未知'}${s.latency >= 0 ? '/' + s.latency + 'ms' : ''})`).join('、')
+  return {
+    page: '工作台',
+    services: svcSummary,
+    counts: {
+      total: devices.value.length,
+      online: onlineCount.value,
+      idle: idleCount.value,
+      alarm: alarmCount.value,
+    },
+    devices: devices.value.slice(0, 8).map(d => ({
+      code: d.deviceCode,
+      status: d.status,
+      temperature: d.temperature,
+      speed: d.speed,
+    })),
+  }
+}
+
+const askInsight = async (message: string, manual = false) => {
   if (aiLoading.value) return
   aiLoading.value = true
+  const t0 = performance.now()
   try {
-    const svcSummary = services.value.map(s => `${s.name}(${s.status === 'up' ? '在线' : s.status === 'down' ? '离线' : '未知'}${s.latency >= 0 ? '/' + s.latency + 'ms' : ''})`).join('、')
-    const ctx = {
-      page: '工作台',
-      services: svcSummary,
-      counts: {
-        total: devices.value.length,
-        online: onlineCount.value,
-        idle: idleCount.value,
-        alarm: alarmCount.value,
-      },
-      devices: devices.value.slice(0, 8).map(d => ({
-        code: d.deviceCode,
-        status: d.status,
-        temperature: d.temperature,
-        speed: d.speed,
-      })),
-    }
     const res = await llmChat({
-      message: '你是智能工厂的生产总监 AI。请基于上方数据生成 3 条简短的生产洞察（每条不超过 45 字），用「洞察一 / 洞察二 / 洞察三」开头，关注：设备健康风险、产能利用瓶颈、告警处置优先级。直接输出结论，不要客套。',
-      context: ctx,
+      message,
+      context: buildInsightContext(),
       history: [],
     })
     if (res && res.success && res.content) {
       aiContent.value = res.content
       aiOnline.value = true
+      lastInsightAt.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      insightMs.value = Math.round(performance.now() - t0)
       startTyping(res.content)
     } else {
       aiOnline.value = false
@@ -443,6 +478,32 @@ const generateInsight = async (manual = false) => {
   } finally {
     aiLoading.value = false
   }
+}
+
+const DEFAULT_INSIGHT_PROMPT = '你是智能工厂的生产总监 AI。请基于上方数据生成 3 条简短的生产洞察（每条不超过 45 字），用「洞察一 / 洞察二 / 洞察三」开头，关注：设备健康风险、产能利用瓶颈、告警处置优先级。直接输出结论，不要客套。'
+
+const generateInsight = (manual = false) => askInsight(DEFAULT_INSIGHT_PROMPT, manual)
+
+/** 快捷追问（基于当前实时数据动态生成） */
+const followUps = computed(() => {
+  const list: { text: string }[] = []
+  const alarmDevs = devices.value.filter(d => d.status === 'ALARM').slice(0, 2)
+  if (alarmDevs.length) {
+    list.push({ text: `深入分析 ${alarmDevs[0].deviceCode}` })
+  }
+  const hot = devices.value.filter(d => (d.temperature ?? 0) > 80).slice(0, 2)
+  if (hot.length) {
+    list.push({ text: `${hot[0].deviceCode} 温度过高怎么办` })
+  }
+  if (!list.length) {
+    list.push({ text: '生成本周生产总结' })
+    list.push({ text: '分析产线产能瓶颈' })
+  }
+  return list.slice(0, 2)
+})
+
+const quickAsk = (text: string) => {
+  askInsight(`请基于当前数据回答：${text}。回答简洁，不超过 80 字。`, true)
 }
 
 /* ===== 统计与图表 ===== */
@@ -983,6 +1044,70 @@ watch(() => themeStore.isDark, () => {
 @keyframes insightIn {
   from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== 洞察底部信息栏 ===== */
+.ai-insight-foot {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.aif-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.aif-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.aif-model i {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.aif-sep { opacity: 0.5; }
+.aif-ms { font-family: Consolas, monospace; }
+
+.aif-quick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 14px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+.quick-chip .el-icon { color: var(--accent); flex-shrink: 0; }
+.quick-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+  transform: translateY(-1px);
 }
 .ai-insight-empty {
   display: flex;
