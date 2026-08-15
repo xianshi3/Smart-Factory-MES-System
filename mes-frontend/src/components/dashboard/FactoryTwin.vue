@@ -14,7 +14,6 @@
         <span class="ft-stat idle"><em>{{ idle }}</em> 空闲</span>
         <span class="ft-stat alarm"><em>{{ alarm }}</em> 告警</span>
       </div>
-      <span class="ft-hint">拖拽旋转 · 滚轮缩放 · 点击设备查看详情</span>
     </div>
 
     <div class="ft-body">
@@ -26,7 +25,7 @@
           <el-icon :size="13"><TrendCharts /></el-icon>
           生产趋势
         </div>
-        <ChartMini :option="trendOption" :height="'132px'" />
+        <ChartMini :option="trendOption" :height="'170px'" />
       </div>
 
       <!-- 右下：设备状态分布浮层 -->
@@ -35,7 +34,7 @@
           <el-icon :size="13"><PieChart /></el-icon>
           设备状态分布
         </div>
-        <ChartMini :option="statusOption" :height="'132px'" />
+        <ChartMini :option="statusOption" :height="'170px'" />
       </div>
     </div>
 
@@ -44,6 +43,7 @@
       <span class="lg-item"><i class="lg-dot" style="background:#06b6d4"></i>空闲</span>
       <span class="lg-item"><i class="lg-dot" style="background:#ef4444"></i>告警</span>
       <span class="lg-item"><i class="lg-dot" style="background:#f59e0b"></i>维护</span>
+      <span class="lg-hint">拖拽旋转 · 滚轮缩放 · 点击设备查看详情</span>
     </div>
   </div>
 </template>
@@ -68,11 +68,13 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 <style scoped>
 .factory-twin {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  margin-bottom: 20px;
   animation: fadeIn 0.6s ease 0.15s both;
 }
 .factory-twin::before {
@@ -88,10 +90,11 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 18px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--border-light);
   position: relative;
   z-index: 6;
+  flex-shrink: 0;
 }
 .ft-head-left { display: flex; align-items: center; gap: 10px; }
 .ft-title {
@@ -143,11 +146,11 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 .ft-stat.ok em { color: var(--success); }
 .ft-stat.idle em { color: var(--info); }
 .ft-stat.alarm em { color: var(--danger); }
-.ft-hint { font-size: 11px; color: var(--text-muted); opacity: 0.8; }
 
 .ft-body {
   position: relative;
-  height: 460px;
+  flex: 1;
+  min-height: 0;
 }
 .ft-3d {
   position: absolute;
@@ -158,7 +161,7 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 .ft-overlay {
   position: absolute;
   z-index: 4;
-  width: 250px;
+  width: 300px;
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid rgba(99, 102, 241, 0.25);
@@ -170,11 +173,11 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 }
 .ft-overlay:hover { border-color: rgba(99, 102, 241, 0.55); }
 :global(html.light) .ft-overlay {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
 }
-.ft-trend { left: 16px; bottom: 16px; }
-.ft-status { right: 16px; bottom: 16px; }
+.ft-trend { left: 16px; bottom: 12px; }
+.ft-status { right: 16px; bottom: 12px; }
 .ov-title {
   display: flex;
   align-items: center;
@@ -189,9 +192,10 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 .ft-legend {
   position: absolute;
   z-index: 4;
-  left: 18px;
-  top: 56px;
+  left: 16px;
+  top: 50px;
   display: flex;
+  align-items: center;
   gap: 14px;
   font-size: 11px;
   color: var(--text-secondary);
@@ -202,6 +206,7 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
   width: 8px; height: 8px;
   border-radius: 50%;
 }
+.lg-hint { color: var(--text-muted); opacity: 0.85; margin-left: 6px; }
 
 @keyframes pulse-green {
   0%, 100% { opacity: 1; }
@@ -214,6 +219,6 @@ const alarm = computed(() => props.devices.filter(d => d.status === 'ALARM').len
 
 @media (max-width: 768px) {
   .ft-overlay { width: 190px; }
-  .ft-hint { display: none; }
+  .lg-hint { display: none; }
 }
 </style>
