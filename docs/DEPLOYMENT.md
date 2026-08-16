@@ -99,8 +99,6 @@ docker compose up -d
     build:
       context: ./mes-ai-service
       dockerfile: Dockerfile
-      args:
-        DEVICE: ${AI_DEVICE:-cpu}   # cpu=轻量(默认) / gpu=完整依赖
     container_name: mes-ai-service
     restart: always
     ports:
@@ -148,21 +146,19 @@ docker compose up -d
 
 **注 3（CORS）**：`mes-gateway/application-docker.yml` 的 `CORS_ALLOWED_ORIGINS` 已预设 localhost + `https://*.reality-blog.asia` + `https://virtual-path-mes.reality-blog.asia`。生产通过网关统一代理同源，前端请求一般不发跨域；若用独立域名直连网关，设置环境变量 `CORS_ALLOWED_ORIGINS: https://your.domain,https://*.your-domain.com`（逗号分隔多域，支持通配）。
 
-### 5.2 AI 服务 CPU/GPU 部署
+### 5.2 AI 服务依赖（已按代码精简，CPU-only）
 
-AI 服务 Docker 构建已支持 **CPU-only** 模式（默认），避免拉取 torch/CUDA（体积 >2GB，ECS 无 GPU 时无需安装）：
+AI 服务依赖已按 `src/` 实际 import 精简，**不含 torch/CUDA**（原 requirements 中的 chromadb/sentence-transformers/skl2onnx 从未被代码使用，已移除）：
+
+- 运行时：`requirements.txt`（fastapi/uvicorn/numpy/pandas/scikit-learn/lightgbm/xgboost/onnxruntime/redis/pymysql/httpx/zhipuai 等，镜像仅 ~几百 MB）
+- 知识库为 TF-IDF（numpy/scikit-learn），模型推理为 LightGBM/XGBoost/ONNX Runtime（CPU）
+- 训练并导出 ONNX 为可选项（`train_models.py` 内 try/except 包裹，缺失时自动 fallback 保存 pkl）：`pip install onnxmltools onnx`
 
 ```bash
-# 默认 CPU-only（轻量，~几百 MB）
 docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml build mes-ai-service
-
-# 或显式指定（如需完整依赖，含 sentence-transformers/chromadb）
-AI_DEVICE=gpu docker compose ... build mes-ai-service
 ```
 
-- 依赖文件：`requirements-cpu.txt`（运行时必需，无 torch/CUDA）与 `requirements.txt`（完整，含训练用 onnxmltools）
-- 宿主机构建失败时，可改用宿主机直接运行：创建 `.venv` 后 `pip install -r requirements-cpu.txt`，再 `python -m src.main`（8087）
-- 建议 Dockerfile 中先 `pip install --upgrade pip` 避免 urllib3 版本冲突（已内置）
+- 宿主机构建失败时，可改用宿主机直接运行：创建 `.venv` 后 `pip install -r requirements.txt`，再 `python -m src.main`（8087）
 
 ### 5.3 动态设备展示数据源【关键】
 
@@ -244,7 +240,7 @@ docker compose down -v                        # 停止并清数据卷（慎用�
 ## 9. 待办（需代码改动，确认后实施）
 
 1. ✅ **新增 `docker-compose.prod.yml`**：加入 mes-frontend + mes-ai-service（含 build ARG 与 WS 配置）——**已完成**
-2. ✅ **AI 服务 CPU-only 化**：`requirements-cpu.txt` + Dockerfile `DEVICE` ARG——**已完成**
+2. ✅ **AI 服务依赖精简**：移除从未使用的 chromadb/sentence-transformers/skl2onnx，单一 `requirements.txt`（无 torch/CUDA）——**已完成**
 3. ✅ **统一环境变量**：compose `x-common-env` 锚点、6 个 Dockerfile 默认 `SPRING_PROFILES_ACTIVE=docker`、Redis/Kafka 变量名与代码一致——**已完成**
 4. ✅ **CORS 多域/通配**：预设 `https://*.reality-blog.asia` + 隧道域名——**已完成**
 5. ✅ **数据库迁移**：`sql/V14__add_device_type.sql`（幂等补 `device_type` 列）——**已完成**
