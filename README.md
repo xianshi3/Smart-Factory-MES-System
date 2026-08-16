@@ -17,29 +17,14 @@
 [![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-cloud)
 [![Vue](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)](https://vuejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.11-3776ab?style=flat-square&logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776ab?style=flat-square&logo=python)](https://www.python.org/)
 [![.NET](https://img.shields.io/badge/.NET-8-512bd4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 
-**English** · [简体中文](#-项目简介) · [API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/virtual-path-mes/issues) · [Request Feature](https://github.com/xianshi3/virtual-path-mes/issues)
+[API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/virtual-path-mes/issues) · [Request Feature](https://github.com/xianshi3/virtual-path-mes/issues)
 
 ---
 
 </div>
-
-## 目录
-
-- [项目简介](#-项目简介)
-- [核心特性](#-核心特性)
-- [界面预览](#-界面预览)
-- [技术架构](#-技术架构)
-- [项目结构](#-项目结构)
-- [快速开始](#-快速开始)
-- [访问地址与默认账号](#-访问地址与默认账号)
-- [文档](#-文档)
-- [参与贡献](#-参与贡献)
-- [许可证](#-许可证)
-
----
 
 ## 项目简介
 
@@ -122,7 +107,7 @@ flowchart TB
         DB[("MySQL :3306")]
         RD[("Redis :6379")]
         IDB[("InfluxDB :8086")]
-        ES[("Elasticsearch :9200")]
+        ES[("Elasticsearch :9200<br/>(可选)")]
         KF["Kafka :9092"]
     end
 
@@ -156,11 +141,10 @@ flowchart TB
     W -.工单序号/锁.-> RD
     D -.设备状态缓存.-> RD
     D --> IDB
-    D --> ES
+    D -.设备搜索(可选).-> ES
     D <--> KF
 
     AI -.AI分析历史.-> RD
-    AI --> KF
 
     NET --> KF
     NET --> RD
@@ -186,11 +170,11 @@ flowchart TB
 | 层级 | 技术选型 | 版本 |
 |------|----------|------|
 | 前端 | Vue 3 + TypeScript + Element Plus + Pinia + Vite | 3.5 / 2.9 / 2.3 / 6.0 |
-| 3D / 可视化 | Three.js + ECharts | 0.185 / 5.6 |
+| 3D / 可视化 | Three.js + ECharts | 0.185 / 6.1 |
 | 后端 | Spring Boot + Spring Cloud (Alibaba) | 3.2.5 / 2023.0.0 |
 | 持久层 | MyBatis-Plus + MySQL | 3.5.6 / 8.0.33 |
 | 缓存 / 消息 | Redis + Kafka + Zookeeper | 7 / 7.5.0 |
-| 时序 / 搜索 | InfluxDB + Elasticsearch | 2.7 / 8.10.0 |
+| 时序 / 搜索 | InfluxDB + Elasticsearch（可选） | 2.7 / 8.10.0 |
 | 设备接入 | .NET 8 + EMQX MQTT | .NET 8 |
 | AI 推理 | Python FastAPI + LightGBM + XGBoost | 0.115 / 4.5 / 2.1 |
 | AI Agent | GLM-4 + Function Calling + RAG（TF-IDF 中文检索） | - |
@@ -213,7 +197,7 @@ virtual-path-mes/
 ├── mes-ai-service/                  # Python AI 服务 (8087) — 预测 / Agent / RAG
 ├── mes-frontend/                    # Vue 3 前端 (3000) — 生产看板 / 3D 数字孪生
 ├── mes-device-simulator-wpf/        # WPF 设备模拟器 — 批量模拟 / 场景预设 / 双通道上报
-├── sql/                             # 数据库脚本（init + V2~V13 迁移）
+├── sql/                             # 数据库脚本（init + V2~V14 迁移）
 ├── Makefile                         # 统一启动 / 构建命令
 └── docker-compose.yml               # 基础设施编排（MySQL / Redis / Kafka / EMQX）
 ```
@@ -230,7 +214,7 @@ virtual-path-mes/
 | JDK | 17+ | Java 后端服务 |
 | Maven | 3.9+ | 后端构建 |
 | Node.js | 18+ | 前端开发 |
-| Python | 3.11+ | AI 服务（可选） |
+| Python | 3.12+ | AI 服务（可选） |
 | .NET SDK | 8.0+ | 设备网关（可选） |
 
 > **架构说明**：Docker 仅运行基础设施，Java 后端在宿主机直接运行，便于开发调试。
