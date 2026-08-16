@@ -373,6 +373,7 @@ CREATE TABLE `dash_device_status` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `device_code` varchar(50) NOT NULL COMMENT '设备编码',
     `device_name` varchar(100) DEFAULT NULL COMMENT '设备名称',
+    `device_type` varchar(50) DEFAULT NULL COMMENT '设备类型',
     `status` varchar(20) DEFAULT NULL COMMENT '状态: ONLINE/OFFLINE/MAINTENANCE/ALARM',
     `temperature` double DEFAULT NULL COMMENT '温度',
     `speed` double DEFAULT NULL COMMENT '速度',

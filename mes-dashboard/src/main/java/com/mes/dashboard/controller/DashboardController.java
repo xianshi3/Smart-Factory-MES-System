@@ -44,20 +44,30 @@ public class DashboardController {
     @Operation(summary = "批量创建设备")
     @PostMapping("/device/batch")
     @RequirePermission("device:control")
-    public Result<Integer> createDevicesBatch(@RequestBody List<DeviceStatus> devices) {
+    public Result<Map<String, Object>> createDevicesBatch(@RequestBody List<DeviceStatus> devices) {
         int created = 0;
+        int skipped = 0;
+        List<String> errors = new java.util.ArrayList<>();
         if (devices != null) {
             for (DeviceStatus device : devices) {
                 try {
                     dashboardService.createDevice(device);
                     created++;
                 } catch (Exception e) {
-                    // 跳过已存在/异常设备，继续批量创建
-                    log.warn("Batch create skipped device {}: {}", device.getDeviceCode(), e.getMessage());
+                    skipped++;
+                    String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                    // 截断过长 SQL 详情，避免接口暴露完整 SQL
+                    if (reason.length() > 120) reason = reason.substring(0, 120) + "...";
+                    errors.add((device.getDeviceCode() != null ? device.getDeviceCode() : "?") + ": " + reason);
+                    log.warn("Batch create skipped device {}: {}", device.getDeviceCode(), reason);
                 }
             }
         }
-        return Result.ok(created);
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("created", created);
+        result.put("skipped", skipped);
+        result.put("errors", errors);
+        return Result.ok(result);
     }
 
     @Operation(summary = "删除设备")

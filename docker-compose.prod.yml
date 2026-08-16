@@ -12,6 +12,8 @@ services:
     build:
       context: ./mes-ai-service
       dockerfile: Dockerfile
+      args:
+        DEVICE: ${AI_DEVICE:-cpu}
     container_name: mes-ai-service
     restart: always
     ports:
