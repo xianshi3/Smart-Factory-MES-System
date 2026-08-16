@@ -31,7 +31,7 @@ def create_app() -> FastAPI:
     logger.info("对话历史数据库已初始化")
     app = FastAPI(
         title="MES AI Service",
-        description="智能工厂AI服务 - 质量预测与产量预测",
+        description="虚拟路径AI服务 - 质量预测与产量预测",
         version="1.0.0",
     )
 

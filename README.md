@@ -1,26 +1,26 @@
 <div align="center">
 
-# Smart Factory MES System
+# Virtual Path MES
 
-**开源智能工厂制造执行系统** — 面向离散制造业的工业互联网平台
+**开源虚拟路径MES系统** — 面向离散制造业的工业互联网平台
 
 基于微服务架构 · 3D 数字孪生 · AI 智能助理 · 支持 2000+ 设备并发连接
 
 <img src="https://skillicons.dev/icons?i=java,spring,vue,ts,py,dotnet,docker,mysql,redis,kafka,fastapi,mqtt" alt="Tech Stack" />
 
-[![CI](https://github.com/xianshi3/smart-factory-mes-system/actions/workflows/ci.yml/badge.svg)](https://github.com/xianshi3/smart-factory-mes-system/actions)
-[![Release](https://img.shields.io/github/v/release/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/releases)
-[![License](https://img.shields.io/github/license/xianshi3/smart-factory-mes-system?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/stargazers)
-[![Forks](https://img.shields.io/github/forks/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/forks)
-[![Issues](https://img.shields.io/github/issues/xianshi3/smart-factory-mes-system?style=flat-square)](https://github.com/xianshi3/smart-factory-mes-system/issues)
+[![CI](https://github.com/xianshi3/virtual-path-mes/actions/workflows/ci.yml/badge.svg)](https://github.com/xianshi3/virtual-path-mes/actions)
+[![Release](https://img.shields.io/github/v/release/xianshi3/virtual-path-mes?style=flat-square)](https://github.com/xianshi3/virtual-path-mes/releases)
+[![License](https://img.shields.io/github/license/xianshi3/virtual-path-mes?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/xianshi3/virtual-path-mes?style=flat-square)](https://github.com/xianshi3/virtual-path-mes/stargazers)
+[![Forks](https://img.shields.io/github/forks/xianshi3/virtual-path-mes?style=flat-square)](https://github.com/xianshi3/virtual-path-mes/forks)
+[![Issues](https://img.shields.io/github/issues/xianshi3/virtual-path-mes?style=flat-square)](https://github.com/xianshi3/virtual-path-mes/issues)
 [![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-cloud)
 [![Vue](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)](https://vuejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776ab?style=flat-square&logo=python)](https://www.python.org/)
 [![.NET](https://img.shields.io/badge/.NET-8-512bd4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 
-**English** · [简体中文](#-项目简介) · [API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/smart-factory-mes-system/issues) · [Request Feature](https://github.com/xianshi3/smart-factory-mes-system/issues)
+**English** · [简体中文](#-项目简介) · [API Docs](docs/DEVELOPMENT.md) · [Report Bug](https://github.com/xianshi3/virtual-path-mes/issues) · [Request Feature](https://github.com/xianshi3/virtual-path-mes/issues)
 
 ---
 
@@ -43,7 +43,7 @@
 
 ## 项目简介
 
-智能工厂制造执行系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的智能工厂数字化底座。
+虚拟路径MES系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的虚拟路径数字化底座。
 
 | 2000+ | 10000+/s | 6 大微服务 | 95% | AI Agent |
 |:---:|:---:|:---:|:---:|:---:|
@@ -192,7 +192,7 @@ flowchart TB
 ## 项目结构
 
 ```
-Smart-Factory-MES-System/
+virtual-path-mes/
 ├── docs/                            # 项目文档（开发指南 / 数据库 / 更新日志）
 ├── mes-common/                      # 公共模块（实体类、工具类、异常处理）
 ├── mes-gateway/                     # API 网关 (9090) — 统一路由 / 鉴权 / 限流
@@ -340,7 +340,7 @@ curl http://localhost:9090/api/workorder/page?current=1&size=10 \
 
 ## 参与贡献
 
-欢迎提交 [Issue](https://github.com/xianshi3/smart-factory-mes-system/issues) 与 [Pull Request](https://github.com/xianshi3/smart-factory-mes-system/pulls)！
+欢迎提交 [Issue](https://github.com/xianshi3/virtual-path-mes/issues) 与 [Pull Request](https://github.com/xianshi3/virtual-path-mes/pulls)！
 
 1. **Fork** 本仓库并从 `develop` 拉取分支
 2. **编码** — 遵循 [贡献指南](CONTRIBUTING.md) 与代码规范

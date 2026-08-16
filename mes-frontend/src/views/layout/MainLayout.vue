@@ -57,7 +57,7 @@
       <div v-show="!isCollapse" class="sidebar-footer">
         <span class="sf-ver">MES v1.0.50</span>
         <span class="sf-dot">·</span>
-        <span class="sf-copy">© 2026 Smart Factory</span>
+        <span class="sf-copy">© 2026 Virtual Path MES</span>
       </div>
     </el-aside>
 

@@ -1,5 +1,5 @@
 -- =====================================================
--- Smart Factory MES System - Planning Board demo data
+-- Virtual Path MES - Planning Board demo data
 -- Version: V10.1
 -- Description: 将种子工单的计划时间调整到当前演示窗口，
 --              以展示排产看板的各类状态（运行/延误/完成/待排产/已排产）

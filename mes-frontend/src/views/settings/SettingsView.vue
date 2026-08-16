@@ -293,7 +293,7 @@
         <div class="about-grid">
           <div class="about-item">
             <span class="about-label">系统名称</span>
-            <span class="about-value">Smart Factory MES</span>
+            <span class="about-value">Virtual Path MES</span>
           </div>
           <div class="about-item">
             <span class="about-label">系统版本</span>

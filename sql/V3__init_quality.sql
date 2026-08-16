@@ -1,5 +1,5 @@
 -- =====================================================
--- Smart Factory MES System - Quality Module Init
+-- Virtual Path MES - Quality Module Init
 -- Version: 3.0
 -- Date: 2026-04-10
 -- Description: Initialize quality management tables

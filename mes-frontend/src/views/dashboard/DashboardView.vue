@@ -480,7 +480,7 @@ const askInsight = async (message: string, manual = false) => {
   }
 }
 
-const DEFAULT_INSIGHT_PROMPT = '你是智能工厂的生产总监 AI。请基于上方数据生成 3 条简短的生产洞察（每条不超过 45 字），用「洞察一 / 洞察二 / 洞察三」开头，关注：设备健康风险、产能利用瓶颈、告警处置优先级。直接输出结论，不要客套。'
+const DEFAULT_INSIGHT_PROMPT = '你是虚拟路径的生产总监 AI。请基于上方数据生成 3 条简短的生产洞察（每条不超过 45 字），用「洞察一 / 洞察二 / 洞察三」开头，关注：设备健康风险、产能利用瓶颈、告警处置优先级。直接输出结论，不要客套。'
 
 const generateInsight = (manual = false) => askInsight(DEFAULT_INSIGHT_PROMPT, manual)
 

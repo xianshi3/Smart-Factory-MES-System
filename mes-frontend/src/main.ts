@@ -1,6 +1,6 @@
 /**
- * Smart Factory MES System - Main Entry
- * 智能工厂MES系统入口文件
+ * Virtual Path MES - Main Entry
+ * 虚拟路径MES系统入口文件
  */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

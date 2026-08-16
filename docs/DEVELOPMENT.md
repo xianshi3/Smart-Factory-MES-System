@@ -1,15 +1,15 @@
-# Smart Factory MES System 开发文档
+# Virtual Path MES 开发文档
 
 ---
 
 ## 1. 项目概述
 
-智能工厂制造执行系统 (MES)，基于微服务架构，支持2000+设备并发连接。
+虚拟路径MES系统 (MES)，基于微服务架构，支持2000+设备并发连接。
 
 ### 1.1 项目结构
 
 ```
-Smart-Factory-MES-System/
+virtual-path-mes-System/
 ├── mes-common/              # 公共模块 (Result, BaseEntity, 异常处理)
 ├── mes-gateway/            # API网关 (9090)
 ├── mes-auth/                # 认证服务 (8081)

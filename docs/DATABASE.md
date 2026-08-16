@@ -1,4 +1,4 @@
-# Smart Factory MES System 数据库设计文档
+# Virtual Path MES 数据库设计文档
 
 ## 数据库概览
 

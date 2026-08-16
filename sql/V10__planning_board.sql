@@ -1,5 +1,5 @@
 -- =====================================================
--- Smart Factory MES System - Planning Board (排产看板)
+-- Virtual Path MES - Planning Board (排产看板)
 -- Version: V10
 -- Description: 排产看板功能：工单增加设备内排产顺序字段
 -- 幂等: init.sql 已包含 sort_order 时自动跳过

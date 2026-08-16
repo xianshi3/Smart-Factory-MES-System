@@ -1,5 +1,5 @@
 -- =====================================================
--- Smart Factory MES System Database Initialization
+-- Virtual Path MES Database Initialization
 -- Version: 1.0
 -- Author: AI Assistant
 -- Description: Create all tables for MES system

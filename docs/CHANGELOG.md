@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Smart Factory MES System - 智能工厂制造执行系统
+Virtual Path MES - 虚拟路径MES系统
 
 - **创建日期**: 2026-04-04
 - **技术栈**: Java (Spring Cloud) + .NET 8 + Python + Vue 3 + WPF

@@ -1,6 +1,6 @@
 # 贡献指南 (Contributing Guide)
 
-欢迎为 Smart Factory MES System 贡献代码！请阅读以下指南以确保协作顺畅。
+欢迎为 Virtual Path MES 贡献代码！请阅读以下指南以确保协作顺畅。
 
 ## 分支规范
 

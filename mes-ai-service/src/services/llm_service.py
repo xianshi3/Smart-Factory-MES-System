@@ -46,7 +46,7 @@ def _looks_valid_api_key(key: Optional[str]) -> bool:
 class LLmService:
     """大语言模型服务，支持智谱AI"""
 
-    SYSTEM_PROMPT = """你是一个智能工厂MES系统的AI助手，专门帮助用户分析生产数据、设备状态和质量信息。
+    SYSTEM_PROMPT = """你是一个虚拟路径MES系统的AI助手，专门帮助用户分析生产数据、设备状态和质量信息。
 
 你的职责：
 1. 分析设备故障原因并提供维护建议

@@ -21,7 +21,7 @@ from src.services.report_builder import ReportBuilder
 
 logger = logging.getLogger(__name__)
 
-AGENT_SYSTEM_PROMPT = """你是一个智能工厂 MES 系统的 AI 生产助理，集成了数字孪生能力。你的职责是帮助用户完成生产管理、设备监控、预测性维护等任务。
+AGENT_SYSTEM_PROMPT = """你是一个虚拟路径MES系统的 AI 生产助理，集成了数字孪生能力。你的职责是帮助用户完成生产管理、设备监控、预测性维护等任务。
 
 ## 核心能力
 1. **数字孪生监控**: 通过 get_device_digital_twin 获取设备完整孪生数据（3D模型、实时指标、健康评分）

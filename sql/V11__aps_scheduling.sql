@@ -1,5 +1,5 @@
 -- =====================================================
--- Smart Factory MES System - APS Scheduling (高级排程)
+-- Virtual Path MES - APS Scheduling (高级排程)
 -- Version: V11
 -- Description: 企业级排产：班次/工作日历、工序级排产明细、
 --              变更日志、产能参数

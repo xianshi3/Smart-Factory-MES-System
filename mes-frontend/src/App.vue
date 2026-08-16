@@ -1,4 +1,4 @@
-<!-- Smart Factory MES System - Root Component -->
+<!-- Virtual Path MES - Root Component -->
 <template>
   <router-view v-slot="{ Component }">
     <transition name="page" mode="out-in">

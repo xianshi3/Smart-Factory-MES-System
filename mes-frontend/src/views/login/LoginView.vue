@@ -19,8 +19,8 @@
           <el-icon v-else :size="40"><Cpu /></el-icon>
         </div>
 
-        <h1>Smart MES</h1>
-        <p class="brand-slogan">智能工厂制造执行系统</p>
+        <h1>Virtual Path MES</h1>
+        <p class="brand-slogan">虚拟路径MES系统</p>
 
         <div class="feature-list">
           <div class="feature-item">
@@ -55,7 +55,7 @@
       </div>
 
       <div class="brand-footer">
-        <p>© 2026 Smart Factory MES · MES v1.0.50</p>
+        <p>© 2026 Virtual Path MES · MES v1.0.50</p>
       </div>
     </div>
 
@@ -64,7 +64,7 @@
       <div class="login-box">
         <div class="login-header">
           <h2>系统登录</h2>
-          <p>Smart Factory MES 制造执行系统</p>
+          <p>Virtual Path MES 制造执行系统</p>
         </div>
 
         <!-- 系统状态提示 -->
