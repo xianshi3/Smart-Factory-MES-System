@@ -1,5 +1,11 @@
 FROM node:18-alpine AS builder
 
+# 构建期 Vite 环境变量（docker compose build.args 传入，缺省用 .env.production）
+ARG VITE_API_BASE_URL
+ARG VITE_AI_SERVICE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_AI_SERVICE_URL=${VITE_AI_SERVICE_URL}
+
 WORKDIR /app
 
 # Copy package files

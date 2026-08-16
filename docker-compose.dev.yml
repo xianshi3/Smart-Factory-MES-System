@@ -39,7 +39,7 @@ services:
       MYSQL_USERNAME: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
       MES_DASHBOARD_URI: http://mes-dashboard:8085
       MES_DASHBOARD_WS_URI: ws://mes-dashboard:8085
       MES_AI_URI: http://mes-ai-service:8087
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mes-auth:
         condition: service_started
@@ -86,7 +86,7 @@ services:
       MYSQL_USERNAME: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
       MYSQL_USERNAME: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy
@@ -134,7 +134,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
       SPRING_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy
@@ -162,7 +162,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-kUVlFGXR2YxkzRUzn9bW9dJazYkigOU6GyYlKLdGsF7ekBLLz9URVnOLMmFZViLy}
-      JWT_SECRET: ${JWT_SECRET:MesDevOnlyJwtSecret-ChangeMe-InProd-2026!}
+      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy

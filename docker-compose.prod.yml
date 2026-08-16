@@ -1,0 +1,54 @@
+# ============================================================
+# Virtual Path MES - 生产部署补充编排
+# 在基础设施(docker-compose.yml) + 后端(docker-compose.dev.yml)之上，
+# 补充 mes-frontend 与 mes-ai-service 两个应用服务。
+#
+# 使用：docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build
+# ============================================================
+
+services:
+  # ---------- AI 服务 ----------
+  mes-ai-service:
+    build:
+      context: ./mes-ai-service
+      dockerfile: Dockerfile
+    container_name: mes-ai-service
+    restart: always
+    ports:
+      - "8087:8087"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
+      MYSQL_DATABASE: mes_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-}
+      ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mes-network
+
+  # ---------- 前端（nginx 托管静态资源 + 代理 /api → 网关）----------
+  mes-frontend:
+    build:
+      context: ./mes-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_AI_SERVICE_URL: /api/ai
+    container_name: mes-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mes-gateway
+    networks:
+      - mes-network
+
+# 网络由 docker-compose.yml 定义（driver: bridge），此处仅引用
