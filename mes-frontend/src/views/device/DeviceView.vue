@@ -53,12 +53,21 @@
         <transition name="hud-slide">
           <div v-if="hudPanels.charts" class="dt-hud dt-hud-charts">
             <div class="dt-hud-chart-head">
-              <span>性能趋势</span>
-              <el-button text size="small" @click="hudPanels.charts = false"><el-icon><Close /></el-icon></el-button>
+              <span class="dt-hud-title"><i class="dt-hud-live"></i>性能趋势</span>
+              <div class="dt-hud-head-right">
+                <span class="dt-hud-updated">{{ updatedText }}</span>
+                <el-button text size="small" @click="hudPanels.charts = false"><el-icon><Close /></el-icon></el-button>
+              </div>
+            </div>
+            <div class="dt-chart-kpis">
+              <div class="dt-kpi-cell"><b style="color:var(--accent)">{{ kpis.total }}</b><span>设备</span></div>
+              <div class="dt-kpi-cell"><b style="color:var(--success)">{{ kpis.running }}</b><span>运行</span></div>
+              <div class="dt-kpi-cell"><b style="color:var(--danger)">{{ kpis.fault }}</b><span>故障</span></div>
+              <div class="dt-kpi-cell"><b style="color:var(--info)">{{ kpis.util }}</b><span>平均利用率</span></div>
             </div>
             <div class="dt-hud-chart-grid">
-              <div><em>设备状态分布</em><v-chart :option="statusOption" autoresize style="height:140px" /></div>
-              <div><em>利用率</em><v-chart :option="utilizationOption" autoresize style="height:140px" /></div>
+              <div class="dt-chart-card"><em>设备状态分布</em><v-chart :option="statusOption" autoresize style="height:150px" /></div>
+              <div class="dt-chart-card"><em>利用率 TOP</em><v-chart :option="utilizationOption" autoresize style="height:150px" /></div>
             </div>
           </div>
         </transition>
@@ -548,6 +557,17 @@ const selectedDevice = ref<any>(null)
 const aiHistory = ref<any[]>([])
 const hudPanels = reactive({ alarms: true, charts: true })
 
+const lastUpdated = ref(0)
+const updatedText = computed(() => lastUpdated.value ? '更新于 ' + new Date(lastUpdated.value).toTimeString().slice(0, 8) : '实时')
+const kpis = computed(() => {
+  const total = deviceList.value.length
+  const running = deviceList.value.filter(d => d.status === 'running').length
+  const fault = deviceList.value.filter(d => d.status === 'fault').length
+  const utils = deviceList.value.map(d => parseInt(d.utilization) || 0)
+  const avg = utils.length ? Math.round(utils.reduce((s, v) => s + v, 0) / utils.length) : 0
+  return { total, running, fault, util: avg + '%' }
+})
+
 let refreshInterval: number
 const wsUnsubscribe = ref<(() => void) | null>(null)
 
@@ -688,6 +708,7 @@ const fetchDeviceData = async () => {
       { label: '故障', value: deviceList.value.filter(d => d.status === 'fault').length, icon: 'Warning', theme: 'warning' },
     ]
     updateCharts()
+    lastUpdated.value = Date.now()
   } catch (e) { console.error(e) }
 }
 
@@ -1133,29 +1154,65 @@ watch(deviceList, () => { if (deviceList.value.length > 0) updateCharts() })
 /* 3D */
 .dt-scene-wrap { width: 100%; height: 100%; position: relative; }
 
-/* HUD panels */
-.dt-hud-btns { position: absolute; top: 8px; right: 8px; z-index: 20; display: flex; gap: 3px; }
-.dt-hud-btns button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: all .12s; }
-.dt-hud-btns button:hover, .dt-hud-btns button.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-.dt-hud-dot-badge { position: absolute; top: -4px; right: -6px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--danger); color: #fff; font-size: 9px; font-weight: 700; line-height: 14px; text-align: center; }
+/* HUD panels（玻璃质感，主题感知） */
+.dt-hud-btns { position: absolute; top: 14px; right: 14px; z-index: 20; display: flex; flex-direction: column; gap: 8px; }
+.dt-hud-btns button {
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; position: relative;
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color); border-radius: 11px;
+  color: var(--text-secondary); cursor: pointer; font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  transition: all .15s;
+}
+.dt-hud-btns button:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--accent); }
+.dt-hud-btns button.on { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.dt-hud-dot-badge { position: absolute; top: -4px; right: -6px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 9px; font-weight: 700; line-height: 15px; text-align: center; box-shadow: 0 0 0 2px var(--bg-app); }
 
 .dt-hud { position: absolute; z-index: 10; }
-.dt-hud-alarms { top: 42px; right: 8px; width: 210px; max-height: 240px; display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-.dt-hud-head { display: flex; align-items: center; gap: 5px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: var(--text-primary); background: var(--bg-hover); cursor: pointer; user-select: none; flex-shrink: 0; }
-.dt-hud-badge { margin-left: 4px; font-size: 10px; background: var(--danger-light); color: var(--danger); padding: 0 6px; border-radius: 8px; }
-.dt-hud-close { margin-left: auto; opacity: .5; }
-.dt-hud-list { flex: 1; overflow-y: auto; padding: 2px 0; }
-.dt-hud-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 11px; color: var(--text-secondary); }
+.dt-hud-alarms {
+  top: 98px; right: 14px; width: 244px; max-height: 280px;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color); border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
+}
+.dt-hud-head { display: flex; align-items: center; gap: 7px; padding: 10px 14px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); background: transparent; border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; flex-shrink: 0; }
+.dt-hud-head > .el-icon:first-child { color: var(--danger); }
+.dt-hud-badge { margin-left: 4px; font-size: 10px; font-weight: 700; background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); padding: 1.5px 9px; border-radius: 999px; }
+.dt-hud-close { margin-left: auto; opacity: .5; transition: opacity .12s; }
+.dt-hud-head:hover .dt-hud-close { opacity: .9; }
+.dt-hud-list { flex: 1; overflow-y: auto; padding: 6px 0 8px; }
+.dt-hud-row { display: flex; align-items: center; gap: 8px; margin: 0 8px; padding: 6px 10px; border-radius: 8px; font-size: 11.5px; color: var(--text-secondary); transition: background .12s; }
 .dt-hud-row:hover { background: var(--bg-hover); }
-.dt-hud-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--border-color); }
-.dt-hud-row.danger .dt-hud-dot { background: var(--danger); box-shadow: 0 0 5px var(--danger); }
-.dt-hud-row.warning .dt-hud-dot { background: var(--warning); }
-.dt-hud-none { padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
+.dt-hud-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--border-color); }
+.dt-hud-row.danger .dt-hud-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.dt-hud-row.warning .dt-hud-dot { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.dt-hud-none { padding: 18px 12px; font-size: 11.5px; color: var(--text-muted); text-align: center; }
 
-.dt-hud-charts { bottom: 8px; left: 8px; width: 420px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-.dt-hud-chart-head { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-.dt-hud-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 8px 6px; }
-.dt-hud-chart-grid em { display: block; font-size: 10px; color: var(--text-muted); text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: .4px; }
+.dt-hud-charts {
+  bottom: 14px; left: 14px; width: 464px;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color); border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
+  overflow: hidden;
+}
+.dt-hud-chart-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 8px; font-size: 12.5px; }
+.dt-hud-title { display: flex; align-items: center; gap: 7px; font-weight: 700; color: var(--text-primary); }
+.dt-hud-live { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: hudLive 2s ease-out infinite; }
+@keyframes hudLive { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 55%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.dt-hud-head-right { display: flex; align-items: center; gap: 4px; }
+.dt-hud-updated { font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.dt-chart-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 12px 10px; }
+.dt-kpi-cell { background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 10px; padding: 7px 4px 6px; text-align: center; transition: border-color .15s; }
+.dt-kpi-cell:hover { border-color: var(--accent-light); }
+.dt-kpi-cell b { display: block; font-size: 17px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.dt-kpi-cell span { font-size: 10px; color: var(--text-muted); }
+.dt-hud-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px 12px; }
+.dt-chart-card { background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 12px; padding: 6px 8px 2px; }
+.dt-hud-chart-grid em { display: block; font-size: 10px; color: var(--text-muted); text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: .5px; padding: 3px 0 1px; }
 
 .hud-fade-enter-active, .hud-fade-leave-active { transition: opacity .12s; }
 .hud-fade-enter-from, .hud-fade-leave-to { opacity: 0; }
