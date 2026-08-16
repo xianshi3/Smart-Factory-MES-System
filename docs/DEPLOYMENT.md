@@ -273,6 +273,14 @@ docker compose down -v                        # 停止并清数据卷（慎用�
   - Cloudflare Flexible SSL 的 `X-Forwarded-Proto` 透传（后端据此判断协议）
   - `client_max_body_size 20m`、`/health` 探活
 
+**API 路径拼接规范**（防止双重 `/api` 前缀）：
+
+```
+前端 axios baseURL: VITE_API_BASE_URL=/api （全局唯一前缀来源）
+AI 模块: VITE_AI_SERVICE_URL=/ai （相对路径，禁止写 /api/ai）
+→ 实际请求: /api/ai/api/v1/** → 网关 Path=/api/ai/** + StripPrefix=2 → AI 服务 /api/v1/**
+```
+
 ### 10.2 宿主机上已装的 nginx 处理
 
 服务器若已装宿主机 nginx（占用 80），二选一：
