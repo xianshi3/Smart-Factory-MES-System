@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { notifyDataChanged, TOOL_DATA_DOMAIN, type DataDomain } from '@/utils/events'
 import {
   type ConversationListItem,
   type ConversationDetail,
@@ -173,6 +174,15 @@ export const useAiChatStore = defineStore('aiChat', () => {
         saved: false,
       }
       messages.value.push(assistantMsg)
+
+      // AI 写入型工具执行成功后广播数据变更，相关页面自动刷新
+      const changedDomains = new Set<DataDomain>()
+      ;(res.steps || []).forEach(s => {
+        if (!s.result?.success) return
+        const domain = TOOL_DATA_DOMAIN[s.tool]
+        if (domain) changedDomains.add(domain)
+      })
+      changedDomains.forEach(d => notifyDataChanged(d, { source: 'ai' }))
 
       // 保存 AI 回复到后端
       try {

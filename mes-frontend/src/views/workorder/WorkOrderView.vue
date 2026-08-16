@@ -243,12 +243,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getWorkOrderPage, getWorkOrderDetail, createWorkOrder, updateWorkOrder, issueWorkOrder, startWorkOrder, completeWorkOrder, closeWorkOrder, deleteWorkOrder, submitReport, getTemplatePage } from '@/api/services'
 import { getWorkstationList } from '@/api/dashboard'
 import { Document, Plus, Search, Coin, CircleCheck, Calendar, MoreFilled, MagicStick, DataAnalysis, Warning, TrendCharts } from '@element-plus/icons-vue'
 import AiAssistant from '@/components/ai/AiAssistant.vue'
+import { onDataChanged } from '@/utils/events'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -512,7 +513,18 @@ const handleSubmitReport = async () => {
   } catch (e: any) { ElMessage.error(e?.message || '报工失败') }
 }
 
-onMounted(() => { loadData(); loadOptions() })
+let offDataChanged: (() => void) | null = null
+
+onMounted(() => {
+  loadData()
+  loadOptions()
+  // AI 助手创建工单等操作后自动刷新列表
+  offDataChanged = onDataChanged('workorder', () => loadData())
+})
+
+onUnmounted(() => {
+  offDataChanged?.()
+})
 </script>
 
 <style scoped>
