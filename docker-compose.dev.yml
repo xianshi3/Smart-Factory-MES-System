@@ -135,8 +135,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
     networks:
       - mes-network
 
@@ -158,6 +156,8 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       influxdb:
         condition: service_healthy

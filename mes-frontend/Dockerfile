@@ -13,8 +13,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm config set registry ${NPM_REGISTRY} && npm install
+# Install dependencies（npm ci 按 lock 精确安装，--no-audit --no-fund 跳过审计/赞助请求）
+RUN npm config set registry ${NPM_REGISTRY} && npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . ./

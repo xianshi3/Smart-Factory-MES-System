@@ -10,7 +10,14 @@ WORKDIR /app
 
 ENV SPRING_PROFILES_ACTIVE=docker
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# 国内服务器：Debian 源换阿里云镜像，仅装 healthcheck 需要的 curl
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
+    else \
+        sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
+    fi && \
+    apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /app/logs /app/config && chown -R mes:mes /app
 

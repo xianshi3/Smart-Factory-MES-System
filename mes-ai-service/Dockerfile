@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir --upgrade pip -i ${PIP_INDEX} && \
     pip install --no-cache-dir -r requirements.txt -i ${PIP_INDEX}
 
 COPY src/ ./src/
+COPY knowledge/ ./knowledge/
 COPY config.yaml ./config.yaml
-RUN mkdir -p models tests
 
 EXPOSE 8087
 
