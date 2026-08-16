@@ -1,17 +1,31 @@
 <template>
   <div class="alarm-page">
     <!-- ===== 头部 ===== -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <div class="header-badge" :class="{ pulse: activeCount > 0 }">
-            <el-icon><WarningFilled /></el-icon>
-            {{ activeCount > 0 ? '紧急' : '正常' }}
+    <div class="alarm-hero">
+      <div class="hero-glow"></div>
+      <div class="hero-left">
+        <div class="hero-icon">
+          <el-icon :size="22"><WarningFilled /></el-icon>
+        </div>
+        <div class="hero-info">
+          <div class="hero-title-row">
+            <span class="hero-title">报警管理中心</span>
+            <div class="hero-badge" :class="{ pulse: activeCount > 0 }">
+              <el-icon :size="12"><WarningFilled /></el-icon>
+              {{ activeCount > 0 ? `${activeCount} 条活跃` : '运行正常' }}
+            </div>
           </div>
-          <h1>报警管理中心</h1>
+          <span class="hero-sub">设备状态实时监控 · 告警分级处置 · 自动闭环分析</span>
         </div>
       </div>
-      <div class="header-actions">
+      <div class="hero-right">
+        <div class="hero-stat" :class="{ offline: !alarms.length && !loading }">
+          <span class="hero-stat-dot" :class="{ online: alarms.length > 0 }"></span>
+          <div class="hero-stat-info">
+            <span class="hero-stat-label">{{ alarms.length ? '数据实时同步' : '暂无数据' }}</span>
+            <span class="hero-stat-value">自动刷新 10s</span>
+          </div>
+        </div>
         <el-button class="ai-btn" @click="aiVisible = true">
           <el-icon><MagicStick /></el-icon>
           AI 助手
@@ -37,11 +51,15 @@
           @click="filterStatus(s.filter)"
         >
           <div class="stat-glow"></div>
-          <div class="stat-icon"><el-icon :size="22"><component :is="s.icon" /></el-icon></div>
-          <div class="stat-content">
+          <div class="stat-top">
+            <div class="stat-icon"><el-icon :size="20"><component :is="s.icon" /></el-icon></div>
             <div class="stat-value">{{ displayCount(i) }}</div>
-            <div class="stat-label">{{ s.label }}</div>
           </div>
+          <div class="stat-label">
+            {{ s.label }}
+            <el-icon v-if="statusFilter === s.filter" :size="11" class="stat-check"><CircleCheck /></el-icon>
+          </div>
+          <div class="stat-bar"><i :class="s.theme"></i></div>
         </div>
       </div>
       <div class="chart-card mini">
@@ -712,30 +730,85 @@ onUnmounted(() => {
 .alarm-page { padding: 0; }
 .load-error-bar { margin-bottom: 12px; }
 
-/* ===== 头部 ===== */
-.header-badge {
+/* ===== 头部 Hero ===== */
+.alarm-hero {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 24px;
+  background:
+    radial-gradient(600px 100px at 12% 0%, rgba(239,68,68,0.14), transparent 70%),
+    radial-gradient(500px 90px at 85% 0%, rgba(99,102,241,0.1), transparent 70%),
+    var(--bg-card, #12121a);
+  border-bottom: 1px solid var(--border-color, #252530);
+  margin-bottom: 16px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: fadeInUp 0.4s ease both;
+}
+.hero-glow {
+  position: absolute; top: -40px; right: 22%;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(239,68,68,0.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero-left { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+.hero-icon {
+  width: 46px; height: 46px; border-radius: 13px;
+  background: var(--gradient-danger, linear-gradient(135deg, #ef4444, #f87171));
+  color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(239,68,68,0.35);
+}
+.hero-info { display: flex; flex-direction: column; gap: 4px; }
+.hero-title-row { display: flex; align-items: center; gap: 10px; }
+.hero-title { font-size: 17px; font-weight: 700; color: var(--text-primary, #f0f0f5); letter-spacing: 0.3px; }
+.hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
+  gap: 5px;
+  padding: 3px 12px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--success);
   background: var(--success-light);
   border: 1px solid var(--success);
   transition: all var(--transition-normal);
 }
-.header-badge.pulse {
+.hero-badge.pulse {
   color: var(--danger);
   background: var(--danger-light);
   border-color: var(--danger);
   animation: badge-pulse 1.5s ease-in-out infinite;
 }
-@keyframes badge-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+.hero-sub { font-size: 12px; color: var(--text-muted, #505060); }
+.hero-right { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+.ai-btn {
+  border-color: rgba(99,102,241,0.4);
+  color: var(--accent);
+  background: rgba(99,102,241,0.08);
 }
+.ai-btn:hover {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.15);
+  color: var(--accent);
+}
+.hero-stat {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px; border-radius: 10px;
+  background: var(--bg-hover, #1a1a28); border: 1px solid var(--border-color, #252530);
+  margin-right: 4px;
+}
+.hero-stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hero-stat-dot.online {
+  background: var(--success, #10b981);
+  box-shadow: 0 0 8px rgba(16,185,129,0.6);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+.hero-stat.offline .hero-stat-dot { background: var(--danger, #ef4444); }
+@keyframes dotPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.hero-stat-info { display: flex; flex-direction: column; gap: 1px; }
+.hero-stat-label { font-size: 10px; color: var(--text-muted, #505060); }
+.hero-stat-value { font-size: 11px; font-weight: 600; color: var(--text-primary, #f0f0f5); }
 
 /* ===== 顶部统计+图表 ===== */
 .alarm-top-grid {
@@ -753,9 +826,8 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 14px 16px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -768,6 +840,9 @@ onUnmounted(() => {
   transform: translateY(-2px);
   border-color: var(--accent);
   box-shadow: var(--shadow-md);
+}
+.stat-card.active {
+  background: linear-gradient(180deg, var(--bg-card), rgba(99,102,241,0.06));
 }
 .stat-glow {
   position: absolute;
@@ -782,8 +857,9 @@ onUnmounted(() => {
 .stat-warning .stat-glow { background: #f59e0b; }
 .stat-success .stat-glow { background: #10b981; }
 .stat-primary .stat-glow { background: #6366f1; }
+.stat-top { display: flex; align-items: center; justify-content: space-between; }
 .stat-icon {
-  width: 38px; height: 38px;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 10px;
 }
@@ -792,13 +868,36 @@ onUnmounted(() => {
 .stat-success .stat-icon { background: var(--success-light); color: var(--success); }
 .stat-primary .stat-icon { background: var(--accent-light); color: var(--accent); }
 .stat-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
-.stat-label { font-size: 12px; color: var(--text-muted); }
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.stat-check { color: var(--accent); }
+.stat-bar {
+  position: absolute;
+  left: 16px; right: 16px; bottom: 0;
+  height: 2px;
+  background: transparent;
+}
+.stat-bar i {
+  display: block; height: 100%;
+  width: 0; border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card.active .stat-bar i { width: 100%; }
+.stat-bar i.danger { background: var(--gradient-danger); }
+.stat-bar i.warning { background: var(--gradient-warning); }
+.stat-bar i.success { background: var(--gradient-success); }
+.stat-bar i.primary { background: var(--gradient-primary); }
 
 .chart-card.mini {
   background: var(--bg-card);
@@ -827,16 +926,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   flex-wrap: wrap;
+  animation: fadeInUp 0.5s ease 0.15s both;
 }
 .filters-left, .filters-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .fchip {
@@ -850,16 +950,17 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
   user-select: none;
 }
-.fchip:hover { color: var(--text-primary); border-color: var(--border-color); }
+.fchip:hover { color: var(--text-primary); border-color: var(--border-color); transform: translateY(-1px); }
 .fchip.on {
   color: var(--accent);
   background: var(--accent-light);
   border-color: var(--accent);
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.18);
 }
-.fchip.lvl.critical.on { color: #ef4444; background: rgba(239,68,68,0.12); border-color: #ef4444; }
-.fchip.lvl.major.on { color: #f59e0b; background: rgba(245,158,11,0.12); border-color: #f59e0b; }
-.fchip.lvl.minor.on { color: #3b82f6; background: rgba(59,130,246,0.12); border-color: #3b82f6; }
+.fchip.lvl.critical.on { color: #ef4444; background: rgba(239,68,68,0.12); border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.16); }
+.fchip.lvl.major.on { color: #f59e0b; background: rgba(245,158,11,0.12); border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.16); }
+.fchip.lvl.minor.on { color: #3b82f6; background: rgba(59,130,246,0.12); border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.16); }
 .fsep {
   width: 1px; height: 16px;
   background: var(--border-color);
@@ -879,6 +980,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 8px;
+  animation: fadeInUp 0.5s ease 0.2s both;
 }
 .alarm-code {
   display: flex;
@@ -993,15 +1095,30 @@ onUnmounted(() => {
 /* ===== 详情抽屉 ===== */
 .alarm-detail { display: flex; flex-direction: column; gap: 16px; }
 .detail-hero {
+  position: relative;
   padding: 18px;
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
+}
+.detail-hero::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: -20px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.15;
+  pointer-events: none;
 }
 .detail-hero.lvl-critical { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.35); }
+.detail-hero.lvl-critical::after { background: #ef4444; }
 .detail-hero.lvl-major, .detail-hero.lvl-warning { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.35); }
+.detail-hero.lvl-major::after { background: #f59e0b; }
 .detail-hero.lvl-minor, .detail-hero.lvl-info { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.35); }
+.detail-hero.lvl-minor::after { background: #3b82f6; }
 .detail-level {
   display: flex;
   align-items: center;
@@ -1025,16 +1142,19 @@ onUnmounted(() => {
   gap: 3px;
   padding: 10px 12px;
   background: var(--bg-hover);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
+  transition: all var(--transition-fast);
 }
+.dg-item:hover { border-color: var(--border-color); transform: translateY(-1px); }
 .dg-label { font-size: 11px; color: var(--text-muted); }
-.dg-value { font-size: 13px; color: var(--text-primary); word-break: break-all; }
+.dg-value { font-size: 13px; color: var(--text-primary); word-break: break-all; font-weight: 500; }
 
 .detail-ai {
   padding: 14px;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(99, 102, 241, 0.35);
-  background: rgba(99, 102, 241, 0.05);
+  background: linear-gradient(180deg, rgba(99,102,241,0.07), rgba(99,102,241,0.02));
 }
 .dai-head {
   display: flex;
@@ -1083,5 +1203,11 @@ onUnmounted(() => {
 
 @media (max-width: 1400px) {
   .alarm-top-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1200px) {
+  .alarm-hero { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .hero-right { width: 100%; flex-wrap: wrap; }
+  .stat-cards { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
