@@ -254,9 +254,71 @@ docker compose down -v                        # 停止并清数据卷（慎用�
 
 ---
 
-## 10. Cloudflare Tunnel 说明
+## 10. Nginx 与 Cloudflare Tunnel 说明
 
-- 通过 `cloudflared` 将 `virtual-path-mes.reality-blog.asia` 隧道到服务器 3000 端口（nginx 已设为 default_server，无需额外 Nginx）。
-- **SSL/TLS 模式必须设为 Flexible**（Cloudflare 侧代理 HTTPS → 服务器 HTTP），否则服务器/nginx 需要额外证书。
-- 前端与网关同源（`/api` 代理），CORS 默认已放行该域名，无需额外配置。
-- 若改用其他域名，更新 `CORS_ALLOWED_ORIGINS` 环境变量即可。
+### 10.1 架构（前端容器 nginx 是唯一入口）
+
+```
+浏览器 ──https──▶ Cloudflare ──http(Tunnel)──▶ mes-frontend(nginx:3000)
+                                                    ├── 静态资源 (dist)
+                                                    ├── /api/** ──▶ mes-gateway:9090
+                                                    │                  └─ 各微服务 / AI
+                                                    └── /health (健康检查)
+```
+
+- **服务器不需要额外装 nginx**：`mes-frontend` 容器内置 `nginx:alpine`（配置见 `mes-frontend/nginx.conf`），已含：
+  - Vue history 路由 fallback（`try_files ... /index.html`）
+  - 静态资源 30 天缓存 + gzip
+  - `/api/` 反代到网关（含 WebSocket 升级，路径 `/api/ws/dashboard`）
+  - Cloudflare Flexible SSL 的 `X-Forwarded-Proto` 透传（后端据此判断协议）
+  - `client_max_body_size 20m`、`/health` 探活
+
+### 10.2 宿主机上已装的 nginx 处理
+
+服务器若已装宿主机 nginx（占用 80），二选一：
+
+**方案 A（推荐，最简单）：直接停用** —— Tunnel 直连 3000，宿主机 nginx 不需要：
+
+```bash
+sudo systemctl stop nginx && sudo systemctl disable nginx
+```
+
+**方案 B：只做 80 → 3000 转发**（如需直连 80 端口访问）：
+
+```nginx
+# /etc/nginx/conf.d/mes.conf
+server {
+    listen 80 default_server;
+    server_name _;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # WebSocket
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+}
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 10.3 Cloudflare 设置
+
+- `cloudflared` 隧道指向服务器 **`localhost:3000`**（容器 nginx，非 80）
+- **SSL/TLS 模式必须设为 Flexible**（CF 代理 HTTPS → 源站 HTTP），否则源站需要证书
+- 前端与网关同源（`/api` 代理），CORS 默认已放行该域名，无需额外配置；换域名时更新 `CORS_ALLOWED_ORIGINS`
+
+### 10.4 常见问题排查
+
+| 症状 | 原因 | 处理 |
+|------|------|------|
+| 页面 404（刷新子路由） | 容器 nginx 未生效 history fallback | 确认用 `mes-frontend/nginx.conf`（Dockerfile 已 COPY） |
+| WS 实时数据断连/不刷新 | Upgrade 头未透传 | 确认 nginx.conf 有 `map $http_upgrade` 段（已内置） |
+| 上传/导入报 413 | body 超限 | 已内置 `client_max_body_size 20m`，按需调大 |
+| 502 Bad Gateway | 网关容器未就绪/挂了 | `docker compose logs -f mes-gateway`；确认网关已健康 |
+| 登录后无限重定向/安全头报 http | Flexible SSL 下协议被覆盖为 http | 已内置 `X-Forwarded-Proto` 透传；检查是否用旧版 nginx.conf |
+| 全站 521/522 | Tunnel 指错端口或容器没起 | `cloudflared` 指向 3000；`curl http://localhost:3000/health` |
