@@ -1,42 +1,41 @@
 # Virtual Path MES 服务器部署指南
 
-> 目标：在 Linux 服务器上部署完整 MES 系统，并启用**动态设备展示**（数字孪生 3D）。
-> 说明：当前项目**可以直接部署**，但有三处需要补充/调整（见 [部署清单](#4-部署清单) 与 [三个关键缺口](#5-三个关键缺口)）。
+> 目标：在 Linux 服务器上部署完整 MES 系统（微服务 + 前端 + AI），并启用**动态设备展示**（3D 数字孪生）。
+> 本文档基于当前代码实际行为编写，命令可直接照抄。
 
 ---
 
 ## 1. 架构总览
 
 ```
-                        ┌─────────────────────────────────────────────┐
-                        │                Linux 服务器                 │
-                        │                                             │
-  浏览器 ──3000──▶ 前端(nginx)                                        │
-                        │  │  /api/*  (HTTP + WebSocket)             │
-                        │  ▼                                         │
-                        │ 网关 mes-gateway :9090                     │
-                        │  ├──▶ mes-auth :8081     (认证)            │
-                        │  ├──▶ mes-workorder:8082 (工单)            │
-                        │  ├──▶ mes-process :8083  (工艺)            │
-                        │  ├──▶ mes-quality :8084   (质量)           │
-                        │  ├──▶ mes-dashboard:8085  (看板/孪生)       │
-                        │  └──▶ mes-ai-service:8087 (AI)             │
-                        │                                             │
-                        │  MySQL:3306  Redis:6379  Kafka:9092        │
-                        │  EMQX:1883   InfluxDB:8086                 │
-                        │                                             │
-                        │  [headless 设备模拟器 → MQTT → EMQX]       │
-                        └─────────────────────────────────────────────┘
+浏览器 ──https──▶ Cloudflare Tunnel ──http──▶ mes-frontend (nginx:3000, 容器)
+                                                  ├── 静态资源 (构建产物内置镜像)
+                                                  ├── /api/** ──▶ mes-gateway :9090
+                                                  │   ├── /api/auth/**      → mes-auth :8081
+                                                  │   ├── /api/workorder/** → mes-workorder :8082
+                                                  │   ├── /api/process/**   → mes-process :8083
+                                                  │   ├── /api/quality/**   → mes-quality :8084
+                                                  │   ├── /api/dashboard/** → mes-dashboard :8085
+                                                  │   ├── /api/ws/** (WS)   → mes-dashboard :8085
+                                                  │   └── /api/ai/**        → mes-ai-service :8087 (StripPrefix=2)
+                                                  └── /health (探活)
+
+中间件: MySQL:3306  Redis:6379  Kafka:9092  Zookeeper:2181  EMQX:1883/18083  InfluxDB:8086
 ```
 
-**动态设备展示数据链路（服务器版）**：
+**编排文件职责（三文件叠加）**：
+
+| 文件 | 内容 | 何时用 |
+|------|------|--------|
+| `docker-compose.yml` | 基础设施：mysql / redis / zookeeper / kafka / emqx + mes-network | 必用 |
+| `docker-compose.dev.yml` | influxdb + 6 个 Java 微服务（build + 环境变量锚点） | 必用 |
+| `docker-compose.prod.yml` | mes-ai-service + mes-frontend（build args） | 必用 |
+
+**动态设备展示数据链路**：
 
 ```
-headless设备模拟器 ──MQTT──▶ EMQX ──▶ Kafka ──▶ mes-dashboard ──WebSocket──▶ 前端3D孪生
-      (Linux 容器/脚本)                                    每5s广播设备状态
+设备模拟器 ──HTTP──▶ mes-dashboard(/api/dashboard/device/simulate) ──Redis 实时缓存──▶ WebSocket(/api/ws/dashboard) ──▶ 前端 3D 孪生
 ```
-
-> 本地开发版用的是 WPF 桌面模拟器（Windows only），服务器上需换成 headless 模拟器，见 [§5.2](#52-动态设备展示数据源)。
 
 ---
 
@@ -44,254 +43,168 @@ headless设备模拟器 ──MQTT──▶ EMQX ──▶ Kafka ──▶ mes-d
 
 | 项目 | 要求 |
 |------|------|
-| 操作系统 | Linux（Ubuntu 22.04+/Debian 12/CentOS 8+ 均可） |
-| Docker | 20.10+，含 docker compose v2 插件 |
-| CPU | ≥ 4 核（AI 模型推理 + 微服务） |
-| 内存 | ≥ 8 GB（MySQL 512M + Kafka 512M + 5个Java服务 各512M + AI 1G） |
-| 磁盘 | ≥ 30 GB 可用 |
-| 出网 | 需要能访问智谱 API（AI 功能），其余可内网 |
+| 操作系统 | Linux（Alibaba Cloud Linux / Ubuntu 22.04+ / Debian 12 均可） |
+| Docker | 20.10+，含 compose v2 插件 |
+| CPU | ≥ 4 核 |
+| 内存 | ≥ 8 GB（MySQL 512M + Kafka 512M + 6 个 Java 各 512M + AI 1G + 前端构建峰值） |
+| 磁盘 | ≥ 20 GB 可用（构建前端 node_modules 与镜像层需要，建议 30 GB） |
+| 出网 | AI 大模型功能需访问智谱 API；npm/pip/apt 已配国内镜像源 |
 
 ---
 
-## 3. 基础设施（docker-compose.yml 已有）
+## 3. 快速部署（全新服务器）
 
-已在根目录 `docker-compose.yml` 定义：
-
-| 服务 | 镜像 | 端口 | 说明 |
-|------|------|------|------|
-| mysql | mysql:8.0.33 | 3306 | mes_db |
-| redis | redis:7-alpine | 6379 | 缓存 |
-| zookeeper | cp-zookeeper:7.5.0 | 2181 | Kafka 依赖 |
-| kafka | cp-kafka:7.5.0 | 9092 | 消息总线 |
-| emqx | emqx/emqx:5.8.3 | 1883/18083 | MQTT Broker |
-
-启动：
+### 3.1 获取代码
 
 ```bash
-docker compose up -d
+git clone https://github.com/xianshi3/virtual-path-mes.git
+cd virtual-path-mes
 ```
 
----
+> 国内服务器拉不动 GitHub 时，可在本机打包上传（排除 node_modules/.venv/.git，但 **jar 必须单独上传**，见 3.3）。
 
-## 4. 部署清单
-
-| # | 服务 | 定义位置 | 状态 |
-|---|------|---------|------|
-| 1 | mysql / redis / kafka / emqx | `docker-compose.yml` | ✅ 已有 |
-| 2 | influxdb | `docker-compose.dev.yml` | ✅ 已有 |
-| 3 | mes-auth / gateway / workorder / process / quality / dashboard | `docker-compose.dev.yml` | ✅ 已有（含 Dockerfile） |
-| 4 | mes-frontend | `mes-frontend/Dockerfile` | ⚠️ 未纳入 compose，需补充 |
-| 5 | mes-ai-service | `mes-ai-service/Dockerfile` | ⚠️ 未纳入 compose，需补充 |
-| 6 | headless 设备模拟器 | 不存在 | ❌ 需新建（见 §5.2） |
-
----
-
-## 5. 三个关键缺口
-
-### 5.1 AI 服务与前端未纳入 compose
-
-> **已解决**：`docker-compose.prod.yml` 已创建，补充 mes-ai-service 与 mes-frontend 两个服务；`docker-compose.dev.yml` 的 JWT_SECRET 插值语法已修复；`mes-frontend/nginx.conf` 已增加 WebSocket 升级头；前端 `Dockerfile` 已支持 `VITE_API_BASE_URL` / `VITE_AI_SERVICE_URL` 构建 ARG，`.env.production` 已补充 `VITE_AI_SERVICE_URL=/api/ai`。
-
-合并启动方式：
-
-```yaml
-  mes-ai-service:
-    build:
-      context: ./mes-ai-service
-      dockerfile: Dockerfile
-    container_name: mes-ai-service
-    restart: always
-    ports:
-      - "8087:8087"
-    environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      MYSQL_DATABASE: mes_db
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-      ZHIPU_API_KEY: ${ZHIPU_API_KEY}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mes-network
-
-  mes-frontend:
-    build:
-      context: ./mes-frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: /api
-        VITE_AI_SERVICE_URL: /api/ai
-    container_name: mes-frontend
-    restart: always
-    ports:
-      - "3000:3000"
-    depends_on:
-      - mes-gateway
-    networks:
-      - mes-network
-```
-
-**注 1（AI 服务连接）**：`mes-ai-service` 的数据库/Redis 连接已支持环境变量覆盖（`MYSQL_HOST`/`MYSQL_USERNAME`/`MYSQL_PASSWORD`/`MYSQL_DATABASE`/`REDIS_HOST`/`REDIS_PORT`，见 `conversation_store.py`/`redis_store.py`），compose 已注入。AI 服务不消费 Kafka（config.yaml 中 kafka 配置未在代码使用），无需 Kafka 环境变量。
-
-**注 2（前端构建变量）**：Vite 的 `VITE_*` 变量在**构建时**注入，Dockerfile 里 `RUN npm run build` 读不到 compose 的 `environment`。正确做法：
-- 在 `mes-frontend/.env.production` 写入 `VITE_API_BASE_URL=/api`、`VITE_AI_SERVICE_URL=/api/ai`（随镜像打包），或
-- 在 compose `build.args` 传入 ARG 并在 Dockerfile 中 export（当前 Dockerfile 已支持）
-
-**注 3（CORS）**：`mes-gateway/application-docker.yml` 的 `CORS_ALLOWED_ORIGINS` 已预设 localhost + `https://*.reality-blog.asia` + `https://virtual-path-mes.reality-blog.asia`。生产通过网关统一代理同源，前端请求一般不发跨域；若用独立域名直连网关，设置环境变量 `CORS_ALLOWED_ORIGINS: https://your.domain,https://*.your-domain.com`（逗号分隔多域，支持通配）。
-
-### 5.2 AI 服务依赖（已按代码精简，CPU-only）
-
-AI 服务依赖已按 `src/` 实际 import 精简，**不含 torch/CUDA**（原 requirements 中的 chromadb/sentence-transformers/skl2onnx 从未被代码使用，已移除）：
-
-- 运行时：`requirements.txt`（fastapi/uvicorn/numpy/pandas/scikit-learn/lightgbm/xgboost/onnxruntime/redis/pymysql/httpx/zhipuai 等，镜像仅 ~几百 MB）
-- 知识库为 TF-IDF（numpy/scikit-learn），模型推理为 LightGBM/XGBoost/ONNX Runtime（CPU）
-- 训练并导出 ONNX 为可选项（`train_models.py` 内 try/except 包裹，缺失时自动 fallback 保存 pkl）：`pip install onnxmltools onnx`
+### 3.2 配置环境变量
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml build mes-ai-service
-```
-
-- 宿主机构建失败时，可改用宿主机直接运行：创建 `.venv` 后 `pip install -r requirements.txt`，再 `python -m src.main`（8087）
-- 容器自带健康检查（`/api/v1/health`，无需鉴权）；数据表启动时自动创建（`CREATE TABLE IF NOT EXISTS`），无需手工导 SQL
-- MySQL/Redis 不可用时自动降级（对话历史缓存不可用，LLM/预测/分析不受影响）；端口可用 `AI_PORT` 环境变量覆盖
-
-### 5.3 动态设备展示数据源【关键】
-
-本地链路依赖 **WPF 桌面模拟器**（`mes-device-simulator-wpf`，仅 Windows）。Linux 服务器需要 headless 模拟器。两个方案：
-
-**方案 A（推荐，零代码改动）**：复用后端已有的 HTTP 模拟接口
-- `mes-dashboard` 提供 `POST /api/dashboard/device/simulate`（见 `DashboardController.simulateDevice`），WPF 模拟器也通过它直连兜底。
-- 写一个轻量脚本/容器，定时（0.5~5s）向该接口 POST 设备状态 `{deviceCode, status, temperature, speed}`，dashboard 会写入设备表并更新 Redis 实时缓存 → WebSocket 每 5s 广播 → 前端 3D 孪生实时刷新。
-- 脚本可放在 `scripts/device-simulator.py`（Python，`httpx` 已由 AI 服务依赖提供）或直接打成独立容器。
-
-**方案 B（完整 MQTT 链路）**：headless 模拟器发布 MQTT 到 EMQX，再由 .NET 网关（`mes-device-gateway`）转发 Kafka。需要把 .NET 网关也容器化（当前无 Dockerfile）。链路与生产环境更贴近，但工作量更大。
-
-> 建议先走**方案 A**：写一个 Python 脚本模拟 10~20 台设备，直接调 dashboard HTTP 接口，最快看到 3D 孪生动起来。
-
-### 5.4 数据库初始化
-
-首次部署需导入 SQL（`sql/init.sql` + 各 `V*.sql` 迁移，或从现有 MySQL 导出）。MySQL 容器启动后：
-
-```bash
-# 进容器执行（首次）
-docker exec -i mes-mysql mysql -uroot -p123455 < sql/init.sql
-```
-
-> 若要保留本地现有数据，可在本机 `mysqldump` 导出 `mes_db`，再导入服务器。
-
----
-
-## 6. 部署步骤（汇总）
-
-```bash
-# 0. 上传项目到服务器（排除 node_modules/target/.venv）
-rsync -av --exclude node_modules --exclude target --exclude .venv ./ user@server:/opt/virtual-path-mes/
-
-# 1. 配置环境变量
 cp .env.example .env
-# 编辑 .env：设置 JWT_SECRET(≥32位随机) / MYSQL_ROOT_PASSWORD / ZHIPU_API_KEY
-
-# 2. 启动基础设施 + 后端 + 前端 + AI（三文件合并，prod 为补充层）
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build
-
-# 4. 导入数据库
-docker exec -i mes-mysql mysql -uroot -p123455 < sql/init.sql
-
-# 5. 启动 headless 设备模拟器（方案 A）
-python scripts/device-simulator.py --devices 15 --interval 2
-
-# 6. 验证
-curl http://server:3000/health                 # 前端 OK
-curl http://server:9090/api/actuator/health    # 网关 OK
-浏览器访问 http://server:3000                   # 登录后看仪表盘 3D 孪生
+vim .env   # 必填：JWT_SECRET（≥32 位随机串）、ZHIPU_API_KEY（需要大模型功能时）
 ```
 
----
+环境变量清单见 [§4](#4-环境变量清单)。
 
-## 7. 服务端口一览
+### 3.3 构建 Java 服务 jar【关键】
 
-| 端口 | 服务 | 外部访问 |
-|------|------|---------|
-| 3000 | 前端 (nginx) | ✅ 浏览器 |
-| 9090 | 网关 | 可选直连 |
-| 8081-8085, 8087 | 后端/AI 微服务 | 内部，勿暴露 |
-| 3306/6379/9092/1883/18083 | 中间件 | 内部，勿暴露 |
+6 个 Java 服务的 Dockerfile 是 `COPY target/mes-*.jar`（**镜像内不跑 Maven**，服务器无需装 Maven/下载依赖）：
 
-> 安全建议：服务器开启防火墙，只放行 3000（及可选的 22/443）；其余端口仅在 Docker 内网（`mes-network`）互通。
+**方案 A（推荐）：本机构建 + 上传 jar**
 
----
+```powershell
+# 本机（需已装 JDK 17 + Maven）
+mvn package -DskipTests
 
-## 8. 升级/维护
+# 上传 6 个 jar 到服务器对应目录
+scp mes-*/target/mes-*-1.0.0-SNAPSHOT.jar admin@<服务器IP>:/home/admin/virtual-path-mes/
+```
+
+**方案 B：服务器直接构建**（服务器需装 JDK 17 + Maven）
 
 ```bash
-docker compose pull && docker compose up -d   # 拉新镜像
-docker compose logs -f mes-dashboard          # 看日志
-docker compose down                           # 停止（保留数据卷）
-docker compose down -v                        # 停止并清数据卷（慎用）
+cd /home/admin/virtual-path-mes
+mvn package -DskipTests
 ```
+
+> ⚠️ 常见错误：用 rsync 同步代码时 `--exclude target` 会导致服务器没有 jar、镜像构建失败（`COPY failed: target/... not found`）。
+
+### 3.4 启动全部服务
+
+```bash
+cd /home/admin/virtual-path-mes
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build
+```
+
+首次会拉取基础镜像并构建（已配国内源，见 [§5](#5-镜像与构建加速)）。
+
+### 3.5 初始化数据库
+
+**全新部署**：只需导入 `sql/init.sql`（已含全部 30 张表的最新结构，含 device_type 等所有修复）：
+
+```bash
+docker exec -i mes-mysql mysql -uroot -p123455 mes_db < sql/init.sql
+```
+
+**已有部署升级**：按序号执行新增的 `sql/V*.sql` 迁移（如 V14 补 device_type 列，幂等可重复执行）：
+
+```bash
+docker exec -i mes-mysql mysql -uroot -p123455 mes_db < sql/V14__add_device_type.sql
+```
+
+### 3.6 验证
+
+```bash
+docker compose ps                                # 所有容器应 healthy
+curl http://localhost:3000/health                # 前端 nginx → OK
+curl http://localhost:9090/actuator/health       # 网关 → {"status":"UP"}
+curl http://localhost:8087/api/v1/health         # AI 服务 → {"status":"healthy",...}
+```
+
+浏览器访问 `http://<服务器IP>:3000` 或隧道域名，登录后验证：看板 3D 孪生、AI 对话、设备数据。
 
 ---
 
-## 9. 待办（需代码改动，确认后实施）
+## 4. 环境变量清单
 
-1. ✅ **新增 `docker-compose.prod.yml`**：加入 mes-frontend + mes-ai-service（含 build ARG 与 WS 配置）——**已完成**
-2. ✅ **AI 服务依赖精简**：移除从未使用的 chromadb/sentence-transformers/skl2onnx，单一 `requirements.txt`（无 torch/CUDA）——**已完成**
-3. ✅ **统一环境变量**：compose `x-common-env` 锚点、6 个 Dockerfile 默认 `SPRING_PROFILES_ACTIVE=docker`、Redis/Kafka 变量名与代码一致——**已完成**
-4. ✅ **CORS 多域/通配**：预设 `https://*.reality-blog.asia` + 隧道域名——**已完成**
-5. ✅ **数据库迁移**：`sql/V14__add_device_type.sql`（幂等补 `device_type` 列）——**已完成**
-6. ✅ **API 健壮性**：批量创建返回 created/skipped/errors 明细；SQL 语法异常友好提示——**已完成**
-7. **新增 `scripts/device-simulator.py`**：headless 设备模拟器（方案 A，调 dashboard HTTP 接口）——**待实施**
-8. **（可选）** 为 .NET 网关补 Dockerfile（方案 B 才需要）
+`docker compose` 自动读取根目录 `.env`。所有键见 `.env.example`：
 
-> 当前项目**可直接部署**；headless 设备模拟器（#7）是启用"动态设备展示"的关键，需要时请告知。
+| 变量 | 必填 | 默认值 | 用途 |
+|------|:---:|--------|------|
+| `JWT_SECRET` | ✅ | - | 网关/Java 服务/AI 共享的 HS256 密钥，≥32 字符 |
+| `ZHIPU_API_KEY` | ⚠️ | - | 智谱 AI Key；不填则大模型功能降级（预测/分析不受影响） |
+| `MYSQL_ROOT_PASSWORD` | - | `123455` | MySQL root 密码（Java 服务与 AI 同用） |
+| `INFLUXDB_ADMIN_PASSWORD` | - | `123455` | InfluxDB 管理密码 |
+| `INFLUXDB_TOKEN` | - | 固定值 | InfluxDB token（compose 已内置默认值，重建不变） |
+| `EMQX_DEFAULT_PASSWORD` | - | `public` | EMQX 控制台密码 |
+| `CORS_ALLOWED_ORIGINS` | - | 已预设 | 网关跨域白名单（逗号分隔，含 `https://*.reality-blog.asia`） |
+| `AI_PORT` / `AI_HOST` | - | `8087` / `0.0.0.0` | AI 服务监听覆盖 |
+
+> 容器内互连变量（`MYSQL_HOST`/`REDIS_HOST`/`KAFKA_BOOTSTRAP_SERVERS`/`MES_*_URI` 等）已由 compose 的 `x-common-env` 锚点统一注入，**无需也不要在 `.env` 中重复设置**。
 
 ---
 
-## 10. Nginx 与 Cloudflare Tunnel 说明
+## 5. 镜像与构建加速（国内服务器）
 
-### 10.1 架构（前端容器 nginx 是唯一入口）
+| 依赖 | 默认源 | 配置位置 |
+|------|--------|----------|
+| npm | npmmirror（`registry.npmmirror.com`） | `mes-frontend/Dockerfile` ARG `NPM_REGISTRY` |
+| pip | 清华源（`pypi.tuna.tsinghua.edu.cn`） | `mes-ai-service/Dockerfile` ARG `PIP_INDEX` |
+| apt | 阿里云 Debian 源 | 6 个 Java Dockerfile 内置 sed 替换 |
+| Docker 基础镜像 | Docker Hub | 服务器 `/etc/docker/daemon.json` 配镜像加速器 |
 
-```
-浏览器 ──https──▶ Cloudflare ──http(Tunnel)──▶ mes-frontend(nginx:3000)
-                                                    ├── 静态资源 (dist)
-                                                    ├── /api/** ──▶ mes-gateway:9090
-                                                    │                  └─ 各微服务 / AI
-                                                    └── /health (健康检查)
-```
-
-- **服务器不需要额外装 nginx**：`mes-frontend` 容器内置 `nginx:alpine`（配置见 `mes-frontend/nginx.conf`），已含：
-  - Vue history 路由 fallback（`try_files ... /index.html`）
-  - 静态资源 30 天缓存 + gzip
-  - `/api/` 反代到网关（含 WebSocket 升级，路径 `/api/ws/dashboard`）
-  - Cloudflare Flexible SSL 的 `X-Forwarded-Proto` 透传（后端据此判断协议）
-  - `client_max_body_size 20m`、`/health` 探活
-
-**API 路径拼接规范**（防止双重 `/api` 前缀）：
-
-```
-前端 axios baseURL: VITE_API_BASE_URL=/api （全局唯一前缀来源）
-AI 模块: VITE_AI_SERVICE_URL=/ai （相对路径，禁止写 /api/ai）
-→ 实际请求: /api/ai/api/v1/** → 网关 Path=/api/ai/** + StripPrefix=2 → AI 服务 /api/v1/**
+```json
+// /etc/docker/daemon.json（改完 systemctl restart docker）
+{
+  "registry-mirrors": ["https://docker.m.daocloud.io", "https://dockerproxy.net"]
+}
 ```
 
-### 10.2 宿主机上已装的 nginx 处理
+### 5.1 前端构建参数
 
-服务器若已装宿主机 nginx（占用 80），二选一：
+构建期变量通过 compose `build.args` 注入（`.env.production` 不进入镜像上下文）：
 
-**方案 A（推荐，最简单）：直接停用** —— Tunnel 直连 3000，宿主机 nginx 不需要：
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| `VITE_API_BASE_URL` | `/api` | axios 全局 baseURL，唯一 `/api` 前缀来源 |
+| `VITE_AI_SERVICE_URL` | `/ai` | 相对路径，拼接后 `/api/ai/**` |
+
+> ⚠️ **路径规范**：禁止把 `VITE_AI_SERVICE_URL` 写成 `/api/ai`——会与 baseURL 双重拼接成 `/api/api/ai/**`，导致 AI 接口 404/挂起（历史事故）。
+
+### 5.2 AI 服务镜像
+
+- 依赖已按代码真实 import 精简（**无 torch/CUDA**），镜像约几百 MB
+- `requirements.txt` 仅运行时依赖；训练导出 ONNX 另需 `pip install onnxmltools onnx`（可选）
+- 镜像自带 HEALTHCHECK（`/api/v1/health`）；容器启动自动建表（`CREATE TABLE IF NOT EXISTS`）
+- MySQL/Redis 不可用时自动降级（对话历史缓存不可用，LLM/预测/分析不受影响）
+
+---
+
+## 6. Nginx 与 Cloudflare Tunnel
+
+### 6.1 容器 nginx（唯一入口，无需额外装）
+
+`mes-frontend` 内置 `nginx:alpine`（配置 `mes-frontend/nginx.conf`），已含：
+- Vue history 路由 fallback、静态资源 30 天缓存 + gzip
+- `/api/` 反代网关（WebSocket 标准升级写法，路径 `/api/ws/dashboard`）
+- Cloudflare Flexible SSL 的 `X-Forwarded-Proto` 透传（后端正确识别 https）
+- `client_max_body_size 20m`、`server_tokens off`、`/health` 探活
+
+### 6.2 宿主机已装的 nginx
+
+**方案 A（推荐）**：停用 —— Tunnel 直连 3000，宿主机 nginx 不需要：
 
 ```bash
 sudo systemctl stop nginx && sudo systemctl disable nginx
 ```
 
-**方案 B：只做 80 → 3000 转发**（如需直连 80 端口访问）：
+**方案 B**：只做 80 → 3000 转发：
 
 ```nginx
 # /etc/nginx/conf.d/mes.conf
@@ -304,7 +217,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        # WebSocket
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -314,19 +226,84 @@ server {
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-### 10.3 Cloudflare 设置
+### 6.3 Cloudflare 设置
 
-- `cloudflared` 隧道指向服务器 **`localhost:3000`**（容器 nginx，非 80）
-- **SSL/TLS 模式必须设为 Flexible**（CF 代理 HTTPS → 源站 HTTP），否则源站需要证书
-- 前端与网关同源（`/api` 代理），CORS 默认已放行该域名，无需额外配置；换域名时更新 `CORS_ALLOWED_ORIGINS`
+- `cloudflared` 隧道指向 **`localhost:3000`**（容器 nginx，不是 80）
+- **SSL/TLS 模式必须为 Flexible**（CF 代理 HTTPS → 源站 HTTP）
+- CORS 默认已放行 `https://*.reality-blog.asia`；换域名更新 `CORS_ALLOWED_ORIGINS`
 
-### 10.4 常见问题排查
+---
+
+## 7. 动态设备展示（数字孪生数据源）
+
+3D 孪生靠 `mes-dashboard` 的 WebSocket 每 5 秒广播设备状态；设备数据可由：
+- **WPF 模拟器**（Windows 本地开发用，`mes-device-simulator-wpf`）
+- **HTTP 直调**（headless，服务器推荐）：定时 POST `/api/dashboard/device/simulate`
+- **MQTT 全链路**（生产级）：设备 → EMQX → Kafka → dashboard（.NET 网关需自行容器化）
+
+> headless 模拟器脚本 `scripts/device-simulator.py` 尚未实现；需要"设备自动动起来"时再开发。
+
+---
+
+## 8. 日常运维
+
+```bash
+# 查看状态/日志
+docker compose ps
+docker compose logs -f mes-dashboard
+docker compose logs -f mes-ai-service
+
+# 更新部署（代码变更后）
+git pull
+# 有 Java 源码变更 → 重新上传 6 个 jar（见 3.3）
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build
+
+# 只重建单个服务（如前端改版）
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build mes-frontend
+
+# 清理（磁盘紧张时）
+docker system prune -a -f     # 清无用镜像/构建缓存
+docker compose down           # 停止（保留数据卷）
+docker compose down -v        # 停止并清数据卷（⚠️ 慎用，丢数据）
+
+# 数据备份
+docker exec mes-mysql mysqldump -uroot -p123455 mes_db > backup-$(date +%F).sql
+```
+
+---
+
+## 9. 端口一览与安全
+
+| 端口 | 服务 | 建议 |
+|------|------|------|
+| 3000 | 前端 (nginx) | 对外（经 Tunnel） |
+| 9090 | 网关 | 可选直连，建议仅内网 |
+| 8081-8085, 8087 | 后端/AI 微服务 | 仅容器内网 |
+| 3306/6379/9092/2181/1883/18083/8086 | 中间件 | 仅容器内网，**务必安全组不放行公网** |
+
+> compose 中端口映射到 0.0.0.0 是为了宿主机排查方便；生产请用安全组限制 3306 等端口。
+
+---
+
+## 10. 常见问题排查
 
 | 症状 | 原因 | 处理 |
 |------|------|------|
-| 页面 404（刷新子路由） | 容器 nginx 未生效 history fallback | 确认用 `mes-frontend/nginx.conf`（Dockerfile 已 COPY） |
-| WS 实时数据断连/不刷新 | Upgrade 头未透传 | 确认 nginx.conf 有 `map $http_upgrade` 段（已内置） |
-| 上传/导入报 413 | body 超限 | 已内置 `client_max_body_size 20m`，按需调大 |
-| 502 Bad Gateway | 网关容器未就绪/挂了 | `docker compose logs -f mes-gateway`；确认网关已健康 |
-| 登录后无限重定向/安全头报 http | Flexible SSL 下协议被覆盖为 http | 已内置 `X-Forwarded-Proto` 透传；检查是否用旧版 nginx.conf |
-| 全站 521/522 | Tunnel 指错端口或容器没起 | `cloudflared` 指向 3000；`curl http://localhost:3000/health` |
+| Java 镜像构建报 `COPY failed: target/... not found` | 服务器没上传 jar | 见 [§3.3](#33-构建-java-服务-jar关键) |
+| 前端 build 卡死 | npm/pip/Docker 拉官方源 | 见 [§5](#5-镜像与构建加速国内服务器) |
+| 设备批量创建报 `Unknown column 'device_type'` | 旧库缺列 | `sql/V14__add_device_type.sql`（幂等） |
+| dashboard 日志 `Connection to localhost:9092` | Kafka advertised listener 或环境变量名错误 | 已修复于 compose：`KAFKA_BOOTSTRAP_SERVERS=kafka:9092` + advertised `kafka:9092` |
+| AI 接口 404 / 挂起 | 前端双重 `/api/api/ai/` 前缀 | 已修复：`VITE_AI_SERVICE_URL=/ai`；旧镜像需重建 |
+| WS 实时数据不刷新 | Upgrade 头未透传 | 已内置标准 map 写法；确认用仓库版 nginx.conf |
+| 上传/导入 413 | body 超限 | 已内置 `client_max_body_size 20m` |
+| 登录后重定向异常/提示 http | Flexible SSL 下协议被覆盖 | 已内置 `X-Forwarded-Proto` 透传 |
+| 全站 521/522 | Tunnel 指错端口 | `cloudflared` 指向 3000；`curl http://localhost:3000/health` |
+| AI 服务重启失败 | 数据库不可达阻断启动 | 已修复：init_db 降级告警不阻断 |
+
+---
+
+## 11. 数据库迁移说明
+
+- `sql/init.sql`：全量最新 schema（30 张表），**全新部署只导这一个**
+- `sql/V2__*.sql` ~ `sql/V14__*.sql`：历史增量迁移，已有部署按序补执行
+- V14 用 information_schema 判断列存在，**幂等**，已手工加过列的环境可安全执行
