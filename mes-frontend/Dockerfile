@@ -3,6 +3,8 @@ FROM node:18-alpine AS builder
 # 构建期 Vite 环境变量（docker compose build.args 传入，缺省用 .env.production）
 ARG VITE_API_BASE_URL
 ARG VITE_AI_SERVICE_URL
+# npm 镜像源（国内服务器默认 npmmirror，海外可用 --build-arg NPM_REGISTRY=https://registry.npmjs.org 覆盖）
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV VITE_AI_SERVICE_URL=${VITE_AI_SERVICE_URL}
 
@@ -12,7 +14,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm config set registry ${NPM_REGISTRY} && npm install
 
 # Copy source code
 COPY . ./
