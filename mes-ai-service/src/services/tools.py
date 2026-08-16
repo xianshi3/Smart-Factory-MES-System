@@ -151,25 +151,29 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "create_work_order",
-            "description": "创建一条新的生产工单或维修工单",
+            "description": "创建一条新的生产工单或维修工单（参数名与后端接口一致）",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "product_name": {
+                    "productName": {
                         "type": "string",
                         "description": "产品名称或维修描述",
                     },
-                    "quantity": {
+                    "planQuantity": {
                         "type": "integer",
-                        "description": "计划数量（生产工单）或 1（维修工单）",
+                        "description": "计划数量（生产工单）或 1（维修工单），必须大于 0",
                     },
                     "priority": {
                         "type": "string",
                         "enum": ["HIGH", "MEDIUM", "LOW"],
                         "description": "优先级",
                     },
+                    "productModel": {
+                        "type": "string",
+                        "description": "产品型号（可选）",
+                    },
                 },
-                "required": ["product_name", "quantity"],
+                "required": ["productName", "planQuantity"],
             },
         },
     },
@@ -439,18 +443,25 @@ async def call_get_work_order_detail(order_no: str, headers: Optional[Dict] = No
     return {"success": False, "error": f"工单 {order_no} 未找到"}
 
 
-async def call_create_work_order(product_name: str, quantity: int,
+async def call_create_work_order(productName: Optional[str] = None,
+                                  planQuantity: Optional[int] = None,
+                                  product_name: Optional[str] = None,
+                                  quantity: Optional[int] = None,
                                   priority: str = "MEDIUM",
+                                  productModel: Optional[str] = None,
                                   headers: Optional[Dict] = None) -> Dict:
-    result = await _safe_request_async("POST", "http://localhost:8082/workorder", json={
-        "productName": product_name,
-        "quantity": quantity,
-        "priority": priority,
-    }, headers=headers or {})
+    # 兼容 LLM 可能传 snake_case 旧参数名
+    name = productName or product_name or "未命名工单"
+    qty = planQuantity if planQuantity is not None else (quantity if quantity is not None else 1)
+    payload: Dict[str, Any] = {"productName": name, "planQuantity": qty, "priority": priority}
+    if productModel:
+        payload["productModel"] = productModel
+    result = await _safe_request_async("POST", f"{WORKORDER_BASE_URL}/workorder", json=payload,
+                                       headers=headers or {})
     if not result["success"]:
         return result
     data = result["data"]
-    return {"success": True, "work_order": data.get("data", {}), "message": f"工单创建成功"}
+    return {"success": True, "work_order": data.get("data", {}), "message": "工单创建成功"}
 
 
 async def call_list_process_templates(status: Optional[str] = None, headers: Optional[Dict] = None) -> Dict:
