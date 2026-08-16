@@ -174,6 +174,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理 SQL 语法/表结构错误（如实体字段与表列不一致导致的 Unknown column）
+     */
+    @ExceptionHandler(org.springframework.jdbc.BadSqlGrammarException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleBadSqlGrammar(org.springframework.jdbc.BadSqlGrammarException e) {
+        String sqlMessage = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        String message = "数据库查询失败，可能存在字段/表结构不一致";
+        if (sqlMessage != null && sqlMessage.contains("Unknown column")) {
+            message = "数据库字段与实体不一致: " + sqlMessage.substring(0, Math.min(sqlMessage.length(), 100));
+        } else if (sqlMessage != null) {
+            message = "数据库查询失败: " + sqlMessage.substring(0, Math.min(sqlMessage.length(), 100));
+        }
+        log.error("SQL 语法异常: {}", message, e);
+        return Result.fail(400, message);
+    }
+
+    /**
      * 处理404异常
      */
     @ExceptionHandler(NoHandlerFoundException.class)

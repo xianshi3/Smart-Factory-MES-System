@@ -60,7 +60,7 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://*.reality-blog.asia,https://virtual-path-mes.reality-blog.asia}
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true

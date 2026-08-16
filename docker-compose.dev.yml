@@ -1,3 +1,21 @@
+# ============================================================
+# Virtual Path MES - 后端服务开发/生产编排
+# 与 docker-compose.yml（基础设施）叠加使用：
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# 生产再加 -f docker-compose.prod.yml
+# ============================================================
+
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: docker
+  MYSQL_HOST: mysql
+  MYSQL_PORT: 3306
+  MYSQL_USERNAME: root
+  MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
+  # 与 application.yml 的 ${REDIS_HOST:localhost} 对应（勿用 SPRING_REDIS_HOST）
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
+
 services:
   influxdb:
     image: influxdb:2.7-alpine
@@ -33,13 +51,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
+      <<: *common-env
     depends_on:
       mysql:
         condition: service_healthy
@@ -81,12 +93,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
+      <<: *common-env
     depends_on:
       mysql:
         condition: service_healthy
@@ -104,13 +111,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      SPRING_REDIS_HOST: redis
-      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
+      <<: *common-env
     depends_on:
       mysql:
         condition: service_healthy
@@ -128,19 +129,11 @@ services:
     ports:
       - "8084:8084"
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      SPRING_REDIS_HOST: redis
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
+      <<: *common-env
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     networks:
       - mes-network
@@ -154,19 +147,17 @@ services:
     ports:
       - "8085:8085"
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123455}
-      SPRING_REDIS_HOST: redis
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      # 与 application.yml 的 ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} 对应
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-kUVlFGXR2YxkzRUzn9bW9dJazYkigOU6GyYlKLdGsF7ekBLLz9URVnOLMmFZViLy}
-      JWT_SECRET: ${JWT_SECRET:-MesDevOnlyJwtSecret-ChangeMe-InProd-2026}
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       influxdb:
         condition: service_healthy

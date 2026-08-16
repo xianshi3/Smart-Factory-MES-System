@@ -17,8 +17,8 @@
 - **AI Agent**: 智能生产助理 — 六大能力完备的自主智能体：
   - **任务理解**: 规则+实体抽取的意图识别（设备监控/健康总览/告警诊断/工单/知识/分析/库存），自动提取设备编码等关键实体
   - **流程编排**: 四阶段流水线（任务理解 → 计划执行 → 知识增强 → 结果交付），执行计划注入 + 工具去重防重复调用
-  - **工具调用**: 15 个 MES 工具（数字孪生/告警/趋势/工单/物料/知识库），统一执行器含超时保护、错误规范化、失败自动知识库兜底
-  - **知识增强**: TF-IDF 中文检索（双字词加权+标题重排），内置 6 篇手册/标准 + `knowledge/` 目录自定义文档扩展
+   - **工具调用**: 19 个 MES 工具（设备/工单/工艺/质量/物料/知识库/数字孪生/趋势），统一执行器含超时保护、错误规范化、失败自动知识库兜底
+   - **知识增强**: TF-IDF 中文检索（双字词加权+标题重排），内置 `knowledge/device_cnc_manual.json` 手册文档 + `knowledge/` 目录自定义文档扩展
   - **多轮交互**: 会话焦点记忆（Redis 30 分钟），"那台设备"等指代自动继承上轮设备编码
   - **结果交付**: 结构化报告（summary/关键结论/数据表格/处置建议/后续追问），LLM 生成失败自动规则兜底
 - **对话历史**: MySQL 持久化存储，多轮对话记录管理
@@ -46,25 +46,40 @@ ZHIPU_API_KEY=your-api-key-here
 JWT_SECRET=your-jwt-secret-at-least-32-chars-long-change-me
 ```
 
-> **鉴权说明**：除 `/api/v1/health` 外，所有接口必须携带 `Authorization: Bearer <JWT>`（与 Java 后端共享 `JWT_SECRET`，HS256 校验，实现见 `src/security.py`，无第三方依赖）。Agent 工具调用后端 API 时自动透传用户 token。
+> **鉴权说明**：除 `/api/v1/health` 与 `/api/v1/model/status` 外，所有接口必须携带 `Authorization: Bearer <JWT>`（与 Java 后端共享 `JWT_SECRET`，HS256 校验，实现见 `src/security.py`，无第三方依赖）。Agent 工具调用后端 API 时自动透传用户 token。
 
 ### Docker部署
+
+**方式一（推荐）：compose 编排**（根目录，与 Java 服务一起启动）：
+
+```bash
+# 环境变量：JWT_SECRET、ZHIPU_API_KEY 必填；MYSQL_*、REDIS_* 按需覆盖
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --build
+```
+
+**方式二：单独构建**（需自行注入环境变量，否则连接不上 MySQL/Redis）：
+
 ```bash
 docker build -t mes-ai-service .
-docker run -p 8087:8087 mes-ai-service
+docker run -p 8087:8087 \
+  -e MYSQL_HOST=mysql -e MYSQL_USERNAME=root -e MYSQL_PASSWORD=123455 \
+  -e REDIS_HOST=redis \
+  -e JWT_SECRET=your-jwt-secret -e ZHIPU_API_KEY=your-api-key \
+  mes-ai-service
 ```
+
+> 说明：镜像默认国内 pip 源（清华），海外构建可用 `--build-arg PIP_INDEX=https://pypi.org/simple`。容器内建表自动完成（`CREATE TABLE IF NOT EXISTS`），无需手工导入 SQL。
 
 ### 本地开发
 ```bash
 cd mes-ai-service
-pip install -r requirements.txt
 
-# 方式一：使用虚拟环境
-.venv\Scripts\activate.bat
-python -m src.main
+# 建议使用虚拟环境（Python 3.12；国内可加 -i https://pypi.tuna.tsinghua.edu.cn/simple 加速）
+py -3.12 -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
 
-# 方式二：直接运行
-python -m src.main
+# 运行（自动加载项目根目录 .env 中的 JWT_SECRET / ZHIPU_API_KEY 等）
+.venv\Scripts\python -m src.main
 ```
 
 ## API接口
@@ -180,24 +195,24 @@ curl -X POST http://localhost:8087/api/v1/llm/analyze \
 
 ## 配置说明
 
-配置文件 `config.yaml` 包含服务端口、模型路径、Kafka和Redis连接等信息。
+配置文件 `config.yaml` 提供模型路径、MySQL/Redis 连接、大模型参数等默认值；`server.port/host` 可用环境变量 `AI_PORT`/`AI_HOST` 覆盖，数据库连接可用 `MYSQL_HOST`/`MYSQL_PORT`/`MYSQL_USERNAME`/`MYSQL_PASSWORD`/`MYSQL_DATABASE` 覆盖。
 
 ```yaml
 server:
-  host: "0.0.0.0"
+  host: "0.0.0.0"          # 可用环境变量 AI_HOST / AI_PORT 覆盖
   port: 8087
 
 model:
   quality:
-    onnx_path: "src/models/saved_models/quality_predict.onnx"
+    onnx_path: "src/models/saved_models/quality_predict.onnx"    # onnx 缺失时自动回退 .pkl
     version: "1.0.0"
   production:
     onnx_path: "src/models/saved_models/output_predict.onnx"
     version: "1.0.0"
 
-# 大模型配置（敏感信息通过环境变量 ZHIPU_API_KEY 设置）
+# 大模型配置（密钥只读环境变量 ZHIPU_API_KEY，此文件占位不生效）
 llm:
-  api_key: "${ZHIPU_API_KEY}"
+  api_key: ""
   model: "glm-4-flash"
   rate_limit: 60          # LLM调用限流（次/分钟），超限返回"服务繁忙"
 
@@ -209,9 +224,13 @@ database:
   database: "mes_db"
 
 redis:
-  host: "localhost"
+  host: "localhost"       # 可用 REDIS_HOST / REDIS_PORT 覆盖
   port: 6379
   db: 1
+
+feature:
+  sliding_window_size: 60
+  aggregation_interval: 10
 ```
 
 **Redis 缓存说明**（Redis 不可用时全部自动降级，不影响业务）：
@@ -227,39 +246,42 @@ redis:
 ```
 mes-ai-service/
 ├── src/
-│   ├── main.py              # 启动入口
+│   ├── main.py              # 启动入口（端口读 config.yaml server 段，可用 AI_PORT/AI_HOST 覆盖）
 │   ├── app.py              # FastAPI应用
 │   ├── security.py         # JWT 鉴权（HS256，标准库实现，与后端共用 JWT_SECRET）
-│   ├── models/             # 模型定义
-│   │   ├── prediction_model.py   # 质量预测模型
-│   │   ├── regression_model.py  # 产量预测模型
-│   │   └── train.py           # 训练脚本
+│   ├── models/             # 模型加载与推理
+│   │   ├── prediction_model.py   # 质量预测模型（onnx 缺失自动回退 pkl）
+│   │   ├── regression_model.py   # 产量预测模型
+│   │   └── saved_models/         # 模型文件（.pkl 入库，.onnx gitignore）
 │   ├── services/            # 业务逻辑
 │   │   ├── quality_predictor.py   # 质量预测服务
-│   │   ├── inference_service.py # 推理服务
-│   │   ├── llm_service.py      # 智谱AI大模型服务（含缓存+限流）
-│   │   ├── analysis_service.py  # AI分析服务（能耗/SPC/产能/根因/交期）
-│   │   ├── conversation_store.py # 对话+分析历史 MySQL 存储（含Redis缓存）
-│   │   ├── redis_store.py     # Redis统一封装（降级安全）
-│   │   ├── task_planner.py    # Agent任务理解（意图/实体/计划）
-│   │   ├── agent_service.py   # Agent编排（四阶段流水线）
-│   │   ├── report_builder.py  # Agent结果交付（结构化报告）
-│   │   ├── tools.py           # Agent工具层（15个MES工具+统一执行器）
-│   │   ├── knowledge_base.py  # RAG知识库（TF-IDF检索）
+│   │   ├── inference_service.py   # 推理服务
+│   │   ├── llm_service.py         # 智谱AI大模型服务（含缓存+限流）
+│   │   ├── analysis_service.py    # AI分析服务（能耗/SPC/产能/根因/交期）
+│   │   ├── conversation_store.py  # 对话+分析历史 MySQL 存储（含Redis缓存，MySQL 不可用自动降级）
+│   │   ├── redis_store.py         # Redis统一封装（降级安全）
+│   │   ├── task_planner.py        # Agent任务理解（意图/实体/计划）
+│   │   ├── agent_service.py       # Agent编排（四阶段流水线）
+│   │   ├── report_builder.py      # Agent结果交付（结构化报告）
+│   │   ├── tools.py               # Agent工具层（19个MES工具+统一执行器）
+│   │   ├── knowledge_base.py      # RAG知识库（TF-IDF检索）
 │   │   └── feature_engineering.py # 特征工程
 │   ├── router/             # 路由
 │   │   ├── prediction.py   # 预测路由
-│   │   ├── llm.py        # 大模型路由
-│   │   ├── analysis.py   # 分析路由
-│   │   └── agent.py     # Agent 路由（含对话历史CRUD）
+│   │   ├── llm.py          # 大模型路由
+│   │   ├── analysis.py     # 分析路由
+│   │   └── agent.py        # Agent 路由（含对话历史CRUD）
 │   ├── schemas/
-│   │   ├── schemas.py    # 核心数据模型
+│   │   ├── schemas.py      # 核心数据模型
 │   │   └── conversation.py # 对话历史模型
-├── models/                # 训练模型输出
-├── config.yaml            # 配置文件
-├── .env.local            # 本地敏感配置（不提交）
-├── requirements.txt       # Python依赖
-└── Dockerfile           # Docker镜像
+├── knowledge/              # RAG 知识库文档（.json，可自行扩展）
+├── tests/                  # 单元测试
+├── train_models.py         # 训练脚本（训练 LightGBM/XGBoost 并可选导出 ONNX）
+├── config.yaml             # 配置文件
+├── .env.local              # 本地敏感配置（不提交）
+├── requirements.txt        # Python依赖（运行时，无 torch/CUDA）
+├── .dockerignore           # 构建上下文排除（.venv/__pycache__ 等）
+└── Dockerfile              # Docker镜像
 ```
 
 ## 技术栈
