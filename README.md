@@ -43,7 +43,7 @@
 
 ## 项目简介
 
-虚拟路径MES系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的虚拟路径数字化底座。
+虚拟路径MES系统（**M**anufacturing **E**xecution **S**ystem）面向离散制造业，覆盖**生产工单 → 工艺执行 → 质量检验 → 设备监控 → AI 分析**全流程，通过 **MQTT + Kafka** 实现万级吞吐的设备数据采集，配合 **3D 数字孪生**与 **AI 生产助理**，打造开箱即用的制造企业数字化底座。
 
 | 2000+ | 10000+/s | 6 大微服务 | 95% | AI Agent |
 |:---:|:---:|:---:|:---:|:---:|
@@ -185,7 +185,7 @@ flowchart TB
 | 时序 / 搜索 | InfluxDB + Elasticsearch | 2.7 / 8.10.0 |
 | 设备接入 | .NET 8 + EMQX MQTT | .NET 8 |
 | AI 推理 | Python FastAPI + LightGBM + XGBoost | 0.115 / 4.5 / 2.1 |
-| AI Agent | GLM-4 + Function Calling + RAG + ChromaDB | - |
+| AI Agent | GLM-4 + Function Calling + RAG（TF-IDF 中文检索） | - |
 
 ---
 
