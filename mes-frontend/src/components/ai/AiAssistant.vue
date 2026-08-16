@@ -6,17 +6,23 @@
           <el-icon :size="20"><MagicStick /></el-icon>
         </div>
         <div class="brand-meta">
-          <span class="brand-text">AI 生产助理</span>
-          <span class="brand-tag">Agent</span>
+          <div class="brand-name-row">
+            <span class="brand-text">AI 生产助理</span>
+            <span class="brand-tag">Agent</span>
+          </div>
+          <div class="brand-sub-row">
+            <span class="brand-dot" :class="store.aiOnline ? 'online' : 'offline'"></span>
+            <span class="brand-model">{{ store.aiOnline ? '生产大模型在线' : '服务未连接' }}</span>
+          </div>
         </div>
-        <span v-if="store.currentTitle" class="brand-title-badge">{{ store.currentTitle }}</span>
+        <span v-if="store.currentTitle" class="brand-title-badge" :title="store.currentTitle">{{ store.currentTitle }}</span>
       </div>
       <div class="header-actions">
+        <button class="header-btn" title="对话历史" @click="toggleHistory">
+          <el-icon :size="15"><ChatDotRound /></el-icon>
+        </button>
         <button class="header-btn" title="新建对话" @click="handleNewChat">
           <el-icon :size="14"><Plus /></el-icon>
-        </button>
-        <button class="header-btn" title="清空" @click="handleClear">
-          <el-icon :size="15"><Delete /></el-icon>
         </button>
         <button class="header-btn close-btn" title="关闭" @click="emit('close')">
           <el-icon :size="15"><Close /></el-icon>
@@ -24,6 +30,9 @@
       </div>
     </div>
     <div v-else class="panel-topbar">
+      <button class="header-btn" title="对话历史" @click="toggleHistory">
+        <el-icon :size="14"><ChatDotRound /></el-icon>
+      </button>
       <span class="topbar-title">{{ store.currentTitle || '新对话' }}</span>
       <span v-if="store.messageCount" class="topbar-count">{{ store.messageCount }} 条消息</span>
       <div class="header-actions">
@@ -80,6 +89,14 @@
             <el-icon v-else :size="16"><User /></el-icon>
           </div>
           <div class="msg-bubble">
+            <button
+              v-if="msg.role === 'assistant'"
+              class="msg-copy"
+              title="复制内容"
+              @click="copyText(msg.content)"
+            >
+              <el-icon :size="13"><CopyDocument /></el-icon>
+            </button>
             <div v-if="msg.plan && msg.plan.length" class="msg-plan">
               <div class="plan-label">
                 <el-icon :size="12"><List /></el-icon>
@@ -168,7 +185,7 @@
           <div class="thinking-bar">
             <span class="thinking-bar-inner"></span>
           </div>
-          <span class="thinking-text">正在分析...</span>
+          <span class="thinking-text">Agent 正在分析...</span>
         </div>
       </div>
     </div>
@@ -208,16 +225,65 @@
         </button>
       </div>
     </div>
+
+    <!-- ===== 对话历史抽屉 ===== -->
+    <Transition name="history">
+      <div v-if="historyOpen" class="history-panel">
+        <div class="history-header">
+          <div class="history-title">
+            <el-icon :size="15"><ChatDotRound /></el-icon>
+            <span>对话历史</span>
+            <span class="history-count">{{ filteredConversations.length }}</span>
+          </div>
+          <button class="history-close" title="收起" @click="historyOpen = false">
+            <el-icon :size="14"><Close /></el-icon>
+          </button>
+        </div>
+        <div class="history-search">
+          <el-icon :size="13"><Search /></el-icon>
+          <input v-model="historySearch" class="history-input" placeholder="搜索对话" />
+        </div>
+        <div class="history-list">
+          <div
+            v-for="conv in filteredConversations"
+            :key="conv.id"
+            class="history-item"
+            :class="{ current: conv.id === store.currentId }"
+            @click="pickConversation(conv.id)"
+          >
+            <div class="history-item-info">
+              <span class="history-item-title">{{ conv.title || '新对话' }}</span>
+              <span class="history-item-time">{{ relTime(conv.updated_at) }}</span>
+            </div>
+            <button class="history-item-del" title="删除" @click.stop="handleRemoveConversation(conv.id)">
+              <el-icon :size="12"><Delete /></el-icon>
+            </button>
+          </div>
+          <div v-if="store.loadingList" class="history-note">加载中...</div>
+          <div v-else-if="!filteredConversations.length" class="history-note">
+            {{ historySearch ? '无匹配对话' : '暂无历史对话' }}
+          </div>
+        </div>
+        <div class="history-footer">
+          <button class="history-new" @click="handleNewChat">
+            <el-icon :size="13"><Plus /></el-icon>
+            <span>新建对话</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, watch, onMounted, onUnmounted, computed } from 'vue'
 import { marked } from 'marked'
+import { ElMessage } from 'element-plus'
 import type { Component } from 'vue'
 import {
   MagicStick, Delete, Close, ArrowRight, CircleCheck, CircleCheckFilled, CircleClose, User,
   DataAnalysis, Search, Notebook, Document as DocIcon, Monitor, Warning, Plus, WarningFilled, Refresh, List,
+  ChatDotRound, CopyDocument,
 } from '@element-plus/icons-vue'
 import { useAiChatStore } from '@/stores/aiChat'
 
@@ -246,6 +312,8 @@ const store = useAiChatStore()
 const inputRef = ref<HTMLInputElement | null>(null)
 const bodyRef = ref<HTMLElement | null>(null)
 const input = ref('')
+const historyOpen = ref(false)
+const historySearch = ref('')
 
 interface Suggestion { icon: Component; text: string }
 
@@ -264,6 +332,12 @@ const suggestions = computed<Suggestion[]>(() =>
   })),
 )
 
+const filteredConversations = computed(() => {
+  const kw = historySearch.value.trim().toLowerCase()
+  if (!kw) return store.conversations
+  return store.conversations.filter(c => (c.title || '').toLowerCase().includes(kw))
+})
+
 const mdCache = new Map<string, string>()
 
 function scrollToBottom(smooth = true) {
@@ -275,12 +349,40 @@ function scrollToBottom(smooth = true) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.visible && props.floating) emit('close')
+  if (e.key === 'Escape') {
+    if (props.visible && props.floating) emit('close')
+    if (historyOpen.value) historyOpen.value = false
+  }
 }
 
 function focusInput(text?: string) {
   if (text !== undefined) input.value = text
   nextTick(() => inputRef.value?.focus())
+}
+
+function toggleHistory() {
+  historyOpen.value = !historyOpen.value
+  if (historyOpen.value) store.loadList()
+}
+
+async function pickConversation(id: string) {
+  await store.selectConversation(id)
+  historyOpen.value = false
+  scrollToBottom(false)
+  nextTick(() => inputRef.value?.focus())
+}
+
+async function handleRemoveConversation(id: string) {
+  await store.removeConversation(id)
+}
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制')
+  } catch {
+    ElMessage.warning('复制失败')
+  }
 }
 
 watch(() => props.visible, async (v) => {
@@ -312,6 +414,8 @@ async function handleSend() {
 
 async function handleNewChat() {
   await store.newChat()
+  historyOpen.value = false
+  historySearch.value = ''
   scrollToBottom(false)
   nextTick(() => inputRef.value?.focus())
 }
@@ -343,6 +447,16 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
+function relTime(iso: string): string {
+  const d = new Date(iso), n = new Date()
+  const diff = n.getTime() - d.getTime()
+  if (diff < 60_000) return '刚刚'
+  if (diff < 3600_000) return Math.floor(diff / 60_000) + ' 分钟前'
+  if (diff < 86400_000) return Math.floor(diff / 3600_000) + ' 小时前'
+  if (diff < 7 * 86400_000) return Math.floor(diff / 86400_000) + ' 天前'
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
+
 function pickSuggestion(tip: Suggestion) {
   input.value = tip.text
   handleSend()
@@ -364,6 +478,7 @@ defineExpose({ focusInput })
   flex-direction: column;
   overflow: hidden;
   z-index: 9999;
+  position: relative;
 }
 .ai-panel.floating {
   position: fixed;
@@ -386,28 +501,37 @@ defineExpose({ focusInput })
   padding: 14px 20px;
   border-bottom: 1px solid var(--border-color, #252530);
   flex-shrink: 0;
-  background: var(--bg-card, #12121a);
+  background: linear-gradient(180deg, rgba(99,102,241,0.05), transparent), var(--bg-card, #12121a);
 }
 .ai-panel:not(.floating) .panel-header { padding: 18px 24px; }
-.header-brand { display: flex; align-items: center; gap: 10px; }
+.header-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-icon-box {
-  width: 36px; height: 36px;
-  border-radius: 10px;
+  width: 38px; height: 38px;
+  border-radius: 11px;
   background: var(--gradient-primary, linear-gradient(135deg, #6366f1, #8b5cf6));
   color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.35);
 }
-.brand-meta { display: flex; align-items: center; gap: 6px; }
-.brand-text { font-size: 15px; font-weight: 600; color: var(--text-primary, #f0f0f5); }
+.brand-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-name-row { display: flex; align-items: center; gap: 6px; }
+.brand-text { font-size: 14px; font-weight: 600; color: var(--text-primary, #f0f0f5); }
 .brand-tag {
   font-size: 10px; padding: 1px 6px; border-radius: 4px;
   background: var(--accent-light, rgba(99,102,241,0.15)); color: var(--accent, #6366f1); font-weight: 600;
 }
-.brand-model { font-size: 11px; color: var(--text-muted, #505060); margin-left: 4px; }
+.brand-sub-row { display: flex; align-items: center; gap: 5px; }
+.brand-dot { width: 6px; height: 6px; border-radius: 50%; }
+.brand-dot.online { background: var(--success, #10b981); box-shadow: 0 0 6px rgba(16,185,129,0.7); animation: dotPulse 2s ease-in-out infinite; }
+.brand-dot.offline { background: var(--danger, #ef4444); }
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+.brand-model { font-size: 10px; color: var(--text-muted, #505060); }
 .brand-title-badge {
   font-size: 11px; color: var(--text-muted, #505060);
-  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px;
 }
-.header-actions { display: flex; align-items: center; gap: 4px; }
+.header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .header-btn {
   width: 32px; height: 32px; border-radius: var(--radius-sm, 6px); border: none;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -418,8 +542,8 @@ defineExpose({ focusInput })
 
 /* ===== Topbar (page mode) ===== */
 .panel-topbar {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 24px; border-bottom: 1px solid var(--border-color, #252530);
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border-color, #252530);
   flex-shrink: 0; background: var(--bg-card, #12121a);
 }
 .topbar-title {
@@ -482,7 +606,6 @@ defineExpose({ focusInput })
   display: flex; flex-direction: column; gap: 18px; background: var(--bg-app, #0a0a0f);
 }
 .ai-panel:not(.floating) .panel-body { padding: 24px 32px; gap: 20px; }
-.ai-panel:not(.floating) .msg.compact-avatar { gap: 0; }
 
 /* ===== Messages ===== */
 .msg { display: flex; gap: 12px; max-width: 88%; animation: msgIn 0.35s ease; }
@@ -493,7 +616,11 @@ defineExpose({ focusInput })
   width: 32px; height: 32px; border-radius: 50%; display: flex;
   align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
 }
-.assistant .msg-avatar { background: var(--accent-light, rgba(99,102,241,0.15)); color: var(--accent, #6366f1); }
+.assistant .msg-avatar {
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
+  color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.2);
+}
 .user .msg-avatar { background: var(--success-light, rgba(16,185,129,0.15)); color: var(--success, #10b981); }
 .msg-avatar.pulsing { animation: avatarPulse 2s ease-in-out infinite; }
 @keyframes avatarPulse {
@@ -503,6 +630,7 @@ defineExpose({ focusInput })
 .msg-avatar.compact { visibility: hidden; width: 0; height: 0; margin: 0; }
 
 .msg-bubble {
+  position: relative;
   padding: 12px 16px; border-radius: var(--radius-md, 10px);
   font-size: 13px; line-height: 1.7; min-width: 0; word-break: break-word;
 }
@@ -515,6 +643,15 @@ defineExpose({ focusInput })
   background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.18));
   border: 1px solid rgba(99,102,241,0.12); color: var(--text-primary, #f0f0f5);
 }
+.msg-copy {
+  position: absolute; top: 8px; right: 8px;
+  width: 24px; height: 24px; border-radius: 5px; border: none;
+  display: none; align-items: center; justify-content: center;
+  background: var(--bg-card, #12121a); color: var(--text-muted, #505060);
+  cursor: pointer; transition: all 0.15s ease; z-index: 2;
+}
+.assistant .msg-bubble:hover .msg-copy { display: inline-flex; }
+.msg-copy:hover { color: var(--accent, #6366f1); }
 
 /* Welcome Card */
 .welcome-msg { max-width: 92%; }
@@ -704,4 +841,73 @@ defineExpose({ focusInput })
 .step-expand-enter-active, .step-expand-leave-active { transition: all 0.2s ease; overflow: hidden; }
 .step-expand-enter-from, .step-expand-leave-to { opacity: 0; max-height: 0; }
 .step-expand-enter-to, .step-expand-leave-from { opacity: 1; max-height: 400px; }
+
+/* ===== History Drawer ===== */
+.history-panel {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; flex-direction: column;
+  background: var(--bg-sidebar, #0d0d12);
+  border-left: 1px solid var(--border-color, #252530);
+}
+.history-enter-active, .history-leave-active { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease; }
+.history-enter-from, .history-leave-to { transform: translateX(-40px); opacity: 0; }
+.history-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 16px 10px;
+}
+.history-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-primary, #f0f0f5); }
+.history-title .el-icon { color: var(--accent, #6366f1); }
+.history-count {
+  font-size: 10px; padding: 1px 7px; border-radius: 9px;
+  background: var(--accent-light, rgba(99,102,241,0.15)); color: var(--accent, #6366f1); font-weight: 600;
+}
+.history-close {
+  width: 26px; height: 26px; border-radius: 5px; border: none;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  background: transparent; color: var(--text-muted, #505060); transition: all 0.15s ease;
+}
+.history-close:hover { background: var(--bg-hover, #1a1a28); color: var(--text-primary, #f0f0f5); }
+.history-search {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 12px 10px; padding: 7px 10px; border-radius: 7px;
+  background: var(--bg-input, #1a1a24); border: 1px solid var(--border-color, #252530);
+  color: var(--text-muted, #505060);
+}
+.history-search:focus-within { border-color: var(--accent, #6366f1); }
+.history-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text-primary, #f0f0f5); font-size: 12px; font-family: inherit;
+}
+.history-input::placeholder { color: var(--text-muted, #505060); }
+.history-list { flex: 1; overflow-y: auto; padding: 0 8px; display: flex; flex-direction: column; gap: 2px; }
+.history-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px; border-radius: 7px; cursor: pointer;
+  transition: all 0.13s ease;
+}
+.history-item:hover { background: var(--bg-hover, #1a1a28); }
+.history-item.current { background: var(--accent-light, rgba(99,102,241,0.1)); }
+.history-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.history-item-title {
+  font-size: 12px; color: var(--text-primary, #f0f0f5);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history-item.current .history-item-title { color: var(--accent, #6366f1); font-weight: 500; }
+.history-item-time { font-size: 10px; color: var(--text-muted, #505060); }
+.history-item-del {
+  width: 22px; height: 22px; border-radius: 5px; border: none;
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+  background: transparent; color: var(--text-muted, #505060); flex-shrink: 0;
+}
+.history-item:hover .history-item-del { display: inline-flex; }
+.history-item-del:hover { background: rgba(239,68,68,0.15); color: var(--danger, #ef4444); }
+.history-note { font-size: 11px; color: var(--text-muted, #505060); padding: 18px 8px; text-align: center; }
+.history-footer { padding: 12px; border-top: 1px solid var(--border-color, #252530); }
+.history-new {
+  width: 100%; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border-color, #252530);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: transparent; color: var(--text-secondary, #a0a0b0); font-size: 12px; cursor: pointer;
+  font-family: inherit; transition: all 0.15s ease;
+}
+.history-new:hover { border-color: var(--accent, #6366f1); color: var(--accent, #6366f1); background: rgba(99,102,241,0.08); }
 </style>
