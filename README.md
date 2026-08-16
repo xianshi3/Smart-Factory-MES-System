@@ -75,9 +75,17 @@
 
 ![生产看板](docs/screenshots/dashboard.jpg)
 
+**生产调度看板**
+
+![生产调度看板](docs/screenshots/production-scheduling-dashboard.jpg)
+
 **设备监控（3D 数字孪生）**
 
 ![设备监控](docs/screenshots/device-monitor.jpg)
+
+**智能工单管理**
+
+![智能工单管理](docs/screenshots/AI-powered%20ticket%20management.jpg)
 
 **AI 生产助理**
 
