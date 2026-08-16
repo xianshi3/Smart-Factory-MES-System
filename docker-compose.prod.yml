@@ -26,6 +26,12 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-}
       ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8087/api/v1/health', timeout=3)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       mysql:
         condition: service_healthy

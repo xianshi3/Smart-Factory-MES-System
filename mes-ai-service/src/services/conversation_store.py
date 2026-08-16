@@ -42,48 +42,60 @@ def _get_conn() -> pymysql.Connection:
 
 
 def init_db():
-    """建表（兜底 — 正式环境用 init.sql）"""
+    """建表（兜底 — 正式环境用 init.sql）。MySQL 不可用时降级：只告警不阻断启动，
+    对话历史相关接口会返回错误，其余功能（LLM/预测/分析）不受影响。"""
+    try:
+        _create_tables()
+    except Exception as e:
+        logger.warning("MySQL 初始化失败，对话历史功能降级: %s", e)
+
+
+def _create_tables():
     conn = _get_conn()
-    conn.cursor().execute("""
-        CREATE TABLE IF NOT EXISTS `ai_chat_conversations` (
-            `id` varchar(36) NOT NULL,
-            `user_id` varchar(50) NOT NULL DEFAULT 'default',
-            `title` varchar(200) NOT NULL DEFAULT '新对话',
-            `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-            `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            `deleted` int DEFAULT '0',
-            PRIMARY KEY (`id`),
-            KEY `idx_user_id` (`user_id`),
-            KEY `idx_update_time` (`update_time`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    """)
-    conn.cursor().execute("""
-        CREATE TABLE IF NOT EXISTS `ai_chat_messages` (
-            `id` bigint NOT NULL AUTO_INCREMENT,
-            `conversation_id` varchar(36) NOT NULL,
-            `role` varchar(20) NOT NULL,
-            `content` text NOT NULL,
-            `steps` json DEFAULT NULL,
-            `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`),
-            KEY `idx_conversation_id` (`conversation_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    """)
-    conn.cursor().execute("""
-        CREATE TABLE IF NOT EXISTS `ai_analysis_history` (
-            `id` bigint NOT NULL AUTO_INCREMENT,
-            `user_id` varchar(50) NOT NULL DEFAULT 'default',
-            `device_code` varchar(50) DEFAULT NULL,
-            `device_name` varchar(100) DEFAULT NULL,
-            `analysis_type` varchar(20) NOT NULL,
-            `result_data` json DEFAULT NULL,
-            `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`),
-            KEY `idx_user_id` (`user_id`),
-            KEY `idx_type` (`analysis_type`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    """)
-    conn.close()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS `ai_chat_conversations` (
+                `id` varchar(36) NOT NULL,
+                `user_id` varchar(50) NOT NULL DEFAULT 'default',
+                `title` varchar(200) NOT NULL DEFAULT '新对话',
+                `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                `deleted` int DEFAULT '0',
+                PRIMARY KEY (`id`),
+                KEY `idx_user_id` (`user_id`),
+                KEY `idx_update_time` (`update_time`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS `ai_chat_messages` (
+                `id` bigint NOT NULL AUTO_INCREMENT,
+                `conversation_id` varchar(36) NOT NULL,
+                `role` varchar(20) NOT NULL,
+                `content` text NOT NULL,
+                `steps` json DEFAULT NULL,
+                `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_conversation_id` (`conversation_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS `ai_analysis_history` (
+                `id` bigint NOT NULL AUTO_INCREMENT,
+                `user_id` varchar(50) NOT NULL DEFAULT 'default',
+                `device_code` varchar(50) DEFAULT NULL,
+                `device_name` varchar(100) DEFAULT NULL,
+                `analysis_type` varchar(20) NOT NULL,
+                `result_data` json DEFAULT NULL,
+                `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_user_id` (`user_id`),
+                KEY `idx_type` (`analysis_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 async def _run_sync(func, *args, **kwargs):

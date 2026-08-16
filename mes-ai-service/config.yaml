@@ -18,15 +18,10 @@ model:
     version: "1.0.0"
 
 llm:
-  api_key: "${ZHIPU_API_KEY}"
+  # 密钥只从环境变量 ZHIPU_API_KEY 读取（此文件中的占位不会生效）
+  api_key: ""
   model: "glm-4-flash"
   rate_limit: 60
-
-kafka:
-  bootstrap_servers: "localhost:9092"
-  group_id: "ai-service-group"
-  topics:
-    - "mes-device-data"
 
 redis:
   host: "localhost"

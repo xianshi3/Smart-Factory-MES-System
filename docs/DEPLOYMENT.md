@@ -159,6 +159,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose
 ```
 
 - 宿主机构建失败时，可改用宿主机直接运行：创建 `.venv` 后 `pip install -r requirements.txt`，再 `python -m src.main`（8087）
+- 容器自带健康检查（`/api/v1/health`，无需鉴权）；数据表启动时自动创建（`CREATE TABLE IF NOT EXISTS`），无需手工导 SQL
+- MySQL/Redis 不可用时自动降级（对话历史缓存不可用，LLM/预测/分析不受影响）；端口可用 `AI_PORT` 环境变量覆盖
 
 ### 5.3 动态设备展示数据源【关键】
 
