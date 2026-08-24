@@ -95,33 +95,34 @@
 ```mermaid
 flowchart TB
     subgraph UI["前端展示层"]
-        FE["Vue 3 + TypeScript + Element Plus<br/>ECharts + Three.js (3D数字孪生)"]
+        direction LR
+        FE1["Vue 3<br/>TypeScript"]
+        FE2["Element Plus<br/>组件库"]
+        FE3["ECharts<br/>可视化图表"]
+        FE4["Three.js<br/>3D 数字孪生"]
     end
 
-    subgraph GW["API 网关层"]
-        G["Spring Cloud Gateway<br/>:9090 · JWT 鉴权 · 限流"]
-    end
+    G["API 网关<br/>Spring Cloud Gateway :9090<br/>JWT 鉴权 · 路由 · 限流"]
 
     subgraph MS["微服务层"]
-        A["认证服务<br/>:8081"]
-        W["工单服务<br/>:8082"]
-        P["工艺服务<br/>:8083"]
-        Q["质量服务<br/>:8084"]
-        D["看板服务<br/>:8085 · WebSocket"]
-        AI["AI 推理服务<br/>:8087 · FastAPI"]
+        A["认证服务 :8081<br/>登录 · JWT · RBAC"]
+        W["工单服务 :8082<br/>工单 · 排产 · 报工"]
+        P["工艺服务 :8083<br/>模板 · 工序 · 参数"]
+        Q["质量服务 :8084<br/>质检 · 追溯 · SPC"]
+        D["看板服务 :8085<br/>实时数据 · WebSocket"]
+        AI["AI 推理服务 :8087<br/>FastAPI · 预测 · Agent"]
     end
 
     subgraph DS["数据存储层"]
         DB[("MySQL :3306")]
         RD[("Redis :6379")]
         IDB[("InfluxDB :8086")]
-        ES[("Elasticsearch :9200<br/>(可选)")]
         KF["Kafka :9092"]
     end
 
     subgraph EDGE["设备接入层"]
-        NET[" .NET 8 设备网关 :5000<br/>MQTT 订阅 · Kafka 转发 · 心跳"]
-        MQTT["EMQX MQTT Broker<br/>:1883"]
+        NET[".NET 8 设备网关 :5000<br/>MQTT 订阅 · Kafka 转发"]
+        MQTT["EMQX MQTT Broker :1883"]
     end
 
     subgraph DEV["工业设备层"]
@@ -130,13 +131,15 @@ flowchart TB
         DEV3["工业机器人"]
     end
 
-    FE -->|HTTPS/WSS| G
-    G -->|/api/auth/**| A
-    G -->|/api/workorder/**| W
-    G -->|/api/process/**| P
-    G -->|/api/quality/**| Q
-    G -->|/api/dashboard/**| D
-    G -->|/api/ai/**| AI
+    FE1 --- FE2 --- FE3 --- FE4
+    FE4 ==>|"HTTPS / WSS"| G
+
+    G -->|"/api/auth/**"| A
+    G -->|"/api/workorder/**"| W
+    G -->|"/api/process/**"| P
+    G -->|"/api/quality/**"| Q
+    G -->|"/api/dashboard/**"| D
+    G -->|"/api/ai/**"| AI
 
     A --> DB
     W --> DB
@@ -145,32 +148,39 @@ flowchart TB
     D --> DB
     AI --> DB
 
-    A -.JWT黑名单/登录锁定.-> RD
-    W -.工单序号/锁.-> RD
-    D -.设备状态缓存.-> RD
-    D --> IDB
-    D -.设备搜索(可选).-> ES
-    D <--> KF
+    A -.->|"JWT 黑名单"| RD
+    W -.->|"工单序号锁"| RD
+    D -.->|"设备状态缓存"| RD
+    AI -.->|"分析历史缓存"| RD
+    D -->|"遥测数据"| IDB
+    D <==>|"设备数据"| KF
 
-    AI -.AI分析历史.-> RD
+    NET -->|"转发消息"| KF
+    NET -.->|"设备状态缓存"| RD
+    MQTT -->|"订阅推送"| NET
+    DEV1 -->|"MQTT"| MQTT
+    DEV2 -->|"MQTT"| MQTT
+    DEV3 -->|"MQTT"| MQTT
 
-    NET --> KF
-    NET --> RD
-    MQTT --> NET
-    DEV1 -->|MQTT| MQTT
-    DEV2 -->|MQTT| MQTT
-    DEV3 -->|MQTT| MQTT
-
-    classDef layer fill:#f0f6ff,stroke:#409eff,stroke-width:2px,color:#333;
-    classDef svc fill:#e8f5e9,stroke:#4caf50,stroke-width:1.5px,color:#333;
-    classDef data fill:#fff3e0,stroke:#ff9800,stroke-width:1.5px,color:#333;
-    classDef edge fill:#fce4ec,stroke:#e91e63,stroke-width:1.5px,color:#333;
-    classDef dev fill:#f3e5f5,stroke:#9c27b0,stroke-width:1.5px,color:#333;
-    class FE,G layer;
+    classDef ui fill:#e3f2fd,stroke:#1976d2,stroke-width:1.5px,color:#0d47a1;
+    classDef gw fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef svc fill:#e8f5e9,stroke:#388e3c,stroke-width:1.5px,color:#1b5e20;
+    classDef data fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1.5px,color:#4a148c;
+    classDef edge fill:#fff8e1,stroke:#f9a825,stroke-width:1.5px,color:#f57f17;
+    classDef dev fill:#eceff1,stroke:#546e7a,stroke-width:1.5px,color:#37474f;
+    class FE1,FE2,FE3,FE4 ui;
+    class G gw;
     class A,W,P,Q,D,AI svc;
-    class DB,RD,IDB,ES,KF data;
+    class DB,RD,IDB,KF data;
     class NET,MQTT edge;
     class DEV1,DEV2,DEV3 dev;
+
+    style UI fill:#f7fbff,stroke:#bbdefb,stroke-width:1px
+    style GW fill:#fffdf7,stroke:#ffe0b2,stroke-width:1px
+    style MS fill:#f9fdf9,stroke:#c8e6c9,stroke-width:1px
+    style DS fill:#fdf9ff,stroke:#e1bee7,stroke-width:1px
+    style EDGE fill:#fffdf4,stroke:#ffecb3,stroke-width:1px
+    style DEV fill:#fafafa,stroke:#cfd8dc,stroke-width:1px
 ```
 
 ### 技术栈
@@ -182,7 +192,7 @@ flowchart TB
 | 后端 | Spring Boot + Spring Cloud (Alibaba) | 3.2.5 / 2023.0.0 |
 | 持久层 | MyBatis-Plus + MySQL | 3.5.6 / 8.0.33 |
 | 缓存 / 消息 | Redis + Kafka + Zookeeper | 7 / 7.5.0 |
-| 时序 / 搜索 | InfluxDB + Elasticsearch（可选） | 2.7 / 8.10.0 |
+| 时序数据库 | InfluxDB | 2.7 |
 | 设备接入 | .NET 8 + EMQX MQTT | .NET 8 |
 | AI 推理 | Python FastAPI + LightGBM + XGBoost | 0.115 / 4.5 / 2.1 |
 | AI Agent | GLM-4 + Function Calling + RAG（TF-IDF 中文检索） | - |
