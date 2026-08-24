@@ -49,6 +49,9 @@ services:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: mes-zookeeper
     restart: always
+    # Confluent entrypoint 不 exec 且健康检查脚本频繁 fork，僵尸子进程无人回收
+    # (服务器实测 137 个)；init: true 注入 tini 作为 PID 1 统一回收
+    init: true
     ports:
       - "2181:2181"
     environment:
@@ -71,6 +74,8 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     container_name: mes-kafka
     restart: always
+    # 同上：僵尸进程累积 (服务器实测 1072 个)，tini 作为 PID 1 回收
+    init: true
     depends_on:
       zookeeper:
         condition: service_healthy

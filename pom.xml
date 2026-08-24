@@ -40,7 +40,6 @@
         <jjwt.version>0.12.5</jjwt.version>
         <fastjson2.version>2.0.47</fastjson2.version>
         <influxdb-client.version>1.35.0</influxdb-client.version>
-        <elasticsearch-java.version>8.10.0</elasticsearch-java.version>
         <kafka-clients.version>4.3.1</kafka-clients.version>
         <mqttv5-client.version>5.1.4</mqttv5-client.version>
         <seata.version>2.0.0</seata.version>
@@ -121,11 +120,6 @@
                 <groupId>com.influxdb</groupId>
                 <artifactId>influxdb-client-java</artifactId>
                 <version>${influxdb-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>co.elastic.clients</groupId>
-                <artifactId>elasticsearch-java</artifactId>
-                <version>${elasticsearch-java.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
