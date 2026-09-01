@@ -37,7 +37,7 @@
         <druid.version>1.2.21</druid.version>
         <knife4j.version>4.5.0</knife4j.version>
         <hutool.version>5.8.26</hutool.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <fastjson2.version>2.0.47</fastjson2.version>
         <influxdb-client.version>1.35.0</influxdb-client.version>
         <kafka-clients.version>4.3.1</kafka-clients.version>
