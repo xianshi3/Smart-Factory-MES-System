@@ -17,7 +17,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.7.9",
     "echarts": "^6.1.0",
-    "element-plus": "^2.9.1",
+    "element-plus": "^2.14.5",
     "marked": "^18.0.9",
     "nprogress": "^0.2.0",
     "pinia": "^2.3.0",
